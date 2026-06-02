@@ -1,0 +1,246 @@
+{
+  "id": "article-13-transparency",
+  "article": "Article 13",
+  "title": "Transparency Evaluation Tool",
+  "source_file": "Transparency Evaluation Tool - Article 13 AI Act.docx",
+  "description": [
+    "To support the practical implementation of the EU AI Act’s transparency requirements under Article 13, pilot participants are provided with a Transparency evaluation tool outlining the key obligations for high-risk AI systems.",
+    "Article 13 sets out the standards for transparency, requiring AI systems be designed and developed to ensure sufficient transparency, enabling deployers to understand, interpret, and appropriately use the system’s outputs. Transparency must be proportionate to the system’s intended purpose and necessary to meet the legal responsibilities of both providers and deployers. Requirements include developers supply clear, complete, and accessible instructions for use, detailing:",
+    "a) The identity and contact information of the provider (and representative, where applicable)",
+    "b) The characteristics, capabilities, and limitations of the high-risk AI system including:",
+    "(i) The system’s intended purpose",
+    "(ii) The system’s level of performance and metrics across including accuracy, robustness, and cybersecurity referred to in Article 15",
+    "(iii) Any known or foreseeable risks to health, safety, or fundamental rights",
+    "(iv) The technical features that support interpretability and explainability of outputs",
+    "(v) The system’s performance regarding specific persons or groups of persons on which the system is intended to be used",
+    "(vi) Input data specifications, including the nature of training, validation, and testing data used",
+    "(vii) Information enabling deployers to interpret the output of the system and appropriate use",
+    "c) Changes to the system and its performance which have been predetermined by the provider at the moment of the initial conformity assessment",
+    "d) Human oversight measures and technical tools supporting interpretability",
+    "e) Operational requirements, such as hardware, maintenance, expected system lifespan, and logging mechanisms",
+    "f) Mechanisms for deployers to collect, store, and interpret logs in line with Article 12, where applicable"
+  ],
+  "parts": [
+    {
+      "title": "Assessment of the System: Governance & Technical Transparency Measures",
+      "id": "assessment-of-the-system-governance-technical-transparency-measures",
+      "sections": [
+        {
+          "id": "instructions-for-use-ifu",
+          "category": "Instructions for Use (IFU)",
+          "ai_act_references": [
+            "Article 13.2"
+          ],
+          "questions": [
+            {
+              "id": "instructions-for-use-ifu-q01",
+              "text": "Are the Instructions for Use — the documentation that tells deployers how to operate the AI system safely — available in both a human-readable format (e.g. PDF, web page) and a machine-readable format (e.g. JSON, XML)?"
+            },
+            {
+              "id": "instructions-for-use-ifu-q02",
+              "text": "Is the human-readable IFU concise, correct, clear, and accessible to target users?"
+            },
+            {
+              "id": "instructions-for-use-ifu-q03",
+              "text": "Does the IFU include instructions and examples for correctly interpreting system outputs?"
+            },
+            {
+              "id": "instructions-for-use-ifu-q04",
+              "text": "Are contact details and legal identity of the provider (and EU representative, if applicable) disclosed?"
+            },
+            {
+              "id": "instructions-for-use-ifu-q05",
+              "text": "Does the IFU describe limitations on system use in different operational contexts (e.g., demographic, environmental, or task-based)?"
+            }
+          ]
+        },
+        {
+          "id": "system-description-and-intended-purpose",
+          "category": "System Description and Intended Purpose",
+          "ai_act_references": [
+            "Article 13.3.a",
+            "Article 13.b.i",
+            "Article 13.b.iii"
+          ],
+          "questions": [
+            {
+              "id": "system-description-and-intended-purpose-q01",
+              "text": "Where in your documentation is the intended purpose of the AI system stated — i.e. what it is meant to do, who should use it, in what setting, and what uses fall outside its scope?"
+            },
+            {
+              "id": "system-description-and-intended-purpose-q02",
+              "text": "Are criteria for substantial modifications and re-assessment defined?"
+            },
+            {
+              "id": "system-description-and-intended-purpose-q03",
+              "text": "Are forbidden uses described and what risks or limitations they pose?"
+            },
+            {
+              "id": "system-description-and-intended-purpose-q04",
+              "text": "Are interactions between components (including third-party modules) explained?"
+            },
+            {
+              "id": "system-description-and-intended-purpose-q05",
+              "text": "What are the foreseeable ways the AI system could be misused (used outside its intended purpose), and how are those risks communicated to the organisations or people deploying it?"
+            }
+          ]
+        },
+        {
+          "id": "performance-warnings-robustness",
+          "category": "Performance, Warnings & Robustness",
+          "ai_act_references": [
+            "Article 13(3)(b)(ii)",
+            "Article 13(3)(b)(v)",
+            "Article 13(3)(b)(vi)"
+          ],
+          "questions": [
+            {
+              "id": "performance-warnings-robustness-q01",
+              "text": "Are performance metrics (accuracy, precision, recall, etc.) reported with test results?"
+            },
+            {
+              "id": "performance-warnings-robustness-q02",
+              "text": "Are verification and validation methods documented, with supporting test results?"
+            },
+            {
+              "id": "performance-warnings-robustness-q03",
+              "text": "Are subgroup performance differences (including protected groups) analyzed and documented?"
+            },
+            {
+              "id": "performance-warnings-robustness-q04",
+              "text": "Is robustness tested and documented against faults, attacks, and dependency failures?"
+            },
+            {
+              "id": "performance-warnings-robustness-q05",
+              "text": "Are cybersecurity specifications in place and constant updating of these systems documented?"
+            },
+            {
+              "id": "performance-warnings-robustness-q06",
+              "text": "Are robustness specifications included, covering documented events, attributes, assessment results, and incident reporting processes?"
+            },
+            {
+              "id": "performance-warnings-robustness-q07",
+              "text": "Are hardware and software dependencies that affect robustness documented?"
+            },
+            {
+              "id": "performance-warnings-robustness-q08",
+              "text": "Are requirements for input data quality defined (format, completeness, acceptable ranges)?"
+            },
+            {
+              "id": "performance-warnings-robustness-q09",
+              "text": "Is information provided about training, validation, and test datasets (including sources, representativeness, and coverage)?"
+            },
+            {
+              "id": "performance-warnings-robustness-q10",
+              "text": "Are data preparation and preprocessing steps required for operation described and validated?"
+            },
+            {
+              "id": "performance-warnings-robustness-q11",
+              "text": "Are foreseeable risk scenarios documented where the system could produce unreliable or harmful outputs?"
+            },
+            {
+              "id": "performance-warnings-robustness-q12",
+              "text": "Are specific warning indicators or system behaviors that may signal unsafe or degraded performance defined for deployers to monitor?"
+            }
+          ]
+        },
+        {
+          "id": "output-interpretation-interpretability-tools",
+          "category": "Output Interpretation & Interpretability Tools",
+          "ai_act_references": [
+            "Article 13(3)(b)(iv)",
+            "Article 13(3)(b)(vii)",
+            "Article 13(3)(d)"
+          ],
+          "questions": [
+            {
+              "id": "output-interpretation-interpretability-tools-q01",
+              "text": "Are supplemental information types (e.g., uncertainty, attributions, outlier flags) documented?"
+            },
+            {
+              "id": "output-interpretation-interpretability-tools-q02",
+              "text": "Are interpretability tools (e.g., SHAP, LIME) described with their limitations?"
+            },
+            {
+              "id": "output-interpretation-interpretability-tools-q03",
+              "text": "Are there clear instructions on how to act on interpretability outputs?"
+            },
+            {
+              "id": "output-interpretation-interpretability-tools-q04",
+              "text": "Is a risk assessment for potential misinterpretation documented and mitigations in place?"
+            }
+          ]
+        },
+        {
+          "id": "system-changes-updates-continuous-learning",
+          "category": "System Changes, Updates & Continuous Learning",
+          "ai_act_references": [
+            "Article 13(3)(c)"
+          ],
+          "questions": [
+            {
+              "id": "system-changes-updates-continuous-learning-q01",
+              "text": "Are planned automatic or manual updates documented with scope and frequency?"
+            },
+            {
+              "id": "system-changes-updates-continuous-learning-q02",
+              "text": "Are continuous learning mechanisms defined, with monitoring and rollback boundaries?"
+            },
+            {
+              "id": "system-changes-updates-continuous-learning-q03",
+              "text": "Are deployers notified promptly of significant changes or model updates?"
+            },
+            {
+              "id": "system-changes-updates-continuous-learning-q04",
+              "text": "Is there guidance for update validation, rollback, and reversion in case of failure or regression?"
+            }
+          ]
+        },
+        {
+          "id": "computational-resources-maintenance-lifecycle",
+          "category": "Computational Resources, Maintenance & Lifecycle",
+          "ai_act_references": [
+            "Article 13(3)(e)",
+            "Article 13(3)(f)"
+          ],
+          "questions": [
+            {
+              "id": "computational-resources-maintenance-lifecycle-q01",
+              "text": "Are the computational resource requirements for operating the AI system clearly documented (GPU/CPU models, memory, performance benchmarks, RAM specifications, storage capacity, network bandwidth)?"
+            },
+            {
+              "id": "computational-resources-maintenance-lifecycle-q02",
+              "text": "Is the expected operational lifetime of the AI system described?"
+            },
+            {
+              "id": "computational-resources-maintenance-lifecycle-q03",
+              "text": "Does the documentation include an obsolescence plan and describe migration pathways for replacement or transition?"
+            },
+            {
+              "id": "computational-resources-maintenance-lifecycle-q04",
+              "text": "Are expected performance degradation trends over time described, with indicators for when the system requires renewal or reassessment?"
+            },
+            {
+              "id": "computational-resources-maintenance-lifecycle-q05",
+              "text": "Is there a detailed maintenance schedule?"
+            },
+            {
+              "id": "computational-resources-maintenance-lifecycle-q06",
+              "text": "Are performance monitoring thresholds established for detecting abnormal drift or degradation?"
+            },
+            {
+              "id": "computational-resources-maintenance-lifecycle-q07",
+              "text": "Are maintenance activities traceable (logs, versioning, audit records)?"
+            },
+            {
+              "id": "computational-resources-maintenance-lifecycle-q08",
+              "text": "Are expected downtime windows, fallback modes, and user notification procedures defined?"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "section_count": 6,
+  "question_count": 38
+}

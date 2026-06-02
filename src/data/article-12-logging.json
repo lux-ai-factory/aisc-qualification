@@ -1,0 +1,195 @@
+{
+  "id": "article-12-logging",
+  "article": "Article 12",
+  "title": "Article 12 AI Act Documentation & Logging Evaluation Tool",
+  "source_file": "Logging Evaluation Tool - Article 12 AI Act.docx",
+  "description": [
+    "To support the practical implementation of the EU AI Act’s documentation and logging requirements under Article 12, it is important to note that references to logging obligations appear throughout Chapter 3, Section II of the Regulation. The questions included in the following as part of the Documentation and Logging Evaluation Tool have been developed through an analysis of Articles 12, 14, 16, and 19, which collectively outline the expectations for maintaining effective logging and documentation practices in high-risk AI systems.",
+    "For reference, the relevant section of Article 12 requires high-risk systems be designed to automatically record events (logs) throughout their operational lifetime. Thes logging capabilities must provide an appropriate level of traceability to ensure accountability and effective monitoring of the system’s functioning. As such, logs should capture events relevant to:",
+    "identifying situations that may result in the high-risk AI system presenting a risk within the meaning of Article 79(1) or in a substantial modification",
+    "facilitating the post-market monitoring referred to in Article 72",
+    "monitoring the operation of high-risk AI systems referred to in Article 26(5)",
+    "For certain high-risk systems (such as those listed in Annex III, point 1(a)), logs must at minimum record:",
+    "recording of the period of each use of the system (start date and time and end date and time of each use)",
+    "the reference database against which input data has been checked by the system",
+    "the input data for which the search has led to a match",
+    "the identification of the natural persons involved in the verification of the results, as referred to in Article 14(5).",
+    "In addition:",
+    "Article 13(3)(f) requires that high-risk AI systems include mechanisms enabling deployers to collect, store, and interpret logs in accordance with Article 12.",
+    "Article 16(e) specifies that deployers must retain automatically generated logs when these are under their control, as referred to in Article 19.",
+    "Article 19 requires providers retain logs automatically generated under Article 12(1) for at least 6 months, or longer where required by Union or national law, to support traceability, accountability, and compliance. Financial institutions must also maintain these logs as part of their regulatory documentation under relevant financial services legislation."
+  ],
+  "parts": [
+    {
+      "title": "Assessment of the System: Documentation and Logging Measures",
+      "id": "assessment-of-the-system-documentation-and-logging-measures",
+      "sections": [
+        {
+          "id": "governance-design-stage",
+          "category": "Governance & Design Stage",
+          "ai_act_references": [
+            "Article 12",
+            "Article 16",
+            "Article 19"
+          ],
+          "questions": [
+            {
+              "id": "governance-design-stage-q01",
+              "text": "Does your organisation have a documented policy describing how the AI system's events, inputs, and decisions are recorded so its behaviour can be reconstructed later?"
+            },
+            {
+              "id": "governance-design-stage-q02",
+              "text": "Are roles and responsibilities for logging oversight clearly assigned (who maintains, audits, and reviews logs)?"
+            },
+            {
+              "id": "governance-design-stage-q03",
+              "text": "Are access rules and authorization levels documented and aligned with security and data protection requirements?"
+            },
+            {
+              "id": "governance-design-stage-q04",
+              "text": "Has a logging plan been approved by the responsible compliance or risk officer?"
+            },
+            {
+              "id": "governance-design-stage-q05",
+              "text": "Are logging requirements integrated into the system architecture from the design phase (including interfaces and data flows)?"
+            },
+            {
+              "id": "governance-design-stage-q06",
+              "text": "Are procedures in place to ensure logs remain comprehensive and tamper-resistant as the system evolves or updates?"
+            }
+          ]
+        },
+        {
+          "id": "development-stage",
+          "category": "Development Stage",
+          "ai_act_references": [
+            "Article 12.3"
+          ],
+          "questions": [
+            {
+              "id": "development-stage-q01",
+              "text": "Has the provider documented which events are logged (e.g., performance, cybersecurity, modifications, anomalies)?"
+            },
+            {
+              "id": "development-stage-q02",
+              "text": "Does the provider maintain an information model for log fields (event type, timestamp, user ID, action, outcome, etc.)?"
+            },
+            {
+              "id": "development-stage-q03",
+              "text": "At which stages of the AI system's lifecycle are activity logs captured — development, training, validation, testing, and live deployment?"
+            },
+            {
+              "id": "development-stage-q04",
+              "text": "Are logs technically protected (e.g., integrity checks, secure storage, controlled access)?"
+            },
+            {
+              "id": "development-stage-q05",
+              "text": "Are privacy and data protection considerations integrated into the logging design (especially for sensitive data)?"
+            },
+            {
+              "id": "development-stage-q06",
+              "text": "Are justification and rationale for logged events documented in the technical file, especially for safety- or rights-relevant events?"
+            }
+          ]
+        },
+        {
+          "id": "validation-testing-stage",
+          "category": "Validation & Testing Stage",
+          "ai_act_references": [
+            "Article 12.2",
+            "Article 12.3",
+            "Article 13.3.b"
+          ],
+          "questions": [
+            {
+              "id": "validation-testing-stage-q01",
+              "text": "Has the logging mechanism been tested for accuracy, completeness, and resilience against tampering?"
+            },
+            {
+              "id": "validation-testing-stage-q02",
+              "text": "Are procedures in place to verify log accessibility by authorized personnel under controlled conditions?"
+            },
+            {
+              "id": "validation-testing-stage-q03",
+              "text": "Are logs reviewed during validation to confirm they support incident reconstruction and risk assessment?"
+            },
+            {
+              "id": "validation-testing-stage-q04",
+              "text": "Are log analysis tools documented and validated for usability and interpretability?"
+            },
+            {
+              "id": "validation-testing-stage-q05",
+              "text": "Have cybersecurity event logging and alert mechanisms been tested for reliability?"
+            },
+            {
+              "id": "validation-testing-stage-q06",
+              "text": "Is there a process for testing log retention and retrieval?"
+            },
+            {
+              "id": "validation-testing-stage-q07",
+              "text": "Do validation records demonstrate that logging supports monitoring, explainability, and traceability requirements?"
+            }
+          ]
+        },
+        {
+          "id": "deployment-operation-stage",
+          "category": "Deployment & Operation Stage",
+          "ai_act_references": [
+            "Article 12.2",
+            "Article 9"
+          ],
+          "questions": [
+            {
+              "id": "deployment-operation-stage-q01",
+              "text": "Is there a procedure for periodic review of logs to detect anomalies, errors, or security events?"
+            },
+            {
+              "id": "deployment-operation-stage-q02",
+              "text": "Are designated investigators or auditors able to access logs promptly in case of significant incidents?"
+            },
+            {
+              "id": "deployment-operation-stage-q03",
+              "text": "Are logs integrated with the risk management and incident reporting workflows?"
+            },
+            {
+              "id": "deployment-operation-stage-q04",
+              "text": "Are changes to system configurations, models, or parameters automatically logged?"
+            },
+            {
+              "id": "deployment-operation-stage-q05",
+              "text": "Is user feedback captured in logs to support ongoing risk monitoring?"
+            }
+          ]
+        },
+        {
+          "id": "change-management-continuous-improvement-stage",
+          "category": "Change Management & Continuous Improvement Stage",
+          "ai_act_references": [
+            "Article 12.2",
+            "Article 13.3.c"
+          ],
+          "questions": [
+            {
+              "id": "change-management-continuous-improvement-stage-q01",
+              "text": "Are logging mechanisms updated and revalidated when system modifications occur?"
+            },
+            {
+              "id": "change-management-continuous-improvement-stage-q02",
+              "text": "Are update and rollback procedures logged to maintain traceability of software or model versions?"
+            },
+            {
+              "id": "change-management-continuous-improvement-stage-q03",
+              "text": "Are procedures in place to ensure continuity of logs across version updates or infrastructure migrations?"
+            },
+            {
+              "id": "change-management-continuous-improvement-stage-q04",
+              "text": "Are lessons learned from incident investigations used to refine logging practices?"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "section_count": 5,
+  "question_count": 28
+}

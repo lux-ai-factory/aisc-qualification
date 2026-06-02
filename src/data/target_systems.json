@@ -1,0 +1,286 @@
+[
+  {
+    "id": "multimodal",
+    "name": "Multimodal",
+    "items": [
+      {
+        "id": "multimodal-understanding",
+        "name": "Multimodal Understanding"
+      },
+      {
+        "id": "multimodal-generation",
+        "name": "Multimodal Generation"
+      },
+      {
+        "id": "multimodal-retrieval",
+        "name": "Multimodal Retrieval"
+      }
+    ]
+  },
+  {
+    "id": "computer-vision",
+    "name": "Computer Vision",
+    "items": [
+      {
+        "id": "image-understanding-classification",
+        "name": "Image Understanding & Classification"
+      },
+      {
+        "id": "object-detection-segmentation",
+        "name": "Object Detection & Segmentation"
+      },
+      {
+        "id": "image-generation-editing",
+        "name": "Image Generation & Editing"
+      },
+      {
+        "id": "video-understanding-generation",
+        "name": "Video Understanding & Generation"
+      },
+      {
+        "id": "3d-understanding-generation",
+        "name": "3D Understanding & Generation"
+      },
+      {
+        "id": "depth-spatial-estimation",
+        "name": "Depth & Spatial Estimation"
+      }
+    ]
+  },
+  {
+    "id": "natural-language-processing",
+    "name": "Natural Language Processing",
+    "items": [
+      {
+        "id": "text-understanding-classification",
+        "name": "Text Understanding & Classification"
+      },
+      {
+        "id": "question-answering",
+        "name": "Question Answering"
+      },
+      {
+        "id": "text-generation-summarization",
+        "name": "Text Generation & Summarization"
+      },
+      {
+        "id": "sentence-semantic-similarity",
+        "name": "Sentence & Semantic Similarity"
+      },
+      {
+        "id": "information-extraction",
+        "name": "Information Extraction"
+      }
+    ]
+  },
+  {
+    "id": "audio",
+    "name": "Audio",
+    "items": [
+      {
+        "id": "speech-audio-recognition",
+        "name": "Speech & Audio Recognition"
+      },
+      {
+        "id": "speech-audio-generation",
+        "name": "Speech & Audio Generation"
+      }
+    ]
+  },
+  {
+    "id": "knowledge-retrieval",
+    "name": "Knowledge & Retrieval",
+    "items": [
+      {
+        "id": "retrieval-augmented-generation-rag",
+        "name": "Retrieval-Augmented Generation (RAG)"
+      },
+      {
+        "id": "semantic-search",
+        "name": "Semantic Search"
+      },
+      {
+        "id": "knowledge-graph-systems",
+        "name": "Knowledge Graph Systems"
+      },
+      {
+        "id": "document-intelligence",
+        "name": "Document Intelligence"
+      }
+    ]
+  },
+  {
+    "id": "recommendation-personalization",
+    "name": "Recommendation & Personalization",
+    "items": [
+      {
+        "id": "collaborative-filtering",
+        "name": "Collaborative Filtering"
+      },
+      {
+        "id": "content-based-recommendation",
+        "name": "Content-Based Recommendation"
+      },
+      {
+        "id": "hybrid-sequential-recommendation",
+        "name": "Hybrid & Sequential Recommendation"
+      },
+      {
+        "id": "personalization",
+        "name": "Personalization"
+      }
+    ]
+  },
+  {
+    "id": "predictive-analytical-ai",
+    "name": "Predictive & Analytical AI",
+    "items": [
+      {
+        "id": "predictive-analytics",
+        "name": "Predictive Analytics"
+      },
+      {
+        "id": "time-series-forecasting",
+        "name": "Time Series Forecasting"
+      },
+      {
+        "id": "risk-scoring-assessment",
+        "name": "Risk Scoring & Assessment"
+      },
+      {
+        "id": "causal-inference",
+        "name": "Causal Inference"
+      }
+    ]
+  },
+  {
+    "id": "anomaly-detection",
+    "name": "Anomaly Detection",
+    "items": [
+      {
+        "id": "anomaly-outlier-detection",
+        "name": "Anomaly & Outlier Detection"
+      },
+      {
+        "id": "monitoring-alerting",
+        "name": "Monitoring & Alerting"
+      }
+    ]
+  },
+  {
+    "id": "tabular-structured-data",
+    "name": "Tabular & Structured Data",
+    "items": [
+      {
+        "id": "tabular-classification-regression",
+        "name": "Tabular Classification & Regression"
+      },
+      {
+        "id": "feature-engineering-selection",
+        "name": "Feature Engineering & Selection"
+      }
+    ]
+  },
+  {
+    "id": "decision-optimization",
+    "name": "Decision & Optimization",
+    "items": [
+      {
+        "id": "decision-support-systems",
+        "name": "Decision Support Systems"
+      },
+      {
+        "id": "constraint-optimization",
+        "name": "Constraint Optimization"
+      },
+      {
+        "id": "simulation-scenario-modeling",
+        "name": "Simulation & Scenario Modeling"
+      }
+    ]
+  },
+  {
+    "id": "reinforcement-learning-control",
+    "name": "Reinforcement Learning & Control",
+    "items": [
+      {
+        "id": "rl-sequential-decision-making",
+        "name": "RL & Sequential Decision-Making"
+      },
+      {
+        "id": "robotics-embodied-ai",
+        "name": "Robotics & Embodied AI"
+      },
+      {
+        "id": "process-control-automation",
+        "name": "Process Control & Automation"
+      }
+    ]
+  },
+  {
+    "id": "agents-agentic-systems",
+    "name": "Agents & Agentic Systems",
+    "items": [
+      {
+        "id": "task-planning-decomposition",
+        "name": "Task Planning & Decomposition"
+      },
+      {
+        "id": "tool-use-api-orchestration",
+        "name": "Tool Use & API Orchestration"
+      },
+      {
+        "id": "memory-context-management",
+        "name": "Memory & Context Management"
+      },
+      {
+        "id": "multi-agent-coordination",
+        "name": "Multi-Agent Coordination"
+      },
+      {
+        "id": "human-in-the-loop-systems",
+        "name": "Human-in-the-Loop Systems"
+      },
+      {
+        "id": "autonomous-workflow-execution",
+        "name": "Autonomous Workflow Execution"
+      }
+    ]
+  },
+  {
+    "id": "ai-safety-governance",
+    "name": "AI Safety & Governance",
+    "items": [
+      {
+        "id": "content-moderation",
+        "name": "Content Moderation"
+      },
+      {
+        "id": "privacy-preserving-ai",
+        "name": "Privacy-Preserving AI"
+      }
+    ]
+  },
+  {
+    "id": "other",
+    "name": "Other",
+    "items": [
+      {
+        "id": "graph-machine-learning",
+        "name": "Graph Machine Learning"
+      },
+      {
+        "id": "neuromorphic-edge-ai",
+        "name": "Neuromorphic & Edge AI"
+      },
+      {
+        "id": "quantum-classical-hybrid-ai",
+        "name": "Quantum-Classical Hybrid AI"
+      },
+      {
+        "id": "synthetic-data-generation",
+        "name": "Synthetic Data Generation"
+      }
+    ]
+  }
+]

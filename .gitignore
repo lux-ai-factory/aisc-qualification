@@ -1,0 +1,21 @@
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+.env
+.env.local
+.env*.local
+*.log
+.DS_Store
+.vscode/
+.idea/
+.claude/
+postgres-data/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo

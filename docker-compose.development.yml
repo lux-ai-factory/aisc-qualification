@@ -1,0 +1,60 @@
+# aisc platform fragment for apps/qualification.
+#
+# Merge with the platform infra (which provides the shared Postgres `postgres`
+# on the `backend` network):
+#   docker compose --env-file env.development \
+#     -f docker-compose-infra.development.yml \
+#     -f apps/qualification/docker-compose.development.yml up -d qualification-web
+#
+# Platform-side prereqs:
+#   - A `qualification` database in the shared Postgres (the web container runs
+#     `prisma db push` on start, but the DB must exist — add it to the infra init).
+#   - A provider key (e.g. ANTHROPIC_API_KEY) available for the qualification-llm
+#     service via the platform env / a secret — NOT committed here.
+#   - A Caddy route: /qualification* -> qualification-web:3000.
+#
+# Build contexts are relative to the PLATFORM PROJECT ROOT (assumes the submodule
+# is mounted at apps/qualification), matching the platform's apps/<name>/ style.
+
+services:
+  # LiteLLM completion sidecar — holds the provider key; the app calls it over HTTP.
+  qualification-llm:
+    build: apps/qualification/services/llm
+    container_name: qualification-llm
+    environment:
+      # Default provider is Mistral; LiteLLM picks the key matching LLM_MODEL.
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LLM_MODEL: ${QUALIFICATION_LLM_MODEL:-mistral/mistral-large-latest}
+    restart: unless-stopped
+    networks: [backend]
+
+  # System-card PDF renderer sidecar.
+  qualification-pdf:
+    build: apps/qualification/services/system_card_renderer
+    container_name: qualification-pdf
+    restart: unless-stopped
+    networks: [backend]
+
+  qualification-web:
+    build:
+      context: apps/qualification
+      args:
+        # Set QUALIFICATION_BASE_PATH=/qualification for subpath routing behind Caddy.
+        NEXT_BASE_PATH: ${QUALIFICATION_BASE_PATH:-}
+    container_name: qualification-web
+    env_file: apps/qualification/env.development
+    depends_on:
+      - postgres
+      - qualification-llm
+      - qualification-pdf
+    ports:
+      # Optional direct access; behind Caddy you can drop this. 3200 avoids
+      # clashing with the platform webapp (3000) and controls (3100).
+      - "${QUALIFICATION_WEB_PORT:-3200}:3000"
+    restart: unless-stopped
+    networks: [backend, frontend]
+
+networks:
+  backend:
+  frontend:

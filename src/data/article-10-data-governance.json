@@ -1,0 +1,663 @@
+{
+  "id": "article-10-data-governance",
+  "article": "Article 10",
+  "title": "Article 10 AI Act Data & Data Governance Evaluation Tool",
+  "source_file": "Data and Data Governance Evaluation Tool - Article 10 AI Act.docx",
+  "description": [
+    "To support the practical implementation of the EU AI Act’s data and data governance obligations, we provide pilot participants a Data & Data Governance Evaluation Tool. This tool helps evaluate training, validation and testing datasets and their governance structures against the requirements for high risk AI systems laid down in article 10 of the AI Act.",
+    "Article 10.1 prescribes that: ‘high-risk AI systems which make use of techniques involving the training of AI models with data shall be developed on the basis of training, validation and testing data sets that meet the quality criteria referred to in paragraphs 2 to 5 whenever such data sets are used.’",
+    "Article 10 can be roughly divided into three parts:",
+    "Data governance and management requirements (10.2)",
+    "Data quality requirements (10.3 and 10.4)",
+    "Exceptions for the use of personal data (10.5)",
+    "Art. 10(6) provides and exception for AI systems that do not use data for training of models, stating that the above requirements only apply to the testing data.",
+    "Flow and set up of the Evaluation Tool",
+    "The requirements laid down in 10.2, 10.3 and 10.4 must be evaluated both at dataset level, as well as at data feature level to assess compliance. Hence this evaluation tool follows a two-stage approach: a dataset-level assessment and a data feature-level assessment, the latter repeated for each separate feature under review.",
+    "Rather than providing an article-by-article assessment, the evaluation tool follows the flow of the technological (development) process and composition of AI systems. This approach is aimed at ensuring that the right questions are addressed at logical instances. Hence, for each question, the tool refers to those requirements of Article 10 that the specific question is relevant to. The tool also provides a granular approach to the requirements of Article 10, as each separate paragraph of contains multiple requirements. This approach is aimed at ensuring that all relevant requirements are evaluated.",
+    "A data dictionary is provided as an annex to this exercise to record and track any changes made to datasets and the wider data collection process. Maintaining clear and detailed documentation is necessary to support ongoing compliance efforts, particularly those related to the justification requirements set out in paragraph 10.2 and the documentation requirements set out in Article 11 of the EU AI Act.",
+    "The process is split into three parts:",
+    "Part I - General scoping and assessment of the entire dataset Part II - Data feature analysis and assessment",
+    "ANNEX – Data Dictionary to document findings",
+    "While the exercise contributes to meeting certain EU AI Act obligations, it does not necessarily ensure full legal compliance.",
+    "Part II: Data Feature Level Assessment",
+    "Data features are the individual, measurable properties or characteristics in a dataset. For tabular data, they typically correspond to the columns in a dataset and serve as the input variables for analysis and machine learning. Evaluating data against the requirements of Article 10 not only requires assessment of the dataset, but also of the specific features that in the dataset shape model behaviour and outputs. Consequently, examining individual data features is a foundational component of compliance because it enables the identification and management of data quality issues, biases, and risks that may not be apparent at the dataset level."
+  ],
+  "parts": [
+    {
+      "title": "Part I: Dataset Level Analysis",
+      "id": "part-i-dataset-level-analysis",
+      "sections": [
+        {
+          "id": "data-source",
+          "category": "Data Source",
+          "ai_act_references": [
+            "Article 10.2.b",
+            "Article 10.4",
+            "Annex IV.1.a"
+          ],
+          "questions": [
+            {
+              "id": "data-source-q01",
+              "text": "Where does the data used to train and evaluate this AI system come from? For example, proprietary data your organisation collected, an open-source dataset, data licensed from a third party, or synthetic data."
+            },
+            {
+              "id": "data-source-q02",
+              "text": "What are the legal ramifications of the dataset source?"
+            },
+            {
+              "id": "data-source-q03",
+              "text": "What is the data repository? (public repository where the dataset can be found)"
+            },
+            {
+              "id": "data-source-q04",
+              "text": "Who owns the dataset?"
+            },
+            {
+              "id": "data-source-q05",
+              "text": "Which institutes/organisations are the dataset owners affiliated with? If so, are there any data (sharing) agreements that are or should be consolidated?"
+            },
+            {
+              "id": "data-source-q06",
+              "text": "Who has access to the data/ the datasets? (internally & externally)"
+            },
+            {
+              "id": "data-source-q07",
+              "text": "Was the dataset split? If so, how?"
+            },
+            {
+              "id": "data-source-q08",
+              "text": "Which dataset did you use for validation?"
+            }
+          ]
+        },
+        {
+          "id": "purpose-of-data-collection",
+          "category": "Purpose of Data collection",
+          "ai_act_references": [
+            "Annex IV.1.a"
+          ],
+          "questions": [
+            {
+              "id": "purpose-of-data-collection-q01",
+              "text": "What is the purpose this data will be used for (use cases)?"
+            },
+            {
+              "id": "purpose-of-data-collection-q02",
+              "text": "Is the volume of data collected proportional to the scope of the intended purpose?"
+            },
+            {
+              "id": "purpose-of-data-collection-q03",
+              "text": "What are suitable use cases for this dataset?"
+            },
+            {
+              "id": "purpose-of-data-collection-q04",
+              "text": "What are unsuitable use-cases for this dataset?"
+            }
+          ]
+        },
+        {
+          "id": "data-type",
+          "category": "Data Type",
+          "ai_act_references": [
+            "Article 10.3",
+            "Article 10.4"
+          ],
+          "questions": [
+            {
+              "id": "data-type-q01",
+              "text": "What form is this data in? (e.g. structured, unstructured, semi-structured, etc)"
+            },
+            {
+              "id": "data-type-q02",
+              "text": "What are the data types present in the dataset? (e.g. image, audio, text, video, etc.)"
+            },
+            {
+              "id": "data-type-q03",
+              "text": "Does the dataset contain any special categories of personal data under GDPR? If yes, what kind?"
+            },
+            {
+              "id": "data-type-q04",
+              "text": "If the dataset contained personal data, how was the data features anonymised or pseudonymised?"
+            }
+          ]
+        },
+        {
+          "id": "free-of-errors-and-complete",
+          "category": "Free of Errors and Complete",
+          "ai_act_references": [
+            "Article 10.2.h",
+            "Article 10.3"
+          ],
+          "questions": [
+            {
+              "id": "free-of-errors-and-complete-q01",
+              "text": "Is the dataset free of errors?"
+            },
+            {
+              "id": "free-of-errors-and-complete-q02",
+              "text": "Who has taken responsibility to evaluate and check the dataset? What methodologies were used?"
+            },
+            {
+              "id": "free-of-errors-and-complete-q03",
+              "text": "Are there any inconsistencies in the dataset?"
+            },
+            {
+              "id": "free-of-errors-and-complete-q04",
+              "text": "Are there any duplicate entries?"
+            },
+            {
+              "id": "free-of-errors-and-complete-q05",
+              "text": "Are there any missing values?"
+            },
+            {
+              "id": "free-of-errors-and-complete-q06",
+              "text": "Are there any significant outliers or anomalies?"
+            },
+            {
+              "id": "free-of-errors-and-complete-q07",
+              "text": "Is there version consistency?"
+            },
+            {
+              "id": "free-of-errors-and-complete-q08",
+              "text": "Are the units of measurement consistent throughout the dataset?"
+            },
+            {
+              "id": "free-of-errors-and-complete-q09",
+              "text": "Are the data formats consistent throughout the dataset?"
+            }
+          ]
+        },
+        {
+          "id": "sufficiently-representative",
+          "category": "Sufficiently Representative",
+          "ai_act_references": [
+            "Article 10.2.f",
+            "Article 10.3",
+            "Article 10.4"
+          ],
+          "questions": [
+            {
+              "id": "sufficiently-representative-q01",
+              "text": "What demographic information and domain is the dataset aiming to represent?"
+            },
+            {
+              "id": "sufficiently-representative-q02",
+              "text": "What is the minimum sample size to represent the population sufficiently and significantly?"
+            },
+            {
+              "id": "sufficiently-representative-q03",
+              "text": "Is the dataset sufficiently large to capture the variability and complexity of the underlying phenomena? Is the dataset representative of the target population or domain?"
+            },
+            {
+              "id": "sufficiently-representative-q04",
+              "text": "Are there enough samples from minority or underrepresented groups to avoid biases and ensure fairness?"
+            },
+            {
+              "id": "sufficiently-representative-q05",
+              "text": "Does the dataset reflect temporal changes, and are those changes relevant?"
+            },
+            {
+              "id": "sufficiently-representative-q06",
+              "text": "Is the dataset being updated to reflect evolving trends and changes?"
+            },
+            {
+              "id": "sufficiently-representative-q07",
+              "text": "Has the training data been reviewed for biases that could lead to unfair or harmful outcomes for specific groups of people (e.g. by age, gender, ethnicity, disability)? If yes, briefly describe how."
+            },
+            {
+              "id": "sufficiently-representative-q08",
+              "text": "Is the dataset sufficiently representative in view of the intended purpose?"
+            }
+          ]
+        },
+        {
+          "id": "suitability",
+          "category": "Suitability",
+          "ai_act_references": [
+            "Article 10.2.d"
+          ],
+          "questions": [
+            {
+              "id": "suitability-q01",
+              "text": "Does the dataset cover the full scope of scenarios the AI system will encounter?"
+            }
+          ]
+        },
+        {
+          "id": "data-collection",
+          "category": "Data Collection",
+          "ai_act_references": [
+            "Article 10.2.b"
+          ],
+          "questions": [
+            {
+              "id": "data-collection-q01",
+              "text": "How was this data collected? What collection methods were used?"
+            },
+            {
+              "id": "data-collection-q02",
+              "text": "What were the sampling methods used?"
+            },
+            {
+              "id": "data-collection-q03",
+              "text": "Could any of the sampling methods biased towards a particular group? If yes, is this bias necessary to fulfil the intended purpose?"
+            },
+            {
+              "id": "data-collection-q04",
+              "text": "What are specific and appropriate measures that address the identified bias?"
+            },
+            {
+              "id": "data-collection-q05",
+              "text": "When was this data collected?"
+            },
+            {
+              "id": "data-collection-q06",
+              "text": "What were the general criteria for including the selected data features/data points?"
+            },
+            {
+              "id": "data-collection-q07",
+              "text": "What data features/data points were excluded? Based on what criteria?"
+            },
+            {
+              "id": "data-collection-q08",
+              "text": "Has the dataset been checked for the individual data features? Are those correct and complete?"
+            }
+          ]
+        },
+        {
+          "id": "data-characteristics",
+          "category": "Data Characteristics",
+          "ai_act_references": [
+            "Article 10.2.e",
+            "Article 10.3"
+          ],
+          "questions": [
+            {
+              "id": "data-characteristics-q01",
+              "text": "Volume: What is the volume of the data?"
+            },
+            {
+              "id": "data-characteristics-q02",
+              "text": "What volume of data is necessary for the development of the AI system, keeping in mind the data minimisation principle?"
+            },
+            {
+              "id": "data-characteristics-q03",
+              "text": "Velocity: What is the speed at which the data arrives?"
+            },
+            {
+              "id": "data-characteristics-q04",
+              "text": "Variety: How varied are the data types and sources?"
+            },
+            {
+              "id": "data-characteristics-q05",
+              "text": "What is the data sample size?"
+            },
+            {
+              "id": "data-characteristics-q06",
+              "text": "Were (parts of) the dataset(s) unavailable?"
+            }
+          ]
+        },
+        {
+          "id": "data-processing",
+          "category": "Data Processing",
+          "ai_act_references": [
+            "Article 10.2.c",
+            "Article 10.2.f",
+            "Article 10.2.g"
+          ],
+          "questions": [
+            {
+              "id": "data-processing-q01",
+              "text": "What data processing techniques were used? (e.g. cleaning, normalisation, standardization)"
+            },
+            {
+              "id": "data-processing-q02",
+              "text": "Was data labelling used? Was the labelling manual or automatic? What are the ground truths attached to each label?"
+            },
+            {
+              "id": "data-processing-q03",
+              "text": "Are the data processing techniques appropriate, given the intended purposes? If no, which data processing elements are inappropriate and why?"
+            },
+            {
+              "id": "data-processing-q04",
+              "text": "What data processing tools were used?"
+            },
+            {
+              "id": "data-processing-q05",
+              "text": "Are there any inconsistencies in the data processing that might affect the completeness of the dataset?"
+            },
+            {
+              "id": "data-processing-q06",
+              "text": "Have any possible biases been identified at the level of data preparation processing operations that may impact the datasets?"
+            },
+            {
+              "id": "data-processing-q07",
+              "text": "What are specific and appropriate measures that address the identified bias?"
+            }
+          ]
+        },
+        {
+          "id": "statistical-properties",
+          "category": "Statistical properties",
+          "ai_act_references": [
+            "Article 10.3"
+          ],
+          "questions": [
+            {
+              "id": "statistical-properties-q01",
+              "text": "What are the measures of central tendency? Do these measures accurately represent the dataset?"
+            },
+            {
+              "id": "statistical-properties-q02",
+              "text": "What is the variability of the dataset around the central tendency? Are there any outliers or extreme values present?"
+            },
+            {
+              "id": "statistical-properties-q03",
+              "text": "Are there significant differences in statistical properties within the dataset?"
+            }
+          ]
+        },
+        {
+          "id": "relevance-and-suitability",
+          "category": "Relevance and suitability",
+          "ai_act_references": [
+            "Article 10.2.d",
+            "Article 10.3"
+          ],
+          "questions": [
+            {
+              "id": "relevance-and-suitability-q01",
+              "text": "What are the assumptions that are formulated with respect to the information the dataset is supposed to represent and measure? Are these assumptions appropriate, reasonable and fair in light of the AI system’s intended purpose?"
+            },
+            {
+              "id": "relevance-and-suitability-q02",
+              "text": "What is the rationale behind these assumptions if you look at the people that the system is going to be used for? (ANNEX IV 2(b))"
+            },
+            {
+              "id": "relevance-and-suitability-q03",
+              "text": "Do the relevant formulated assumptions target a specific vulnerable group? And are those formulations likely to harm that group? If so, how can the formulations be adjusted?"
+            },
+            {
+              "id": "relevance-and-suitability-q04",
+              "text": "Will the dataset provide meaningful insights or outcomes? If so, what are they?"
+            },
+            {
+              "id": "relevance-and-suitability-q05",
+              "text": "Are there any outlier cases that need to be included in the dataset?"
+            }
+          ]
+        },
+        {
+          "id": "data-fairness",
+          "category": "Data Fairness",
+          "ai_act_references": [
+            "Article 10.2.f",
+            "Article 10.3"
+          ],
+          "questions": [
+            {
+              "id": "data-fairness-q01",
+              "text": "Have any possible biases that are likely to affect the health of persons been identified as a result of this examination?"
+            },
+            {
+              "id": "data-fairness-q02",
+              "text": "Have any possible biases that are likely to affect the safety of persons been identified as a result of this examination?"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Assessment of an Individual Data Feature",
+      "id": "assessment-of-an-individual-data-feature",
+      "sections": [
+        {
+          "id": "scale",
+          "category": "Scale",
+          "ai_act_references": [
+            "Article 10.2.f",
+            "Article 10.2.h",
+            "Article 10.3"
+          ],
+          "questions": [
+            {
+              "id": "scale-q01",
+              "text": "What is the scale of the data feature?"
+            },
+            {
+              "id": "scale-q02",
+              "text": "Can the scale introduce errors/bias/unfairness/unsafety into the system? If so, how?"
+            }
+          ]
+        },
+        {
+          "id": "volume",
+          "category": "Volume",
+          "ai_act_references": [
+            "Article 10.2.f",
+            "Article 10.2.h",
+            "Article 10.3"
+          ],
+          "questions": [
+            {
+              "id": "volume-q01",
+              "text": "What is the volume of the data feature?"
+            },
+            {
+              "id": "volume-q02",
+              "text": "Can the volume introduce errors/bias/unfairness/unsafety into the system? If so, how?"
+            }
+          ]
+        },
+        {
+          "id": "distribution",
+          "category": "Distribution",
+          "ai_act_references": [
+            "Article 10.2.f",
+            "Article 10.3"
+          ],
+          "questions": [
+            {
+              "id": "distribution-q01",
+              "text": "What is the distribution of the data feature? Is the distribution representative in view of the intended purpose?"
+            }
+          ]
+        },
+        {
+          "id": "relevance",
+          "category": "Relevance",
+          "ai_act_references": [
+            "Article 10.2.d",
+            "Article 10.3"
+          ],
+          "questions": [
+            {
+              "id": "relevance-q01",
+              "text": "Is the information provided by the data feature necessary and proportionate for the intended purpose?"
+            },
+            {
+              "id": "relevance-q02",
+              "text": "What is the information in the data feature supposed to measure and represent?"
+            },
+            {
+              "id": "relevance-q03",
+              "text": "What are the assumptions that are formulated with respect to the information the data feature is supposed to represent and measure?"
+            },
+            {
+              "id": "relevance-q04",
+              "text": "Where do these assumptions come from? Are there any historical, social, or cultural biases that underpin these assumptions?"
+            }
+          ]
+        },
+        {
+          "id": "free-of-errors",
+          "category": "Free of errors",
+          "ai_act_references": [
+            "Article 10.2.f",
+            "Article 10.2.h",
+            "Article 10.3"
+          ],
+          "questions": [
+            {
+              "id": "free-of-errors-q01",
+              "text": "Are there any missing elements re. the data feature?"
+            }
+          ]
+        },
+        {
+          "id": "complete",
+          "category": "Complete",
+          "ai_act_references": [
+            "Article 10.2.b",
+            "Article 10.2.h",
+            "Article 10.3"
+          ],
+          "questions": [
+            {
+              "id": "complete-q01",
+              "text": "Does the data feature, considering its scale, provide a complete view/ representation of the group(s) it aims to represent?"
+            },
+            {
+              "id": "complete-q02",
+              "text": "Does the data feature, considering its volume provide a complete view/representation of the group(s) it aims to represent?"
+            },
+            {
+              "id": "complete-q03",
+              "text": "Is the feature a characteristic that is relevant for the geographical setting of the system"
+            }
+          ]
+        },
+        {
+          "id": "geographical-elements",
+          "category": "Geographical elements",
+          "ai_act_references": [
+            "Article 10.4"
+          ],
+          "questions": [
+            {
+              "id": "geographical-elements-q01",
+              "text": "In light of the system’s intended purpose, are there geographical elements that should be taken into account re. the data feature?"
+            }
+          ]
+        },
+        {
+          "id": "contextual-elements",
+          "category": "Contextual elements",
+          "ai_act_references": [
+            "Article 10.4"
+          ],
+          "questions": [
+            {
+              "id": "contextual-elements-q01",
+              "text": "In light of the system’s intended purpose, are there contextual elements that should be taken into account re. the data feature?"
+            }
+          ]
+        },
+        {
+          "id": "behavioural-elements",
+          "category": "Behavioural elements",
+          "ai_act_references": [
+            "Article 10.4"
+          ],
+          "questions": [
+            {
+              "id": "behavioural-elements-q01",
+              "text": "In light of the system’s intended purpose, are there behavioral elements that should be taken into account re. the data feature?"
+            }
+          ]
+        },
+        {
+          "id": "functional-elements",
+          "category": "Functional elements",
+          "ai_act_references": [
+            "Article 10.4"
+          ],
+          "questions": [
+            {
+              "id": "functional-elements-q01",
+              "text": "In light of the system’s intended purpose, are there functional elements that should be taken into account re. the data feature?"
+            }
+          ]
+        },
+        {
+          "id": "data-feature-interaction",
+          "category": "Data Feature Interaction",
+          "ai_act_references": [
+            "Article 10.2.f",
+            "Article 10.3"
+          ],
+          "questions": [
+            {
+              "id": "data-feature-interaction-q01",
+              "text": "Are there any interactions with other features that could collectively introduce or amplify any biases or unfair outcomes that may not be apparent when considering a data feature in isolation?"
+            },
+            {
+              "id": "data-feature-interaction-q02",
+              "text": "Within the context of the data point, is the information provided by the data feature necessary and proportionate for the intended purposes? Could interactions with other features negate this?"
+            },
+            {
+              "id": "data-feature-interaction-q03",
+              "text": "Can the combination of multiple sensitive data features increase the discrimination potential?"
+            }
+          ]
+        },
+        {
+          "id": "type-of-data-feature",
+          "category": "Type of data feature",
+          "ai_act_references": [
+            "Article 10.5"
+          ],
+          "questions": [
+            {
+              "id": "type-of-data-feature-q01",
+              "text": "Is the data variable/feature considered personal data under the GDPR?"
+            },
+            {
+              "id": "type-of-data-feature-q02",
+              "text": "Is the data variable/feature considered a special category of personal data under the GDPR?"
+            },
+            {
+              "id": "type-of-data-feature-q03",
+              "text": "Is the processing of the special category personal data variable/feature strictly necessary for bias detection / correction? Could other data (including synthetic / anonymised) fulfil it?"
+            },
+            {
+              "id": "type-of-data-feature-q04",
+              "text": "Do the processing activity records adequately document and reflect the reasons for processing this data feature, including why the alternatives are insufficient?"
+            },
+            {
+              "id": "type-of-data-feature-q05",
+              "text": "Are there technical limitations on reuse, and privacy‐preserving measures (pseudonymisation etc.) in place? For example, has personal data been non-reversibly anonymized?"
+            },
+            {
+              "id": "type-of-data-feature-q06",
+              "text": "Are access controls, documentation of access, and confidentiality obligations in place for this special category personal data feature?"
+            },
+            {
+              "id": "type-of-data-feature-q07",
+              "text": "Is there a deletion or retention plan for this special category personal data feature, to ensure it is removed once bias has been corrected or the retention period has expired?"
+            },
+            {
+              "id": "type-of-data-feature-q08",
+              "text": "Are there safeguards to ensure the data will not be transmitted or otherwise accessed by unauthorised parties?"
+            },
+            {
+              "id": "type-of-data-feature-q09",
+              "text": "Is the data variable/feature prohibited ground for discrimination (Art. 21 European Charter of Fundamental Rights)?"
+            },
+            {
+              "id": "type-of-data-feature-q10",
+              "text": "Could the data variable/feature infringe upon other equality, non-discrimination, fair treatment rights?"
+            },
+            {
+              "id": "type-of-data-feature-q11",
+              "text": "Could the data variable/feature be a proxy for a prohibited ground of discrimination, or lead to infringement of other equality, non-discrimination, and fair treatment rights? (Art. 21 European Charter of Fundamental Rights)"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "section_count": 24,
+  "question_count": 96
+}

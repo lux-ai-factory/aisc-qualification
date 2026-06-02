@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ card.system_name }} — AI Act System Card</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="cover">
+  <div class="eyebrow">EU AI Act — System Card</div>
+  <h1>{{ card.system_name }}</h1>
+  <p class="subtitle">
+    {{ card.provider }} · v{{ card.system_version }}
+    {% if card.generated_at %}
+      · generated {{ card.generated_at }}
+    {% endif %}
+  </p>
+
+  <table class="meta">
+    <tr>
+      <th>Provider</th>
+      <td>{{ card.provider }}</td>
+    </tr>
+    <tr>
+      <th>Version</th>
+      <td>{{ card.system_version }}</td>
+    </tr>
+    <tr>
+      <th>Target systems</th>
+      <td>
+        {% for t in card.classification.target_systems %}
+          <span class="chip">{{ t.category }} / {{ t.subcategory }}</span>
+        {% endfor %}
+        {% if not card.classification.target_systems %}—{% endif %}
+      </td>
+    </tr>
+    <tr>
+      <th>Sectors</th>
+      <td>
+        {% for s in card.classification.sectors %}
+          <span class="chip chip--sector">{{ s }}</span>
+        {% endfor %}
+        {% if not card.classification.sectors %}—{% endif %}
+      </td>
+    </tr>
+  </table>
+</header>
+
+<section>
+  <h2>1 · Overview</h2>
+  <p>{{ card.overview }}</p>
+  <dl class="kv">
+    <dt>Description</dt>
+    <dd>{{ card.description }}</dd>
+    <dt>Target use case</dt>
+    <dd>{{ card.target_use_case }}</dd>
+    <dt>Target users</dt>
+    <dd>{{ card.target_users }}</dd>
+  </dl>
+</section>
+
+{% for finding in card.findings %}
+<section class="finding">
+  <h2>{{ loop.index + 1 }} · {{ finding.article }} — {{ finding.title }}</h2>
+  <p>{{ finding.summary }}</p>
+  {% if finding.points %}
+  <ul>
+    {% for p in finding.points %}
+      <li>{{ p }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if finding.references %}
+  <p class="refs">References: {{ finding.references | join(", ") }}</p>
+  {% endif %}
+</section>
+{% endfor %}
+
+<section>
+  <h2>{{ card.findings|length + 2 }} · Open issues / gaps</h2>
+  {% if card.open_issues %}
+  <ul>
+    {% for issue in card.open_issues %}
+      <li>{{ issue }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No open issues recorded by the evaluator.</p>
+  {% endif %}
+</section>
+
+<footer>
+  <p class="muted">
+    This system card was generated from a structured AI Act qualification.
+    {% if card.qualification_id %}
+      Qualification ID: <code>{{ card.qualification_id }}</code>.
+    {% endif %}
+  </p>
+</footer>
+
+</body>
+</html>
