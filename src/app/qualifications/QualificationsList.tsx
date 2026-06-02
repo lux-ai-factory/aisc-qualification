@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import { tools } from "@/data";
+import { resolveKeyQuestion } from "@/data/keyQuestions";
 import { generateSystemCard } from "../qualify/[id]/actions";
 
 type Answer = {
@@ -15,11 +15,9 @@ type Answer = {
 type SystemCardJson = {
   overview?: string;
   findings?: Array<{
-    article: string;
     title: string;
     summary: string;
     points?: string[];
-    references?: string[];
   }>;
   open_issues?: string[];
   classification?: {
@@ -278,11 +276,9 @@ function CardView({ item }: { item: ListItem }) {
           <p>{card.overview}</p>
         </section>
       )}
-      {card.findings?.map((f) => (
-        <section key={f.article} className="qf-modal-section">
-          <h3>
-            {f.article} — {f.title}
-          </h3>
+      {card.findings?.map((f, fi) => (
+        <section key={f.title || fi} className="qf-modal-section">
+          <h3>{f.title}</h3>
           <p>{f.summary}</p>
           {f.points && f.points.length > 0 && (
             <ul>
@@ -290,11 +286,6 @@ function CardView({ item }: { item: ListItem }) {
                 <li key={i}>{p}</li>
               ))}
             </ul>
-          )}
-          {f.references && f.references.length > 0 && (
-            <p className="qf-list-meta">
-              References: {f.references.join(", ")}
-            </p>
           )}
         </section>
       ))}
@@ -371,18 +362,14 @@ function DetailsView({
       <section className="qf-modal-section">
         <h3>Answers ({item.answers.length})</h3>
         {item.answers.map((a) => {
-          const meta = resolveQuestion(a.toolId, a.questionId);
+          const meta = resolveKeyQuestion(a.toolId, a.questionId);
           return (
             <div key={a.id} className="qf-answer">
               <code>
                 {a.toolId}:{a.questionId}
               </code>
-              {meta && (
-                <p className="qf-list-meta">
-                  {meta.tool.article} · {meta.section.category}
-                </p>
-              )}
-              {meta && <p className="qf-answer-q">{meta.question.text}</p>}
+              {meta && <p className="qf-list-meta">{meta.groupLabel}</p>}
+              {meta && <p className="qf-answer-q">{meta.text}</p>}
               <p>{a.answer}</p>
             </div>
           );
@@ -390,16 +377,4 @@ function DetailsView({
       </section>
     </>
   );
-}
-
-function resolveQuestion(toolId: string, questionId: string) {
-  const tool = tools[toolId];
-  if (!tool) return null;
-  for (const part of tool.parts) {
-    for (const section of part.sections) {
-      const question = section.questions.find((q) => q.id === questionId);
-      if (question) return { tool, section, question };
-    }
-  }
-  return null;
 }

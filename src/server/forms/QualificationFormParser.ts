@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TaxonomyService, taxonomyService } from "@/domain/Taxonomy";
-import { KEY_QUESTIONS } from "@/data/keyQuestions";
+import { KEY_QUESTIONS, keyQuestionIdSet } from "@/data/keyQuestions";
 import type { AnswerInput } from "@/server/repositories/QualificationRepository";
 
 const metadataSchema = z.object({
@@ -64,18 +64,18 @@ export class QualificationFormParser {
 
     const missing: string[] = [];
     for (const k of KEY_QUESTIONS) {
-      const value = formData.get(`q:${k.toolId}:${k.questionId}`);
+      const value = formData.get(`q:${k.group}:${k.id}`);
       if (typeof value !== "string" || value.trim().length === 0) {
-        missing.push(k.questionId);
+        missing.push(k.id);
       }
     }
     if (missing.length > 0) {
       throw new FormValidationError(
-        `Please answer all key questions (${missing.length} missing).`,
+        `Please answer all questions (${missing.length} missing).`,
       );
     }
 
-    const validIds = this.taxonomy.validQuestionIds();
+    const validIds = keyQuestionIdSet();
     const answers: AnswerInput[] = [];
     for (const [field, raw] of formData.entries()) {
       if (!field.startsWith("q:")) continue;

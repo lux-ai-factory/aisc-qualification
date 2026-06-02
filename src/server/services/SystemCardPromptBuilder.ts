@@ -1,5 +1,5 @@
 import type { AnswerInput } from "@/server/repositories/QualificationRepository";
-import { TaxonomyService, taxonomyService } from "@/domain/Taxonomy";
+import { KEY_QUESTION_GROUPS, resolveKeyQuestion } from "@/data/keyQuestions";
 
 export type PromptInput = {
   systemName: string;
@@ -14,38 +14,30 @@ export type PromptInput = {
 };
 
 export class SystemCardPromptBuilder {
-  static readonly SYSTEM = `You are a regulatory-compliance writer producing AI system cards aligned with the EU AI Act.
+  static readonly SYSTEM = `You are a technical writer producing structured system cards for AI systems.
 
-You will receive structured metadata about an AI system, its classification (one or more target-system tags and one or more sector tags drawn from a controlled taxonomy), and a set of evaluator answers tagged with the AI Act article and question they respond to.
+You will receive structured metadata about an AI system, its classification (one or more target-system tags and one or more sector tags drawn from a controlled taxonomy), and a set of answers grouped by topic.
 
 Respond with a single JSON object — no prose, no markdown fences — that exactly matches this schema:
 
 {
-  "overview": "<1-2 paragraph executive summary of what the system does and how it stands against the AI Act>",
+  "overview": "<1-2 paragraph executive summary of what the system does and its overall maturity>",
   "findings": [
     {
-      "article": "Article 10",
-      "title": "Data & Data Governance",
-      "summary": "<1 paragraph synthesizing the evaluator's answers for this article>",
-      "points": ["<bullet 1>", "<bullet 2>"],
-      "references": ["Article 10.2.b", ...]
-    },
-    { "article": "Article 12", "title": "Documentation & Logging", ... },
-    { "article": "Article 13", "title": "Transparency", ... },
-    { "article": "Article 14", "title": "Human Oversight", ... }
+      "title": "<the topic area, e.g. Data & data governance>",
+      "summary": "<1 paragraph synthesizing the answers for this topic>",
+      "points": ["<bullet 1>", "<bullet 2>"]
+    }
   ],
   "open_issues": ["<gap or unanswered area 1>", ...]
 }
 
 Rules:
-- Be factual and concise. Do not invent details the evaluator did not provide.
-- Include exactly four findings, in the order Article 10, 12, 13, 14.
-- Quote the evaluator's wording where useful.
+- Be factual and concise. Do not invent details the answers did not provide.
+- Produce one finding per topic area that has answers, using the topic name as the title, in the order the topics appear.
+- Quote the respondent's wording where useful.
 - Use 2-5 bullets per finding.
-- Put unanswered or partially answered topics under "open_issues"; if all topics are covered, return an empty array.
-- "references" is a list of AI Act article references touched by that finding.`;
-
-  constructor(private readonly taxonomy: TaxonomyService = taxonomyService) {}
+- Put unanswered or partially answered topics under "open_issues"; if all topics are covered, return an empty array.`;
 
   buildUserPrompt(input: PromptInput): string {
     const lines: string[] = [];
@@ -66,26 +58,30 @@ Rules:
     lines.push(`- Sectors: ${input.sectors.join(", ") || "none"}`);
     lines.push("");
 
-    const byTool = new Map<string, AnswerInput[]>();
+    const byGroup = new Map<string, AnswerInput[]>();
     for (const a of input.answers) {
-      const list = byTool.get(a.toolId) ?? [];
+      const list = byGroup.get(a.toolId) ?? [];
       list.push(a);
-      byTool.set(a.toolId, list);
+      byGroup.set(a.toolId, list);
     }
 
-    for (const toolId of [...byTool.keys()].sort()) {
-      const tool = this.taxonomy.getTool(toolId);
-      const answers = byTool.get(toolId)!;
-      if (!tool) continue;
-      lines.push(`## Evaluator answers — ${tool.article} (${tool.title})`);
+    // Emit groups in their canonical order, then any unrecognised groups.
+    const orderedGroupIds = [
+      ...KEY_QUESTION_GROUPS.map((g) => g.id).filter((id) => byGroup.has(id)),
+      ...[...byGroup.keys()].filter(
+        (id) => !KEY_QUESTION_GROUPS.some((g) => g.id === id),
+      ),
+    ];
+
+    for (const groupId of orderedGroupIds) {
+      const answers = byGroup.get(groupId)!;
+      const label =
+        KEY_QUESTION_GROUPS.find((g) => g.id === groupId)?.label ?? groupId;
+      lines.push(`## Answers — ${label}`);
       for (const a of answers) {
-        const resolved = this.taxonomy.resolveQuestion(a.toolId, a.questionId);
-        const questionText = resolved?.question.text ?? a.questionId;
-        const refs = resolved?.section.ai_act_references ?? [];
-        const category = resolved?.section.category;
-        const refSuffix = refs.length ? ` [${refs.join(", ")}]` : "";
-        const catPrefix = category ? `${category} — ` : "";
-        lines.push(`- **${catPrefix}${questionText}**${refSuffix}`);
+        const question = resolveKeyQuestion(a.toolId, a.questionId);
+        const questionText = question?.text ?? a.questionId;
+        lines.push(`- **${questionText}**`);
         lines.push(`  Answer: ${a.answer}`);
       }
       lines.push("");

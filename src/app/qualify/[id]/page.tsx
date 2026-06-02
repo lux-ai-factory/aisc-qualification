@@ -30,7 +30,7 @@ export default async function QualificationDetailPage({
 
       <section className="qf-cta">
         <div>
-          <h2>Generate the AI Act system card</h2>
+          <h2>Generate the system card</h2>
           <p>
             {q.systemCardJson
               ? `Last generated ${lastGeneratedAt} UTC — regenerate to pick up new answers.`

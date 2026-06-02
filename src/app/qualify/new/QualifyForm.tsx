@@ -1,20 +1,12 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import type { Question, Sector, TargetSystemCategory } from "@/data";
+import type { Sector, TargetSystemCategory } from "@/data";
+import type { KeyQuestion } from "@/data/keyQuestions";
 import { submitQualification, type SubmitState } from "./actions";
 
-type ToolKeyQuestion = {
-  toolId: string;
-  toolTitle: string;
-  toolArticle: string;
-  sectionCategory: string;
-  question: Question;
-  references: string[];
-};
-
 type Props = {
-  keyQuestions: ToolKeyQuestion[];
+  keyQuestions: KeyQuestion[];
   targetSystems: TargetSystemCategory[];
   sectors: Sector[];
 };
@@ -130,32 +122,20 @@ export default function QualifyForm({
       </section>
 
       <section className="qf-section">
-        <h2>Key compliance questions</h2>
-        <p className="qf-help">
-          A short selection drawn from Articles 10, 12, 13, and 14. All required
-          to submit.
-        </p>
-        {keyQuestions.map((kq) => (
-          <div key={`${kq.toolId}:${kq.question.id}`} className="field">
-            <label htmlFor={`q:${kq.toolId}:${kq.question.id}`}>
-              <span className="qf-tag">{kq.toolArticle}</span>{" "}
-              <span className="qf-cat">{kq.sectionCategory}</span>
-              <br />
-              {kq.question.text}
-            </label>
-            <textarea
-              id={`q:${kq.toolId}:${kq.question.id}`}
-              name={`q:${kq.toolId}:${kq.question.id}`}
-              rows={2}
-              required
-            />
-            {kq.references.length > 0 && (
-              <span className="qf-refs">
-                References: {kq.references.join(", ")}
-              </span>
-            )}
-          </div>
-        ))}
+        <h2>Questions</h2>
+        <p className="qf-help">All required to submit.</p>
+        {keyQuestions.map((kq, i) => {
+          const fieldId = `q:${kq.group}:${kq.id}`;
+          const isGroupStart =
+            i === 0 || keyQuestions[i - 1].group !== kq.group;
+          return (
+            <div key={fieldId} className="field">
+              {isGroupStart && <h3 className="qf-group">{kq.groupLabel}</h3>}
+              <label htmlFor={fieldId}>{kq.text}</label>
+              <textarea id={fieldId} name={fieldId} rows={2} required />
+            </div>
+          );
+        })}
       </section>
 
       <div className="qf-actions">

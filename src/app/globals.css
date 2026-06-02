@@ -308,6 +308,22 @@ a:hover {
   gap: 14px;
 }
 
+.qualify-form .qf-group {
+  margin: 22px 0 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.qualify-form .field:first-of-type .qf-group {
+  margin-top: 4px;
+  padding-top: 0;
+  border-top: none;
+}
+
 .qualify-form .qf-tag {
   display: inline-block;
   background: var(--panel-2);

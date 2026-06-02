@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>{{ card.system_name }} — AI Act System Card</title>
+  <title>{{ card.system_name }} — System Card</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
 <header class="cover">
-  <div class="eyebrow">EU AI Act — System Card</div>
+  <div class="eyebrow">AI System Card</div>
   <h1>{{ card.system_name }}</h1>
   <p class="subtitle">
     {{ card.provider }} · v{{ card.system_version }}
@@ -62,7 +62,7 @@
 
 {% for finding in card.findings %}
 <section class="finding">
-  <h2>{{ loop.index + 1 }} · {{ finding.article }} — {{ finding.title }}</h2>
+  <h2>{{ loop.index + 1 }} · {{ finding.title }}</h2>
   <p>{{ finding.summary }}</p>
   {% if finding.points %}
   <ul>
@@ -70,9 +70,6 @@
       <li>{{ p }}</li>
     {% endfor %}
   </ul>
-  {% endif %}
-  {% if finding.references %}
-  <p class="refs">References: {{ finding.references | join(", ") }}</p>
   {% endif %}
 </section>
 {% endfor %}
@@ -92,7 +89,7 @@
 
 <footer>
   <p class="muted">
-    This system card was generated from a structured AI Act qualification.
+    This system card was generated from a structured AI system qualification.
     {% if card.qualification_id %}
       Qualification ID: <code>{{ card.qualification_id }}</code>.
     {% endif %}
