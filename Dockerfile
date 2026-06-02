@@ -27,6 +27,11 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
+# `next start` re-reads next.config at runtime for basePath/assetPrefix; without
+# it the baked /qualification basePath is dropped and the app serves at root
+# (Caddy's /qualification* route then 404s). tsconfig is needed to load the .ts config.
+COPY --from=builder /app/next.config.ts ./next.config.ts
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 USER app
 EXPOSE 3000
 CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx next start -p 3000"]
