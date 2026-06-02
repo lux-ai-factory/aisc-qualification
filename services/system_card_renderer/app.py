@@ -1,4 +1,4 @@
-"""FastAPI service that renders an AI Act system-card JSON to HTML/PDF.
+"""FastAPI service that renders a system-card JSON to HTML/PDF.
 
 Run locally:
     pip install -r requirements.txt

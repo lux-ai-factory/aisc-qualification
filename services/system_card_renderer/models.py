@@ -1,4 +1,4 @@
-"""Pydantic schemas for the AI Act system card payload."""
+"""Pydantic schemas for the system card payload."""
 
 from __future__ import annotations
 
@@ -17,16 +17,14 @@ class Classification(BaseModel):
     sectors: List[str] = Field(default_factory=list)
 
 
-class ArticleFinding(BaseModel):
-    article: str = Field(..., description='e.g. "Article 10"')
-    title: str = Field(..., description="Human title for the article")
+class Finding(BaseModel):
+    title: str = Field(..., description="The topic area, e.g. Data & data governance")
     summary: str = Field(..., description="One-paragraph synthesis")
     points: List[str] = Field(default_factory=list)
-    references: List[str] = Field(default_factory=list)
 
 
 class SystemCard(BaseModel):
-    """Machine-readable AI Act system card."""
+    """Machine-readable system card."""
 
     system_name: str
     system_version: str
@@ -36,7 +34,7 @@ class SystemCard(BaseModel):
     target_users: str
     classification: Classification
     overview: str
-    findings: List[ArticleFinding] = Field(default_factory=list)
+    findings: List[Finding] = Field(default_factory=list)
     open_issues: List[str] = Field(default_factory=list)
     generated_at: Optional[str] = None
     qualification_id: Optional[str] = None

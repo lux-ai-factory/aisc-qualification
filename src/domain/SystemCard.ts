@@ -2,17 +2,15 @@ import type { Qualification } from "@prisma/client";
 import type { ResolvedTargetSystem } from "./Taxonomy";
 import type { Sector } from "@/data";
 
-export type ArticleFinding = {
-  article: string;
+export type Finding = {
   title: string;
   summary: string;
   points: string[];
-  references: string[];
 };
 
 export type RawSystemCard = {
   overview: string;
-  findings: ArticleFinding[];
+  findings: Finding[];
   open_issues: string[];
 };
 
