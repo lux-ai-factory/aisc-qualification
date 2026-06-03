@@ -8,6 +8,10 @@ const basePath = process.env.NEXT_BASE_PATH || undefined;
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   ...(basePath ? { basePath, assetPrefix: basePath } : {}),
+  // basePath only rewrites next/link and Next-owned assets — raw <a href> in
+  // client components must prefix it themselves. Inline it into the client
+  // bundle at build time so they can.
+  env: { NEXT_PUBLIC_BASE_PATH: basePath || "" },
 };
 
 export default nextConfig;

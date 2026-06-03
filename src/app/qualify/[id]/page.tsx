@@ -10,6 +10,10 @@ export default async function QualificationDetailPage({
 }) {
   const { id } = await params;
 
+  // Raw <a href> links are not rewritten by Next's basePath — prefix explicitly
+  // (same pattern as SiteHeader) so the download works when served under a subpath.
+  const basePath = process.env.NEXT_BASE_PATH || "";
+
   const q = await qualificationService.get(id);
   if (!q) notFound();
 
@@ -49,7 +53,7 @@ export default async function QualificationDetailPage({
           <p>
             <a
               className="btn"
-              href={`/api/qualifications/${q.id}/system-card.pdf`}
+              href={`${basePath}/api/qualifications/${q.id}/system-card.pdf`}
               target="_blank"
               rel="noopener noreferrer"
               style={{ width: "auto", padding: "10px 16px" }}

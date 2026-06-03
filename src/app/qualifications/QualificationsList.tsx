@@ -45,6 +45,11 @@ export type ListItem = {
 
 type ModalKind = "details" | "card" | null;
 
+// next.config inlines NEXT_PUBLIC_BASE_PATH at build time. Raw <a href> links
+// are not rewritten by Next's basePath, so prefix them explicitly (otherwise
+// the downloads 404 when the app is served under e.g. /qualification).
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
 export default function QualificationsList({
   items: initialItems,
 }: {
@@ -141,7 +146,7 @@ export default function QualificationsList({
                   </button>
                   <a
                     className="btn ghost"
-                    href={`/api/qualifications/${item.id}/system-card.pdf`}
+                    href={`${basePath}/api/qualifications/${item.id}/system-card.pdf`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -149,7 +154,7 @@ export default function QualificationsList({
                   </a>
                   <a
                     className="btn ghost"
-                    href={`/api/qualifications/${item.id}/system-card.json`}
+                    href={`${basePath}/api/qualifications/${item.id}/system-card.json`}
                     download
                   >
                     Download JSON
@@ -239,7 +244,7 @@ function CardView({ item }: { item: ListItem }) {
       >
         <a
           className="btn"
-          href={`/api/qualifications/${item.id}/system-card.pdf`}
+          href={`${basePath}/api/qualifications/${item.id}/system-card.pdf`}
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -247,7 +252,7 @@ function CardView({ item }: { item: ListItem }) {
         </a>
         <a
           className="btn ghost"
-          href={`/api/qualifications/${item.id}/system-card.json`}
+          href={`${basePath}/api/qualifications/${item.id}/system-card.json`}
           download
         >
           Download JSON
@@ -349,7 +354,7 @@ function DetailsView({
         {item.hasSystemCard && (
           <a
             className="btn"
-            href={`/api/qualifications/${item.id}/system-card.pdf`}
+            href={`${basePath}/api/qualifications/${item.id}/system-card.pdf`}
             target="_blank"
             rel="noopener noreferrer"
             style={{ width: "auto", padding: "10px 16px" }}
