@@ -101,3 +101,10 @@ Migrations run on container start.
   service name) when the app runs in compose, `localhost` when running `npm run dev` on
   the host.
 - **Schema drift after a pull** — run `docker compose exec app npx prisma migrate deploy`.
+
+---
+
+##  License
+
+This document is part of the AISC project, licensed under the [Apache License 2.0](LICENSE).  
+© 2024–2026 Université du Luxembourg and Luxembourg Institute of Science and Technology (LIST). Originally developed within the SerVal Research Group and the Interdisciplinary Centre for Security, Reliability and Trust (SnT).
