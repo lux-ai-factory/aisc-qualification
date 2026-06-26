@@ -13,6 +13,10 @@ COPY . .
 # Path-prefix routing (e.g. /qualification behind Caddy). Empty = served at root.
 ARG NEXT_BASE_PATH=""
 ENV NEXT_BASE_PATH=$NEXT_BASE_PATH
+# Keycloak URL baked into the client bundle at build time (Next inlines NEXT_PUBLIC_* during build).
+# Empty -> the app falls back to its dev default (http://localhost:8081). Set to the real URL for prod.
+ARG NEXT_PUBLIC_KEYCLOAK_URL=""
+ENV NEXT_PUBLIC_KEYCLOAK_URL=$NEXT_PUBLIC_KEYCLOAK_URL
 RUN npx prisma generate
 RUN npm run build
 
