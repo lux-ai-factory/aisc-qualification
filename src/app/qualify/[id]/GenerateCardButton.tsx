@@ -1,5 +1,4 @@
 "use client";
-import keycloak from "@/auth/keycloak";
 
 import { useState, useTransition } from "react";
 import { generateSystemCard } from "./actions";
@@ -17,7 +16,7 @@ export default function GenerateCardButton({
   const onClick = () => {
     setError(null);
     startTransition(async () => {
-      const res = await generateSystemCard(qualificationId, keycloak.token);
+      const res = await generateSystemCard(qualificationId);
       if (res?.error) setError(res.error);
     });
   };
