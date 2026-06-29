@@ -4,7 +4,6 @@ import { useActionState, useState } from "react";
 import type { Sector, TargetSystemCategory } from "@/data";
 import type { KeyQuestion } from "@/data/keyQuestions";
 import { submitQualification, type SubmitState } from "./actions";
-import keycloak from "@/auth/keycloak";
 
 type Props = {
   keyQuestions: KeyQuestion[];
@@ -41,9 +40,6 @@ export default function QualifyForm({
 
   return (
     <form action={formAction} className="qualify-form">
-      {/* Forward the user's Keycloak token so the server action attributes the audit event to the
-          verified user (server sets `what`; the token only supplies the "who"). */}
-      <input type="hidden" name="kc_token" value={keycloak.token ?? ""} />
       {state?.error && <div className="error">{state.error}</div>}
 
       <section className="qf-section">
