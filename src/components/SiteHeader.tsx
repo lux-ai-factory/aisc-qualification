@@ -1,5 +1,4 @@
 import Link from "next/link";
-import AuthButtons from "@/components/AuthButtons";
 
 export default function SiteHeader() {
   // Static files in public/ are not prefixed with the configured basePath the
@@ -15,7 +14,6 @@ export default function SiteHeader() {
           <span className="divider" />
           <span>AI System Qualification</span>
         </Link>
-        <AuthButtons />
       </div>
     </header>
   );
