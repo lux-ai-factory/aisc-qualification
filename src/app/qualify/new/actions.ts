@@ -22,8 +22,10 @@ export async function submitQualification(
   // forwarded Keycloak token gives the verified "who". Best-effort — never throws.
   await auditEvent({
     token: formData.get("kc_token")?.toString(),
-    what: "qualification:create",
-    consequence: { qualificationId: created.id },
+    action: "create",
+    resource_type: "qualification",
+    resource_id: created.id,
+    metadata: {},
   });
   redirect(`/qualifications`);
 }

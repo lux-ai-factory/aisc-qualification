@@ -23,7 +23,8 @@ export async function generateSystemCard(
   }
   revalidatePath(`/qualify/${qualificationId}`);
   revalidatePath(`/qualifications`);
-  await auditEvent({ token, what: "systemcard:generate", consequence: { qualificationId } });
+  await auditEvent({ token, action: "generate", resource_type: "systemcard",
+                     resource_id: qualificationId, metadata: {} });
   return { ok: true };
 }
 
