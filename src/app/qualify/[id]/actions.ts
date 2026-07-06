@@ -8,11 +8,13 @@ import {
   RendererUnreachableError,
 } from "@/server/services/SystemCardRendererClient";
 import { qualificationRepository } from "@/server/repositories/QualificationRepository";
+import { auditEvent } from "@/lib/audit";
 
 export type GenerateState = { error?: string; ok?: boolean } | undefined;
 
 export async function generateSystemCard(
   qualificationId: string,
+  token?: string,
 ): Promise<GenerateState> {
   try {
     await systemCardGenerator.generate(qualificationId);
@@ -21,6 +23,8 @@ export async function generateSystemCard(
   }
   revalidatePath(`/qualify/${qualificationId}`);
   revalidatePath(`/qualifications`);
+  await auditEvent({ token, action: "generate", resource_type: "systemcard",
+                     resource_id: qualificationId, metadata: {} });
   return { ok: true };
 }
 

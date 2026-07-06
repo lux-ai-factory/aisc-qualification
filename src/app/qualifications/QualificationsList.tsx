@@ -1,4 +1,5 @@
 "use client";
+import keycloak from "@/auth/keycloak";
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
@@ -85,7 +86,7 @@ export default function QualificationsList({
     setError(null);
     setBusyId(id);
     startTransition(async () => {
-      const res = await generateSystemCard(id);
+      const res = await generateSystemCard(id, keycloak.token);
       setBusyId(null);
       if (res?.error) {
         setError(res.error);
