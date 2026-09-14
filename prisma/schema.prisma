@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Qualification {
+  id                String                @id @default(cuid())
+  systemName        String
+  systemVersion     String
+  company           String
+  description       String
+  targetUseCase     String
+  targetUsers       String
+  targetSystemTags  String[]              @default([])
+  sectorTags        String[]              @default([])
+  systemCard        String?
+  systemCardJson    Json?
+  systemCardAt      DateTime?
+  systemCardPdfPath String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  answers           QualificationAnswer[]
+}
+
+model QualificationAnswer {
+  id              String        @id @default(cuid())
+  qualificationId String
+  toolId          String
+  questionId      String
+  answer          String
+  qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
+
+  @@unique([qualificationId, questionId])
+  @@index([qualificationId, toolId])
+}

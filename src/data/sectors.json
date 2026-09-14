@@ -1,0 +1,94 @@
+[
+  {
+    "id": "agriculture",
+    "name": "Agriculture"
+  },
+  {
+    "id": "competition",
+    "name": "Competition"
+  },
+  {
+    "id": "corporate-governance",
+    "name": "Corporate governance"
+  },
+  {
+    "id": "defence",
+    "name": "Defence"
+  },
+  {
+    "id": "digital-economy",
+    "name": "Digital Economy"
+  },
+  {
+    "id": "economy",
+    "name": "Economy"
+  },
+  {
+    "id": "education",
+    "name": "Education"
+  },
+  {
+    "id": "employment-labour",
+    "name": "Employment & labour"
+  },
+  {
+    "id": "environment",
+    "name": "Environment"
+  },
+  {
+    "id": "finance-and-insurance",
+    "name": "Finance and insurance"
+  },
+  {
+    "id": "health",
+    "name": "Health"
+  },
+  {
+    "id": "inclusive-development",
+    "name": "Inclusive development"
+  },
+  {
+    "id": "industry-entrepreneurship",
+    "name": "Industry & entrepreneurship"
+  },
+  {
+    "id": "innovation",
+    "name": "Innovation"
+  },
+  {
+    "id": "investment",
+    "name": "Investment"
+  },
+  {
+    "id": "other",
+    "name": "Other"
+  },
+  {
+    "id": "public-governance",
+    "name": "Public governance"
+  },
+  {
+    "id": "public-sector",
+    "name": "Public sector"
+  },
+  {
+    "id": "science-technology",
+    "name": "Science & technology"
+  },
+  {
+    "id": "social-welfare-issues",
+    "name": "Social & welfare issues"
+  },
+  {
+    "id": "tax",
+    "name": "Tax"
+  },
+  {
+    "id": "transport",
+    "name": "Transport"
+  },
+  {
+    "id": "trade",
+    "name": "Trade"
+  }
+]

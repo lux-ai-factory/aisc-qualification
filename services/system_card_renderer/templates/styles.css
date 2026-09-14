@@ -1,0 +1,159 @@
+@page {
+  size: A4;
+  margin: 22mm 18mm 18mm;
+  @bottom-center {
+    content: "Page " counter(page) " of " counter(pages);
+    font-family: "Helvetica", "Arial", sans-serif;
+    font-size: 9pt;
+    color: #888;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Helvetica", "Arial", sans-serif;
+  font-size: 10.5pt;
+  color: #1a1a1a;
+  line-height: 1.5;
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #142b60;
+}
+
+h1 {
+  font-size: 30pt;
+  margin: 8pt 0 4pt;
+  line-height: 1.1;
+}
+
+h2 {
+  font-size: 14pt;
+  margin: 22pt 0 8pt;
+  border-bottom: 1px solid #d8dde8;
+  padding-bottom: 4pt;
+}
+
+p {
+  margin: 0 0 8pt;
+}
+ul {
+  margin: 0 0 12pt 18pt;
+  padding: 0;
+}
+li {
+  margin-bottom: 3pt;
+}
+
+.eyebrow {
+  font-size: 9pt;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #c2185b;
+  font-weight: 800;
+  margin-bottom: 8pt;
+}
+
+.subtitle {
+  color: #565656;
+  font-size: 11pt;
+  margin: 0 0 18pt;
+}
+
+.cover {
+  border-bottom: 3px solid #142b60;
+  padding-bottom: 14pt;
+  margin-bottom: 18pt;
+}
+
+table.meta {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10pt;
+  font-size: 10pt;
+}
+table.meta th,
+table.meta td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5pt 8pt;
+  border-bottom: 1px solid #ecedf2;
+}
+table.meta th {
+  width: 28%;
+  color: #565656;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 9pt;
+}
+
+dl.kv {
+  margin: 8pt 0 0;
+  padding: 0;
+}
+dl.kv dt {
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #565656;
+  font-weight: 700;
+  margin-top: 8pt;
+}
+dl.kv dd {
+  margin: 2pt 0 0;
+  padding: 0;
+}
+
+.finding {
+  page-break-inside: avoid;
+}
+
+.refs {
+  color: #565656;
+  font-size: 9pt;
+  font-style: italic;
+  margin-top: -4pt;
+}
+
+.muted {
+  color: #565656;
+}
+
+footer {
+  margin-top: 24pt;
+  padding-top: 10pt;
+  border-top: 1px solid #d8dde8;
+  font-size: 9pt;
+}
+
+code {
+  background: #f4f5f9;
+  padding: 1pt 4pt;
+  border-radius: 2pt;
+  font-family: "Courier New", monospace;
+  font-size: 9pt;
+}
+
+.chip {
+  display: inline-block;
+  background: #e9eefa;
+  color: #142b60;
+  font-weight: 700;
+  padding: 2pt 8pt;
+  margin: 0 4pt 4pt 0;
+  border-radius: 12pt;
+  font-size: 9pt;
+}
+.chip--sector {
+  background: #fce7ee;
+  color: #8a1242;
+}
