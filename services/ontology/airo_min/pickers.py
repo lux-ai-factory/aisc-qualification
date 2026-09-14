@@ -19,8 +19,13 @@ import os
 from pathlib import Path
 
 _PACKAGE = Path(__file__).resolve().parent
-# .../apps/qualification/services/ontology/airo_min -> apps/qualification
-_APP_ROOT = _PACKAGE.parents[2]
+# .../apps/qualification/services/ontology/airo_min -> apps/qualification.
+# In the image the package sits at /app/airo_min, which has no third parent, so
+# this falls back to the filesystem root and the repo-layout candidate below
+# simply misses. Computing it unguarded raised IndexError at import time, which
+# killed the service before the vocabulary fallbacks could be tried at all.
+_PARENTS = _PACKAGE.parents
+_APP_ROOT = _PARENTS[2] if len(_PARENTS) > 2 else _PARENTS[-1]
 
 
 def candidate_paths() -> list[Path]:
