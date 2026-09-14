@@ -1,0 +1,6 @@
+rdflib==7.6.0
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+pytest==8.4.1
+httpx==0.28.1

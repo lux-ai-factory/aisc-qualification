@@ -1,0 +1,2096 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/*
+ * Luxembourg AI Factory brand palette.
+ *  Dominant blue  #000FDF  → primary action colour
+ *  Bright pink    #FF007E  → accent / highlight
+ *  Cyan           #0099FF  → info / soft tint at 20% (#CCEBFF)
+ *  Red            #E30613  → error / danger
+ *  Black scale    #000000 / #333 / #666 / #CCC for text and rules
+ */
+:root {
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #f5f6fa;
+  --text: #000000;
+  --muted: #666666;
+  --primary: #000fdf;
+  --primary-hover: #000079;
+  --accent: #ff007e;
+  --accent-hover: #cc0066;
+  --info: #0099ff;
+  --info-soft: #ccebff;
+  --pink-soft: #ffcce5;
+  --border: #e3e6ef;
+  --border-strong: #cccccc;
+  --error: #e30613;
+  /* The graph needs more contrast than the form: #e3e6ef borders and #cccccc
+     strokes disappear against white at canvas zoom levels. */
+  --graph-line: #7b8499;
+  --graph-line-soft: #aab2c2;
+  --graph-node-border: #8a93a6;
+  --graph-text: #1a1f2b;
+  --graph-muted: #4a5265;
+  --radius: 0px;
+  font-family:
+    "Inter",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--accent);
+}
+
+/* Site header — full-width, logo flush left, nav flush right */
+.site-header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(0, 15, 223, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.site-header .inner {
+  width: 100%;
+  margin: 0;
+  padding: 20px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+.site-header .brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-weight: 900;
+  color: var(--text);
+  font-size: 19px;
+  letter-spacing: -0.01em;
+}
+.site-header .brand img {
+  height: 48px;
+  width: auto;
+  display: block;
+}
+.site-header .brand .divider {
+  width: 1px;
+  height: 30px;
+  background: var(--border-strong);
+}
+
+/* Form fields */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.field label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.field input {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 11px 13px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+}
+.field input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 15, 223, 0.1);
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  width: 100%;
+  background: var(--primary);
+  color: #ffffff;
+  border: 0;
+  border-radius: var(--radius);
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+.btn:hover {
+  background: var(--accent);
+  color: #ffffff;
+}
+.btn:disabled {
+  background: #b8bcc8;
+  cursor: not-allowed;
+}
+.btn.ghost {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+.btn.ghost:hover {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 22px;
+}
+.tabs button {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  padding: 10px 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: -1px;
+  font-family: inherit;
+}
+.tabs button.active {
+  color: var(--primary);
+  border-bottom-color: var(--accent);
+}
+
+.error {
+  background: #fdecf2;
+  border: 1px solid #f5b8cd;
+  color: var(--accent);
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+
+/* Welcome page */
+.welcome {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 96px 32px 120px;
+  min-height: calc(100vh - 180px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.welcome .eyebrow {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 18px;
+}
+.welcome h1 {
+  font-size: 64px;
+  margin: 0 0 24px;
+  line-height: 1.05;
+}
+.welcome p {
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 20px;
+  max-width: 760px;
+  margin-inline: auto;
+}
+.welcome .actions {
+  margin-top: 44px;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+.welcome .actions .btn {
+  width: auto;
+  padding: 18px 34px;
+  font-size: 16px;
+}
+
+/* Qualification form */
+.qualify-page {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 48px 24px 96px;
+}
+/* A compiled qualification runs nearly edge to edge: the answered form reads
+   across the width and Figure 3 spans five columns. The 56px keeps a gutter and
+   stays clear of the scrollbar, which 100vw does not account for. */
+.qualify-page--wide {
+  max-width: min(1900px, calc(100vw - 56px));
+}
+/* The form being filled in sits between the two: wider than a reading column,
+   because its short fields pair up and its answers are paragraphs, but nothing
+   like the card's width, because an input 1900px wide is not a form. */
+.qualify-page--form {
+  max-width: 1080px;
+}
+.qf-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.qf-header-btn {
+  flex-shrink: 0;
+  width: auto;
+  padding: 10px 18px;
+  white-space: nowrap;
+}
+.qualify-header h1 {
+  margin: 0 0 8px;
+  font-size: 30px;
+}
+.qualify-header p {
+  color: var(--muted);
+  margin: 0 0 32px;
+  line-height: 1.5;
+}
+
+.qualify-form .qf-section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 2px rgba(0, 15, 223, 0.03);
+}
+.qualify-form .qf-section h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+.qualify-form .qf-help {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
+
+.qualify-form textarea {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 11px 13px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  resize: vertical;
+  width: 100%;
+}
+.qualify-form textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 15, 223, 0.1);
+}
+
+.qualify-form .qf-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.qualify-form .qf-group {
+  margin: 22px 0 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.qualify-form .field:first-of-type .qf-group {
+  margin-top: 4px;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* Annex IV questions are full sentences, some of them long: they need sentence
+   case and a readable line height, not the uppercase treatment .field label
+   gives short metadata labels. */
+.qualify-form .qf-question {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text);
+  line-height: 1.55;
+}
+.qualify-form .qf-question-text {
+  flex: 1 1 100%;
+}
+.qualify-form .qf-citation {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+.qualify-form .qf-optional {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  border: 1px dashed var(--border-strong);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+/* Metadata labels keep the uppercase .field label style; the citation chip sits
+   beside them. */
+.qualify-form .qf-field-label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Question 15: repeatable risk rows */
+.qualify-form .qf-risk {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px 6px;
+  margin: 0 0 16px;
+}
+.qualify-form .qf-risk legend {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.qualify-form .qf-risk-remove {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.qualify-form .qf-risk select {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+}
+.qualify-form .qf-risk-add {
+  width: auto;
+  padding: 10px 16px;
+}
+
+/* Risk rows on the detail page */
+/* A risk is a labelled group of the same rows as everything else; only the
+   heading is its own. The block used to declare a second grid of its own,
+   which is what made it read as a different kind of thing. */
+.qf-risk-view {
+  margin-bottom: 22px;
+}
+.qf-risk-view h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.qualify-form .qf-tag {
+  display: inline-block;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 0;
+  margin-right: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.qualify-form .qf-cat {
+  color: var(--muted);
+  font-size: 12px;
+}
+.qualify-form .qf-refs {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.qualify-form .qf-part h3 {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+}
+.qualify-form .qf-subsection {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: 14px;
+}
+.qualify-form .qf-subsection:first-child {
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
+}
+.qualify-form .qf-subsection h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.qualify-form .qf-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+.qualify-form .qf-actions .btn {
+  width: auto;
+  padding: 13px 26px;
+}
+
+.qualify-form input::placeholder,
+.qualify-form textarea::placeholder {
+  color: #a0a4b3;
+  opacity: 1;
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* Qualifications list */
+.qf-list-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+.qf-list-actions .btn {
+  width: auto;
+  padding: 9px 16px;
+  font-size: 13px;
+}
+.qf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.qf-list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  box-shadow: 0 1px 2px rgba(0, 15, 223, 0.03);
+}
+.qf-list-main {
+  flex: 1;
+  min-width: 0;
+}
+.qf-list-main h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+.qf-list-meta {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.qf-list-desc {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.qf-list-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.qf-tag--sector {
+  background: #fce7ee;
+  border-color: #f5b8cd;
+  color: #8a1242;
+}
+
+/* Tag picker (multi-select) */
+.qualify-form select.qf-picker-select {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  min-width: 220px;
+  cursor: pointer;
+}
+.qualify-form select.qf-picker-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 15, 223, 0.1);
+}
+.qf-picker-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.qf-picker-options {
+  flex: 1;
+  min-width: 240px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
+  padding: 4px 0;
+}
+.qf-picker-placeholder {
+  color: var(--muted);
+  font-size: 13px;
+  font-style: italic;
+  padding-top: 8px;
+}
+.qf-picker-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+.qf-selected-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary);
+  color: #ffffff;
+  border: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.qf-selected-chip:hover {
+  background: var(--accent);
+}
+.qf-selected-chip--sector {
+  background: var(--accent);
+}
+.qf-selected-chip--sector:hover {
+  background: var(--accent-hover);
+}
+.qf-selected-x {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  font-size: 13px;
+  line-height: 1;
+}
+.qf-chip {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background 0.1s ease,
+    color 0.1s ease,
+    border-color 0.1s ease;
+}
+.qf-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.qf-chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+.qf-chip.active:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.qf-empty {
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--panel);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+.qf-empty p {
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+.qf-empty .btn {
+  width: auto;
+  display: inline-block;
+  padding: 11px 22px;
+}
+
+/* ── Ontology view on the system card ─────────────────────────────────────── */
+.onto-head {
+  display: flex;
+  /* Two groups: what the card gives you on the left, how you look at it on the
+     right. Wraps rather than squeezing on a narrow screen. */
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-bottom: 14px;
+}
+.onto-reset {
+  width: auto;
+  padding: 8px 14px;
+  white-space: nowrap;
+}
+.onto-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.onto-table th {
+  text-align: left;
+  vertical-align: top;
+  width: 210px;
+  padding: 10px 14px 10px 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+}
+.onto-table th .qf-citation,
+.onto-table th code {
+  display: block;
+  margin-top: 4px;
+  font-weight: 400;
+}
+.onto-table th code {
+  font-size: 11px;
+  color: var(--muted);
+}
+.onto-table td {
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+/* A node is a button: clicking it opens the editor. */
+.onto-node {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  background: #ffffff;
+  border: 1.5px solid var(--graph-node-border);
+  border-left: 4px solid var(--graph-line);
+  border-radius: var(--radius);
+  padding: 7px 11px;
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  max-width: 340px;
+}
+.onto-node:hover {
+  border-color: var(--primary);
+}
+.onto-node.onto-reviewed {
+  border-left-color: var(--primary);
+}
+.onto-node.onto-extracted {
+  border-left-style: dashed;
+}
+.onto-label {
+  color: var(--graph-text);
+  font-weight: 600;
+  line-height: 1.35;
+}
+.onto-node-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+.onto-vair,
+.onto-untyped,
+.onto-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+.onto-vair {
+  color: var(--primary);
+}
+.onto-untyped {
+  color: #b3541e;
+  font-style: italic;
+}
+.onto-badge {
+  color: var(--primary);
+}
+.onto-badge--extracted {
+  color: var(--graph-muted);
+}
+
+/* The per-node editor */
+.onto-edit {
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: #ffffff;
+  display: grid;
+  gap: 10px;
+  min-width: 320px;
+}
+.onto-edit label {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.onto-edit input,
+.onto-edit select {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text);
+  font-weight: 400;
+}
+.onto-count {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.onto-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+.onto-edit-actions .btn {
+  width: auto;
+  padding: 8px 14px;
+}
+
+/* One risk chain */
+.onto-chain {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin: 0 0 14px;
+}
+.onto-chain-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.onto-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+}
+.onto-flow--secondary {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+.onto-step {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.onto-step-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 700;
+}
+/* The arrow between steps, drawn rather than typed. */
+.onto-flow .onto-step + .onto-step {
+  position: relative;
+  padding-left: 18px;
+}
+.onto-flow .onto-step + .onto-step::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 26px;
+  width: 9px;
+  height: 1px;
+  background: var(--border-strong);
+}
+.onto-flow .onto-step + .onto-step::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 23px;
+  border: 3px solid transparent;
+  border-left-color: var(--border-strong);
+}
+
+@media (max-width: 720px) {
+  .onto-table th {
+    width: auto;
+    display: block;
+    border-top: none;
+    padding-bottom: 0;
+  }
+  .onto-table td {
+    display: flex;
+    border-top: none;
+  }
+  .onto-table tr + tr th {
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+}
+
+/* A collapsed source section: present, but not competing with the ontology. */
+
+/* The navigable canvas */
+.onto-canvas {
+  height: 680px;
+  border: 1px solid var(--graph-node-border);
+  border-radius: var(--radius);
+  background: #ffffff;
+}
+.onto-canvas .react-flow__node {
+  font-family: inherit;
+}
+/* The chip supplies its own frame; React Flow's default box would double it. */
+.onto-canvas .react-flow__node-airo {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  width: auto;
+}
+.onto-canvas .react-flow__handle {
+  opacity: 0;
+}
+/* A hovered node comes forward, so a long name is never stuck behind another. */
+.onto-canvas .react-flow__node:hover {
+  z-index: 20 !important;
+}
+.onto-canvas .react-flow__node:hover .onto-node {
+  border-color: var(--primary);
+  box-shadow: 0 2px 10px rgba(0, 15, 223, 0.18);
+}
+/* Edge labels: readable, on an opaque plate rather than a tint. */
+.onto-canvas .react-flow__edge-text {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--graph-muted);
+}
+.onto-canvas .react-flow__edge-textbg {
+  fill: #ffffff;
+}
+.onto-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.onto-modes {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.onto-modes button {
+  background: #ffffff;
+  border: 0;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  cursor: pointer;
+}
+.onto-modes button + button {
+  border-left: 1px solid var(--border);
+}
+.onto-modes button.active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+/* A node whose class VAIR does not subdivide: show the class, not a gap. */
+.onto-class {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--graph-muted);
+}
+.onto-nonterm {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+
+/* Radial view: a collapsed property group */
+.onto-hub {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 120px;
+  background: #ffffff;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.onto-hub:hover {
+  background: var(--panel-2);
+}
+.onto-hub.open {
+  background: var(--primary);
+}
+.onto-hub.open .onto-hub-label,
+.onto-hub.open .onto-hub-count {
+  color: #ffffff;
+}
+.onto-hub-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary);
+  white-space: nowrap;
+}
+.onto-hub-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* Radial view: the +/- expander on a node with hidden children */
+.onto-flow-node {
+  position: relative;
+}
+.onto-expander {
+  position: absolute;
+  right: -12px;
+  bottom: -12px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--primary);
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+.onto-expander:hover {
+  background: var(--accent);
+}
+.onto-expander-count {
+  font-size: 9px;
+  font-weight: 700;
+}
+.onto-hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 0;
+}
+.onto-collapse-all {
+  background: none;
+  border: 0;
+  color: var(--primary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* The two dashed frames of AIRO Figure 3 */
+/* The figure's dashed frames. No fill: they are drawn behind the graph (see the
+   zIndex in OntologyGraph), and a translucent fill over the top was what made
+   the whole canvas look washed out. */
+.onto-band {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 2px dashed var(--graph-line);
+  border-radius: 18px;
+  pointer-events: none;
+}
+.onto-band-label {
+  position: absolute;
+  left: 18px;
+  bottom: 10px;
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--graph-muted);
+  white-space: nowrap;
+}
+
+/* The node editor, as a pop-up above everything */
+.onto-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.onto-popover {
+  background: #ffffff;
+  border: 1px solid var(--graph-node-border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+  padding: 22px 24px;
+  width: min(560px, 100%);
+  max-height: min(80vh, 720px);
+  overflow-y: auto;
+  display: grid;
+  gap: 14px;
+}
+.onto-popover header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.onto-popover-cls {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--graph-text);
+}
+.onto-popover-src {
+  font-size: 11px;
+  color: var(--graph-muted);
+}
+.onto-popover label {
+  display: grid;
+  gap: 5px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--graph-muted);
+  font-weight: 700;
+}
+.onto-popover input,
+.onto-popover select {
+  border: 1px solid var(--graph-node-border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--graph-text);
+  font-weight: 400;
+}
+.onto-popover input:focus,
+.onto-popover select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 15, 223, 0.12);
+}
+.onto-popover-full h4 {
+  margin: 0 0 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--graph-muted);
+}
+.onto-popover-full p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--graph-text);
+  background: var(--panel-2);
+  border-left: 3px solid var(--graph-line-soft);
+  padding: 10px 12px;
+}
+
+/* ── The ontology canvas ──────────────────────────────────────────────────
+   The page is wide, so the canvas only needs its height. It used to compute a
+   breakout width here, which was scoped to a direct child of .qualify-page and
+   silently stopped applying when the card moved into the tab panel. */
+.qualify-page--wide .onto-canvas {
+  height: min(78vh, 940px);
+}
+/* The vertical card gets the width too, but its prose should not sprawl. */
+.qualify-page--wide .onto-table th {
+  width: 240px;
+}
+.qualify-page--wide .onto-chain {
+  max-width: 1400px;
+}
+/* The label column is a fixed width at this page width: 30% of 1900px put the
+   labels 570px from the values they belong to. */
+.qualify-page--wide .qf-read-field {
+  grid-template-columns: 280px 1fr;
+}
+.qualify-page--wide .qf-read-field dd {
+  max-width: 1100px;
+}
+
+@media (max-width: 900px) {
+  .qualify-page--wide .onto-canvas {
+    height: 70vh;
+  }
+}
+
+/* "None of the N terms applies" */
+.onto-popover .onto-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--graph-text);
+}
+.onto-popover .onto-checkbox input {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  accent-color: var(--primary);
+}
+.onto-popover select:disabled {
+  background: var(--panel-2);
+  color: var(--muted);
+}
+
+/* ── The compiled list: one clickable row per qualification ──────────────── */
+.qf-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+}
+.qf-rows > li {
+  border-bottom: 1px solid var(--border);
+}
+.qf-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 4px;
+  text-decoration: none;
+  color: inherit;
+}
+.qf-row:hover {
+  background: var(--panel-2);
+}
+.qf-row-main {
+  min-width: 0;
+}
+.qf-row h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+.qf-row:hover h3 {
+  color: var(--primary);
+}
+.qf-row-ver {
+  font-weight: 400;
+  color: var(--muted);
+}
+.qf-row-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qf-row-meta {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.qf-row-counts {
+  color: var(--graph-muted);
+}
+
+/* ── The two tabs of one qualification ──────────────────────────────────── */
+.qf-tabs {
+  display: flex;
+  gap: 0;
+  margin: 0 0 24px;
+  border-bottom: 1px solid var(--border);
+}
+.qf-tabs button {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 10px 18px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+}
+.qf-tabs button:hover {
+  color: var(--text);
+}
+.qf-tabs button.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.qf-crumb {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.qf-crumb a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.qf-crumb a:hover {
+  color: var(--primary);
+}
+
+/* ── The answered form, read back ───────────────────────────────────────── */
+.qf-read-list {
+  margin: 0;
+  display: grid;
+  gap: 0;
+}
+.qf-read-field {
+  display: grid;
+  grid-template-columns: minmax(180px, 30%) 1fr;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.qf-read-field:last-child {
+  border-bottom: none;
+}
+.qf-read-field dt {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--graph-muted);
+}
+.qf-read-field dd {
+  margin: 0;
+  font-size: 14px;
+}
+.qf-read-field .qf-citation {
+  display: block;
+  margin-top: 2px;
+  font-weight: 400;
+}
+/* Section headings inside the answered form, matching the small-caps group
+   labels on the form that collected the answers. The metadata needs none: it is
+   simply where the form starts. */
+.qf-read .qf-section {
+  margin-bottom: 26px;
+}
+.qf-read .qf-group,
+.qf-read .qf-section > h2 {
+  margin: 0 0 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.qf-read .qf-section > h2 .qf-citation {
+  margin-left: 8px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.qf-tag-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.qf-tag-list li {
+  border: 1px solid var(--border-strong);
+  padding: 2px 8px;
+  font-size: 12px;
+  background: var(--panel-2);
+}
+.qf-blank {
+  color: var(--muted);
+  font-style: italic;
+}
+.qf-optional {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+
+/* ── The vertical card's downloads ──────────────────────────────────────── */
+
+.onto-downloads {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.onto-downloads .btn {
+  width: auto;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+/* ── A node the filler agent flagged ────────────────────────────────────── */
+.onto-flag {
+  display: inline-block;
+  background: var(--pink-soft);
+  border: 1px solid var(--accent);
+  color: #8a0044;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.onto-node.onto-flagged {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.onto-popover-flags {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  background: var(--pink-soft);
+  border: 1px solid var(--accent);
+}
+.onto-popover-flags h4 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.onto-popover-flags ul {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.onto-popover-flags p {
+  margin: 0;
+  font-size: 12px;
+}
+
+/* ── Methodology: a procedure, laid out like one ────────────────────────── */
+.site-nav {
+  margin-left: auto;
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.site-nav a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.site-nav a:hover {
+  color: var(--primary);
+}
+.method p {
+  line-height: 1.65;
+  margin: 0 0 14px;
+}
+.method code {
+  font-size: 12.5px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+}
+
+/* The pipeline the steps add up to: stages with arrows between them. */
+.method-pipe {
+  list-style: none;
+  margin: 0 0 34px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0;
+  counter-reset: stage;
+}
+.method-pipe li {
+  counter-increment: stage;
+  position: relative;
+  flex: 1 1 auto;
+  padding: 11px 18px 11px 30px;
+  background: var(--panel-2);
+  border: 1px solid var(--border-strong);
+  border-right: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--graph-muted);
+  white-space: nowrap;
+}
+.method-pipe li::before {
+  content: counter(stage);
+  position: absolute;
+  left: 10px;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+.method-pipe li:last-child {
+  border-right: 1px solid var(--border-strong);
+  background: var(--info-soft);
+  color: var(--text);
+}
+
+/* The steps. The numeral sits in a gutter so the page reads as a checklist. */
+.method-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: step;
+}
+.method-steps > li {
+  counter-increment: step;
+  position: relative;
+  padding: 0 0 22px 62px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+.method-steps > li:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.method-steps > li::before {
+  content: "STEP " counter(step);
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 48px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+  color: var(--primary);
+  border-left: 3px solid var(--primary);
+  padding-left: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.method-steps > li > h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.method-steps > li > p {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+/* Input / Authority / Output, as a fixed three-row form under each step. */
+.method-io {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+.method-io dt {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-top: 3px;
+}
+.method-io dd {
+  margin: 0;
+  line-height: 1.55;
+}
+.method-io .method-authority {
+  color: var(--graph-muted);
+}
+
+.method-code {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  padding: 12px 14px;
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+/* Limits, numbered so they can be cited back at us. */
+.method-limits {
+  margin: 0;
+  padding-left: 26px;
+  font-size: 14px;
+}
+.method-limits li {
+  line-height: 1.65;
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+
+.method-table-wrap {
+  overflow-x: auto;
+}
+/* The CC BY attribution block. Set apart deliberately: it is a licence
+   condition, not a footnote. */
+.method-attrib {
+  margin: 18px 0 0;
+  padding: 16px 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  font-size: 13px;
+}
+.method-attrib h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.method-attrib p {
+  margin: 0 0 6px;
+  line-height: 1.55;
+}
+.method-attrib p:last-child {
+  margin-bottom: 0;
+}
+.method-cite {
+  color: var(--muted);
+  font-style: italic;
+}
+.method-note {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--graph-muted);
+}
+.method-back {
+  margin-top: 28px;
+  font-size: 14px;
+}
+
+@media (max-width: 720px) {
+  .method-steps > li {
+    padding-left: 0;
+    padding-top: 22px;
+  }
+  .method-steps > li::before {
+    top: 0;
+    border-left: 0;
+    padding-left: 0;
+  }
+  .method-io {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .method-io dt {
+    padding-top: 8px;
+  }
+}
+
+/* The filler loop, inside the methodology page: numbered like the procedure
+   above it, but nested one level down, so it reads as part of a step. */
+.method-loop {
+  list-style: none;
+  margin: 0 0 22px;
+  padding: 0;
+  counter-reset: loopstep;
+}
+.method-loop > li {
+  counter-increment: loopstep;
+  position: relative;
+  padding: 0 0 4px 40px;
+  margin-bottom: 14px;
+}
+.method-loop > li::before {
+  content: counter(loopstep);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  line-height: 25px;
+  text-align: center;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.method-loop > li h3 {
+  margin: 3px 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.method-loop > li p {
+  margin: 0;
+  font-size: 14px;
+}
+.method-subhead {
+  margin: 22px 0 8px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.method-stops {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.method-stops th,
+.method-stops td {
+  text-align: left;
+  vertical-align: top;
+  padding: 9px 14px 9px 0;
+  border-top: 1px solid var(--border);
+  line-height: 1.55;
+}
+.method-stops thead th {
+  border-top: 0;
+  border-bottom: 2px solid var(--border-strong);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.method-stops td:first-child {
+  width: 16%;
+}
+.method-stops td:last-child {
+  width: 30%;
+  color: var(--graph-muted);
+}
+
+/* The BAF state machine, drawn. Colours come from the page's tokens so the
+   diagram belongs to the page rather than sitting on it. */
+.method-diagram {
+  display: block;
+  width: 100%;
+  max-width: 760px;
+  height: auto;
+  margin: 4px 0 22px;
+}
+.method-diagram-box {
+  fill: var(--panel-2);
+  stroke: var(--graph-node-border);
+  stroke-width: 1;
+}
+.method-diagram-box--gate {
+  fill: var(--info-soft);
+  stroke: var(--primary);
+}
+.method-diagram-label {
+  fill: var(--graph-text);
+  font-size: 13px;
+  font-weight: 700;
+  text-anchor: middle;
+  font-family: inherit;
+}
+.method-diagram-note {
+  fill: var(--graph-muted);
+  font-size: 9.5px;
+  text-anchor: middle;
+  font-family: inherit;
+}
+.method-diagram-edge {
+  stroke: var(--graph-line);
+  stroke-width: 1.4;
+  fill: none;
+}
+.method-diagram-edge--loop {
+  stroke: var(--accent);
+}
+.method-diagram-edge--soft {
+  stroke: var(--graph-line-soft);
+  stroke-dasharray: 3 3;
+}
+.method-diagram-head {
+  fill: var(--graph-line);
+}
+.method-diagram-cond {
+  fill: var(--graph-muted);
+  font-size: 10px;
+  font-style: italic;
+  text-anchor: middle;
+  font-family: inherit;
+}
+
+/* ── Submitting: the answers becoming an AI card ────────────────────────── */
+.submit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 15, 223, 0.22);
+  backdrop-filter: blur(3px);
+  animation: submit-fade 0.2s ease-out;
+}
+@keyframes submit-fade {
+  from {
+    opacity: 0;
+  }
+}
+.submit-card {
+  background: #ffffff;
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 24px 60px rgba(0, 15, 223, 0.3);
+  padding: 30px 34px 26px;
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+}
+.submit-card h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+.submit-sub {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.submit-anim {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 6px 0 4px;
+}
+
+/* the answers: lines of prose, pulsing as they are read */
+.submit-anim-answers rect {
+  fill: var(--border-strong);
+  animation: submit-read 1.8s ease-in-out infinite;
+}
+@keyframes submit-read {
+  0%,
+  100% {
+    fill: var(--border-strong);
+  }
+  50% {
+    fill: var(--primary);
+  }
+}
+
+/* the loop: a dot going round the ring, which is the review loop */
+.submit-anim-ring {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 6;
+}
+.submit-anim-core {
+  fill: var(--info-soft);
+  stroke: var(--primary);
+  stroke-width: 1.5;
+}
+.submit-anim-dot {
+  fill: var(--accent);
+  transform-origin: 210px 60px;
+  animation: submit-orbit 1.6s linear infinite;
+}
+@keyframes submit-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* what crosses from the answers into the loop */
+.submit-anim-flow circle {
+  fill: var(--primary);
+  animation: submit-flow 1.6s ease-in-out infinite;
+}
+@keyframes submit-flow {
+  0% {
+    transform: translateX(96px);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(172px);
+    opacity: 0;
+  }
+}
+
+.submit-anim-flow--out circle {
+  fill: var(--accent);
+  animation: submit-flow-out 1.6s ease-in-out infinite;
+}
+@keyframes submit-flow-out {
+  0% {
+    transform: translateX(248px);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(310px);
+    opacity: 0;
+  }
+}
+
+/* the card, whose lines arrive one after another */
+.submit-anim-card > rect:first-child {
+  fill: #ffffff;
+  stroke: var(--primary);
+  stroke-width: 1.5;
+}
+.submit-anim-cardline {
+  fill: var(--primary);
+  opacity: 0.18;
+  animation: submit-fill 2.4s ease-in-out infinite;
+}
+@keyframes submit-fill {
+  0%,
+  40% {
+    opacity: 0.14;
+  }
+  60%,
+  100% {
+    opacity: 0.85;
+  }
+}
+
+.submit-stages {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  text-align: left;
+  font-size: 13px;
+}
+.submit-stage {
+  padding: 5px 0 5px 22px;
+  position: relative;
+  color: var(--muted);
+}
+.submit-stage::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 11px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+}
+.submit-stage.is-past {
+  color: var(--graph-muted);
+}
+.submit-stage.is-past::before {
+  background: var(--graph-line-soft);
+  border-color: var(--graph-line-soft);
+}
+.submit-stage.is-current {
+  color: var(--text);
+  font-weight: 600;
+}
+.submit-stage.is-current::before {
+  background: var(--primary);
+  border-color: var(--primary);
+  animation: submit-pulse 1.1s ease-in-out infinite;
+}
+@keyframes submit-pulse {
+  50% {
+    box-shadow: 0 0 0 4px rgba(0, 15, 223, 0.18);
+  }
+}
+
+/* Nothing moves for a reader who asked for that. The stage list still says
+   what is happening, which was always where the meaning lived. */
+@media (prefers-reduced-motion: reduce) {
+  .submit-overlay,
+  .submit-anim *,
+  .submit-stage.is-current::before {
+    animation: none !important;
+  }
+  .submit-anim-cardline {
+    opacity: 0.5;
+  }
+}
+
+/* The form opened on a worked example: say so, because the answers are not the
+   reader's own and they are the one signing them off. */
+.qf-prefilled {
+  margin: 0 0 26px;
+  padding: 12px 16px;
+  background: var(--info-soft);
+  border-left: 3px solid var(--primary);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text) !important;
+}
+
+/* The filler still working on a card you have just opened. */
+.fill-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding: 11px 16px;
+  background: var(--info-soft);
+  border-left: 3px solid var(--primary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.fill-status-spinner {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--primary);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: fill-spin 0.8s linear infinite;
+}
+@keyframes fill-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fill-status-spinner {
+    animation: none;
+  }
+}

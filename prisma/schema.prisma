@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Qualification {
+  id                String                @id @default(cuid())
+  systemName        String
+  systemVersion     String
+  company           String
+  description       String
+  targetUseCase     String
+  targetUsers       String
+  targetSystemTags  String[]              @default([])
+  sectorTags        String[]              @default([])
+  marketFormTags    String[]              @default([])
+  localityTags      String[]              @default([])
+  intendedDeployers String?
+  systemCard        String?
+  systemCardJson    Json?
+  // The filled AIRO graph is the system card. `ontologyExtracted` holds the
+  // agent's prose extraction, `ontologyPatch` a reviewer's corrections keyed by
+  // node id; the graph itself is rebuilt from them, never stored as the truth.
+  ontologyExtracted Json?
+  ontologyPatch     Json?
+  ontologyAt        DateTime?
+  systemCardAt      DateTime?
+  systemCardPdfPath String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  answers           QualificationAnswer[]
+  knowledgeGraph    KnowledgeGraph?
+  risks             QualificationRisk[]
+}
+
+// One row of the risk block (question 15): one full AIRO risk chain.
+// Ids in `affected` and `impactAreas` come from src/data/airo_vocab.json.
+model QualificationRisk {
+  id              String        @id @default(cuid())
+  qualificationId String
+  position        Int
+  risk            String
+  source          String
+  vulnerability   String?
+  consequence     String
+  affected        String
+  impactAreas     String[]      @default([])
+  control         String
+  followUpControl String?
+  qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
+
+  @@index([qualificationId])
+}
+
+/// The knowledge graph for one system.
+///
+/// AIRO is the ontology and VAIR the vocabulary: both are vendored, shared, and
+/// describe every system. What belongs to a system is instance data conforming
+/// to them, which is a knowledge graph, and this is where it is kept.
+///
+/// It is still rebuilt from the answers, the draft and the reviewer's patch on
+/// every read, so a correction shows at once; this row is the built result,
+/// updated when it actually changes. Exports serve these bytes, so the file
+/// someone was given and the row are the same document.
+model KnowledgeGraph {
+  id              String        @id @default(cuid())
+  qualificationId String        @unique
+  /// The graph's identity: its triples up to blank-node renaming.
+  digest          String
+  turtle          String
+  jsonld          String
+  /// What produced it: the schema version and the vendored ontology digests.
+  stamp           String[]      @default([])
+  nodes           Int
+  triples         Int
+  builtAt         DateTime      @default(now())
+  qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
+}
+
+model QualificationAnswer {
+  id              String        @id @default(cuid())
+  qualificationId String
+  toolId          String
+  questionId      String
+  answer          String
+  qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
+
+  @@unique([qualificationId, questionId])
+  @@index([qualificationId, toolId])
+}

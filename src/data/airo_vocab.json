@@ -1,0 +1,24 @@
+{
+  "marketForm": [
+    { "id": "product", "label": "Product (built into a physical product)", "vair": "Product" },
+    { "id": "software", "label": "Software (download or installed package)", "vair": "Software" },
+    { "id": "service", "label": "Service (online service or API)", "vair": "Service" },
+    { "id": "safety-component", "label": "Safety component of a product", "vair": "SafetyComponent" }
+  ],
+  "locality": [
+    { "id": "workplace", "label": "Workplace", "vair": "Workplace" },
+    { "id": "educational-setting", "label": "Educational setting", "vair": "EducationalSetting" },
+    { "id": "publicly-accessible-space", "label": "Publicly accessible space", "vair": "PubliclyAccessibleSpace" },
+    { "id": "other", "label": "Other setting", "vair": null }
+  ],
+  "impactArea": [
+    { "id": "health", "label": "Health", "vair": "Health" },
+    { "id": "safety", "label": "Safety", "vair": "Safety" },
+    { "id": "right", "label": "Fundamental rights", "vair": "Right" },
+    { "id": "freedom", "label": "Freedom", "vair": "Freedom" }
+  ],
+  "affected": [
+    { "id": "operator", "label": "Operator (the company providing or running the system)", "airo": "AIOperator" },
+    { "id": "user", "label": "User (people who use the system or are affected by it)", "airo": "AIUser" }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "_note": "The parts of the graph that need judgment rather than a form field: the techniques and components behind Annex IV 2(a) and 2(c), and noun-phrase names for nodes whose source field is a paragraph. Curated by hand for this worked example; this is the shape a filler agent produces. See skills/filling-the-airo-ontology/SKILL.md.",
+  "techniques": [
+    {
+      "label": "Gradient-boosted decision tree",
+      "vair": "MachineLearning"
+    },
+    {
+      "label": "Policy eligibility rules",
+      "vair": "LogicBasedTechnique"
+    },
+    {
+      "label": "Policy-document retrieval",
+      "vair": "KnowledgeBasedTechnique"
+    }
+  ],
+  "components": [
+    {
+      "label": "Scoring model",
+      "vair": "Model"
+    },
+    {
+      "label": "Policy-rule engine",
+      "vair": "Algorithm"
+    },
+    {
+      "label": "Hosted explanation LLM",
+      "vair": "Tool"
+    },
+    {
+      "label": "On-premise service tier",
+      "vair": "ApplicationPlatform"
+    }
+  ],
+  "names": {
+    "purpose": "Creditworthiness assessment for consumer loans",
+    "provider": "Creditum AI SARL",
+    "deployer": "Retail banks in DE, FR and NL",
+    "users": "Loan applicants, officers and compliance staff",
+    "risk0": "Applicant wrongly ranked high risk",
+    "risk0_source": "Thin or stale bureau data",
+    "risk0_vulnerability": "No low-coverage path in the features",
+    "risk0_consequence": "Creditworthy applicant refused",
+    "risk0_control": "Officer review of every Reject",
+    "risk0_control_followup": "Override with written justification",
+    "risk1": "Approval rates diverge across groups",
+    "risk1_source": "Postal-code features as a proxy",
+    "risk1_consequence": "Discriminatory treatment by area",
+    "risk1_control": "Quarterly fairness audit, 5% band",
+    "risk1_control_followup": "Suspend scoring for the market",
+    "risk2": "Officers rubber-stamp the recommendation",
+    "risk2_source": "Automation bias under throughput targets",
+    "risk2_vulnerability": "Recommendation shown before the factors",
+    "risk2_consequence": "Human review becomes a formality",
+    "risk2_control": "Override rates tracked against the median",
+    "risk2_control_followup": "Withdraw approval rights pending retraining",
+    "risk3": "Explanation cites the wrong policy clause",
+    "risk3_source": "Retrieval index out of date",
+    "risk3_vulnerability": "Manual quarterly index refresh",
+    "risk3_consequence": "Applicant given an inaccurate reason",
+    "risk3_control": "Index refresh signed off by compliance",
+    "risk4": "Training data poisoned via the bureau feed",
+    "risk4_source": "Attack on a bureau feed",
+    "risk4_vulnerability": "Bureau records ingested unsigned",
+    "risk4_consequence": "Recalibrated model misranks a segment",
+    "risk4_control": "Signed connections and checksummed artefacts",
+    "risk4_control_followup": "Roll back and notify the authority"
+  },
+  "types": {
+    "system": "NarrowAI",
+    "purpose": "Assessment",
+    "capability0": "Profiling",
+    "capability1": "Profiling",
+    "capability2": "Profiling",
+    "locality1": "Workplace",
+    "risk0_source": "DataRiskSource",
+    "risk0_consequence": "DegradedAccuracy",
+    "risk0_impact": "UnfavourableTreatment",
+    "risk0_control": "ManualControl",
+    "risk0_control_followup": "OperationalMeasure",
+    "risk1_source": "DataRiskSource",
+    "risk1_consequence": "Bias",
+    "risk1_impact": "DiscriminatoryTreatment",
+    "risk1_control": "MonitoringMeasure",
+    "risk1_control_followup": "OperationalMeasure",
+    "risk2_source": "OrganisationalRiskSource",
+    "risk2_consequence": "ImpairedDecisionMaking",
+    "risk2_impact": "Overreliance",
+    "risk2_control": "MonitoringMeasure",
+    "risk2_control_followup": "OrganisationalMeasure",
+    "risk3_source": "SystemRiskSource",
+    "risk3_consequence": "DegradedAccuracy",
+    "risk3_impact": "DetrimentalTreatment",
+    "risk3_control": "OperationalMeasure",
+    "risk4_source": "Attack",
+    "risk4_consequence": "DecreasedSecurity",
+    "risk4_impact": "Harm",
+    "risk4_control": "SecurityMeasure",
+    "risk4_control_followup": "MitigationMeasure"
+  }
+}

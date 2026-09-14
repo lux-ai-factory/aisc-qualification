@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.env
+.env.local
+postgres-data
+*.log
+.DS_Store
+.vscode
+.idea
+README.md
+DEPLOY.md
+*.docx

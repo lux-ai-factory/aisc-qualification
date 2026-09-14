@@ -1,0 +1,72 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: qualification
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d qualification"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # AIRO ontology service: qualification -> filled AIRO 3.1 graph + card view.
+  ontology:
+    build:
+      context: .
+      dockerfile: services/ontology/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8011:8011"
+
+  # System-card PDF renderer (Jinja + WeasyPrint).
+  system-card-renderer:
+    build: ./services/system_card_renderer
+    restart: unless-stopped
+    ports:
+      - "8005:8005"
+
+  # Ontology filler: drafts the prose-derived nodes, reviews its own draft, and
+  # publishes it to the app flagged for a person to edit.
+  agents:
+    build:
+      context: .
+      dockerfile: services/agents/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_URL: http://app:3000
+      ONTOLOGY_SERVICE_URL: http://ontology:8011
+      # The model, BAF's way. ollama or compatible (+ BAF_LLM_BASE_URL) for a
+      # model you host yourself.
+      BAF_LLM_PROVIDER: ${BAF_LLM_PROVIDER:-mistral}
+      BAF_LLM_MODEL: ${BAF_LLM_MODEL:-mistral-large-latest}
+      BAF_LLM_BASE_URL: ${BAF_LLM_BASE_URL:-}
+      # One variable per provider, no two sharing. Add the one your provider
+      # reads (services/agents/README.md has the table); these are the three
+      # with a wrapper whose SDK ships here.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      BAF_LLM_API_KEY: ${BAF_LLM_API_KEY:-}
+    ports:
+      - "8012:8012"
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://app:app@db:5432/qualification?schema=public
+      SYSTEM_CARD_RENDERER_URL: http://system-card-renderer:8005
+      ONTOLOGY_SERVICE_URL: http://ontology:8011
+      AGENT_SERVICE_URL: http://agents:8012
+    ports:
+      - "3000:3000"

@@ -1,0 +1,4 @@
+# BAF agent properties. Service URLs come from the environment (see README), so
+# this file carries only what the framework itself reads.
+websocket.host: localhost
+websocket.port: 8777

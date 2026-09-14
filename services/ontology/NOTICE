@@ -1,0 +1,19 @@
+This package vendors two ontologies, unmodified, under CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/):
+
+airo/airo.ttl  AIRO: AI Risk Ontology, version 1.0.
+  Delaram Golpayegani, Harshvardhan J. Pandit, Dave Lewis. ADAPT Centre, Trinity College Dublin.
+  https://w3id.org/airo  https://github.com/DelaramGlp/airo  DOI 10.5281/zenodo.10894750
+  Citation: Golpayegani, Pandit, Lewis. "AIRO: An ontology for representing AI risks based on
+  the proposed EU AI Act and ISO risk management standards." Towards a Knowledge-Aware AI,
+  IOS Press, 2022, 51-65.
+
+airo/vair.ttl  VAIR: Vocabulary of AI Risks, version 1.0.
+  Delaram Golpayegani, Harshvardhan J. Pandit, Dave Lewis. ADAPT Centre, Trinity College Dublin.
+  https://w3id.org/vair
+  Citation: Golpayegani, Pandit, Lewis. "To Be High-Risk, or Not To Be: Semantic Specifications
+  and Implications of the AI Act's High-Risk AI Applications and Harmonised Standards."
+  Proceedings of the 2023 ACM Conference on Fairness, Accountability, and Transparency, 2023.
+
+The airo_min package implements only the "core concepts and relations" subset of AIRO
+(documentation section 3.1, Figure 3), with stakeholders simplified to Operator and User.

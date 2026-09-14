@@ -1,0 +1,15 @@
+# The flow framework: states, transitions, session, monitoring, and the LLM
+# wrappers this service configures the model through (fill/llm.py).
+besser-agentic-framework==4.5.1
+
+# BAF imports its provider SDKs lazily and only logs a warning when one is
+# missing, so the failure would otherwise appear at the first prediction as a
+# None client. openai covers LLMMistral and every other OpenAI-compatible
+# wrapper; anthropic is the native SDK LLMAnthropic uses.
+openai>=1.55        # the ten OpenAI-compatible wrappers, Mistral included
+anthropic>=0.40     # LLMAnthropic, which uses the native SDK
+ollama>=0.3         # LLMOllama, for a model you host yourself
+
+# The HTTP entry point the app calls when a qualification is saved.
+fastapi==0.115.5
+uvicorn[standard]==0.32.1

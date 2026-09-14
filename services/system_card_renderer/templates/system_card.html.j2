@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ card.system_name }} — AI Card</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="cover">
+  <div class="eyebrow">AI Card</div>
+  <h1>{{ card.system_name }}</h1>
+  <p class="subtitle">
+    {{ card.provider }} ·
+    {# Providers type the "v" themselves about half the time; without this the
+       cover read "vv1.2.0". Done here, not on the model, because the renderer
+       passes the card as a plain dict. #}
+    {% if card.system_version[:1] in ["v", "V"] %}{{ card.system_version }}{% else %}v{{ card.system_version }}{% endif %}
+    {% if card.generated_at %}
+      · generated {{ card.generated_at }}
+    {% endif %}
+  </p>
+
+  <table class="meta">
+    <tr>
+      <th>Provider</th>
+      <td>{{ card.provider }}</td>
+    </tr>
+    <tr>
+      <th>Version</th>
+      <td>{{ card.system_version }}</td>
+    </tr>
+    <tr>
+      <th>Target systems</th>
+      <td>
+        {% for t in card.classification.target_systems %}
+          <span class="chip">{{ t.category }} / {{ t.subcategory }}</span>
+        {% endfor %}
+        {% if not card.classification.target_systems %}—{% endif %}
+      </td>
+    </tr>
+    <tr>
+      <th>Sectors</th>
+      <td>
+        {% for s in card.classification.sectors %}
+          <span class="chip chip--sector">{{ s }}</span>
+        {% endfor %}
+        {% if not card.classification.sectors %}—{% endif %}
+      </td>
+    </tr>
+  </table>
+</header>
+
+<section>
+  <h2>1 · Overview</h2>
+  {% if card.overview %}
+  <p>{{ card.overview }}</p>
+  {% endif %}
+  <dl class="kv">
+    <dt>Description</dt>
+    <dd>{{ card.description }}</dd>
+    <dt>Target use case</dt>
+    <dd>{{ card.target_use_case }}</dd>
+    <dt>Target users</dt>
+    <dd>{{ card.target_users }}</dd>
+  </dl>
+</section>
+
+{% for finding in card.findings %}
+<section class="finding">
+  <h2>{{ loop.index + 1 }} · {{ finding.title }}</h2>
+  <p>{{ finding.summary }}</p>
+  {% if finding.points %}
+  <ul>
+    {% for p in finding.points %}
+      <li>{{ p }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endfor %}
+
+{% if card.ontology %}
+<section class="onto-pdf">
+  <h2>Ontology</h2>
+  <p class="muted">
+    This card as a filled AIRO graph (AI Risk Ontology, core concepts):
+    {{ card.ontology.counts.nodes }} nodes, {{ card.ontology.counts.triples }} triples,
+    {{ card.ontology.counts.risks }} risks.
+    {% if card.ontology.counts.reviewed %}
+      {{ card.ontology.counts.reviewed }} node(s) corrected by a reviewer.
+    {% endif %}
+  </p>
+
+  <h3>About the system</h3>
+  <table class="onto-pdf-table">
+    {% for row in card.ontology.rows %}
+    <tr>
+      <th>{{ row.label }}<span class="cite">{{ row.citation }}</span></th>
+      <td>
+        {% for n in row.nodes %}
+          <div class="onto-pdf-node{% if n.provenance == 'reviewed' %} reviewed{% endif %}">
+            {{ n.label }}
+            {% if n.vair %}<span class="term">vair:{{ n.vair }}</span>
+            {% elif n.termExpected is false or n.termNotApplicable %}
+              {# No term exists for this node, so naming the class says more
+                 than flagging an absence nobody can fill. #}
+              <span class="term">{{ n.cls }}</span>
+            {% else %}<span class="term none">no term</span>{% endif %}
+            {% if n.provenance == 'reviewed' %}<span class="term">reviewed</span>{% endif %}
+            {% if n.reviewNote %}<div class="note">{{ n.reviewNote }}</div>{% endif %}
+          </div>
+        {% endfor %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <h3>Risks</h3>
+  {% for c in card.ontology.chains %}
+  <table class="onto-pdf-chain">
+    <caption>Risk {{ loop.index }} of {{ card.ontology.chains|length }}<span class="cite">{{ c.citation }}</span></caption>
+    <tr><th>The risk</th><td>{{ c.risk.label }}</td></tr>
+    {% if c.source %}<tr><th>Caused by</th><td>{{ c.source.label }}</td></tr>{% endif %}
+    {% if c.vulnerability %}<tr><th>Exploiting</th><td>{{ c.vulnerability.label }}</td></tr>{% endif %}
+    {% if c.consequence %}<tr><th>Leading to</th><td>{{ c.consequence.label }}</td></tr>{% endif %}
+    {% if c.stakeholder %}<tr><th>Affecting</th><td>{{ c.stakeholder.label }}{% if c.areas %} &mdash; {% for a in c.areas %}{{ a.label }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</td></tr>{% endif %}
+    {% if c.control %}<tr><th>Control</th><td>{{ c.control.label }}</td></tr>{% endif %}
+    {% if c.followUp %}<tr><th>If insufficient</th><td>{{ c.followUp.label }}</td></tr>{% endif %}
+  </table>
+  {% endfor %}
+</section>
+{% endif %}
+
+<section>
+  <h2>{{ card.findings|length + 2 }} · Open issues / gaps</h2>
+  {% if card.open_issues %}
+  <ul>
+    {% for issue in card.open_issues %}
+      <li>{{ issue }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No open issues recorded by the evaluator.</p>
+  {% endif %}
+</section>
+
+<footer>
+  <p class="muted">
+    This AI card was generated from a structured AI system qualification.
+    {% if card.qualification_id %}
+      Qualification ID: <code>{{ card.qualification_id }}</code>.
+    {% endif %}
+  </p>
+</footer>
+
+</body>
+</html>
