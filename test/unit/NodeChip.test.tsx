@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import NodeChip from "@/app/qualify/[id]/NodeChip";
+import NodeChip from "@/app/p/[project]/qualify/[id]/NodeChip";
 import type { OntologyNode } from "@/domain/OntologyView";
 
 // vitest runs with globals: false, so Testing Library's automatic cleanup does

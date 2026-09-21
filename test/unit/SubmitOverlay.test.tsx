@@ -2,7 +2,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { readFileSync } from "node:fs";
-import SubmitOverlay, { STAGES } from "@/app/qualify/new/SubmitOverlay";
+import SubmitOverlay, { STAGES } from "@/app/p/[project]/qualify/new/SubmitOverlay";
 
 afterEach(() => {
   cleanup();

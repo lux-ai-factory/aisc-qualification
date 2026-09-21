@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 
 const css = readFileSync("src/app/globals.css", "utf8");
-const detailPage = readFileSync("src/app/qualify/[id]/page.tsx", "utf8");
+const detailPage = readFileSync("src/app/p/[project]/qualify/[id]/page.tsx", "utf8");
 
 /** The declarations of one rule, by selector. */
 function rule(selector: string): string {
@@ -48,7 +48,7 @@ describe("a compiled qualification uses the window's width", () => {
     // Wider than the 820px reading column, because the metadata fields pair up
     // and the answers are paragraphs; well short of the compiled card's
     // near-full-bleed, because a row of inputs 1900px wide is not a form.
-    const page = readFileSync("src/app/qualify/new/page.tsx", "utf8");
+    const page = readFileSync("src/app/p/[project]/qualify/new/page.tsx", "utf8");
     expect(page).toMatch(/className="qualify-page qualify-page--form"/);
     expect(page).not.toMatch(/qualify-page--wide/);
     expect(rule(".qualify-page--form")).toMatch(/max-width: 1080px/);

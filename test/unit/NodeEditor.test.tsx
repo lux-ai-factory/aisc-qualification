@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import NodeEditor from "@/app/qualify/[id]/NodeEditor";
+import NodeEditor from "@/app/p/[project]/qualify/[id]/NodeEditor";
 import type { OntologyNode } from "@/domain/OntologyView";
 
 afterEach(cleanup);

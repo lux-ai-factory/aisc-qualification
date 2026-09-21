@@ -3,7 +3,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import AnsweredForm, {
   type AnsweredFormProps,
-} from "@/app/qualify/[id]/AnsweredForm";
+} from "@/app/p/[project]/qualify/[id]/AnsweredForm";
 
 afterEach(cleanup);
 

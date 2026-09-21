@@ -23,12 +23,18 @@ export function stamp(iso: string): string {
   return iso.slice(0, 16).replace("T", " ");
 }
 
-export default function QualificationsList({ items }: { items: ListItem[] }) {
+export default function QualificationsList({
+  project,
+  items,
+}: {
+  project: string;
+  items: ListItem[];
+}) {
   if (items.length === 0) {
     return (
       <div className="qf-empty">
         <p>You haven&apos;t qualified any system yet.</p>
-        <Link className="btn" href="/qualify/new">
+        <Link className="btn" href={`/p/${project}/qualify/new`}>
           Start your first qualification
         </Link>
       </div>
@@ -39,7 +45,7 @@ export default function QualificationsList({ items }: { items: ListItem[] }) {
     <ul className="qf-rows">
       {items.map((item) => (
         <li key={item.id}>
-          <Link className="qf-row" href={`/qualify/${item.id}`}>
+          <Link className="qf-row" href={`/p/${project}/qualify/${item.id}`}>
             <div className="qf-row-main">
               <h3>
                 {item.systemName}{" "}

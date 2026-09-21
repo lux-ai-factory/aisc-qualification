@@ -9,6 +9,13 @@ datasource db {
 
 model Qualification {
   id                String                @id @default(cuid())
+  // The platform project this qualification belongs to, and the system it
+  // describes: both uuids from `core` in the one database. The system is named
+  // by the platform so the engine's tests and the dashboard's results point at
+  // the same one. The foreign keys are made in the migration, since Prisma
+  // cannot model a key into a schema this app only reads.
+  projectId         String                @db.Uuid
+  systemId          String                @db.Uuid
   systemName        String
   systemVersion     String
   company           String
@@ -35,6 +42,9 @@ model Qualification {
   answers           QualificationAnswer[]
   knowledgeGraph    KnowledgeGraph?
   risks             QualificationRisk[]
+
+  @@index([projectId])
+  @@index([systemId])
 }
 
 // One row of the risk block (question 15): one full AIRO risk chain.

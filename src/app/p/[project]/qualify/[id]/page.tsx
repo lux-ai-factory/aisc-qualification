@@ -12,9 +12,9 @@ import QualificationTabs from "./QualificationTabs";
 export default async function QualificationDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ project: string; id: string }>;
 }) {
-  const { id } = await params;
+  const { project, id } = await params;
 
   // Raw <a href> links are not rewritten by Next's basePath — prefix explicitly
   // (same pattern as SiteHeader) so the downloads work when served under a subpath.
@@ -51,7 +51,7 @@ export default async function QualificationDetailPage({
               UTC
             </p>
           </div>
-          <Link className="btn ghost qf-header-btn" href="/qualifications">
+          <Link className="btn ghost qf-header-btn" href={`/p/${project}/qualifications`}>
             Compiled qualifications
           </Link>
         </div>

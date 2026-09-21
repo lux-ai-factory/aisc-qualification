@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import QualificationTabs from "@/app/qualify/[id]/QualificationTabs";
+import QualificationTabs from "@/app/p/[project]/qualify/[id]/QualificationTabs";
 
 afterEach(cleanup);
 

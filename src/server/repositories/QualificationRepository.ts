@@ -15,6 +15,10 @@ export type AnswerInput = {
 };
 
 export type CreateQualificationInput = {
+  /** The platform project this qualification belongs to (uuid). */
+  projectId: string;
+  /** The system it describes, as named by the platform (uuid). */
+  systemId: string;
   systemName: string;
   systemVersion: string;
   company: string;
@@ -57,8 +61,11 @@ export class QualificationRepository {
     });
   }
 
-  list(): Promise<QualificationWithAnswers[]> {
+  /** The qualifications of one project, and no other's: a module reads what
+   *  it needs and no more. */
+  list(projectId: string): Promise<QualificationWithAnswers[]> {
     return this.db.qualification.findMany({
+      where: { projectId },
       orderBy: { createdAt: "desc" },
       include: { answers: true, risks: { orderBy: { position: "asc" } } },
     });

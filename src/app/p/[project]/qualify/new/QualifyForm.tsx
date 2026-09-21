@@ -31,11 +31,12 @@ function FieldLabel({ htmlFor, id }: { htmlFor: string; id: MetadataFieldId }) {
 }
 
 export default function QualifyForm({
+  project,
   keyQuestions,
   targetSystems,
   sectors,
   initial,
-}: Props) {
+}: Props & { project: string }) {
   const meta = initial?.metadata;
   const [targetTags, setTargetTags] = useState<Set<string>>(
     new Set(meta?.targetSystemTags ?? []),
@@ -63,8 +64,10 @@ export default function QualifyForm({
   const toggleMarketForm = toggleIn(setMarketForms);
   const toggleLocality = toggleIn(setLocalities);
 
+  // The qualification is of this project's system: the action is bound to it
+  // rather than reading it from the form, so it cannot be posted for another.
   const [state, formAction, pending] = useActionState<SubmitState, FormData>(
-    submitQualification,
+    submitQualification.bind(null, project),
     undefined,
   );
 

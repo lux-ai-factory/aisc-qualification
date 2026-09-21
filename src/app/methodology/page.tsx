@@ -1,3 +1,4 @@
+import SiteHeader from "@/components/SiteHeader";
 import { KEY_QUESTIONS } from "@/data/keyQuestions";
 import { RISK_FIELDS } from "@/data/riskFields";
 import { AFFECTED, IMPACT_AREAS, LOCALITIES, MARKET_FORMS } from "@/data/airoVocab";
@@ -44,7 +45,9 @@ export default async function MethodologyPage() {
   };
 
   return (
-    <main className="qualify-page">
+    <>
+      <SiteHeader />
+      <main className="qualify-page">
       <header className="qualify-header">
         <h1>Methodology</h1>
         <p>
@@ -53,6 +56,7 @@ export default async function MethodologyPage() {
         </p>
       </header>
       <Methodology facts={facts} />
-    </main>
+      </main>
+    </>
   );
 }

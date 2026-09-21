@@ -2,8 +2,13 @@ import Link from "next/link";
 import { qualificationService } from "@/server/services/QualificationService";
 import QualificationsList from "./QualificationsList";
 
-export default async function QualificationsPage() {
-  const rows = await qualificationService.list();
+export default async function QualificationsPage({
+  params,
+}: {
+  params: Promise<{ project: string }>;
+}) {
+  const { project } = await params;
+  const rows = await qualificationService.list(project);
 
   // Only what it takes to pick one; the detail page loads the rest.
   const items = rows.map((q) => ({
@@ -28,12 +33,12 @@ export default async function QualificationsPage() {
       </header>
 
       <div className="qf-list-actions">
-        <Link className="btn ghost" href="/qualify/new">
+        <Link className="btn ghost" href={`/p/${project}/qualify/new`}>
           + New qualification
         </Link>
       </div>
 
-      <QualificationsList items={items} />
+      <QualificationsList project={project} items={items} />
     </main>
   );
 }

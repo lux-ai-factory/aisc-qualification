@@ -3,7 +3,10 @@ import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import QualificationsList, {
   type ListItem,
-} from "@/app/qualifications/QualificationsList";
+} from "@/app/p/[project]/qualifications/QualificationsList";
+
+// Every row links inside the project being qualified.
+const PROJECT = "microcredit-assist-score-mcas";
 
 afterEach(cleanup);
 
@@ -21,7 +24,7 @@ const item = (over: Partial<ListItem> = {}): ListItem => ({
 
 describe("the compiled qualifications list", () => {
   it("shows each one with its name, version, company and timestamp", () => {
-    render(<QualificationsList items={[item()]} />);
+    render(<QualificationsList project={PROJECT} items={[item()]} />);
     expect(screen.getByText(/MicroCredit Assist Score/)).toBeTruthy();
     expect(screen.getByText(/v1\.2\.0/)).toBeTruthy();
     expect(screen.getByText(/Creditum AI SARL/)).toBeTruthy();
@@ -30,26 +33,26 @@ describe("the compiled qualifications list", () => {
   });
 
   it("does not double the v when the provider typed one", () => {
-    const { container } = render(<QualificationsList items={[item()]} />);
+    const { container } = render(<QualificationsList project={PROJECT} items={[item()]} />);
     expect(container.textContent).not.toContain("vv1.2.0");
     expect(container.textContent).toContain("v1.2.0");
   });
 
   it("adds the v when the provider did not type one", () => {
     const { container } = render(
-      <QualificationsList items={[item({ systemVersion: "2.0" })]} />,
+      <QualificationsList project={PROJECT} items={[item({ systemVersion: "2.0" })]} />,
     );
     expect(container.textContent).toContain("v2.0");
   });
 
-  it("links each row to its own page", () => {
-    const { container } = render(<QualificationsList items={[item()]} />);
-    const link = container.querySelector('a[href="/qualify/abc123"]');
+  it("links each row to its own page, inside the project", () => {
+    const { container } = render(<QualificationsList project={PROJECT} items={[item()]} />);
+    const link = container.querySelector(`a[href="/p/${PROJECT}/qualify/abc123"]`);
     expect(link).toBeTruthy();
   });
 
   it("says how much each one contains", () => {
-    render(<QualificationsList items={[item()]} />);
+    render(<QualificationsList project={PROJECT} items={[item()]} />);
     expect(screen.getByText(/13 answers/)).toBeTruthy();
     expect(screen.getByText(/5 risks/)).toBeTruthy();
   });
@@ -57,6 +60,7 @@ describe("the compiled qualifications list", () => {
   it("lists several, newest first as given", () => {
     const { container } = render(
       <QualificationsList
+        project={PROJECT}
         items={[
           item({ id: "new", systemName: "Newer", savedAt: "2026-09-11T10:00:00.000Z" }),
           item({ id: "old", systemName: "Older", savedAt: "2026-09-01T10:00:00.000Z" }),
@@ -69,13 +73,13 @@ describe("the compiled qualifications list", () => {
   });
 
   it("has no modal: a row is a link, not a dialog trigger", () => {
-    const { container } = render(<QualificationsList items={[item()]} />);
+    const { container } = render(<QualificationsList project={PROJECT} items={[item()]} />);
     expect(container.querySelector('[role="dialog"]')).toBeNull();
     expect(container.querySelector(".qf-modal")).toBeNull();
   });
 
   it("invites a first qualification when there are none", () => {
-    render(<QualificationsList items={[]} />);
+    render(<QualificationsList project={PROJECT} items={[]} />);
     expect(screen.getByText(/haven't qualified any system yet/i)).toBeTruthy();
     expect(screen.getByText(/Start your first qualification/i)).toBeTruthy();
   });

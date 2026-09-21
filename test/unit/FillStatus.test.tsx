@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
-import FillStatus from "@/app/qualify/[id]/FillStatus";
+import FillStatus from "@/app/p/[project]/qualify/[id]/FillStatus";
 
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));

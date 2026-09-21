@@ -4,10 +4,13 @@ import { findExample } from "@/data/examples";
 import QualifyForm from "./QualifyForm";
 
 export default async function NewQualificationPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ project: string }>;
   searchParams: Promise<{ example?: string }>;
 }) {
+  const { project } = await params;
   // `?example=mcas` opens the form already filled, to be read and corrected
   // rather than typed. It writes nothing: the person still presses the button.
   const { example } = await searchParams;
@@ -30,6 +33,7 @@ export default async function NewQualificationPage({
         )}
       </header>
       <QualifyForm
+        project={project}
         keyQuestions={KEY_QUESTIONS}
         targetSystems={targetSystems}
         sectors={sectors}

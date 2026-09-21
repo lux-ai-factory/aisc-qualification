@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, beforeAll } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import CardDownloads from "@/app/qualify/[id]/CardDownloads";
-import OntologyView from "@/app/qualify/[id]/OntologyView";
+import CardDownloads from "@/app/p/[project]/qualify/[id]/CardDownloads";
+import OntologyView from "@/app/p/[project]/qualify/[id]/OntologyView";
 import type { OntologyView as View } from "@/domain/OntologyView";
 import { installReactFlowEnv } from "../support/reactFlowEnv";
 

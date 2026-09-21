@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import VerticalCard from "@/app/qualify/[id]/VerticalCard";
+import VerticalCard from "@/app/p/[project]/qualify/[id]/VerticalCard";
 import type { OntologyView } from "@/domain/OntologyView";
 
 afterEach(cleanup);

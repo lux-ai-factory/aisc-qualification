@@ -8,14 +8,20 @@ import { FormValidationError } from "@/server/forms/QualificationFormParser";
 export type SubmitState = { error?: string } | undefined;
 
 export async function submitQualification(
+  project: string,
   _prev: SubmitState,
   formData: FormData,
 ): Promise<SubmitState> {
   let id: string;
   try {
-    ({ id } = await qualificationService.createFromForm(formData));
+    ({ id } = await qualificationService.createFromForm(project, formData));
   } catch (err) {
     if (err instanceof FormValidationError) return { error: err.message };
+    // The system could not be named on the platform: say so plainly rather
+    // than storing a qualification nothing else can point at.
+    if (err instanceof Error && /could not name this system|PLATFORM_URL/i.test(err.message)) {
+      return { error: err.message };
+    }
     throw err;
   }
 
@@ -25,5 +31,5 @@ export async function submitQualification(
   // down or absent costs nothing but an emptier first draft.
   await requestFill(id);
 
-  redirect(`/qualify/${id}`);
+  redirect(`/p/${project}/qualify/${id}`);
 }
