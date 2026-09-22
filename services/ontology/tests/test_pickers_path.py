@@ -40,3 +40,31 @@ def test_a_missing_file_says_where_it_looked(tmp_path, monkeypatch):
         assert "nope.json" in str(exc)
     else:
         raise AssertionError("expected FileNotFoundError")
+
+
+def test_the_container_layout_has_no_app_root_above_it():
+    """In the image the package is /app/airo_min, with nothing three levels up.
+
+    Asking for it by index raised IndexError at import time, which took the
+    whole service down on start: the vocabulary sits beside the package there,
+    so the missing app root is an ordinary absence, not an error.
+    """
+    from airo_min.pickers import app_root_for
+
+    assert app_root_for(Path("/app/airo_min")) is None
+
+
+def test_the_repo_layout_still_finds_the_app_root():
+    from airo_min.pickers import app_root_for
+
+    root = app_root_for(Path("/w/apps/qualification/services/ontology/airo_min"))
+    assert root == Path("/w/apps/qualification")
+
+
+def test_candidate_paths_work_without_an_app_root(monkeypatch):
+    import airo_min.pickers as pickers
+
+    monkeypatch.setattr(pickers, "_APP_ROOT", None)
+    monkeypatch.setattr(pickers, "_PACKAGE", Path("/app/airo_min"))
+    monkeypatch.delenv("AIRO_VOCAB_PATH", raising=False)
+    assert [str(p) for p in pickers.candidate_paths()] == ["/app/airo_min/airo_vocab.json"]

@@ -19,8 +19,22 @@ import os
 from pathlib import Path
 
 _PACKAGE = Path(__file__).resolve().parent
-# .../apps/qualification/services/ontology/airo_min -> apps/qualification
-_APP_ROOT = _PACKAGE.parents[2]
+
+
+def app_root_for(package_dir: Path) -> Path | None:
+    """The app root three levels above the package, when there is one.
+
+    In the repo the package is .../apps/qualification/services/ontology/airo_min,
+    so the app root is apps/qualification. In the image it is /app/airo_min, with
+    nothing three levels up: that is an ordinary absence (the vocabulary is
+    copied in beside the package), not an error, and asking for it by index used
+    to raise at import and take the service down on start.
+    """
+    parents = package_dir.parents
+    return parents[2] if len(parents) > 2 else None
+
+
+_APP_ROOT = app_root_for(_PACKAGE)
 
 
 def candidate_paths() -> list[Path]:
@@ -29,7 +43,8 @@ def candidate_paths() -> list[Path]:
     override = os.environ.get("AIRO_VOCAB_PATH")
     if override:
         paths.append(Path(override))
-    paths.append(_APP_ROOT / "src" / "data" / "airo_vocab.json")
+    if _APP_ROOT is not None:
+        paths.append(_APP_ROOT / "src" / "data" / "airo_vocab.json")
     paths.append(_PACKAGE / "airo_vocab.json")
     return paths
 

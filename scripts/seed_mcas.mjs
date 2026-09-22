@@ -160,6 +160,53 @@ export const MCAS_SEED = QUALIFICATION;
 export const MCAS_ID = "cmpeno6uw0001h9ig8l1d5b27";
 
 /**
+ * Name MCAS's system on the platform, and get back the two ids a qualification
+ * cannot be stored without.
+ *
+ * A qualification describes one project's system, and `core.system` is written
+ * only by the platform so that the engine's evaluations and the dashboard's
+ * results mean the same system. Registering is idempotent: seeding twice finds
+ * the system already there rather than making a second one.
+ */
+export async function systemForProject(project, options = {}) {
+  const platformUrl = (options.platformUrl ?? process.env.PLATFORM_URL ?? "").replace(/\/+$/, "");
+  const fetchImpl = options.fetchImpl ?? fetch;
+  if (!project) {
+    throw new Error(
+      "Say which project to seed MCAS into: `node scripts/seed_mcas.mjs <project>` " +
+        "(its slug or its pid), or SEED_PROJECT=<project>.",
+    );
+  }
+  if (!platformUrl) {
+    throw new Error("PLATFORM_URL is not set: MCAS's system cannot be named without the platform.");
+  }
+
+  let response;
+  try {
+    response = await fetchImpl(`${platformUrl}/projects/${encodeURIComponent(project)}/systems`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: QUALIFICATION.systemName,
+        version: QUALIFICATION.systemVersion,
+        provider: QUALIFICATION.company,
+      }),
+      cache: "no-store",
+    });
+  } catch (cause) {
+    throw new Error("Could not name MCAS's system: the platform did not answer.", { cause });
+  }
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(
+      `Could not name MCAS's system: the platform answered ${response.status}. ${detail}`.trim(),
+    );
+  }
+  const system = await response.json();
+  return { projectId: system.project_id, systemId: system.pid };
+}
+
+/**
  * Put the MCAS walkthrough in the database, once.
  *
  * The migrate container runs this on every `docker compose up`, so a second run
@@ -167,7 +214,11 @@ export const MCAS_ID = "cmpeno6uw0001h9ig8l1d5b27";
  * and it does not overwrite a card someone has since edited. `force` (or
  * SEED_FORCE=1) replaces it, which is what you want after changing the fixture.
  */
-export async function seedMcas(prisma, { force = false } = {}) {
+export async function seedMcas(prisma, { force = false, project, platform } = {}) {
+  // The system is named first: a qualification of a system nothing else can
+  // point at would be a dead end, and the database refuses it anyway.
+  const { projectId, systemId } = platform ?? (await systemForProject(project));
+
   const existing = await prisma.qualification.findUnique({
     where: { id: MCAS_ID },
     select: { id: true },
@@ -187,6 +238,8 @@ export async function seedMcas(prisma, { force = false } = {}) {
   const created = await prisma.qualification.create({
     data: {
       id: MCAS_ID,
+      projectId,
+      systemId,
       systemName: QUALIFICATION.systemName,
       systemVersion: QUALIFICATION.systemVersion,
       company: QUALIFICATION.company,
@@ -215,8 +268,9 @@ if (
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
   const prisma = new PrismaClient();
-  console.log("Seeding MCAS qualification");
-  seedMcas(prisma, { force: process.env.SEED_FORCE === "1" })
+  const project = process.argv[2] || process.env.SEED_PROJECT || "";
+  console.log(`Seeding MCAS qualification into project ${project || "<none given>"}`);
+  seedMcas(prisma, { force: process.env.SEED_FORCE === "1", project })
     .catch((err) => {
       console.error(err);
       process.exit(1);
