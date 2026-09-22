@@ -58,3 +58,34 @@ describe("PlatformClient.registerSystem", () => {
     ).rejects.toThrow(/PLATFORM_URL/);
   });
 });
+
+// Opened without a project, this app has nothing to show: a qualification is of
+// one project's system. Rather than a dead end, the page offers the projects,
+// which it reads from the platform.
+describe("PlatformClient.projects", () => {
+  const projects = [
+    { pid: "a1", name: "MCAS", slug: "mcas", description: "First" },
+    { pid: "b2", name: "Other", slug: "other", description: null },
+  ];
+
+  it("lists what the platform has", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, json: async () => projects });
+
+    const found = await new PlatformClient("http://platform:8000", fetchImpl).projects();
+
+    expect(found.map((p) => p.pid)).toEqual(["a1", "b2"]);
+    expect(fetchImpl.mock.calls[0][0]).toBe("http://platform:8000/projects");
+  });
+
+  it("shows an empty list rather than an error page when the platform is down", async () => {
+    // The methodology and the rest of the app still read; only the chooser is
+    // empty, and it says so on the page.
+    const fetchImpl = vi.fn().mockRejectedValue(new Error("connect ECONNREFUSED"));
+
+    expect(await new PlatformClient("http://platform:8000", fetchImpl).projects()).toEqual([]);
+  });
+
+  it("is empty when no platform is configured at all", async () => {
+    expect(await new PlatformClient("", vi.fn()).projects()).toEqual([]);
+  });
+});
