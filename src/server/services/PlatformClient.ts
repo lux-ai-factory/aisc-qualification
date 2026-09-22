@@ -15,13 +15,6 @@ export type SystemIdentity = {
   description?: string | null;
 };
 
-export type PlatformProject = {
-  pid: string;
-  name: string;
-  slug: string;
-  description: string | null;
-};
-
 export type PlatformSystem = {
   pid: string;
   project_id: string;
@@ -34,26 +27,6 @@ export class PlatformClient {
     private readonly baseUrl: string = process.env.PLATFORM_URL ?? "",
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
-
-  /**
-   * The projects on the platform.
-   *
-   * Used by the page someone reaches without one, so it can offer them instead
-   * of being a dead end. A platform that is down or absent gives an empty list
-   * rather than an error page: the rest of the app still reads.
-   */
-  async projects(): Promise<PlatformProject[]> {
-    if (!this.baseUrl) return [];
-    try {
-      const res = await this.fetchImpl(`${this.baseUrl.replace(/\/+$/, "")}/projects`, {
-        cache: "no-store",
-      });
-      if (!res.ok) return [];
-      return (await res.json()) as PlatformProject[];
-    } catch {
-      return [];
-    }
-  }
 
   async registerSystem(project: string, system: SystemIdentity): Promise<PlatformSystem> {
     if (!this.baseUrl) {
