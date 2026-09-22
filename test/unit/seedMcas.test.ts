@@ -1,5 +1,4 @@
 import { describe, it, expect, vi } from "vitest";
-// @ts-expect-error - the seed is plain JS, run by node on a fresh install
 import { systemForProject } from "../../scripts/seed_mcas.mjs";
 
 // The MCAS walkthrough has to land in a project, like anything else here: a

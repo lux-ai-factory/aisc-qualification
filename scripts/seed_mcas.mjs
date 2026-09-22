@@ -214,6 +214,13 @@ export async function systemForProject(project, options = {}) {
  * and it does not overwrite a card someone has since edited. `force` (or
  * SEED_FORCE=1) replaces it, which is what you want after changing the fixture.
  */
+/**
+ * @param {import("@prisma/client").PrismaClient} prisma
+ * @param {{ force?: boolean, project?: string,
+ *           platform?: { projectId: string, systemId: string } }} [options]
+ *        `platform` is the answer the platform would give, for a caller that
+ *        already has it (the tests); otherwise it is asked for.
+ */
 export async function seedMcas(prisma, { force = false, project, platform } = {}) {
   // The system is named first: a qualification of a system nothing else can
   // point at would be a dead end, and the database refuses it anyway.

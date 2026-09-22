@@ -14,8 +14,8 @@ model Qualification {
   // by the platform so the engine's tests and the dashboard's results point at
   // the same one. The foreign keys are made in the migration, since Prisma
   // cannot model a key into a schema this app only reads.
-  projectId         String                @db.Uuid
-  systemId          String                @db.Uuid
+  projectId         String                @db.Uuid @map("project_id")
+  systemId          String                @db.Uuid @map("system_id")
   systemName        String
   systemVersion     String
   company           String
