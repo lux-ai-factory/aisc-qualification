@@ -1,25 +1,32 @@
 import Link from "next/link";
 
 /**
+ * The header.
+ *
  * Inside a project every link stays inside it, so navigating never loses which
- * project is being qualified. Outside one there are no qualifications to link
- * to, only the methodology, which reads the same for everyone.
+ * project is being qualified, and the first of them goes back to that project's
+ * page on the launcher, where the other five steps are. Outside one there are
+ * no qualifications to link to, only the methodology, which reads the same for
+ * everyone.
  */
 export default function SiteHeader({ project }: { project?: string }) {
   // Static files in public/ are not prefixed with the configured basePath the
   // way Next's own /_next assets are, so build the src explicitly. Read at
   // render time on the server (same runtime NEXT_BASE_PATH next.config uses).
   const basePath = process.env.NEXT_BASE_PATH || "";
+  const launcher = (process.env.LAUNCHER_URL || "http://localhost:8100/").replace(/\/+$/, "");
+  const projectPage = project ? `${launcher}/p/${encodeURIComponent(project)}` : null;
   return (
     <header className="site-header">
       <div className="inner">
-        <Link href={project ? `/p/${project}` : "/"} className="brand">
+        <a href={projectPage ?? launcher} className="brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`${basePath}/laif-logo.svg`} alt="Luxembourg AI Factory" />
           <span className="divider" />
           <span>AI System Qualification</span>
-        </Link>
+        </a>
         <nav className="site-nav">
+          {projectPage && <a href={projectPage}>← All six steps</a>}
           {project && (
             <Link href={`/p/${project}/qualifications`}>Qualifications</Link>
           )}
