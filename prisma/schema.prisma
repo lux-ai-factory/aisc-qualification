@@ -14,8 +14,8 @@ model Qualification {
   // by the platform so the engine's tests and the dashboard's results point at
   // the same one. The foreign keys are made in the migration, since Prisma
   // cannot model a key into a schema this app only reads.
-  projectId         String                @db.Uuid @map("project_id")
-  systemId          String                @db.Uuid @map("system_id")
+  projectId         String                @map("project_id") @db.Uuid
+  systemId          String                @map("system_id") @db.Uuid
   systemName        String
   systemVersion     String
   company           String
@@ -34,17 +34,18 @@ model Qualification {
   // node id; the graph itself is rebuilt from them, never stored as the truth.
   ontologyExtracted Json?
   ontologyPatch     Json?
-  ontologyAt        DateTime?
-  systemCardAt      DateTime?
+  ontologyAt        DateTime?             @map("ontology_at") @db.Timestamptz(3)
+  systemCardAt      DateTime?             @map("system_card_at") @db.Timestamptz(3)
   systemCardPdfPath String?
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
   answers           QualificationAnswer[]
   knowledgeGraph    KnowledgeGraph?
   risks             QualificationRisk[]
 
   @@index([projectId])
   @@index([systemId])
+  @@map("qualification")
 }
 
 // One row of the risk block (question 15): one full AIRO risk chain.
@@ -64,6 +65,7 @@ model QualificationRisk {
   qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
 
   @@index([qualificationId])
+  @@map("qualification_risk")
 }
 
 /// The knowledge graph for one system.
@@ -87,8 +89,10 @@ model KnowledgeGraph {
   stamp           String[]      @default([])
   nodes           Int
   triples         Int
-  builtAt         DateTime      @default(now())
+  builtAt         DateTime      @default(now()) @map("built_at") @db.Timestamptz(3)
   qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
+
+  @@map("knowledge_graph")
 }
 
 model QualificationAnswer {
@@ -101,4 +105,5 @@ model QualificationAnswer {
 
   @@unique([qualificationId, questionId])
   @@index([qualificationId, toolId])
+  @@map("qualification_answer")
 }
