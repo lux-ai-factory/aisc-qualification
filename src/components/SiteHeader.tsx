@@ -26,7 +26,11 @@ export default function SiteHeader({ project }: { project?: string }) {
           <span>AI System Qualification</span>
         </a>
         <nav className="site-nav">
-          {projectPage && <a href={projectPage}>← All six steps</a>}
+          {projectPage && (
+            <a href={projectPage} aria-label="Back to the project">
+              ← Back
+            </a>
+          )}
           {project && (
             <Link href={`/p/${project}/qualifications`}>Qualifications</Link>
           )}
