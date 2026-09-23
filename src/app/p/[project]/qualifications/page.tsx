@@ -29,16 +29,17 @@ export default async function QualificationsPage({
   return (
     <main className="qualify-page">
       <header className="qualify-header">
-        <h1>AI cards</h1>
+        <h1>Versions of the AI system</h1>
         <p>
-          The project has one AI system, and each version of it has one AI card.
-          Open one to read the answered form and the card built from it.
+          The project has one AI system. Each time it is changed after being
+          tested or described, it gets a new version, and each version keeps its
+          AI card as it was. The newest is the current one.
         </p>
       </header>
 
       <div className="qf-list-actions">
-        <Link className="btn ghost" href={`/p/${project}/qualify/new`}>
-          + AI card for the next version
+        <Link className="btn ghost" href={`/p/${project}/system/edit`}>
+          Edit the AI system
         </Link>
       </div>
 

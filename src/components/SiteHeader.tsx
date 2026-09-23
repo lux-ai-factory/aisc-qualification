@@ -32,7 +32,10 @@ export default function SiteHeader({ project }: { project?: string }) {
             </a>
           )}
           {project && (
-            <Link href={`/p/${project}/qualifications`}>Qualifications</Link>
+            <>
+              <Link href={`/p/${project}/system`}>AI system</Link>
+              <Link href={`/p/${project}/qualifications`}>Versions</Link>
+            </>
           )}
           <Link href="/methodology">Methodology</Link>
         </nav>

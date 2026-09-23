@@ -100,3 +100,30 @@ export function cardAsFormStart(card: CardContent): FormExample {
     risks,
   };
 }
+
+export type CardStanding = {
+  /** The version the card describes. */
+  versionNumber: number;
+  /** Whether it is the system's current card: the newest version that has one. */
+  current: boolean;
+  currentCardId: string | null;
+};
+
+/** Where one card stands: the system's page is its newest card, the rest are
+ *  history. `systemId` is the version the card describes. */
+export function cardStanding(
+  versions: VersionRef[],
+  cards: CardRef[],
+  systemId: string,
+): CardStanding {
+  const cardOf = new Map(cards.map((c) => [c.systemId, c.id]));
+  const newest = [...versions]
+    .sort((a, b) => b.number - a.number)
+    .find((version) => cardOf.has(version.pid));
+  const currentCardId = newest ? (cardOf.get(newest.pid) ?? null) : null;
+  return {
+    versionNumber: versions.find((version) => version.pid === systemId)?.number ?? 0,
+    current: currentCardId !== null && cardOf.get(systemId) === currentCardId,
+    currentCardId,
+  };
+}

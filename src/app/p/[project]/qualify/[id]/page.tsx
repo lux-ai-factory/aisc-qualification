@@ -25,6 +25,11 @@ export default async function QualificationDetailPage({
   const q = await qualificationService.get(project, id);
   if (!q) notFound();
 
+  // One system, in versions: this card is its current one, or history.
+  const standing = await qualificationService
+    .standing(project, { projectId: q.projectId, systemId: q.systemId })
+    .catch(() => null);
+
   // The ontology IS the card: built on read from the form, the agent's
   // extraction and the reviewer's patch. A sidecar that is down must not take
   // the page down with it, so the failure is reported inside the card tab and
@@ -47,17 +52,38 @@ export default async function QualificationDetailPage({
       <header className="qualify-header">
         <div className="qf-header-row">
           <div>
+            {standing && standing.versionNumber > 0 && (
+              <p className="qf-row-sysver">Version {standing.versionNumber}</p>
+            )}
             <h1>{q.systemName}</h1>
             <p>
               {q.company} · {versionLabel(q.systemVersion)} · saved {savedAt}{" "}
               UTC
             </p>
           </div>
-          <Link className="btn ghost qf-header-btn" href={`/p/${project}/qualifications`}>
-            Compiled qualifications
-          </Link>
+          <div className="qf-header-actions">
+            {standing?.current && (
+              <Link className="btn qf-header-btn" href={`/p/${project}/system/edit`}>
+                Edit the AI system
+              </Link>
+            )}
+            <Link className="btn ghost qf-header-btn" href={`/p/${project}/qualifications`}>
+              Versions
+            </Link>
+          </div>
         </div>
       </header>
+
+      {standing && !standing.current && (
+        <p className="qf-prefilled">
+          This is version {standing.versionNumber}, kept as it was.{" "}
+          {standing.currentCardId && (
+            <Link href={`/p/${project}/qualify/${standing.currentCardId}`}>
+              Open the current version
+            </Link>
+          )}
+        </p>
+      )}
 
       {/* The filler starts when the qualification is saved, so arriving here
           usually means arriving before its draft exists. */}

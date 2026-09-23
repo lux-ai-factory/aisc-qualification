@@ -48,7 +48,7 @@ describe("a compiled qualification uses the window's width", () => {
     // Wider than the 820px reading column, because the metadata fields pair up
     // and the answers are paragraphs; well short of the compiled card's
     // near-full-bleed, because a row of inputs 1900px wide is not a form.
-    const page = readFileSync("src/app/p/[project]/qualify/new/page.tsx", "utf8");
+    const page = readFileSync("src/app/p/[project]/system/edit/page.tsx", "utf8");
     expect(page).toMatch(/className="qualify-page qualify-page--form"/);
     expect(page).not.toMatch(/qualify-page--wide/);
     expect(rule(".qualify-page--form")).toMatch(/max-width: 1080px/);

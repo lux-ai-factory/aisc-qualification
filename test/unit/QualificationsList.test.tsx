@@ -90,9 +90,12 @@ describe("the compiled qualifications list", () => {
     expect(container.querySelector(".qf-modal")).toBeNull();
   });
 
-  it("invites a first qualification when there are none", () => {
-    render(<QualificationsList project={PROJECT} items={[]} />);
-    expect(screen.getByText(/haven't qualified any system yet/i)).toBeTruthy();
-    expect(screen.getByText(/Start your first qualification/i)).toBeTruthy();
+  it("with no card yet, it asks for the system to be described, once", () => {
+    // one system per project: the empty state starts version 1 of it
+    const { container } = render(<QualificationsList project={PROJECT} items={[]} />);
+    expect(screen.getByText(/no AI card yet/i)).toBeTruthy();
+    const link = container.querySelector("a")!;
+    expect(link.getAttribute("href")).toBe(`/p/${PROJECT}/system/edit`);
+    expect(container.textContent).not.toMatch(/first qualification|new qualification/i);
   });
 });

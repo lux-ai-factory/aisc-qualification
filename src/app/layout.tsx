@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "AI System Qualification",
-  description: "Qualify an AI system and generate its AI card",
+  description: "Describe the project's AI system and keep its AI card, version by version",
 };
 
 // Pages read from the database per-request, so render dynamically — this also

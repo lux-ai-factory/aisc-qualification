@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cardAsFormStart, nextCard } from "@/domain/cardVersions";
+import { cardAsFormStart, cardStanding, nextCard } from "@/domain/cardVersions";
 
 // A project has one AI system, in versions (the platform's), and each version
 // has exactly one AI card. Submitting a card freezes its version, so the next
@@ -108,6 +108,32 @@ describe("cardAsFormStart", () => {
       risk: "Wrong rank", source: "Stale bureau data", vulnerability: "",
       consequence: "Refused credit", affected: "user", areas: ["right"],
       control: "Officer review", followUpControl: "",
+    });
+  });
+});
+
+
+// One system: its page is the card of its newest version that has one, and
+// every other card is history, read-only, pointing at the current one.
+describe("cardStanding", () => {
+  const versions = [v(3, false), v(2, true), v(1, true)];
+  const cards = [{ id: "c1", systemId: "v1" }, { id: "c2", systemId: "v2" }];
+
+  it("the newest version's card is the current one", () => {
+    expect(cardStanding(versions, cards, "v2")).toEqual({
+      versionNumber: 2, current: true, currentCardId: "c2",
+    });
+  });
+
+  it("an older card says which version it is and which card is current", () => {
+    expect(cardStanding(versions, cards, "v1")).toEqual({
+      versionNumber: 1, current: false, currentCardId: "c2",
+    });
+  });
+
+  it("no card at all has no current card", () => {
+    expect(cardStanding(versions, [], "v1")).toEqual({
+      versionNumber: 1, current: false, currentCardId: null,
     });
   });
 });

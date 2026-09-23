@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { versionLabel } from "@/domain/SystemCard";
 
-// The compiled qualifications, as a list of rows that link to their card.
+// The versions of the project's one AI system, each a row linking to its card.
 // A row carries only what it takes to pick one: which system, which version,
 // when it was saved, and how much is in it.
 export type ListItem = {
@@ -36,9 +36,9 @@ export default function QualificationsList({
   if (items.length === 0) {
     return (
       <div className="qf-empty">
-        <p>You haven&apos;t qualified any system yet.</p>
-        <Link className="btn" href={`/p/${project}/qualify/new`}>
-          Start your first qualification
+        <p>The AI system has no AI card yet.</p>
+        <Link className="btn" href={`/p/${project}/system/edit`}>
+          Describe the AI system
         </Link>
       </div>
     );

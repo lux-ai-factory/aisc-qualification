@@ -8,7 +8,13 @@ import {
   qualificationFormParser,
 } from "@/server/forms/QualificationFormParser";
 import { PlatformClient, platformClient } from "@/server/services/PlatformClient";
-import { cardAsFormStart, nextCard, type NextCard } from "@/domain/cardVersions";
+import {
+  cardAsFormStart,
+  cardStanding,
+  nextCard,
+  type CardStanding,
+  type NextCard,
+} from "@/domain/cardVersions";
 import type { FormExample } from "@/data/examples/types";
 
 /** The version already has its AI card; a new card needs a new version. */
@@ -67,6 +73,20 @@ export class QualificationService {
     const next = nextCard(system.versions, cards);
     const from = cards.find((c) => c.id === next.fromCardId);
     return { next, initial: from ? cardAsFormStart(from) : null };
+  }
+
+  /** The system's current card, if it has one yet: what its page shows. */
+  async currentCardId(project: string): Promise<string | null> {
+    const system = await this.platform.aiSystem(project);
+    const cards = await this.repo.list(system.project_id);
+    return cardStanding(system.versions, cards, system.current.pid).currentCardId;
+  }
+
+  /** Where one card stands among the system's versions. */
+  async standing(project: string, card: { projectId: string; systemId: string }): Promise<CardStanding> {
+    const system = await this.platform.aiSystem(project);
+    const cards = await this.repo.list(card.projectId);
+    return cardStanding(system.versions, cards, card.systemId);
   }
 
   /** Each version's number, by its pid, for labelling the cards. */
