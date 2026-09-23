@@ -18,9 +18,16 @@ BEGIN
 END $$;
 
 ALTER TABLE qualification DROP CONSTRAINT IF EXISTS "Qualification_system_id_fkey";
-ALTER TABLE qualification
-    ADD CONSTRAINT "qualification_system_id_fkey"
-    FOREIGN KEY (system_id) REFERENCES core.ai_system_version (pid) ON DELETE CASCADE;
+-- On a database where the platform already dropped core.ai_system_version (its 0003), there is
+-- nothing to point at here: 20260923210000 points the key at core.system.
+DO $$
+BEGIN
+  IF to_regclass('core.ai_system_version') IS NOT NULL THEN
+    ALTER TABLE qualification
+      ADD CONSTRAINT "qualification_system_id_fkey"
+      FOREIGN KEY (system_id) REFERENCES core.ai_system_version (pid) ON DELETE CASCADE;
+  END IF;
+END $$;
 
 DROP INDEX IF EXISTS "Qualification_system_id_idx";
 CREATE UNIQUE INDEX "qualification_system_id_key" ON qualification (system_id);
