@@ -5,6 +5,7 @@ import { qualificationRepository } from "@/server/repositories/QualificationRepo
 import { toExport } from "@/server/services/QualificationExporter";
 import { ontologyService } from "@/server/services/OntologyService";
 import { parseExtracted } from "@/server/forms/ExtractedParser";
+import { NOT_LATEST, isLatestCard } from "@/server/services/cardLatest";
 
 // What the filler reads: the form in the same export shape the ontology service
 // is given, plus whatever draft is already stored.
@@ -44,6 +45,11 @@ export async function PUT(
 
   const exists = await qualificationRepository.cardSummary(project, id);
   if (!exists) return new NextResponse("Not found", { status: 404 });
+  // Only the latest version's card changes: a draft for an older one is refused
+  // before anything is read or written.
+  if (!(await isLatestCard(project, exists.systemId))) {
+    return NextResponse.json({ error: NOT_LATEST }, { status: 403 });
+  }
 
   let body: unknown;
   try {

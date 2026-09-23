@@ -1,31 +1,22 @@
 import { describe, it, expect } from "vitest";
 import { cardAsFormStart, cardStanding, nextCard } from "@/domain/cardVersions";
 
-// A project has one AI system, in versions (the platform's), and each version
-// has exactly one AI card. Submitting a card freezes its version, so the next
-// card is always about a version that has none yet: the draft, or the one the
-// platform makes after a frozen latest. It starts from the card before it, to
-// be reviewed rather than typed again.
+// A project has one AI system; its AI card is versioned. Every save makes the
+// version after the latest (a row of core.system), and the card starts from
+// the newest card before it, to be reviewed rather than typed again.
+// (Rewritten for WP3, pipeline 2026-09-23: rows are {pid, number}; the draft
+// case is gone, the other fixtures lost their frozen flag.)
 
-const v = (number: number, frozen: boolean) => ({
-  pid: `v${number}`,
-  number,
-  frozen_at: frozen ? "2026-09-23T15:00:00Z" : null,
-});
+const v = (number: number) => ({ pid: `v${number}`, number });
 
 describe("nextCard", () => {
-  it("is for the draft when the draft has no card yet", () => {
-    const next = nextCard([v(2, false), v(1, true)], [{ id: "c1", systemId: "v1" }]);
-    expect(next).toEqual({ versionNumber: 2, fromCardId: "c1", fromVersionNumber: 1 });
-  });
-
-  it("is for the version after a frozen latest", () => {
-    const next = nextCard([v(1, true)], [{ id: "c1", systemId: "v1" }]);
+  it("is for the version after the latest", () => {
+    const next = nextCard([v(1)], [{ id: "c1", systemId: "v1" }]);
     expect(next).toEqual({ versionNumber: 2, fromCardId: "c1", fromVersionNumber: 1 });
   });
 
   it("starts empty when no version has a card", () => {
-    expect(nextCard([v(1, false)], [])).toEqual({
+    expect(nextCard([], [])).toEqual({
       versionNumber: 1,
       fromCardId: null,
       fromVersionNumber: null,
@@ -34,7 +25,7 @@ describe("nextCard", () => {
 
   it("starts from the newest card, not the first", () => {
     const next = nextCard(
-      [v(3, true), v(2, true), v(1, true)],
+      [v(3), v(2), v(1)],
       [
         { id: "c1", systemId: "v1" },
         { id: "c3", systemId: "v3" },
@@ -43,10 +34,9 @@ describe("nextCard", () => {
     expect(next).toEqual({ versionNumber: 4, fromCardId: "c3", fromVersionNumber: 3 });
   });
 
-  it("a frozen latest with no card still gets its next version", () => {
-    // frozen by an evaluation: the card is written for the version after it,
-    // which is where the engine's next change would land too
-    const next = nextCard([v(2, true), v(1, true)], [{ id: "c1", systemId: "v1" }]);
+  it("a latest version with no card still gets its next version", () => {
+    // a save that failed after naming v2: the next save makes v3
+    const next = nextCard([v(2), v(1)], [{ id: "c1", systemId: "v1" }]);
     expect(next.versionNumber).toBe(3);
   });
 });
@@ -113,10 +103,10 @@ describe("cardAsFormStart", () => {
 });
 
 
-// One system: its page is the card of its newest version that has one, and
-// every other card is history, read-only, pointing at the current one.
+// One system: its page is the latest version's card, and every other card is
+// history, read-only, pointing at the current one.
 describe("cardStanding", () => {
-  const versions = [v(3, false), v(2, true), v(1, true)];
+  const versions = [v(2), v(1)];
   const cards = [{ id: "c1", systemId: "v1" }, { id: "c2", systemId: "v2" }];
 
   it("the newest version's card is the current one", () => {

@@ -9,14 +9,16 @@ export default async function QualificationsPage({
 }) {
   const { project } = await params;
   const rows = await qualificationService.list(project);
-  // Which version of the project's one AI system each card describes. The
-  // list still shows when the platform cannot say, just without the numbers.
-  const numberOf = await qualificationService.versionNumbers(project).catch(() => new Map());
+  // Which AI card version each card is (a row of core.system), highest first.
+  // The list still shows when the platform cannot say, just without the numbers.
+  const versions = await qualificationService.versions(project).catch(() => []);
+  const versionOf = new Map(versions.map((v) => [v.pid, v]));
 
   // Only what it takes to pick one; the detail page loads the rest.
   const items = rows.map((q) => ({
     id: q.id,
-    versionNumber: numberOf.get(q.systemId),
+    versionNumber: versionOf.get(q.systemId)?.number,
+    createdBy: versionOf.get(q.systemId)?.created_by ?? null,
     systemName: q.systemName,
     systemVersion: q.systemVersion,
     company: q.company,
@@ -24,16 +26,16 @@ export default async function QualificationsPage({
     savedAt: q.createdAt.toISOString(),
     answers: q.answers.length,
     risks: q.risks.length,
-  }));
+  })).sort((a, b) => (b.versionNumber ?? 0) - (a.versionNumber ?? 0));
 
   return (
     <main className="qualify-page">
       <header className="qualify-header">
-        <h1>Versions of the AI system</h1>
+        <h1>Versions of the AI card</h1>
         <p>
-          The project has one AI system. Each time it is changed after being
-          tested or described, it gets a new version, and each version keeps its
-          AI card as it was. The newest is the current one.
+          The project has one AI system. Every save of its AI card makes the next
+          version, and each older version keeps its card as it was. The highest is
+          the latest, and only it changes.
         </p>
       </header>
 

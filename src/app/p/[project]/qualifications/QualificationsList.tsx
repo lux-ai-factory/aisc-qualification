@@ -9,6 +9,8 @@ export type ListItem = {
   /** The version of the project's AI system this card describes (one card per
    *  version); absent when the platform could not say. */
   versionNumber?: number;
+  /** Who saved the version, when the platform says. */
+  createdBy?: string | null;
   systemName: string;
   systemVersion: string;
   company: string;
@@ -65,6 +67,7 @@ export default function QualificationsList({
             </div>
             <div className="qf-row-meta">
               <time dateTime={item.savedAt}>{stamp(item.savedAt)} UTC</time>
+              {item.createdBy && <span className="qf-row-counts">saved by {item.createdBy}</span>}
               <span className="qf-row-counts">
                 {item.answers} answers · {item.risks} risks
               </span>

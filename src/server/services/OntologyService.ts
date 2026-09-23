@@ -10,6 +10,7 @@ import type {
 } from "@/domain/OntologyView";
 import { OntologyClient, type OntologyBuild } from "./OntologyClient";
 import { toExport } from "./QualificationExporter";
+import { assertLatestCard } from "./cardLatest";
 import {
   knowledgeGraphStore,
   type KnowledgeGraphStore,
@@ -62,6 +63,8 @@ export class OntologyService {
   ): Promise<OntologyBuild> {
     const q = await this.repo.find(projectId, qualificationId);
     if (!q) throw new Error("Qualification not found.");
+    // Only the latest version's card changes; an older one is kept as it was.
+    await assertLatestCard(projectId, q.systemId);
 
     const patch: OntologyPatch = {
       ...((q.ontologyPatch as OntologyPatch | null) ?? {}),
@@ -92,9 +95,9 @@ export class OntologyService {
   async resetPatch(projectId: string, qualificationId: string): Promise<OntologyBuild> {
     // Read first, so a qualification of another project is refused before
     // anything is written rather than after.
-    if (!(await this.repo.find(projectId, qualificationId))) {
-      throw new Error("Qualification not found.");
-    }
+    const q = await this.repo.find(projectId, qualificationId);
+    if (!q) throw new Error("Qualification not found.");
+    await assertLatestCard(projectId, q.systemId);
     await this.repo.saveOntologyPatch(qualificationId, {});
     return this.build(projectId, qualificationId);
   }

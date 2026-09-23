@@ -96,6 +96,7 @@ export class QualificationRepository {
     | (Pick<
         Qualification,
         | "id"
+        | "systemId"
         | "systemName"
         | "systemVersion"
         | "company"
@@ -113,6 +114,7 @@ export class QualificationRepository {
       where: { id, projectId },
       select: {
         id: true,
+        systemId: true,
         systemCardJson: true,
         systemName: true,
         systemVersion: true,

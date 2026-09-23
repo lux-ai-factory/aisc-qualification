@@ -1,38 +1,34 @@
 /**
- * One AI card per version of a project's AI system.
+ * One AI card per saved version.
  *
- * The versions are the platform's: the latest is a draft until something
- * depends on it, then frozen, and the next edit makes the version after it.
- * Submitting a card is one of the things that freezes a version, so the next
- * card is always about a version with no card yet: the draft, or the version
- * after a frozen latest. It starts from the newest card before it, loaded into
- * the form to be reviewed, not typed again.
+ * A project has one AI system; its AI card is what is versioned. Every save
+ * makes the next version (a row of core.system, numbered 1, 2, ... by the
+ * platform) and the card that describes it. Only the latest version changes;
+ * the older ones are kept as they were. The next card starts from the newest
+ * card before it, loaded into the form to be reviewed, not typed again.
  */
 import type { FormExample, RiskExample } from "@/data/examples/types";
 
-export type VersionRef = { pid: string; number: number; frozen_at: string | null };
+export type VersionRef = { pid: string; number: number };
 export type CardRef = { id: string; systemId: string };
 
 export type NextCard = {
-  /** The version the next card will describe. */
+  /** The version the next save will make. */
   versionNumber: number;
   /** The card it starts from, and that card's version; null for the first. */
   fromCardId: string | null;
   fromVersionNumber: number | null;
 };
 
-/** `versions` in any order; `cards` are the project's cards. */
+/** `versions` in any order; `cards` are the project's cards. A save always
+ *  makes the version after the latest, even when the latest has no card (a
+ *  save that failed after naming it: versions are never deleted). */
 export function nextCard(versions: VersionRef[], cards: CardRef[]): NextCard {
   const byNumber = [...versions].sort((a, b) => b.number - a.number);
-  const latest = byNumber[0];
   const cardOf = new Map(cards.map((c) => [c.systemId, c.id]));
-  const versionNumber =
-    latest && latest.frozen_at === null && !cardOf.has(latest.pid)
-      ? latest.number
-      : (latest?.number ?? 0) + 1;
   const from = byNumber.find((version) => cardOf.has(version.pid));
   return {
-    versionNumber,
+    versionNumber: (byNumber[0]?.number ?? 0) + 1,
     fromCardId: from ? (cardOf.get(from.pid) ?? null) : null,
     fromVersionNumber: from ? from.number : null,
   };
@@ -104,26 +100,25 @@ export function cardAsFormStart(card: CardContent): FormExample {
 export type CardStanding = {
   /** The version the card describes. */
   versionNumber: number;
-  /** Whether it is the system's current card: the newest version that has one. */
+  /** Whether the card is of the latest version: only that one may change. */
   current: boolean;
+  /** The latest version's card, or null when the latest has none. */
   currentCardId: string | null;
 };
 
-/** Where one card stands: the system's page is its newest card, the rest are
- *  history. `systemId` is the version the card describes. */
+/** Where one card stands: the latest version's card is the system's page and
+ *  may change; every other card is kept as it was. `systemId` is the version
+ *  the card describes. */
 export function cardStanding(
   versions: VersionRef[],
   cards: CardRef[],
   systemId: string,
 ): CardStanding {
   const cardOf = new Map(cards.map((c) => [c.systemId, c.id]));
-  const newest = [...versions]
-    .sort((a, b) => b.number - a.number)
-    .find((version) => cardOf.has(version.pid));
-  const currentCardId = newest ? (cardOf.get(newest.pid) ?? null) : null;
+  const latest = [...versions].sort((a, b) => b.number - a.number)[0];
   return {
     versionNumber: versions.find((version) => version.pid === systemId)?.number ?? 0,
-    current: currentCardId !== null && cardOf.get(systemId) === currentCardId,
-    currentCardId,
+    current: latest !== undefined && latest.pid === systemId,
+    currentCardId: latest ? (cardOf.get(latest.pid) ?? null) : null,
   };
 }

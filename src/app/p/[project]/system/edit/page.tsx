@@ -16,8 +16,8 @@ export default async function EditSystemPage({
   // rather than typed. It writes nothing: the person still presses the button.
   const { example } = await searchParams;
   const worked = findExample(example);
-  // Otherwise the card starts from the previous version's card, to be reviewed:
-  // one card per version, and the next version is mostly the last one again.
+  // Otherwise the card starts from the latest card, to be reviewed: every save
+  // makes the next version, and the next version is mostly the last one again.
   const start = worked
     ? null
     : await qualificationService.startingPoint(project).catch(() => null);
@@ -31,14 +31,14 @@ export default async function EditSystemPage({
         </h1>
         <p>
           {start
-            ? `Saving makes version ${start.next.versionNumber} of the system, with its AI card; `
+            ? `Saving makes v${start.next.versionNumber} of the AI card; `
               + "earlier versions stay as they were."
             : "The project's one AI system: describe it and answer the questions below."}
         </p>
         {start?.initial && (
           <p className="qf-prefilled">
-            Filled in from version {start.next.fromVersionNumber}. Change what is no
-            longer true, then save: that freezes version {start.next.versionNumber}.
+            Filled in from v{start.next.fromVersionNumber}. Change what is no longer
+            true, then save: that makes v{start.next.versionNumber}.
           </p>
         )}
         {worked && (

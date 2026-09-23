@@ -17,17 +17,6 @@ import {
 } from "@/domain/cardVersions";
 import type { FormExample } from "@/data/examples/types";
 
-/** The version already has its AI card; a new card needs a new version. */
-export class CardExistsError extends Error {
-  constructor(readonly versionNumber: number) {
-    super(
-      `Version ${versionNumber} of this system already has its AI card. ` +
-        "Change the system to start the next version, then submit its card.",
-    );
-    this.name = "CardExistsError";
-  }
-}
-
 export class QualificationService {
   constructor(
     private readonly repo: QualificationRepository = qualificationRepository,
@@ -36,26 +25,21 @@ export class QualificationService {
   ) {}
 
   /**
-   * Submit the AI card of the project's AI system.
+   * Save the AI card of the project's AI system.
    *
-   * A card describes one version of the system and freezes it, so the two
-   * stay about the same thing. The platform hands out the version (the draft,
-   * or the next one when the latest is frozen), the form sets the system's
-   * identity on it, it is frozen, and only then is the card stored. A version
-   * has exactly one card: asked for a second, this refuses and stores nothing.
+   * Every save makes the next card version (a row of core.system, numbered by
+   * the platform) and then the card that describes it. Nothing is frozen: an
+   * older version is read-only because it is not the latest, which the
+   * database enforces. When the platform does not answer, nothing is stored.
    */
   async createFromForm(project: string, formData: FormData): Promise<{ id: string }> {
     const parsed = this.parser.parse(formData);
-    const version = await this.platform.versionForNewCard(project, {
+    const version = await this.platform.createVersion(project, {
       name: parsed.systemName,
       version: parsed.systemVersion,
       provider: parsed.company,
       description: parsed.description,
     });
-    if (await this.repo.findBySystem(version.project_id, version.pid)) {
-      throw new CardExistsError(version.number);
-    }
-    await this.platform.freeze(version.pid, "ai card");
     return this.repo.create({
       ...parsed,
       projectId: version.project_id,
@@ -63,36 +47,48 @@ export class QualificationService {
     });
   }
 
+  /** The project's card versions and its cards. A project with no version yet
+   *  has no card either: every card points at a version. */
+  private async versionsAndCards(project: string) {
+    const versions = await this.platform.listVersions(project);
+    const cards = versions.length ? await this.repo.list(versions[0].project_id) : [];
+    return { versions, cards };
+  }
+
   /**
-   * Where the next card starts: the version it will describe, and the newest
-   * card before it, loaded into the form to be reviewed.
+   * Where the next card starts: the version it will make, and the newest card
+   * before it, loaded into the form to be reviewed.
    */
   async startingPoint(project: string): Promise<{ next: NextCard; initial: FormExample | null }> {
-    const system = await this.platform.aiSystem(project);
-    const cards = await this.repo.list(system.project_id);
-    const next = nextCard(system.versions, cards);
+    const { versions, cards } = await this.versionsAndCards(project);
+    const next = nextCard(versions, cards);
     const from = cards.find((c) => c.id === next.fromCardId);
     return { next, initial: from ? cardAsFormStart(from) : null };
   }
 
-  /** The system's current card, if it has one yet: what its page shows. */
+  /** The latest version's card, if it has one: what the system's page shows. */
   async currentCardId(project: string): Promise<string | null> {
-    const system = await this.platform.aiSystem(project);
-    const cards = await this.repo.list(system.project_id);
-    return cardStanding(system.versions, cards, system.current.pid).currentCardId;
+    const { versions, cards } = await this.versionsAndCards(project);
+    if (!versions.length) return null;
+    return cardStanding(versions, cards, versions[0].pid).currentCardId;
   }
 
-  /** Where one card stands among the system's versions. */
+  /** Where one card stands among the card versions. */
   async standing(project: string, card: { projectId: string; systemId: string }): Promise<CardStanding> {
-    const system = await this.platform.aiSystem(project);
+    const versions = await this.platform.listVersions(project);
     const cards = await this.repo.list(card.projectId);
-    return cardStanding(system.versions, cards, card.systemId);
+    return cardStanding(versions, cards, card.systemId);
   }
 
   /** Each version's number, by its pid, for labelling the cards. */
   async versionNumbers(project: string): Promise<Map<string, number>> {
-    const system = await this.platform.aiSystem(project);
-    return new Map(system.versions.map((v) => [v.pid, v.number]));
+    const versions = await this.platform.listVersions(project);
+    return new Map(versions.map((v) => [v.pid, v.number]));
+  }
+
+  /** The card versions, highest number first. */
+  versions(project: string) {
+    return this.platform.listVersions(project);
   }
 
   list(projectId: string): Promise<QualificationWithAnswers[]> {

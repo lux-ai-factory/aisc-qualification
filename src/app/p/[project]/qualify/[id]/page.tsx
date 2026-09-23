@@ -25,10 +25,13 @@ export default async function QualificationDetailPage({
   const q = await qualificationService.get(project, id);
   if (!q) notFound();
 
-  // One system, in versions: this card is its current one, or history.
+  // One system; its card in versions: this card is the latest version's, or
+  // history. Only the latest changes; when the platform cannot say, nothing is
+  // offered for editing either.
   const standing = await qualificationService
     .standing(project, { projectId: q.projectId, systemId: q.systemId })
     .catch(() => null);
+  const readOnly = !standing?.current;
 
   // The ontology IS the card: built on read from the form, the agent's
   // extraction and the reviewer's patch. A sidecar that is down must not take
@@ -74,12 +77,12 @@ export default async function QualificationDetailPage({
         </div>
       </header>
 
-      {standing && !standing.current && (
+      {readOnly && (
         <p className="qf-prefilled">
-          This is version {standing.versionNumber}, kept as it was.{" "}
-          {standing.currentCardId && (
+          v{standing?.versionNumber || "?"}, kept as it was: only the latest version changes.{" "}
+          {standing?.currentCardId && (
             <Link href={`/p/${project}/qualify/${standing.currentCardId}`}>
-              Open the current version
+              Open the latest card
             </Link>
           )}
         </p>
@@ -87,7 +90,7 @@ export default async function QualificationDetailPage({
 
       {/* The filler starts when the qualification is saved, so arriving here
           usually means arriving before its draft exists. */}
-      <FillStatus qualificationId={q.id} />
+      {!readOnly && <FillStatus qualificationId={q.id} />}
 
       <QualificationTabs
         form={
@@ -132,6 +135,7 @@ export default async function QualificationDetailPage({
               initialView={ontology.view}
               initialProblems={ontology.problems}
               vocabularies={vocabularies}
+              readOnly={readOnly}
               downloads={{
                 pdf: `${basePath}/api/qualifications/${q.id}/ai-card.pdf`,
                 json: `${basePath}/api/qualifications/${q.id}/ai-card.json`,

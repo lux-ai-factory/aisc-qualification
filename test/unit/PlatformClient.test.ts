@@ -1,28 +1,30 @@
 import { describe, it, expect, vi } from "vitest";
 import { PlatformClient } from "@/server/services/PlatformClient";
 
-// The system under assessment is named once, by the platform, and every module
-// points at that one name: qualification describes the system, the engine tests
-// it, the dashboard reports on it. This client is how this app asks for it.
-describe("PlatformClient and the project's one AI system", () => {
-  const system = {
-    pid: "f0b4a2c0-0000-4000-8000-000000000001",
-    project_id: "a1b2c3d4-0000-4000-8000-000000000002",
-    current: { pid: "v1", number: 1, project_id: "a1b2c3d4-0000-4000-8000-000000000002",
-               name: "MCAS", release: "1.2.0", provider: null, description: null, frozen_at: null },
-    versions: [],
+// The AI card's versions are rows of core.system, made and numbered by the
+// platform, and every module points at them: qualification describes the
+// system, the engine tests it, the dashboard reports on it. This client is how
+// this app asks for them. (Rewritten for WP3, pipeline 2026-09-23: the
+// ai-system routes are gone; the card-version routes replace them.)
+describe("PlatformClient and the project's card versions", () => {
+  const latest = {
+    pid: "v1", number: 1, project_id: "a1b2c3d4-0000-4000-8000-000000000002",
+    name: "MCAS", version: "1.2.0", provider: null, description: null,
+    created_at: "2026-09-23T10:00:00Z", created_by: null,
   };
 
-  it("asks the platform for the project's system", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, json: async () => system });
+  it("asks the platform for the project's latest version", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, json: async () => latest });
 
-    const found = await new PlatformClient("http://platform:8000", fetchImpl).aiSystem(
+    const found = await new PlatformClient("http://platform:8000", fetchImpl).latestVersion(
       "microcredit-assist-score-mcas",
     );
 
-    expect(found.current.pid).toBe("v1");
+    expect(found?.pid).toBe("v1");
     const [url, init] = fetchImpl.mock.calls[0];
-    expect(url).toBe("http://platform:8000/projects/microcredit-assist-score-mcas/ai-system");
+    expect(url).toBe(
+      "http://platform:8000/projects/microcredit-assist-score-mcas/system-versions/latest",
+    );
     expect(init.method).toBe("GET");
   });
 
@@ -32,35 +34,28 @@ describe("PlatformClient and the project's one AI system", () => {
     const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 404, text: async () => "no project" });
 
     await expect(
-      new PlatformClient("http://platform:8000", fetchImpl).versionForNewCard("nope", { name: "MCAS" }),
+      new PlatformClient("http://platform:8000", fetchImpl).createVersion("nope", { name: "MCAS" }),
     ).rejects.toThrow(/could not name this system/i);
   });
 
   it("refuses to be configured with no platform at all", async () => {
     await expect(
-      new PlatformClient("", vi.fn()).versionForNewCard("p", { name: "MCAS" }),
+      new PlatformClient("", vi.fn()).createVersion("p", { name: "MCAS" }),
     ).rejects.toThrow(/PLATFORM_URL/);
   });
 });
 
 
-// The platform now asks who is calling: a project belongs to the people in it,
-// and changing its system takes an editor. This app makes that call on
+// The platform asks who is calling: a project belongs to the people in it,
+// and saving a card version takes an editor. This app makes that call on
 // behalf of the person using it, so it carries their token rather than a
 // credential of its own. Without this the call is anonymous and refused.
 describe("PlatformClient carries the caller", () => {
-  const system = {
-    pid: "f0b4a2c0-0000-4000-8000-000000000001",
-    project_id: "a1b2c3d4-0000-4000-8000-000000000002",
-    current: null,
-    versions: [],
-  };
-
   it("sends the caller's token", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, json: async () => system });
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, json: async () => null });
     const client = new PlatformClient("http://platform:8000", fetchImpl, async () => "a-token");
 
-    await client.aiSystem("p");
+    await client.latestVersion("p");
 
     const [, init] = fetchImpl.mock.calls[0];
     expect(init.headers.Authorization).toBe("Bearer a-token");
@@ -69,10 +64,10 @@ describe("PlatformClient carries the caller", () => {
   it("sends no Authorization header when there is no caller", async () => {
     // A script run by hand has no session. It gets an honest 401 from the
     // platform rather than a header saying "Bearer undefined".
-    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, json: async () => system });
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, json: async () => null });
     const client = new PlatformClient("http://platform:8000", fetchImpl, async () => null);
 
-    await client.aiSystem("p");
+    await client.latestVersion("p");
 
     expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBeUndefined();
   });
@@ -85,6 +80,6 @@ describe("PlatformClient carries the caller", () => {
     });
     const client = new PlatformClient("http://platform:8000", fetchImpl, async () => "a-token");
 
-    await expect(client.aiSystem("p")).rejects.toThrow(/403/);
+    await expect(client.latestVersion("p")).rejects.toThrow(/403/);
   });
 });

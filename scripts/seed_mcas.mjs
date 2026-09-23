@@ -186,12 +186,10 @@ function platformBase(options) {
 }
 
 /**
- * The version of the project's one AI system that MCAS's card will describe,
- * with MCAS's identity set on it: the two ids a card cannot be stored without.
- *
- * One AI card per version, and a card freezes its version, so this asks for a
- * draft first (the next version when the latest is frozen). Called only when
- * the card is about to be written, never on the run that finds it seeded.
+ * The card version MCAS's card will describe, saved with MCAS's identity: the
+ * two ids a card cannot be stored without. One POST makes the project's next
+ * card version. Called only when the card is about to be written, never on the
+ * run that finds it seeded.
  */
 export async function systemForProject(project, options = {}) {
   const fetchImpl = options.fetchImpl ?? fetch;
@@ -201,28 +199,17 @@ export async function systemForProject(project, options = {}) {
         "(its slug or its pid), or SEED_PROJECT=<project>.",
     );
   }
-  const where = `${platformBase(options)}/projects/${encodeURIComponent(project)}/ai-system`;
-  const what = "name MCAS's system";
-  await platformCall(what, `${where}/draft`, { method: "POST" }, fetchImpl);
-  const { version } = await platformCall(what, where, {
-    method: "PATCH",
+  const url = `${platformBase(options)}/projects/${encodeURIComponent(project)}/system-versions`;
+  const version = await platformCall("name MCAS's system", url, {
+    method: "POST",
     body: JSON.stringify({
       name: QUALIFICATION.systemName,
-      release: QUALIFICATION.systemVersion,
+      version: QUALIFICATION.systemVersion,
       provider: QUALIFICATION.company,
+      description: QUALIFICATION.description,
     }),
   }, fetchImpl);
   return { projectId: version.project_id, systemId: version.pid };
-}
-
-/** The card is stored: its version now stays as it is. */
-export async function freezeForCard(versionPid, options = {}) {
-  const fetchImpl = options.fetchImpl ?? fetch;
-  const url = `${platformBase(options)}/ai-system-versions/${encodeURIComponent(versionPid)}/freeze`;
-  return platformCall("freeze MCAS's system version", url, {
-    method: "POST",
-    body: JSON.stringify({ reason: "ai card" }),
-  }, fetchImpl);
 }
 
 /**
@@ -286,9 +273,6 @@ export async function seedMcas(prisma, { force = false, project, platform } = {}
     select: { id: true, systemName: true },
   });
   console.log(`  + ${created.systemName} (${created.id})`);
-  // A card freezes the version it describes; skipped only when the caller
-  // brought its own platform answer (the tests), as it did the naming.
-  if (!platform) await freezeForCard(systemId);
   return created;
 }
 

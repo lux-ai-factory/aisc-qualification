@@ -1,12 +1,11 @@
 /**
- * The platform: where a project and the system under assessment are named.
+ * The platform: where a project and the versions of its AI card are kept.
  *
- * One database, and one writer for what every module shares. This app describes
- * a system; the execution engine runs tests against it and the dashboard reports
- * on them, so all three must mean the same system. A project has one, in
- * versions (`core.ai_system_version`), which only the platform writes, and this
- * is how they are asked for. Each version has exactly one AI card, and
- * submitting it freezes the version.
+ * One database, and one writer for what every module shares. A project has one
+ * AI system; what is versioned is its AI card, the system's description. Each
+ * saved card version is a row of `core.system`, numbered 1, 2, ... per project,
+ * which only the platform writes; this is how they are made and read. Only the
+ * latest version may change; the older ones are kept as they were.
  */
 import { callerToken } from "@/server/services/callerToken";
 
@@ -17,23 +16,17 @@ export type SystemIdentity = {
   description?: string | null;
 };
 
-/** A version of the project's one AI system, as the platform holds it. */
-export type PlatformVersion = {
+/** A saved AI card version: a row of core.system, as the platform returns it. */
+export type CardVersion = {
   pid: string;
-  number: number;
   project_id: string;
+  number: number;
   name: string;
-  release: string | null;
+  version: string | null;
   provider: string | null;
   description: string | null;
-  frozen_at: string | null;
-};
-
-export type PlatformAISystem = {
-  pid: string;
-  project_id: string;
-  current: PlatformVersion;
-  versions: PlatformVersion[];
+  created_at: string;
+  created_by: string | null;
 };
 
 /** Who is calling, when there is a request to read it from. */
@@ -45,8 +38,9 @@ export class PlatformClient {
     private readonly fetchImpl: typeof fetch = fetch,
     /**
      * The platform asks who is calling: a project belongs to the people in it,
-     * and naming a system inside one takes an editor. This app has no service
-     * account and wants none, so it passes on the token of the person using it.
+     * and saving a card version inside one takes an editor. This app has no
+     * service account and wants none, so it passes on the token of the person
+     * using it.
      */
     private readonly callerToken: CallerToken = async () => null,
   ) {}
@@ -82,32 +76,28 @@ export class PlatformClient {
     return (await res.json()) as T;
   }
 
-  /** The project's one AI system: its current version and every one before. */
-  aiSystem(project: string): Promise<PlatformAISystem> {
-    return this.call("GET", `/projects/${encodeURIComponent(project)}/ai-system`);
+  private versions(project: string): string {
+    return `/projects/${encodeURIComponent(project)}/system-versions`;
   }
 
-  /**
-   * The version a new AI card will describe, with the system's identity as the
-   * form gives it. A draft first (the next version, when the latest is frozen),
-   * then the identity on that draft: the card is always about a version that
-   * has none yet, even when nothing in the identity changed.
-   */
-  async versionForNewCard(project: string, system: SystemIdentity): Promise<PlatformVersion> {
-    const where = `/projects/${encodeURIComponent(project)}/ai-system`;
-    await this.call("POST", `${where}/draft`);
-    const edited = await this.call<{ version: PlatformVersion }>("PATCH", where, {
-      name: system.name,
-      release: system.version ?? null,
-      provider: system.provider ?? null,
-      description: system.description ?? null,
+  /** The project's latest saved card version, or null when it has none yet. */
+  latestVersion(project: string): Promise<CardVersion | null> {
+    return this.call("GET", `${this.versions(project)}/latest`);
+  }
+
+  /** Every saved card version of the project, highest number first. */
+  listVersions(project: string): Promise<CardVersion[]> {
+    return this.call("GET", this.versions(project));
+  }
+
+  /** Save the next card version, with the system's identity as the form gives it. */
+  createVersion(project: string, identity: SystemIdentity): Promise<CardVersion> {
+    return this.call("POST", this.versions(project), {
+      name: identity.name,
+      version: identity.version ?? null,
+      provider: identity.provider ?? null,
+      description: identity.description ?? null,
     });
-    return edited.version;
-  }
-
-  /** Something now depends on this version, so the platform keeps it as it is. */
-  freeze(pid: string, reason: string): Promise<PlatformVersion> {
-    return this.call("POST", `/ai-system-versions/${encodeURIComponent(pid)}/freeze`, { reason });
   }
 }
 

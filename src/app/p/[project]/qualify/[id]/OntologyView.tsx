@@ -20,6 +20,7 @@ export default function OntologyView({
   initialProblems,
   vocabularies,
   downloads,
+  readOnly = false,
 }: {
   projectId: string;
   qualificationId: string;
@@ -27,10 +28,16 @@ export default function OntologyView({
   initialProblems: string[];
   vocabularies: Record<string, string[]>;
   downloads: Downloads;
+  /** An older version's card: shown, never edited (only the latest changes). */
+  readOnly?: boolean;
 }) {
   const [view, setView] = useState(initialView);
   const [problems, setProblems] = useState(initialProblems);
-  const [editing, setEditing] = useState<string | null>(null);
+  const [editingState, setEditingState] = useState<string | null>(null);
+  const editing = readOnly ? null : editingState;
+  const setEditing = (id: string | null) => {
+    if (!readOnly) setEditingState(id);
+  };
   // The graph is the default: it is what you navigate. The vertical card is
   // what prints and what an auditor reads line by line, so both stay available.
   const [mode, setMode] = useState<"graph" | "vertical">("graph");
@@ -113,7 +120,7 @@ export default function OntologyView({
               Vertical
             </button>
           </div>
-          {counts.reviewed > 0 && (
+          {!readOnly && counts.reviewed > 0 && (
             <button
               type="button"
               className="btn ghost onto-reset"
