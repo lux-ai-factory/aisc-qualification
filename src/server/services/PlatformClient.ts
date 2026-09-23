@@ -8,6 +8,8 @@
  * for. Registering is idempotent: the same name and version in the same project
  * is the same system, so callers may ask every time rather than remembering.
  */
+import { callerToken } from "@/server/services/callerToken";
+
 export type SystemIdentity = {
   name: string;
   version?: string | null;
@@ -22,10 +24,19 @@ export type PlatformSystem = {
   version: string | null;
 };
 
+/** Who is calling, when there is a request to read it from. */
+export type CallerToken = () => Promise<string | null>;
+
 export class PlatformClient {
   constructor(
     private readonly baseUrl: string = process.env.PLATFORM_URL ?? "",
     private readonly fetchImpl: typeof fetch = fetch,
+    /**
+     * The platform asks who is calling: a project belongs to the people in it,
+     * and naming a system inside one takes an editor. This app has no service
+     * account and wants none, so it passes on the token of the person using it.
+     */
+    private readonly callerToken: CallerToken = async () => null,
   ) {}
 
   async registerSystem(project: string, system: SystemIdentity): Promise<PlatformSystem> {
@@ -35,11 +46,14 @@ export class PlatformClient {
       );
     }
     const url = `${this.baseUrl.replace(/\/+$/, "")}/projects/${encodeURIComponent(project)}/systems`;
+    const token = await this.callerToken();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
     let res: Response;
     try {
       res = await this.fetchImpl(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(system),
         cache: "no-store",
       });
@@ -56,4 +70,8 @@ export class PlatformClient {
   }
 }
 
-export const platformClient = new PlatformClient();
+export const platformClient = new PlatformClient(
+  process.env.PLATFORM_URL ?? "",
+  fetch,
+  callerToken,
+);

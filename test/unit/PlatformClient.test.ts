@@ -59,3 +59,48 @@ describe("PlatformClient.registerSystem", () => {
   });
 });
 
+
+// The platform now asks who is calling: a project belongs to the people in it,
+// and naming a system inside one takes an editor. This app makes that call on
+// behalf of the person using it, so it carries their token rather than a
+// credential of its own. Without this the call is anonymous and refused.
+describe("PlatformClient carries the caller", () => {
+  const system = {
+    pid: "f0b4a2c0-0000-4000-8000-000000000001",
+    project_id: "a1b2c3d4-0000-4000-8000-000000000002",
+    name: "MCAS",
+    version: null,
+  };
+
+  it("sends the caller's token", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, json: async () => system });
+    const client = new PlatformClient("http://platform:8000", fetchImpl, async () => "a-token");
+
+    await client.registerSystem("p", { name: "MCAS" });
+
+    const [, init] = fetchImpl.mock.calls[0];
+    expect(init.headers.Authorization).toBe("Bearer a-token");
+  });
+
+  it("sends no Authorization header when there is no caller", async () => {
+    // A script run by hand has no session. It gets an honest 401 from the
+    // platform rather than a header saying "Bearer undefined".
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, json: async () => system });
+    const client = new PlatformClient("http://platform:8000", fetchImpl, async () => null);
+
+    await client.registerSystem("p", { name: "MCAS" });
+
+    expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBeUndefined();
+  });
+
+  it("says who was refused when the platform says no", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      text: async () => '{"detail":"this takes editor on this project"}',
+    });
+    const client = new PlatformClient("http://platform:8000", fetchImpl, async () => "a-token");
+
+    await expect(client.registerSystem("p", { name: "MCAS" })).rejects.toThrow(/403/);
+  });
+});
