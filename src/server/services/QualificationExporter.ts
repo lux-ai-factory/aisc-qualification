@@ -33,9 +33,19 @@ export type QualificationExport = {
     control: string;
     followUpControl: string | null;
   }>;
+  /** The engine components the card links, each by its AIRO property; absent
+   *  when it links none, so a card without links exports as it always did. */
+  engineComponents?: Array<{
+    pid: string;
+    name: string;
+    componentType: string;
+    objectName: string;
+    property: string;
+  }>;
 };
 
 export function toExport(q: QualificationWithAnswers): QualificationExport {
+  const links = q.components ?? [];
   return {
     id: q.id,
     systemName: q.systemName,
@@ -83,5 +93,16 @@ export function toExport(q: QualificationWithAnswers): QualificationExport {
       control: r.control,
       followUpControl: r.followUpControl,
     })),
+    ...(links.length
+      ? {
+          engineComponents: links.map((c) => ({
+            pid: c.componentPid,
+            name: c.name,
+            componentType: c.componentType,
+            objectName: c.objectName,
+            property: c.airoProperty,
+          })),
+        }
+      : {}),
   };
 }

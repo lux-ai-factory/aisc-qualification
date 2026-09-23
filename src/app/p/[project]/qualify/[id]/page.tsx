@@ -8,6 +8,10 @@ import AnsweredForm from "./AnsweredForm";
 import FillStatus from "./FillStatus";
 import OntologyView from "./OntologyView";
 import QualificationTabs from "./QualificationTabs";
+import ComponentsPanel from "./ComponentsPanel";
+import { engineClient } from "@/server/services/EngineClient";
+import type { EngineComponent } from "@/domain/cardComponents";
+import type { OntologyExtracted } from "@/domain/OntologyView";
 
 export default async function QualificationDetailPage({
   params,
@@ -32,6 +36,23 @@ export default async function QualificationDetailPage({
     .standing(project, { projectId: q.projectId, systemId: q.systemId })
     .catch(() => null);
   const readOnly = !standing?.current;
+
+  // The engine's components, for linking to the latest card. An engine that is
+  // down leaves the card as it is and says so in the panel.
+  let engineComponents: EngineComponent[] = [];
+  let engineError: string | null = null;
+  if (!readOnly) {
+    try {
+      engineComponents = await engineClient.components(q.projectId);
+    } catch (err) {
+      engineError = err instanceof Error ? err.message : "The engine did not answer";
+    }
+  }
+  const suggestions = (
+    ((q.ontologyExtracted as OntologyExtracted | null)?.components ?? []) as Array<
+      string | { label: string }
+    >
+  ).map((c) => (typeof c === "string" ? c : c.label));
 
   // The ontology IS the card: built on read from the form, the agent's
   // extraction and the reviewer's patch. A sidecar that is down must not take
@@ -91,6 +112,17 @@ export default async function QualificationDetailPage({
       {/* The filler starts when the qualification is saved, so arriving here
           usually means arriving before its draft exists. */}
       {!readOnly && <FillStatus qualificationId={q.id} />}
+
+      {!readOnly && (
+        <ComponentsPanel
+          projectId={project}
+          qualificationId={q.id}
+          engine={engineComponents}
+          engineError={engineError}
+          linked={q.components}
+          suggestions={suggestions}
+        />
+      )}
 
       <QualificationTabs
         form={

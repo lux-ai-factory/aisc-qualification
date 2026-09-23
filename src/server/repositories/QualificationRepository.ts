@@ -2,6 +2,7 @@ import type {
   PrismaClient,
   Prisma,
   Qualification,
+  CardComponent,
   QualificationAnswer,
   QualificationRisk,
 } from "@prisma/client";
@@ -37,6 +38,17 @@ export type CreateQualificationInput = {
 export type QualificationWithAnswers = Qualification & {
   answers: QualificationAnswer[];
   risks: QualificationRisk[];
+  /** The engine components the card links, oldest link first. */
+  components: CardComponent[];
+};
+
+/** A link from a card to one engine component, with its snapshot. */
+export type ComponentLinkInput = {
+  componentPid: string;
+  airoProperty: string;
+  name: string;
+  componentType: string;
+  objectName: string;
 };
 
 export class QualificationRepository {
@@ -64,7 +76,11 @@ export class QualificationRepository {
   find(projectId: string, id: string): Promise<QualificationWithAnswers | null> {
     return this.db.qualification.findFirst({
       where: { id, projectId },
-      include: { answers: true, risks: { orderBy: { position: "asc" } } },
+      include: {
+        answers: true,
+        risks: { orderBy: { position: "asc" } },
+        components: { orderBy: { linkedAt: "asc" } },
+      },
     });
   }
 
@@ -83,8 +99,33 @@ export class QualificationRepository {
     return this.db.qualification.findMany({
       where: { projectId },
       orderBy: { createdAt: "desc" },
-      include: { answers: true, risks: { orderBy: { position: "asc" } } },
+      include: {
+        answers: true,
+        risks: { orderBy: { position: "asc" } },
+        components: { orderBy: { linkedAt: "asc" } },
+      },
     });
+  }
+
+  /** Link one engine component to the card, or change the link's property and snapshot. */
+  linkComponent(qualificationId: string, link: ComponentLinkInput) {
+    return this.db.cardComponent.upsert({
+      where: {
+        qualificationId_componentPid: { qualificationId, componentPid: link.componentPid },
+      },
+      create: { qualificationId, ...link },
+      update: {
+        airoProperty: link.airoProperty,
+        name: link.name,
+        componentType: link.componentType,
+        objectName: link.objectName,
+      },
+    });
+  }
+
+  /** Remove the card's link to one engine component. */
+  unlinkComponent(qualificationId: string, componentPid: string) {
+    return this.db.cardComponent.deleteMany({ where: { qualificationId, componentPid } });
   }
 
   /** Everything an AI card needs that is not in the graph: the facts the

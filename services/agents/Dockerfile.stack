@@ -1,0 +1,16 @@
+# The card agent as the AISC stack builds it (docker-compose.development.yml at the
+# repository root): the build context is this directory, and the drafting prompt of
+# the ontology service comes in as the named context `ontology-prompts`. Same image
+# as ./Dockerfile, which the app's own docker-compose.yml builds from the app root.
+FROM python:3.12-slim
+
+WORKDIR /srv
+
+COPY requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt "fastapi==0.115.5" "uvicorn[standard]==0.32.1"
+
+COPY . ./
+COPY --from=ontology-prompts . ./ontology-prompts/
+
+EXPOSE 8012
+CMD ["uvicorn", "service:app", "--host", "0.0.0.0", "--port", "8012"]
