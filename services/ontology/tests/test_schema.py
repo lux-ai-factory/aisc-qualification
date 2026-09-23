@@ -25,8 +25,9 @@ def _union_members(g, node):
 
 
 def test_exactly_the_figure_3_subset_with_the_collapse():
-    assert len(CLASSES) == 19
-    assert len(PROPERTIES) == 19
+    # 19 + AIModel and Data; 19 + the four hasComponent sub-properties (WP6)
+    assert len(CLASSES) == 21
+    assert len(PROPERTIES) == 23
     for removed in ("AIProvider", "AIDeployer", "AISubject"):
         assert removed not in CLASSES
     assert "hasAISubject" not in PROPERTIES
@@ -40,7 +41,7 @@ def test_every_class_exists_in_airo(airo_graph):
 def test_every_parent_edge_is_declared_in_airo(airo_graph):
     for child, parent in SUBCLASS_EDGES:
         assert (_uri(child), RDFS.subClassOf, _uri(parent)) in airo_graph, (child, parent)
-    assert len(SUBCLASS_EDGES) == 6
+    assert len(SUBCLASS_EDGES) == 8
 
 
 def test_every_property_exists_in_airo_with_matching_domain(airo_graph):
