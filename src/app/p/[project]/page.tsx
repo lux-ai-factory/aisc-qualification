@@ -11,7 +11,7 @@ export default async function HomePage({
       <span className="eyebrow">AI System Qualification</span>
       <h1>Welcome.</h1>
       <p>
-        Describe the project's AI system by answering a short set of questions
+        Describe the project&apos;s AI system by answering a short set of questions
         about its data, documentation, transparency, oversight and risks, and
         get its AI card. Change it later and it keeps every earlier version.
       </p>
