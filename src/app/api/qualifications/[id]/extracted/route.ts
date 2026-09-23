@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { qualificationForCaller } from "@/server/access/qualificationAccess";
 import { revalidatePath } from "next/cache";
 import { qualificationRepository } from "@/server/repositories/QualificationRepository";
 import { toExport } from "@/server/services/QualificationExporter";
@@ -12,7 +13,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const q = await qualificationRepository.find(id);
+  // This route carries no project in its path, so nothing was asking who the
+  // caller is: it hands over the whole system description. Read the
+  // qualification's own project and ask the platform.
+  const project = await qualificationForCaller(id);
+  if (!project) return new NextResponse("Not found", { status: 404 });
+
+  const q = await qualificationRepository.find(project, id);
   if (!q) return new NextResponse("Not found", { status: 404 });
   return NextResponse.json({
     ...toExport(q),
@@ -30,8 +37,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  // Writing the reviewed draft is changing somebody's card, so the same
+  // question is asked here as on the read above.
+  const project = await qualificationForCaller(id);
+  if (!project) return new NextResponse("Not found", { status: 404 });
 
-  const exists = await qualificationRepository.cardSummary(id);
+  const exists = await qualificationRepository.cardSummary(project, id);
   if (!exists) return new NextResponse("Not found", { status: 404 });
 
   let body: unknown;
@@ -49,7 +60,7 @@ export async function PUT(
   await qualificationRepository.saveOntologyExtracted(id, parsed.value);
   // Rebuild so the stored knowledge graph reflects this draft.
   try {
-    await ontologyService.build(id);
+    await ontologyService.build(project, id);
   } catch {
     // The draft is stored; the next build will pick it up.
   }

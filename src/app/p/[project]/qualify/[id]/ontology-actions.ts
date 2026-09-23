@@ -11,10 +11,11 @@ export type OntologyState =
 
 /** Build (or rebuild) the filled graph for the card. */
 export async function loadOntology(
+  projectId: string,
   qualificationId: string,
 ): Promise<OntologyState> {
   try {
-    const built = await ontologyService.build(qualificationId);
+    const built = await ontologyService.build(projectId, qualificationId);
     return { ok: true, view: built.view, problems: built.problems };
   } catch (err) {
     return {
@@ -26,12 +27,14 @@ export async function loadOntology(
 
 /** Record one reviewer correction to one node, then rebuild. */
 export async function patchOntologyNode(
+  projectId: string,
   qualificationId: string,
   nodeId: string,
   change: NodePatch,
 ): Promise<OntologyState> {
   try {
     const built = await ontologyService.patchNode(
+      projectId,
       qualificationId,
       nodeId,
       change,
@@ -48,10 +51,11 @@ export async function patchOntologyNode(
 
 /** Discard every correction and return to the generated graph. */
 export async function resetOntology(
+  projectId: string,
   qualificationId: string,
 ): Promise<OntologyState> {
   try {
-    const built = await ontologyService.resetPatch(qualificationId);
+    const built = await ontologyService.resetPatch(projectId, qualificationId);
     revalidatePath(`/qualify/${qualificationId}`);
     return { ok: true, view: built.view, problems: built.problems };
   } catch (err) {

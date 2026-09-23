@@ -14,12 +14,14 @@ import VerticalCard from "./VerticalCard";
 // are this system's instance data.
 // Editing is per node, and every edit is recorded as a review.
 export default function OntologyView({
+  projectId,
   qualificationId,
   initialView,
   initialProblems,
   vocabularies,
   downloads,
 }: {
+  projectId: string;
   qualificationId: string;
   initialView: View;
   initialProblems: string[];
@@ -47,11 +49,11 @@ export default function OntologyView({
 
   const save = (
     nodeId: string,
-    change: Parameters<typeof patchOntologyNode>[2],
+    change: Parameters<typeof patchOntologyNode>[3],
   ) =>
     startTransition(async () => {
       setError(null);
-      const result = await patchOntologyNode(qualificationId, nodeId, change);
+      const result = await patchOntologyNode(projectId, qualificationId, nodeId, change);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -64,7 +66,7 @@ export default function OntologyView({
   const reset = () =>
     startTransition(async () => {
       setError(null);
-      const result = await resetOntology(qualificationId);
+      const result = await resetOntology(projectId, qualificationId);
       if (!result.ok) {
         setError(result.error);
         return;

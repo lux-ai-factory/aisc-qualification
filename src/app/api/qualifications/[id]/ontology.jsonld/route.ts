@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { qualificationForCaller } from "@/server/access/qualificationAccess";
 import { qualificationRepository } from "@/server/repositories/QualificationRepository";
 import { ontologyService } from "@/server/services/OntologyService";
 import { knowledgeGraphStore } from "@/server/services/KnowledgeGraphStore";
@@ -16,7 +17,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const q = await qualificationRepository.cardSummary(id);
+  // This route carries no project in its path, so nothing was asking who the
+  // caller is: it hands over the whole system description. Read the
+  // qualification's own project and ask the platform.
+  const project = await qualificationForCaller(id);
+  if (!project) return new NextResponse("Not found", { status: 404 });
+
+  const q = await qualificationRepository.cardSummary(project, id);
   if (!q) return new NextResponse("Not found", { status: 404 });
 
   try {
@@ -26,7 +33,7 @@ export async function GET(
     const { document, fromStore } = await knowledgeGraphStore.deliver(
       id,
       "jsonld",
-      () => ontologyService.build(id),
+      () => ontologyService.build(project, id),
     );
     return new NextResponse(document, {
       headers: {

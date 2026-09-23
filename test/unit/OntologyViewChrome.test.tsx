@@ -66,6 +66,7 @@ const view: View = {
 function mount() {
   return render(
     <OntologyView
+      projectId="proj"
       qualificationId="abc"
       initialView={view}
       initialProblems={[]}

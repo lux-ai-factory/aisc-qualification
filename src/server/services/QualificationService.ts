@@ -44,8 +44,10 @@ export class QualificationService {
     return this.repo.list(projectId);
   }
 
-  get(id: string): Promise<QualificationWithAnswers | null> {
-    return this.repo.find(id);
+  /** One qualification of one project. The project is part of the query: see
+   *  QualificationRepository.find. */
+  get(projectId: string, id: string): Promise<QualificationWithAnswers | null> {
+    return this.repo.find(projectId, id);
   }
 }
 

@@ -98,6 +98,7 @@ describe("the card's downloads", () => {
 function mountCard() {
   return render(
     <OntologyView
+      projectId="proj"
       qualificationId="abc"
       initialView={view}
       initialProblems={[]}

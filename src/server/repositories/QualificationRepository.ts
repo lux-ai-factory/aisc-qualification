@@ -54,9 +54,16 @@ export class QualificationRepository {
     });
   }
 
-  find(id: string): Promise<QualificationWithAnswers | null> {
-    return this.db.qualification.findUnique({
-      where: { id },
+  /**
+   * One qualification of one project, or null.
+   *
+   * Never by id alone. The id comes out of a URL and the project is what says
+   * whose it is: a lookup without it served any project's system description,
+   * answers and risks to anyone who could open any project's page.
+   */
+  find(projectId: string, id: string): Promise<QualificationWithAnswers | null> {
+    return this.db.qualification.findFirst({
+      where: { id, projectId },
       include: { answers: true, risks: { orderBy: { position: "asc" } } },
     });
   }
@@ -73,7 +80,10 @@ export class QualificationRepository {
 
   /** Everything an AI card needs that is not in the graph: the facts the
    *  form collects, plus the generated prose if any exists. */
-  cardSummary(id: string): Promise<
+  cardSummary(
+    projectId: string,
+    id: string,
+  ): Promise<
     | (Pick<
         Qualification,
         | "id"
@@ -90,8 +100,8 @@ export class QualificationRepository {
       })
     | null
   > {
-    return this.db.qualification.findUnique({
-      where: { id },
+    return this.db.qualification.findFirst({
+      where: { id, projectId },
       select: {
         id: true,
         systemCardJson: true,

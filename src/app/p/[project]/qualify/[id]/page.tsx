@@ -20,7 +20,9 @@ export default async function QualificationDetailPage({
   // (same pattern as SiteHeader) so the downloads work when served under a subpath.
   const basePath = process.env.NEXT_BASE_PATH || "";
 
-  const q = await qualificationService.get(id);
+  // Of this project: an id out of the URL, looked up on its own, served any
+  // project's system description, answers and risks.
+  const q = await qualificationService.get(project, id);
   if (!q) notFound();
 
   // The ontology IS the card: built on read from the form, the agent's
@@ -31,7 +33,7 @@ export default async function QualificationDetailPage({
   let ontologyError: string | null = null;
   let vocabularies: Record<string, string[]> = {};
   try {
-    ontology = await ontologyService.build(q.id);
+    ontology = await ontologyService.build(project, q.id);
     vocabularies = await OntologyClient.fromEnv().vocabularies();
   } catch (err) {
     ontologyError =
@@ -99,6 +101,7 @@ export default async function QualificationDetailPage({
         card={
           ontology ? (
             <OntologyView
+              projectId={project}
               qualificationId={q.id}
               initialView={ontology.view}
               initialProblems={ontology.problems}
