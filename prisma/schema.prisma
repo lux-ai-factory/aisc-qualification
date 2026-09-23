@@ -9,13 +9,14 @@ datasource db {
 
 model Qualification {
   id                String                @id @default(cuid())
-  // The platform project this qualification belongs to, and the system it
-  // describes: both uuids from `core` in the one database. The system is named
-  // by the platform so the engine's tests and the dashboard's results point at
-  // the same one. The foreign keys are made in the migration, since Prisma
+  // The platform project this qualification belongs to, and the version of
+  // its one AI system this card describes (core.ai_system_version): both
+  // uuids from `core` in the one database. One card per version, and
+  // submitting it freezes the version, so the engine's tests and the
+  // dashboard's results point at exactly what the card describes. The foreign keys are made in the migration, since Prisma
   // cannot model a key into a schema this app only reads.
   projectId         String                @map("project_id") @db.Uuid
-  systemId          String                @map("system_id") @db.Uuid
+  systemId          String                @unique @map("system_id") @db.Uuid
   systemName        String
   systemVersion     String
   company           String
@@ -44,7 +45,6 @@ model Qualification {
   risks             QualificationRisk[]
 
   @@index([projectId])
-  @@index([systemId])
   @@map("qualification")
 }
 

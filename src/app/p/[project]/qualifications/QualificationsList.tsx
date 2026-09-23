@@ -6,6 +6,9 @@ import { versionLabel } from "@/domain/SystemCard";
 // when it was saved, and how much is in it.
 export type ListItem = {
   id: string;
+  /** The version of the project's AI system this card describes (one card per
+   *  version); absent when the platform could not say. */
+  versionNumber?: number;
   systemName: string;
   systemVersion: string;
   company: string;
@@ -47,6 +50,9 @@ export default function QualificationsList({
         <li key={item.id}>
           <Link className="qf-row" href={`/p/${project}/qualify/${item.id}`}>
             <div className="qf-row-main">
+              {item.versionNumber !== undefined && (
+                <p className="qf-row-sysver">Version {item.versionNumber}</p>
+              )}
               <h3>
                 {item.systemName}{" "}
                 <span className="qf-row-ver">

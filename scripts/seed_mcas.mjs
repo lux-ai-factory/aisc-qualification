@@ -159,17 +159,41 @@ export const MCAS_SEED = QUALIFICATION;
  */
 export const MCAS_ID = "cmpeno6uw0001h9ig8l1d5b27";
 
+async function platformCall(what, url, init, fetchImpl) {
+  let response;
+  try {
+    response = await fetchImpl(url, {
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      ...init,
+    });
+  } catch (cause) {
+    throw new Error(`Could not ${what}: the platform did not answer.`, { cause });
+  }
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Could not ${what}: the platform answered ${response.status}. ${detail}`.trim());
+  }
+  return response.json();
+}
+
+function platformBase(options) {
+  const platformUrl = (options.platformUrl ?? process.env.PLATFORM_URL ?? "").replace(/\/+$/, "");
+  if (!platformUrl) {
+    throw new Error("PLATFORM_URL is not set: MCAS's system cannot be named without the platform.");
+  }
+  return platformUrl;
+}
+
 /**
- * Name MCAS's system on the platform, and get back the two ids a qualification
- * cannot be stored without.
+ * The version of the project's one AI system that MCAS's card will describe,
+ * with MCAS's identity set on it: the two ids a card cannot be stored without.
  *
- * A qualification describes one project's system, and `core.system` is written
- * only by the platform so that the engine's evaluations and the dashboard's
- * results mean the same system. Registering is idempotent: seeding twice finds
- * the system already there rather than making a second one.
+ * One AI card per version, and a card freezes its version, so this asks for a
+ * draft first (the next version when the latest is frozen). Called only when
+ * the card is about to be written, never on the run that finds it seeded.
  */
 export async function systemForProject(project, options = {}) {
-  const platformUrl = (options.platformUrl ?? process.env.PLATFORM_URL ?? "").replace(/\/+$/, "");
   const fetchImpl = options.fetchImpl ?? fetch;
   if (!project) {
     throw new Error(
@@ -177,33 +201,28 @@ export async function systemForProject(project, options = {}) {
         "(its slug or its pid), or SEED_PROJECT=<project>.",
     );
   }
-  if (!platformUrl) {
-    throw new Error("PLATFORM_URL is not set: MCAS's system cannot be named without the platform.");
-  }
+  const where = `${platformBase(options)}/projects/${encodeURIComponent(project)}/ai-system`;
+  const what = "name MCAS's system";
+  await platformCall(what, `${where}/draft`, { method: "POST" }, fetchImpl);
+  const { version } = await platformCall(what, where, {
+    method: "PATCH",
+    body: JSON.stringify({
+      name: QUALIFICATION.systemName,
+      release: QUALIFICATION.systemVersion,
+      provider: QUALIFICATION.company,
+    }),
+  }, fetchImpl);
+  return { projectId: version.project_id, systemId: version.pid };
+}
 
-  let response;
-  try {
-    response = await fetchImpl(`${platformUrl}/projects/${encodeURIComponent(project)}/systems`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: QUALIFICATION.systemName,
-        version: QUALIFICATION.systemVersion,
-        provider: QUALIFICATION.company,
-      }),
-      cache: "no-store",
-    });
-  } catch (cause) {
-    throw new Error("Could not name MCAS's system: the platform did not answer.", { cause });
-  }
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(
-      `Could not name MCAS's system: the platform answered ${response.status}. ${detail}`.trim(),
-    );
-  }
-  const system = await response.json();
-  return { projectId: system.project_id, systemId: system.pid };
+/** The card is stored: its version now stays as it is. */
+export async function freezeForCard(versionPid, options = {}) {
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const url = `${platformBase(options)}/ai-system-versions/${encodeURIComponent(versionPid)}/freeze`;
+  return platformCall("freeze MCAS's system version", url, {
+    method: "POST",
+    body: JSON.stringify({ reason: "ai card" }),
+  }, fetchImpl);
 }
 
 /**
@@ -222,10 +241,6 @@ export async function systemForProject(project, options = {}) {
  *        already has it (the tests); otherwise it is asked for.
  */
 export async function seedMcas(prisma, { force = false, project, platform } = {}) {
-  // The system is named first: a qualification of a system nothing else can
-  // point at would be a dead end, and the database refuses it anyway.
-  const { projectId, systemId } = platform ?? (await systemForProject(project));
-
   const existing = await prisma.qualification.findUnique({
     where: { id: MCAS_ID },
     select: { id: true },
@@ -241,6 +256,11 @@ export async function seedMcas(prisma, { force = false, project, platform } = {}
     // Cascades to answers, risks and the stored knowledge graph.
     await prisma.qualification.delete({ where: { id: existing.id } });
   }
+
+  // Only now is the system named: finding the card already seeded must not
+  // make a version nobody asked for, and a card of a system nothing else can
+  // point at would be a dead end (the database refuses it anyway).
+  const { projectId, systemId } = platform ?? (await systemForProject(project));
 
   const created = await prisma.qualification.create({
     data: {
@@ -266,6 +286,9 @@ export async function seedMcas(prisma, { force = false, project, platform } = {}
     select: { id: true, systemName: true },
   });
   console.log(`  + ${created.systemName} (${created.id})`);
+  // A card freezes the version it describes; skipped only when the caller
+  // brought its own platform answer (the tests), as it did the naming.
+  if (!platform) await freezeForCard(systemId);
   return created;
 }
 

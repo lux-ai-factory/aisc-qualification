@@ -23,6 +23,18 @@ const item = (over: Partial<ListItem> = {}): ListItem => ({
 });
 
 describe("the compiled qualifications list", () => {
+  it("says which version of the system each card is for", () => {
+    // one card per version: the version is how two cards of one system differ
+    render(
+      <QualificationsList
+        project={PROJECT}
+        items={[item({ id: "c2", versionNumber: 2 }), item({ id: "c1", versionNumber: 1 })]}
+      />,
+    );
+    expect(screen.getByText("Version 2")).toBeTruthy();
+    expect(screen.getByText("Version 1")).toBeTruthy();
+  });
+
   it("shows each one with its name, version, company and timestamp", () => {
     render(<QualificationsList project={PROJECT} items={[item()]} />);
     expect(screen.getByText(/MicroCredit Assist Score/)).toBeTruthy();

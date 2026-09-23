@@ -68,6 +68,15 @@ export class QualificationRepository {
     });
   }
 
+  /** The AI card of one version of the project's system, if it has one. One
+   *  card per version: the database holds that too (system_id is unique). */
+  findBySystem(projectId: string, systemId: string): Promise<{ id: string } | null> {
+    return this.db.qualification.findFirst({
+      where: { projectId, systemId },
+      select: { id: true },
+    });
+  }
+
   /** The qualifications of one project, and no other's: a module reads what
    *  it needs and no more. */
   list(projectId: string): Promise<QualificationWithAnswers[]> {

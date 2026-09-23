@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { qualificationService } from "@/server/services/QualificationService";
+import { CardExistsError, qualificationService } from "@/server/services/QualificationService";
 import { requestFill } from "@/server/services/FillerClient";
 import { FormValidationError } from "@/server/forms/QualificationFormParser";
 
@@ -17,6 +17,8 @@ export async function submitQualification(
     ({ id } = await qualificationService.createFromForm(project, formData));
   } catch (err) {
     if (err instanceof FormValidationError) return { error: err.message };
+    // one card per version: the message says how to get to the next version
+    if (err instanceof CardExistsError) return { error: err.message };
     // The system could not be named on the platform: say so plainly rather
     // than storing a qualification nothing else can point at.
     if (err instanceof Error && /could not name this system|PLATFORM_URL/i.test(err.message)) {

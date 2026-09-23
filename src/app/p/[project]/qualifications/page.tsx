@@ -9,10 +9,14 @@ export default async function QualificationsPage({
 }) {
   const { project } = await params;
   const rows = await qualificationService.list(project);
+  // Which version of the project's one AI system each card describes. The
+  // list still shows when the platform cannot say, just without the numbers.
+  const numberOf = await qualificationService.versionNumbers(project).catch(() => new Map());
 
   // Only what it takes to pick one; the detail page loads the rest.
   const items = rows.map((q) => ({
     id: q.id,
+    versionNumber: numberOf.get(q.systemId),
     systemName: q.systemName,
     systemVersion: q.systemVersion,
     company: q.company,
@@ -25,16 +29,16 @@ export default async function QualificationsPage({
   return (
     <main className="qualify-page">
       <header className="qualify-header">
-        <h1>Compiled qualifications</h1>
+        <h1>AI cards</h1>
         <p>
-          Every system you have qualified. Open one to read the answered form and
-          the AI card built from it.
+          The project has one AI system, and each version of it has one AI card.
+          Open one to read the answered form and the card built from it.
         </p>
       </header>
 
       <div className="qf-list-actions">
         <Link className="btn ghost" href={`/p/${project}/qualify/new`}>
-          + New qualification
+          + AI card for the next version
         </Link>
       </div>
 

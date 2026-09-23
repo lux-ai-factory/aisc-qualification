@@ -8,6 +8,19 @@ import {
   qualificationFormParser,
 } from "@/server/forms/QualificationFormParser";
 import { PlatformClient, platformClient } from "@/server/services/PlatformClient";
+import { cardAsFormStart, nextCard, type NextCard } from "@/domain/cardVersions";
+import type { FormExample } from "@/data/examples/types";
+
+/** The version already has its AI card; a new card needs a new version. */
+export class CardExistsError extends Error {
+  constructor(readonly versionNumber: number) {
+    super(
+      `Version ${versionNumber} of this system already has its AI card. ` +
+        "Change the system to start the next version, then submit its card.",
+    );
+    this.name = "CardExistsError";
+  }
+}
 
 export class QualificationService {
   constructor(
@@ -17,27 +30,49 @@ export class QualificationService {
   ) {}
 
   /**
-   * Qualify a system inside a project.
+   * Submit the AI card of the project's AI system.
    *
-   * The system is named on the platform first: the engine's tests and the
-   * dashboard's results point at that same row, so a qualification that
-   * described a system nobody else could name would be a dead end. Registering
-   * is idempotent, so re-qualifying the same system finds the one already
-   * there instead of making a second.
+   * A card describes one version of the system and freezes it, so the two
+   * stay about the same thing. The platform hands out the version (the draft,
+   * or the next one when the latest is frozen), the form sets the system's
+   * identity on it, it is frozen, and only then is the card stored. A version
+   * has exactly one card: asked for a second, this refuses and stores nothing.
    */
   async createFromForm(project: string, formData: FormData): Promise<{ id: string }> {
     const parsed = this.parser.parse(formData);
-    const system = await this.platform.registerSystem(project, {
+    const version = await this.platform.versionForNewCard(project, {
       name: parsed.systemName,
       version: parsed.systemVersion,
       provider: parsed.company,
       description: parsed.description,
     });
+    if (await this.repo.findBySystem(version.project_id, version.pid)) {
+      throw new CardExistsError(version.number);
+    }
+    await this.platform.freeze(version.pid, "ai card");
     return this.repo.create({
       ...parsed,
-      projectId: system.project_id,
-      systemId: system.pid,
+      projectId: version.project_id,
+      systemId: version.pid,
     });
+  }
+
+  /**
+   * Where the next card starts: the version it will describe, and the newest
+   * card before it, loaded into the form to be reviewed.
+   */
+  async startingPoint(project: string): Promise<{ next: NextCard; initial: FormExample | null }> {
+    const system = await this.platform.aiSystem(project);
+    const cards = await this.repo.list(system.project_id);
+    const next = nextCard(system.versions, cards);
+    const from = cards.find((c) => c.id === next.fromCardId);
+    return { next, initial: from ? cardAsFormStart(from) : null };
+  }
+
+  /** Each version's number, by its pid, for labelling the cards. */
+  async versionNumbers(project: string): Promise<Map<string, number>> {
+    const system = await this.platform.aiSystem(project);
+    return new Map(system.versions.map((v) => [v.pid, v.number]));
   }
 
   list(projectId: string): Promise<QualificationWithAnswers[]> {
