@@ -12,7 +12,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { decide, fetchAccess, projectFromPath } from "@/server/access/projectAccess";
-import { GATEWAY_TOKEN_HEADER } from "@/server/services/callerToken";
+import { tokenFromHeaders } from "@/server/services/callerToken";
 
 export const config = {
   // Only the pages that are inside a project. The methodology, the health
@@ -25,12 +25,7 @@ export async function middleware(request: NextRequest) {
   const project = projectFromPath(request.nextUrl.pathname);
   if (!project) return NextResponse.next();
 
-  const authorization = request.headers.get("authorization") ?? "";
-  const token = authorization.toLowerCase().startsWith("bearer ")
-    ? authorization.slice(7).trim()
-    : request.headers.get(GATEWAY_TOKEN_HEADER);
-
-  const access = await fetchAccess(project, token || null, {
+  const access = await fetchAccess(project, tokenFromHeaders(request.headers) || null, {
     platformUrl: process.env.PLATFORM_URL ?? "",
   });
 

@@ -15,14 +15,23 @@ import { headers } from "next/headers";
 /** What oauth2-proxy calls the token it holds, copied through by Caddy. */
 export const GATEWAY_TOKEN_HEADER = "x-auth-request-access-token";
 
+const BEARER = "bearer ";
+
+/** Who is calling, when there is a request to read it from. */
+export type CallerToken = () => Promise<string | null>;
+
+/** The token on a request: its own Bearer header first, else the gateway's copy. */
+export function tokenFromHeaders(incoming: { get(name: string): string | null }): string | null {
+  const authorization = incoming.get("authorization") ?? "";
+  if (authorization.toLowerCase().startsWith(BEARER)) {
+    return authorization.slice(BEARER.length).trim() || null;
+  }
+  return incoming.get(GATEWAY_TOKEN_HEADER);
+}
+
 export async function callerToken(): Promise<string | null> {
   try {
-    const incoming = await headers();
-    const authorization = incoming.get("authorization") ?? "";
-    if (authorization.toLowerCase().startsWith("bearer ")) {
-      return authorization.slice(7).trim() || null;
-    }
-    return incoming.get(GATEWAY_TOKEN_HEADER);
+    return tokenFromHeaders(await headers());
   } catch {
     return null;
   }

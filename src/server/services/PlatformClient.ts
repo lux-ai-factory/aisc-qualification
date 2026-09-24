@@ -7,7 +7,8 @@
  * which only the platform writes; this is how they are made and read. Only the
  * latest version may change; the older ones are kept as they were.
  */
-import { callerToken } from "@/server/services/callerToken";
+import { callerToken, type CallerToken } from "@/server/services/callerToken";
+import { bearerHeaders, serviceUrl } from "@/server/services/http";
 
 export type SystemIdentity = {
   name: string;
@@ -29,9 +30,6 @@ export type CardVersion = {
   created_by: string | null;
 };
 
-/** Who is calling, when there is a request to read it from. */
-export type CallerToken = () => Promise<string | null>;
-
 export class PlatformClient {
   constructor(
     private readonly baseUrl: string = process.env.PLATFORM_URL ?? "",
@@ -52,13 +50,13 @@ export class PlatformClient {
         "PLATFORM_URL is not set: this app cannot name the system it is qualifying.",
       );
     }
-    const url = `${this.baseUrl.replace(/\/+$/, "")}${path}`;
-    const token = await this.callerToken();
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (token) headers.Authorization = `Bearer ${token}`;
+    const headers = {
+      "Content-Type": "application/json",
+      ...bearerHeaders(await this.callerToken()),
+    };
     let res: Response;
     try {
-      res = await this.fetchImpl(url, {
+      res = await this.fetchImpl(serviceUrl(this.baseUrl, path), {
         method,
         headers,
         body: body === undefined ? undefined : JSON.stringify(body),

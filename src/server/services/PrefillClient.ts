@@ -9,6 +9,7 @@
  * form opens empty and the person types.
  */
 import type { RiskExample } from "@/data/examples";
+import { serviceUrl } from "@/server/services/http";
 
 export type PrefillMode = "empty" | "replace";
 
@@ -60,7 +61,7 @@ export class PrefillClient {
 
     let response: Response;
     try {
-      response = await this.fetchImpl(`${this.baseUrl.replace(/\/+$/, "")}/prefill`, {
+      response = await this.fetchImpl(serviceUrl(this.baseUrl, "/prefill"), {
         method: "POST",
         body,
         cache: "no-store",

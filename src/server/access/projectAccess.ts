@@ -6,6 +6,8 @@
  * answer onto a status. Six modules each inventing their own idea of who may do
  * what is exactly what this is here to prevent.
  */
+import { bearerHeaders } from "@/server/services/http";
+
 export type Access = {
   /** viewer, editor, owner, or null for somebody who is not in the project. */
   role: string | null;
@@ -47,12 +49,10 @@ export async function fetchAccess(
 ): Promise<Access | null> {
   const platformUrl = options.platformUrl.replace(/\/+$/, "");
   if (!platformUrl) return null;
-  const headers: Record<string, string> = {};
-  if (token) headers.Authorization = `Bearer ${token}`;
   try {
     const response = await (options.fetchImpl ?? fetch)(
       `${platformUrl}/authz/projects/${encodeURIComponent(project)}`,
-      { headers, cache: "no-store" },
+      { headers: bearerHeaders(token), cache: "no-store" },
     );
     if (!response.ok) return null;
     return (await response.json()) as Access;

@@ -6,23 +6,22 @@
  * one AI system is read, both with the caller's own token, so a stranger to the
  * project sees nothing (the engine lists no project for them).
  */
-import { callerToken as defaultCallerToken } from "@/server/services/callerToken";
+import { callerToken as defaultCallerToken, type CallerToken } from "@/server/services/callerToken";
+import { bearerHeaders, serviceUrl } from "@/server/services/http";
 import type { EngineComponent } from "@/domain/cardComponents";
 
 export class EngineClient {
   constructor(
     private readonly baseUrl: string = process.env.AISC_BACKEND_URL ?? "",
     private readonly fetchImpl: typeof fetch = fetch,
-    private readonly callerToken: () => Promise<string | null> = defaultCallerToken,
+    private readonly callerToken: CallerToken = defaultCallerToken,
   ) {}
 
   private async get<T>(path: string): Promise<T> {
-    const token = await this.callerToken();
-    const headers: Record<string, string> = {};
-    if (token) headers.Authorization = `Bearer ${token}`;
+    const headers = bearerHeaders(await this.callerToken());
     let res: Response;
     try {
-      res = await this.fetchImpl(`${this.baseUrl.replace(/\/+$/, "")}${path}`, {
+      res = await this.fetchImpl(serviceUrl(this.baseUrl, path), {
         headers,
         cache: "no-store",
       });
