@@ -23,6 +23,17 @@ app = FastAPI(title="AISC qualification prefill", docs_url="/docs")
 MAX_BYTES = int(os.environ.get("PREFILL_MAX_BYTES", 10 * 1024 * 1024))
 
 
+def _form_json(name: str, value: str, expected: type, wrong_type: str):
+    """A JSON form field, or a 422 that names the field and what was wrong."""
+    try:
+        parsed = json.loads(value)
+        if not isinstance(parsed, expected):
+            raise ValueError(wrong_type)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=f"{name}: {exc}")
+    return parsed
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
@@ -43,21 +54,10 @@ async def prefill(
     raw = await file.read()
     if len(raw) > MAX_BYTES:
         raise HTTPException(status_code=413, detail=f"the file is larger than {MAX_BYTES} bytes")
-    try:
-        answers = json.loads(current or "{}")
-        if not isinstance(answers, dict):
-            raise ValueError("the form's current answers are not an object")
-    except ValueError as exc:
-        # Not ignored: ignoring it would quietly turn "fill the empty ones"
-        # into "fill all of them".
-        raise HTTPException(status_code=422, detail=f"current: {exc}")
-
-    try:
-        rows_now = json.loads(current_risks or "[]")
-        if not isinstance(rows_now, list):
-            raise ValueError("the form's current risks are not a list")
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=f"current_risks: {exc}")
+    # A malformed value is refused, not ignored: ignoring it would quietly turn
+    # "fill the empty ones" into "fill all of them".
+    answers = _form_json("current", current or "{}", dict, "the form's current answers are not an object")
+    rows_now = _form_json("current_risks", current_risks or "[]", list, "the form's current risks are not a list")
 
     try:
         text = read_document(raw, file.filename or "")
@@ -77,8 +77,7 @@ async def prefill(
     return {
         "read": True,
         "source": "document",
-        # Where a model is configured it can propose more; nothing here needs
-        # one, and the form says which it got.
+        # The reading is deterministic: no model proposed these values.
         "model": None,
         "values": merged.values,
         "filled": merged.filled,

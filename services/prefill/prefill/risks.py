@@ -29,6 +29,9 @@ _OTHER_HEADING = re.compile(r"^\s*#+\s+\S")
 
 TEXT_FIELDS = ("risk", "source", "vulnerability", "consequence", "control", "followUpControl")
 
+#: A row's keys in the order the form lists its columns.
+_ROW_ORDER = (*TEXT_FIELDS[:4], "affected", "areas", *TEXT_FIELDS[4:])
+
 #: Labels for each field. Matched longest first, so "follow-up control" is
 #: never read as "control".
 _LABELS: dict[str, tuple[str, ...]] = {
@@ -91,12 +94,16 @@ def _affected(value: str) -> str:
 def _areas(value: str) -> list[str]:
     """In the order the document names them."""
     words = value.lower()
-    at = {aid: min(words.find(n) for n in names if n in words) for aid, names in _AREAS if any(n in words for n in names)}
+    at = {
+        aid: min(words.find(n) for n in names if n in words)
+        for aid, names in _AREAS
+        if any(n in words for n in names)
+    }
     return sorted(at, key=at.get)
 
 
 def _empty_row() -> dict[str, list[str] | str]:
-    return {f: "" for f in TEXT_FIELDS} | {"affected": "", "areas": []}
+    return {key: [] if key == "areas" else "" for key in _ROW_ORDER}
 
 
 def _finish(raw: dict[str, list[str]]) -> dict | None:
@@ -110,7 +117,7 @@ def _finish(raw: dict[str, list[str]]) -> dict | None:
         else:
             row[field] = value
     said_something = any(row[f] for f in TEXT_FIELDS) or row["affected"] or row["areas"]
-    return {k: row[k] for k in (*TEXT_FIELDS[:4], "affected", "areas", *TEXT_FIELDS[4:])} if said_something else None
+    return row if said_something else None
 
 
 def risks_from_text(text: str) -> list[dict]:

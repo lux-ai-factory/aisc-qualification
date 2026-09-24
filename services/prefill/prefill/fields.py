@@ -9,11 +9,11 @@ Two signals, both deterministic:
 * **Labels.** "System name:", "Provider:", "Intended purpose:" and the handful
   of ways people write those.
 
-Neither needs a model. Where one is configured it can propose more (see
-`model.py`), but this is what runs everywhere.
+Neither needs a model, so this runs on every install.
 """
 from __future__ import annotations
 
+import json
 import os
 import pathlib
 import re
@@ -66,8 +66,6 @@ def candidate_paths(module_file: pathlib.Path | None = None) -> list[pathlib.Pat
 
 
 def _load_fields() -> tuple[tuple[str, ...], dict[tuple[str, str], str]]:
-    import json
-
     for candidate in candidate_paths():
         if candidate.is_file():
             loaded = json.loads(candidate.read_text())
@@ -140,7 +138,8 @@ def metadata_from_text(text: str) -> dict[str, str]:
             # "System name" with the value on the next line, which is how a
             # heading in a Word document arrives.
             value = next((l.strip() for l in lines[index + 1:index + 3] if l.strip()), "")
-            if _label_of(value) and _field_for_label((_label_of(value) or ("", ""))[0]):
+            following = _label_of(value)
+            if following and _field_for_label(following[0]):
                 value = ""  # the next line is another label, not this one's value
         value = _clean(value)
         if value:
