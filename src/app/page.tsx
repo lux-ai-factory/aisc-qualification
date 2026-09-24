@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { launcherUrl } from "@/lib/launcher";
 
 /**
  * The app reached without a project.
@@ -9,5 +10,5 @@ import { redirect } from "next/navigation";
  * project you pick.
  */
 export default function NoProjectPage() {
-  redirect(process.env.LAUNCHER_URL || "http://localhost:8100/");
+  redirect(launcherUrl());
 }

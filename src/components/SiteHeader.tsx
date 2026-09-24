@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { launcherUrl } from "@/lib/launcher";
 
 /**
  * The header.
@@ -14,7 +15,7 @@ export default function SiteHeader({ project }: { project?: string }) {
   // way Next's own /_next assets are, so build the src explicitly. Read at
   // render time on the server (same runtime NEXT_BASE_PATH next.config uses).
   const basePath = process.env.NEXT_BASE_PATH || "";
-  const launcher = (process.env.LAUNCHER_URL || "http://localhost:8100/").replace(/\/+$/, "");
+  const launcher = launcherUrl().replace(/\/+$/, "");
   const projectPage = project ? `${launcher}/p/${encodeURIComponent(project)}` : null;
   return (
     <header className="site-header">

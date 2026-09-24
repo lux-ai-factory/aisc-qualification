@@ -1310,16 +1310,6 @@ a:hover {
 .qf-row:hover h3 {
   color: var(--primary);
 }
-/* The "open this project" affordance on the page reached without one. */
-.qf-row-go {
-  flex: none;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-}
-.qf-row:hover .qf-row-go {
-  color: var(--primary);
-}
 .qf-row-ver {
   font-weight: 400;
   color: var(--muted);
@@ -2105,5 +2095,5 @@ a:hover {
   }
 }
 
-/* the card page offers editing the system beside its history */
+/* The card page's header buttons: editing the system, beside its versions. */
 .qf-header-actions { display: flex; gap: 0.5rem; align-items: center; }
