@@ -48,14 +48,14 @@ export default async function MethodologyPage() {
     <>
       <SiteHeader />
       <main className="qualify-page">
-      <header className="qualify-header">
-        <h1>Methodology</h1>
-        <p>
-          Eight steps from a filled form to an AI card you can download, each
-          with what goes in, the text that authorises it and what comes out.
-        </p>
-      </header>
-      <Methodology facts={facts} />
+        <header className="qualify-header">
+          <h1>Methodology</h1>
+          <p>
+            Eight steps from a filled form to an AI card you can download, each
+            with what goes in, the text that authorises it and what comes out.
+          </p>
+        </header>
+        <Methodology facts={facts} />
       </main>
     </>
   );

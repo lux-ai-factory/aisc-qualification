@@ -88,168 +88,168 @@ export default function QualifyForm({
       </div>
 
       <form ref={formRef} action={formAction} className="qualify-form">
-      {state?.error && <div className="error">{state.error}</div>}
+        {state?.error && <div className="error">{state.error}</div>}
 
-      <section className="qf-section">
-        <h2>System metadata</h2>
-        <p className="qf-help">
-          Tell us what AI system this qualification is for. The tag on each
-          field shows which part of the EU AI Act asks for it.
-        </p>
+        <section className="qf-section">
+          <h2>System metadata</h2>
+          <p className="qf-help">
+            Tell us what AI system this qualification is for. The tag on each
+            field shows which part of the EU AI Act asks for it.
+          </p>
 
-        <div className="field">
-          <FieldLabel htmlFor="systemName" id="systemName" />
-          <input
-            id="systemName"
-            name="systemName"
-            defaultValue={meta?.systemName ?? ""}
-            placeholder="e.g. ShelfScan Vision"
-            required
-          />
-        </div>
-        <div className="qf-row">
           <div className="field">
-            <FieldLabel htmlFor="systemVersion" id="systemVersion" />
+            <FieldLabel htmlFor="systemName" id="systemName" />
             <input
-              id="systemVersion"
-              name="systemVersion"
-              defaultValue={meta?.systemVersion ?? ""}
-              placeholder="e.g. 2.4.0"
+              id="systemName"
+              name="systemName"
+              defaultValue={meta?.systemName ?? ""}
+              placeholder="e.g. ShelfScan Vision"
               required
             />
           </div>
-          <div className="field">
-            <FieldLabel htmlFor="company" id="company" />
-            <input
-              id="company"
-              name="company"
-              defaultValue={meta?.company ?? ""}
-              placeholder="e.g. Acme Retail Technologies"
-              required
-            />
-          </div>
-        </div>
-        <div className="field">
-          <FieldLabel htmlFor="description" id="description" />
-          <textarea
-            id="description"
-            name="description"
-            defaultValue={meta?.description ?? ""}
-            rows={3}
-            placeholder="One or two sentences explaining what the system does. e.g. 'Computer vision system that detects out-of-stock items on retail shelves from in-store camera footage.'"
-            required
-          />
-        </div>
-        <div className="field">
-          <FieldLabel htmlFor="targetUseCase" id="targetUseCase" />
-          <textarea
-            id="targetUseCase"
-            name="targetUseCase"
-            defaultValue={meta?.targetUseCase ?? ""}
-            rows={3}
-            placeholder="The specific scenario the system is built for. e.g. 'Real-time alerts to store associates when high-velocity SKUs fall below the replenishment threshold.'"
-            required
-          />
-        </div>
-        <div className="field">
-          <FieldLabel htmlFor="targetUsers" id="targetUsers" />
-          <textarea
-            id="targetUsers"
-            name="targetUsers"
-            defaultValue={meta?.targetUsers ?? ""}
-            rows={2}
-            placeholder="Who interacts with the system and who is affected by its results. e.g. 'Store associates and shelf-replenishment staff in supermarkets across the EU.'"
-            required
-          />
-        </div>
-        <div className="field">
-          <FieldLabel htmlFor="intendedDeployers" id="intendedDeployers" />
-          <textarea
-            id="intendedDeployers"
-            name="intendedDeployers"
-            defaultValue={meta?.intendedDeployers ?? ""}
-            rows={2}
-            placeholder="Who will operate the system day to day. e.g. 'Supermarket chains running the cameras in their own stores.'"
-            required
-          />
-        </div>
-
-        <TargetSystemPicker
-          targetSystems={targetSystems}
-          selected={targetTags}
-          onToggle={toggleTarget}
-        />
-
-        <SectorPicker
-          sectors={sectors}
-          selected={sectorTagSet}
-          onToggle={toggleSector}
-        />
-
-        <ChipPicker
-          name="marketFormTags"
-          label={METADATA_FIELDS.marketFormTags.label}
-          citation={METADATA_FIELDS.marketFormTags.citation}
-          help="Pick every form that applies."
-          options={MARKET_FORMS}
-          selected={marketForms}
-          onToggle={toggleMarketForm}
-        />
-
-        <ChipPicker
-          name="localityTags"
-          label={METADATA_FIELDS.localityTags.label}
-          citation={METADATA_FIELDS.localityTags.citation}
-          help="The kind of setting it operates in."
-          options={LOCALITIES}
-          selected={localities}
-          onToggle={toggleLocality}
-        />
-      </section>
-
-      <section className="qf-section">
-        <h2>Technical documentation</h2>
-        <p className="qf-help">
-          Answer in your own words: plain descriptions are more useful here than
-          formal language. Everything is required except the questions marked{" "}
-          <em>where applicable</em>, which you can leave blank when they do not
-          apply to your system. The tag on each question shows which part of EU
-          AI Act Annex IV it covers, for whoever reviews your answers later.
-        </p>
-        {keyQuestions.map((kq, i) => {
-          const fieldId = keyQuestionField(kq);
-          const isGroupStart =
-            i === 0 || keyQuestions[i - 1].group !== kq.group;
-          return (
-            <div key={fieldId} className="field">
-              {isGroupStart && <h3 className="qf-group">{kq.groupLabel}</h3>}
-              <label className="qf-question" htmlFor={fieldId}>
-                <span className="qf-citation">{kq.citation}</span>
-                {kq.optional && (
-                  <span className="qf-optional">where applicable</span>
-                )}
-                <span className="qf-question-text">{kq.text}</span>
-              </label>
-              <textarea
-                id={fieldId}
-                name={fieldId}
-                defaultValue={initial?.answers[fieldId] ?? ""}
-                rows={kq.text.length > 300 ? 5 : 3}
-                required={!kq.optional}
+          <div className="qf-row">
+            <div className="field">
+              <FieldLabel htmlFor="systemVersion" id="systemVersion" />
+              <input
+                id="systemVersion"
+                name="systemVersion"
+                defaultValue={meta?.systemVersion ?? ""}
+                placeholder="e.g. 2.4.0"
+                required
               />
             </div>
-          );
-        })}
-      </section>
+            <div className="field">
+              <FieldLabel htmlFor="company" id="company" />
+              <input
+                id="company"
+                name="company"
+                defaultValue={meta?.company ?? ""}
+                placeholder="e.g. Acme Retail Technologies"
+                required
+              />
+            </div>
+          </div>
+          <div className="field">
+            <FieldLabel htmlFor="description" id="description" />
+            <textarea
+              id="description"
+              name="description"
+              defaultValue={meta?.description ?? ""}
+              rows={3}
+              placeholder="One or two sentences explaining what the system does. e.g. 'Computer vision system that detects out-of-stock items on retail shelves from in-store camera footage.'"
+              required
+            />
+          </div>
+          <div className="field">
+            <FieldLabel htmlFor="targetUseCase" id="targetUseCase" />
+            <textarea
+              id="targetUseCase"
+              name="targetUseCase"
+              defaultValue={meta?.targetUseCase ?? ""}
+              rows={3}
+              placeholder="The specific scenario the system is built for. e.g. 'Real-time alerts to store associates when high-velocity SKUs fall below the replenishment threshold.'"
+              required
+            />
+          </div>
+          <div className="field">
+            <FieldLabel htmlFor="targetUsers" id="targetUsers" />
+            <textarea
+              id="targetUsers"
+              name="targetUsers"
+              defaultValue={meta?.targetUsers ?? ""}
+              rows={2}
+              placeholder="Who interacts with the system and who is affected by its results. e.g. 'Store associates and shelf-replenishment staff in supermarkets across the EU.'"
+              required
+            />
+          </div>
+          <div className="field">
+            <FieldLabel htmlFor="intendedDeployers" id="intendedDeployers" />
+            <textarea
+              id="intendedDeployers"
+              name="intendedDeployers"
+              defaultValue={meta?.intendedDeployers ?? ""}
+              rows={2}
+              placeholder="Who will operate the system day to day. e.g. 'Supermarket chains running the cameras in their own stores.'"
+              required
+            />
+          </div>
 
-      <RiskRows key={riskRows.version} initial={riskRows.rows} />
+          <TargetSystemPicker
+            targetSystems={targetSystems}
+            selected={targetTags}
+            onToggle={toggleTarget}
+          />
 
-      <div className="qf-actions">
-        <button className="btn" type="submit" disabled={pending}>
-          {pending ? "Building your AI card..." : "Save qualification"}
-        </button>
-      </div>
-      <SubmitOverlay open={pending} />
+          <SectorPicker
+            sectors={sectors}
+            selected={sectorTagSet}
+            onToggle={toggleSector}
+          />
+
+          <ChipPicker
+            name="marketFormTags"
+            label={METADATA_FIELDS.marketFormTags.label}
+            citation={METADATA_FIELDS.marketFormTags.citation}
+            help="Pick every form that applies."
+            options={MARKET_FORMS}
+            selected={marketForms}
+            onToggle={toggleMarketForm}
+          />
+
+          <ChipPicker
+            name="localityTags"
+            label={METADATA_FIELDS.localityTags.label}
+            citation={METADATA_FIELDS.localityTags.citation}
+            help="The kind of setting it operates in."
+            options={LOCALITIES}
+            selected={localities}
+            onToggle={toggleLocality}
+          />
+        </section>
+
+        <section className="qf-section">
+          <h2>Technical documentation</h2>
+          <p className="qf-help">
+            Answer in your own words: plain descriptions are more useful here than
+            formal language. Everything is required except the questions marked{" "}
+            <em>where applicable</em>, which you can leave blank when they do not
+            apply to your system. The tag on each question shows which part of EU
+            AI Act Annex IV it covers, for whoever reviews your answers later.
+          </p>
+          {keyQuestions.map((kq, i) => {
+            const fieldId = keyQuestionField(kq);
+            const isGroupStart =
+              i === 0 || keyQuestions[i - 1].group !== kq.group;
+            return (
+              <div key={fieldId} className="field">
+                {isGroupStart && <h3 className="qf-group">{kq.groupLabel}</h3>}
+                <label className="qf-question" htmlFor={fieldId}>
+                  <span className="qf-citation">{kq.citation}</span>
+                  {kq.optional && (
+                    <span className="qf-optional">where applicable</span>
+                  )}
+                  <span className="qf-question-text">{kq.text}</span>
+                </label>
+                <textarea
+                  id={fieldId}
+                  name={fieldId}
+                  defaultValue={initial?.answers[fieldId] ?? ""}
+                  rows={kq.text.length > 300 ? 5 : 3}
+                  required={!kq.optional}
+                />
+              </div>
+            );
+          })}
+        </section>
+
+        <RiskRows key={riskRows.version} initial={riskRows.rows} />
+
+        <div className="qf-actions">
+          <button className="btn" type="submit" disabled={pending}>
+            {pending ? "Building your AI card..." : "Save qualification"}
+          </button>
+        </div>
+        <SubmitOverlay open={pending} />
       </form>
     </>
   );
