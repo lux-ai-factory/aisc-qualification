@@ -15,6 +15,7 @@ from __future__ import annotations
 import threading
 from datetime import datetime, timezone
 from typing import Any, Literal
+from uuid import UUID
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 
@@ -39,12 +40,17 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-def _run(qualification_id: str) -> None:
+def _run(qualification_id: str, project: str | None = None) -> None:
     """One run, with its outcome recorded either way."""
     with _LOCK:
         RUNS[qualification_id] |= {"state": "running"}
     try:
-        result = fill_one(qualification_id)
+        # Without a project, the call is the one it always was: the service's own
+        # model from its environment.
+        if project is None:
+            result = fill_one(qualification_id)
+        else:
+            result = fill_one(qualification_id, project=project)
     except Exception as exc:  # the app must be able to read why
         with _LOCK:
             RUNS[qualification_id] |= {
@@ -62,20 +68,27 @@ def _run(qualification_id: str) -> None:
 
 
 @app.post("/fill/{qualification_id}", status_code=202)
-def start(qualification_id: str, background: BackgroundTasks) -> dict[str, Any]:
-    """Start a run, unless one is already in flight for this qualification."""
+def start(qualification_id: str, background: BackgroundTasks,
+          project: UUID | None = None) -> dict[str, Any]:
+    """Start a run, unless one is already in flight for this qualification.
+
+    `?project=<pid>` is the platform project the qualification belongs to: the run
+    then uses the model that project chose (Manage, "Models and API keys"). Without
+    it, the service's own environment decides, as before."""
+    pid = str(project) if project is not None else None
     with _LOCK:
         current = RUNS.get(qualification_id)
         in_flight = current and current["state"] in {"queued", "running"}
         if not in_flight:
             RUNS[qualification_id] = {
                 "qualification": qualification_id,
+                "project": pid,
                 "state": "queued",
                 "started": _now(),
                 "finished": None,
             }
     if not in_flight:
-        background.add_task(_run, qualification_id)
+        background.add_task(_run, qualification_id, pid)
     return RUNS[qualification_id]
 
 

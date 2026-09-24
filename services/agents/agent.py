@@ -1,7 +1,9 @@
 """Run the ontology filler.
 
-The model is BAF's: fill/llm.py builds one of its wrappers from
-BAF_LLM_PROVIDER / BAF_LLM_MODEL and BAF's property store holds the credential.
+The model is BAF's: fill/baf_llm.py builds one of its wrappers and BAF's
+property store holds the credential. Which model: the one the qualification's
+project chose on the platform (--project, or ?project= on the HTTP service), else
+BAF_LLM_PROVIDER / BAF_LLM_MODEL from the environment.
 
 Two ways in, one flow:
 
@@ -17,24 +19,30 @@ import argparse
 import json
 import sys
 
-from fill import clients
-from fill.llm import build_llm, completer
+from fill import baf_llm, clients
 from fill.workflow import MAX_ROUNDS, build_agent, run_fill
 
 
-def fill_one(qualification_id: str, dry_run: bool = False) -> dict:
+def fill_one(qualification_id: str, dry_run: bool = False, project: str | None = None) -> dict:
     """Draft, review and publish one qualification's extracted document.
+
+    `project` is the platform pid: the model is the one that project chose, or the
+    environment's when it chose none. The model is settled first, so a project
+    whose model cannot be had fails the run before anything is fetched.
 
     Returns what the run did, so an HTTP caller can report it without parsing
     stdout.
     """
+    config = baf_llm.config_for(project, "card_agent")
+    llm = baf_llm.build_llm(config, agent_name="ontology_filler_llm")
+
     qualification = clients.qualification(qualification_id)
     terms = clients.vocabularies()
 
     result = run_fill(
         qualification,
         terms=terms,
-        complete=completer(build_llm()),
+        complete=baf_llm.completer(llm),
         publish=(lambda qid, payload: None) if dry_run else clients.publish,
         max_rounds=MAX_ROUNDS,
     )
@@ -58,6 +66,7 @@ def fill_one(qualification_id: str, dry_run: bool = False) -> dict:
         "calls": result.calls,
         "flagged": len(result.payload.get("flags", {})),
         "stops": result.stop_reasons,
+        "model": f"{config.provider}/{config.model}",
     }
 
 
@@ -70,12 +79,15 @@ def main(argv: list[str] | None = None) -> int:
         help="draft and review, print the payload, publish nothing",
     )
     parser.add_argument(
+        "--project", help="the platform project (pid) whose model choice to use"
+    )
+    parser.add_argument(
         "--serve", action="store_true", help="run as a BAF agent (A2A platform)"
     )
     args = parser.parse_args(argv)
 
     if args.qualification:
-        fill_one(args.qualification, dry_run=args.dry_run)
+        fill_one(args.qualification, dry_run=args.dry_run, project=args.project)
         return 0
     if args.serve:
         agent = build_agent()
