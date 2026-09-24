@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Throwaway Postgres for the DB-gated tests in test/db (pipeline 2026-09-23, 03 section 0).
+# Throwaway Postgres for the DB-gated tests in test/db.
 #
 #   test/db/throwaway-db.sh           start one, migrate it, run `npx vitest run test/db`, remove it
 #   KEEP=1 test/db/throwaway-db.sh    same, but leave the container up and print the env

@@ -70,8 +70,8 @@ export class QualificationRepository {
    * One qualification of one project, or null.
    *
    * Never by id alone. The id comes out of a URL and the project is what says
-   * whose it is: a lookup without it served any project's system description,
-   * answers and risks to anyone who could open any project's page.
+   * whose it is: without it, anyone who could open one project's page could
+   * read any project's system description, answers and risks.
    */
   find(projectId: string, id: string): Promise<QualificationWithAnswers | null> {
     return this.db.qualification.findFirst({

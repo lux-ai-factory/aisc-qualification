@@ -2,9 +2,9 @@
  * Who may read a qualification that is addressed by its own id.
  *
  * The pages live under /p/:project and the door in middleware.ts answers for
- * them. The seven download routes under /api/qualifications/:id do not: they
- * carry no project, so nothing was asking. They hand over the AI card, the
- * ontology and the PDF, which is the whole system description.
+ * them. The routes under /api/qualifications/:id carry no project, yet they
+ * hand over the AI card, the ontology and the PDF, which is the whole system
+ * description.
  *
  * So this reads the qualification's own project and asks the platform what
  * this caller is to it. Injected dependencies rather than imports, so the rule

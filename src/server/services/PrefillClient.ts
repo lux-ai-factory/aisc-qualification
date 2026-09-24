@@ -6,7 +6,7 @@
  * model. This carries the file there and the answers back.
  *
  * It never throws. A service that is down, or not deployed at all, means the
- * form opens empty and the person types, which is how it worked before.
+ * form opens empty and the person types.
  */
 import type { RiskExample } from "@/data/examples";
 
@@ -90,7 +90,7 @@ export class PrefillClient {
       filled: body_.filled,
       kept: body_.kept,
       model: body_.model,
-      // A service from before risks were read says nothing about them.
+      // An older service omits the risk fields.
       risks: body_.risks ?? null,
       risksKept: body_.risksKept ?? false,
       risksProposed: body_.risksProposed ?? 0,

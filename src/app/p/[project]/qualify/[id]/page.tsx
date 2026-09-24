@@ -24,8 +24,7 @@ export default async function QualificationDetailPage({
   // (same pattern as SiteHeader) so the downloads work when served under a subpath.
   const basePath = process.env.NEXT_BASE_PATH || "";
 
-  // Of this project: an id out of the URL, looked up on its own, served any
-  // project's system description, answers and risks.
+  // Looked up within this project, never by the id from the URL alone.
   const q = await qualificationService.get(project, id);
   if (!q) notFound();
 

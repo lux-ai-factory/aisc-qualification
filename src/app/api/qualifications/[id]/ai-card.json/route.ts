@@ -18,9 +18,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  // This route carries no project in its path, so nothing was asking who the
-  // caller is: it hands over the whole system description. Read the
-  // qualification's own project and ask the platform.
+  // The path carries no project, so access is checked against the
+  // qualification's own project.
   const project = await qualificationForCaller(id);
   if (!project) return new NextResponse("Not found", { status: 404 });
 
