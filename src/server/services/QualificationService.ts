@@ -32,7 +32,7 @@ export class QualificationService {
    * older version is read-only because it is not the latest, which the
    * database enforces. When the platform does not answer, nothing is stored.
    */
-  async createFromForm(project: string, formData: FormData): Promise<{ id: string }> {
+  async createFromForm(project: string, formData: FormData): Promise<{ id: string; projectId: string }> {
     const parsed = this.parser.parse(formData);
     const version = await this.platform.createVersion(project, {
       name: parsed.systemName,
@@ -40,11 +40,13 @@ export class QualificationService {
       provider: parsed.company,
       description: parsed.description,
     });
-    return this.repo.create({
+    const made = await this.repo.create({
       ...parsed,
       projectId: version.project_id,
       systemId: version.pid,
     });
+    // The platform pid travels on to the filler, which uses the project's model.
+    return { id: made.id, projectId: version.project_id };
   }
 
   /** The project's card versions and its cards. A project with no version yet
