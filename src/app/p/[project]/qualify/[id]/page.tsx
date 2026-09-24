@@ -36,22 +36,10 @@ export default async function QualificationDetailPage({
     .catch(() => null);
   const readOnly = !standing?.current;
 
-  // The engine's components, for linking to the latest card. An engine that is
-  // down leaves the card as it is and says so in the panel.
-  let engineComponents: EngineComponent[] = [];
-  let engineError: string | null = null;
-  if (!readOnly) {
-    try {
-      engineComponents = await engineClient.components(q.projectId);
-    } catch (err) {
-      engineError = err instanceof Error ? err.message : "The engine did not answer";
-    }
-  }
-  const suggestions = (
-    ((q.ontologyExtracted as OntologyExtracted | null)?.components ?? []) as Array<
-      string | { label: string }
-    >
-  ).map((c) => (typeof c === "string" ? c : c.label));
+  const { engineComponents, engineError } = readOnly
+    ? { engineComponents: [], engineError: null }
+    : await loadEngineComponents(q.projectId);
+  const suggestions = componentSuggestions(q.ontologyExtracted as OntologyExtracted | null);
 
   // The ontology IS the card: built on read from the form, the agent's
   // extraction and the reviewer's patch. A sidecar that is down must not take
@@ -185,4 +173,25 @@ export default async function QualificationDetailPage({
       />
     </main>
   );
+}
+
+/** The engine's components, for linking to the latest card. An engine that is
+ *  down leaves the card as it is and says so in the panel. */
+async function loadEngineComponents(
+  projectId: string,
+): Promise<{ engineComponents: EngineComponent[]; engineError: string | null }> {
+  try {
+    return { engineComponents: await engineClient.components(projectId), engineError: null };
+  } catch (err) {
+    return {
+      engineComponents: [],
+      engineError: err instanceof Error ? err.message : "The engine did not answer",
+    };
+  }
+}
+
+/** The components the card agent named, as labels: suggestions, never links. */
+function componentSuggestions(extracted: OntologyExtracted | null): string[] {
+  const named = (extracted?.components ?? []) as Array<string | { label: string }>;
+  return named.map((c) => (typeof c === "string" ? c : c.label));
 }
