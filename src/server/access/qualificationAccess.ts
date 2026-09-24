@@ -21,6 +21,11 @@ export type QualificationAccessDeps = {
   accessTo: (project: string) => Promise<Access | null>;
 };
 
+/** What the person behind this request is to a project, or null if the platform could not say. */
+export async function callerAccess(project: string): Promise<Access | null> {
+  return fetchAccess(project, await callerToken(), { platformUrl: process.env.PLATFORM_URL ?? "" });
+}
+
 const live: QualificationAccessDeps = {
   projectOf: async (id) =>
     (
@@ -29,8 +34,7 @@ const live: QualificationAccessDeps = {
         select: { projectId: true },
       })
     )?.projectId ?? null,
-  accessTo: async (project) =>
-    fetchAccess(project, await callerToken(), { platformUrl: process.env.PLATFORM_URL ?? "" }),
+  accessTo: callerAccess,
 };
 
 /**

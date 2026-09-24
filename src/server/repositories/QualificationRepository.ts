@@ -51,6 +51,13 @@ export type ComponentLinkInput = {
   objectName: string;
 };
 
+/** What a qualification is read with: its answers, and its risks and links in order. */
+const WITH_ANSWERS = {
+  answers: true,
+  risks: { orderBy: { position: "asc" } },
+  components: { orderBy: { linkedAt: "asc" } },
+} as const satisfies Prisma.QualificationInclude;
+
 export class QualificationRepository {
   constructor(private readonly db: PrismaClient = prisma) {}
 
@@ -76,11 +83,7 @@ export class QualificationRepository {
   find(projectId: string, id: string): Promise<QualificationWithAnswers | null> {
     return this.db.qualification.findFirst({
       where: { id, projectId },
-      include: {
-        answers: true,
-        risks: { orderBy: { position: "asc" } },
-        components: { orderBy: { linkedAt: "asc" } },
-      },
+      include: WITH_ANSWERS,
     });
   }
 
@@ -99,27 +102,17 @@ export class QualificationRepository {
     return this.db.qualification.findMany({
       where: { projectId },
       orderBy: { createdAt: "desc" },
-      include: {
-        answers: true,
-        risks: { orderBy: { position: "asc" } },
-        components: { orderBy: { linkedAt: "asc" } },
-      },
+      include: WITH_ANSWERS,
     });
   }
 
   /** Link one engine component to the card, or change the link's property and snapshot. */
   linkComponent(qualificationId: string, link: ComponentLinkInput) {
+    const { componentPid, ...snapshot } = link;
     return this.db.cardComponent.upsert({
-      where: {
-        qualificationId_componentPid: { qualificationId, componentPid: link.componentPid },
-      },
+      where: { qualificationId_componentPid: { qualificationId, componentPid } },
       create: { qualificationId, ...link },
-      update: {
-        airoProperty: link.airoProperty,
-        name: link.name,
-        componentType: link.componentType,
-        objectName: link.objectName,
-      },
+      update: snapshot,
     });
   }
 

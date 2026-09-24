@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { fetchAccess } from "@/server/access/projectAccess";
-import { callerToken } from "@/server/services/callerToken";
+import { callerAccess } from "@/server/access/qualificationAccess";
 import { ontologyService } from "@/server/services/OntologyService";
 import { knowledgeGraphStore } from "@/server/services/KnowledgeGraphStore";
 
@@ -19,9 +18,7 @@ export async function GET(
   { params }: { params: Promise<{ project: string; systemPid: string }> },
 ) {
   const { project, systemPid } = await params;
-  const access = await fetchAccess(project, await callerToken(), {
-    platformUrl: process.env.PLATFORM_URL ?? "",
-  });
+  const access = await callerAccess(project);
   if (!access?.role) return new NextResponse("Not found", { status: 404 });
 
   const card = await prisma.qualification.findUnique({

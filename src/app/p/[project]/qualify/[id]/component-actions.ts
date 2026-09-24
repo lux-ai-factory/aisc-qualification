@@ -12,6 +12,17 @@ function failed(err: unknown, fallback: string): ComponentActionState {
   return { ok: false, error: err instanceof Error ? err.message : fallback };
 }
 
+/** The card, if it is of this project; throws NotLatestError unless it is the latest version's. */
+async function latestCard(projectId: string, qualificationId: string) {
+  const q = await qualificationRepository.cardSummary(projectId, qualificationId);
+  if (q) await assertLatestCard(projectId, q.systemId);
+  return q;
+}
+
+function refreshCardPage(projectId: string, qualificationId: string): void {
+  revalidatePath(`/p/${projectId}/qualify/${qualificationId}`);
+}
+
 /** Link one engine component to the latest card, by an AIRO property that fits its type. */
 export async function linkComponent(
   projectId: string,
@@ -20,9 +31,9 @@ export async function linkComponent(
   airoProperty: string,
 ): Promise<ComponentActionState> {
   try {
-    const q = await qualificationRepository.cardSummary(projectId, qualificationId);
-    if (!q) return { ok: false, error: "Qualification not found." };
-    await assertLatestCard(projectId, q.systemId);
+    if (!(await latestCard(projectId, qualificationId))) {
+      return { ok: false, error: "Qualification not found." };
+    }
     const component = (await engineClient.components(projectId)).find((c) => c.pid === componentPid);
     if (!component) return { ok: false, error: "The engine has no such component in this project." };
     if (!propertyOptions(component.component_type).includes(airoProperty as never)) {
@@ -35,7 +46,7 @@ export async function linkComponent(
       componentType: component.component_type,
       objectName: component.data ?? "",
     });
-    revalidatePath(`/p/${projectId}/qualify/${qualificationId}`);
+    refreshCardPage(projectId, qualificationId);
     return { ok: true };
   } catch (err) {
     return failed(err, "Could not link the component.");
@@ -49,11 +60,11 @@ export async function unlinkComponent(
   componentPid: string,
 ): Promise<ComponentActionState> {
   try {
-    const q = await qualificationRepository.cardSummary(projectId, qualificationId);
-    if (!q) return { ok: false, error: "Qualification not found." };
-    await assertLatestCard(projectId, q.systemId);
+    if (!(await latestCard(projectId, qualificationId))) {
+      return { ok: false, error: "Qualification not found." };
+    }
     await qualificationRepository.unlinkComponent(qualificationId, componentPid);
-    revalidatePath(`/p/${projectId}/qualify/${qualificationId}`);
+    refreshCardPage(projectId, qualificationId);
     return { ok: true };
   } catch (err) {
     return failed(err, "Could not unlink the component.");

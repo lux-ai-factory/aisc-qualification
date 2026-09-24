@@ -61,10 +61,7 @@ export class OntologyService {
     nodeId: string,
     change: NodePatch,
   ): Promise<OntologyBuild> {
-    const q = await this.repo.find(projectId, qualificationId);
-    if (!q) throw new Error("Qualification not found.");
-    // Only the latest version's card changes; an older one is kept as it was.
-    await assertLatestCard(projectId, q.systemId);
+    const q = await this.findChangeable(projectId, qualificationId);
 
     const patch: OntologyPatch = {
       ...((q.ontologyPatch as OntologyPatch | null) ?? {}),
@@ -95,11 +92,18 @@ export class OntologyService {
   async resetPatch(projectId: string, qualificationId: string): Promise<OntologyBuild> {
     // Read first, so a qualification of another project is refused before
     // anything is written rather than after.
+    await this.findChangeable(projectId, qualificationId);
+    await this.repo.saveOntologyPatch(qualificationId, {});
+    return this.build(projectId, qualificationId);
+  }
+
+  /** The qualification, if it is of this project and its card is the latest
+   *  version's: only that card changes, an older one is kept as it was. */
+  private async findChangeable(projectId: string, qualificationId: string) {
     const q = await this.repo.find(projectId, qualificationId);
     if (!q) throw new Error("Qualification not found.");
     await assertLatestCard(projectId, q.systemId);
-    await this.repo.saveOntologyPatch(qualificationId, {});
-    return this.build(projectId, qualificationId);
+    return q;
   }
 }
 
