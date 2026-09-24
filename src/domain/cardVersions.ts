@@ -12,6 +12,15 @@ import type { FormExample, RiskExample } from "@/data/examples/types";
 export type VersionRef = { pid: string; number: number };
 export type CardRef = { id: string; systemId: string };
 
+function newestFirst(versions: VersionRef[]): VersionRef[] {
+  return [...versions].sort((a, b) => b.number - a.number);
+}
+
+/** Each card's id, by the version it describes. */
+function cardIdByVersion(cards: CardRef[]): Map<string, string> {
+  return new Map(cards.map((c) => [c.systemId, c.id]));
+}
+
 export type NextCard = {
   /** The version the next save will make. */
   versionNumber: number;
@@ -24,8 +33,8 @@ export type NextCard = {
  *  makes the version after the latest, even when the latest has no card (a
  *  save that failed after naming it: versions are never deleted). */
 export function nextCard(versions: VersionRef[], cards: CardRef[]): NextCard {
-  const byNumber = [...versions].sort((a, b) => b.number - a.number);
-  const cardOf = new Map(cards.map((c) => [c.systemId, c.id]));
+  const byNumber = newestFirst(versions);
+  const cardOf = cardIdByVersion(cards);
   const from = byNumber.find((version) => cardOf.has(version.pid));
   return {
     versionNumber: (byNumber[0]?.number ?? 0) + 1,
@@ -114,8 +123,8 @@ export function cardStanding(
   cards: CardRef[],
   systemId: string,
 ): CardStanding {
-  const cardOf = new Map(cards.map((c) => [c.systemId, c.id]));
-  const latest = [...versions].sort((a, b) => b.number - a.number)[0];
+  const cardOf = cardIdByVersion(cards);
+  const latest = newestFirst(versions)[0];
   return {
     versionNumber: versions.find((version) => version.pid === systemId)?.number ?? 0,
     current: latest !== undefined && latest.pid === systemId,

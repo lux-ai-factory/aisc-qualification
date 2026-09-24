@@ -51,6 +51,19 @@ export function needsAChoice(current: Answers): boolean {
   return answeredFields(current).length > 0;
 }
 
+function emptyRisk(): RiskExample {
+  return {
+    risk: "",
+    source: "",
+    vulnerability: "",
+    consequence: "",
+    affected: "",
+    areas: [],
+    control: "",
+    followUpControl: "",
+  };
+}
+
 /** The risk rows the form holds now, in the order they are on it. Rows arrive
  *  as `risk:<key>:<field>`, with `risk:<key>:area` repeated. */
 export function currentRisks(form: FormData): RiskExample[] {
@@ -59,20 +72,11 @@ export function currentRisks(form: FormData): RiskExample[] {
     const m = /^risk:(\d+):(\w+)$/.exec(name);
     if (!m || typeof value !== "string") continue;
     const key = Number(m[1]);
-    const row =
-      rows.get(key) ??
-      rows
-        .set(key, {
-          risk: "",
-          source: "",
-          vulnerability: "",
-          consequence: "",
-          affected: "",
-          areas: [],
-          control: "",
-          followUpControl: "",
-        })
-        .get(key)!;
+    let row = rows.get(key);
+    if (!row) {
+      row = emptyRisk();
+      rows.set(key, row);
+    }
     if (m[2] === "area") row.areas.push(value);
     else if (m[2] in row && m[2] !== "areas") (row as Record<string, unknown>)[m[2]] = value;
   }

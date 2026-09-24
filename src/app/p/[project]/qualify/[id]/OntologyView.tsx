@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { OntologyNode, OntologyView as View } from "@/domain/OntologyView";
+import type { NodePatch, OntologyNode, OntologyView as View } from "@/domain/OntologyView";
 import { patchOntologyNode, resetOntology } from "./ontology-actions";
 import NodeEditor from "./NodeEditor";
 import OntologyGraph from "./OntologyGraph";
@@ -54,10 +54,7 @@ export default function OntologyView({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const save = (
-    nodeId: string,
-    change: Parameters<typeof patchOntologyNode>[3],
-  ) =>
+  const save = (nodeId: string, change: NodePatch) =>
     startTransition(async () => {
       setError(null);
       const result = await patchOntologyNode(projectId, qualificationId, nodeId, change);

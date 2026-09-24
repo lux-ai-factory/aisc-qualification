@@ -3,23 +3,12 @@
 import {
   prefillClient,
   type PrefillMode,
+  type PrefillResult,
   type PrefillRisk,
   type PrefillValues,
 } from "@/server/services/PrefillClient";
 
-export type PrefillState =
-  | {
-      ok: true;
-      values: PrefillValues;
-      filled: string[];
-      kept: string[];
-      model: string | null;
-      risks: PrefillRisk[] | null;
-      risksKept: boolean;
-      risksProposed: number;
-    }
-  | { ok: false; error: string }
-  | undefined;
+export type PrefillState = PrefillResult | undefined;
 
 /**
  * Read an uploaded document into the form's answers.
