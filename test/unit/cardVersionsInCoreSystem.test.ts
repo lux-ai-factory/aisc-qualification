@@ -246,3 +246,39 @@ describe("the save action reports the platform plainly (S3.6)", () => {
     vi.doUnmock("@/server/services/QualificationService");
   });
 });
+
+// LLM keys pipeline (2026-09-24), 01-specs.md S3.8: the save tells the filler its project.
+describe("S3.8 the save passes the project's pid to the filler", () => {
+  it("S3.8 createFromForm returns the platform pid of the version's project", async () => {
+    const { svc } = service();
+    const made = loose(await svc.createFromForm("mcas", new FormData()));
+    expect(made).toEqual({ id: "card-1", projectId: PROJECT_ID });
+  });
+
+  it("S3.8 the action asks for the fill with the project id", async () => {
+    vi.resetModules();
+    const redirect = vi.fn();
+    const requestFill = vi.fn(async () => true);
+    vi.doMock("next/navigation", () => ({ redirect }));
+    vi.doMock("@/server/services/FillerClient", () => ({ requestFill }));
+    vi.doMock("@/server/services/QualificationService", async (orig) => {
+      const real = (await orig()) as Record<string, unknown>;
+      return {
+        ...real,
+        qualificationService: {
+          createFromForm: vi.fn(async () => ({ id: "card-9", projectId: PROJECT_ID })),
+        },
+      };
+    });
+    try {
+      const { submitQualification } = await import("@/app/p/[project]/qualify/new/actions");
+      await submitQualification("mcas", undefined, new FormData());
+      expect(requestFill).toHaveBeenCalledWith("card-9", PROJECT_ID);
+      expect(redirect).toHaveBeenCalledWith("/p/mcas/qualify/card-9");
+    } finally {
+      vi.doUnmock("next/navigation");
+      vi.doUnmock("@/server/services/FillerClient");
+      vi.doUnmock("@/server/services/QualificationService");
+    }
+  });
+});
