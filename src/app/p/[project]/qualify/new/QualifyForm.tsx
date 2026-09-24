@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import type { Sector, TargetSystemCategory } from "@/data";
 import type { FormExample } from "@/data/examples";
 import { keyQuestionField, type KeyQuestion } from "@/data/keyQuestions";
@@ -10,6 +10,21 @@ import ChipPicker from "./ChipPicker";
 import RiskRows from "./RiskRows";
 import { submitQualification, type SubmitState } from "./actions";
 import SubmitOverlay from "./SubmitOverlay";
+import DocumentUpload from "./DocumentUpload";
+import { readDocument } from "./prefill-actions";
+import { currentAnswers, currentRisks } from "@/lib/prefillChoice";
+import { applyDocument, checkDocument, type Reader, type UploadStatus } from "@/lib/prefillFlow";
+import type { PrefillMode, PrefillRisk } from "@/server/services/PrefillClient";
+
+/** The prefill server action, as the upload steps call it. */
+const readWithAction: Reader = async (file, mode, current, rows) => {
+  const data = new FormData();
+  data.set("document", file);
+  data.set("mode", mode);
+  data.set("current", JSON.stringify(current));
+  data.set("current_risks", JSON.stringify(rows));
+  return (await readDocument(undefined, data)) ?? { ok: false, error: "The document could not be read." };
+};
 
 type Props = {
   keyQuestions: KeyQuestion[];
@@ -71,8 +86,70 @@ export default function QualifyForm({
     undefined,
   );
 
+  // Starting from a document. The reading happens in the prefill service; what
+  // comes back is applied to the fields here, and the person amends it. The
+  // form is uncontrolled, so the values are written onto the elements: React
+  // is not holding them and will not put them back.
+  const formRef = useRef<HTMLFormElement>(null);
+  const [upload, setUpload] = useState<UploadStatus>({ kind: "idle" });
+  const [picked, setPicked] = useState<File | null>(null);
+  // The risk rows keep their own state, so a document's rows are put in by
+  // starting the block again from them.
+  const [riskRows, setRiskRows] = useState<{ version: number; rows?: PrefillRisk[] }>({
+    version: 0,
+    rows: initial?.risks,
+  });
+  const answersNow = () => {
+    const form = formRef.current;
+    return form ? currentAnswers(new FormData(form)) : {};
+  };
+  const risksNow = () => {
+    const form = formRef.current;
+    return form ? currentRisks(new FormData(form)) : [];
+  };
+  const land = (outcome: Awaited<ReturnType<typeof applyDocument>>) => {
+    if (outcome.kind === "error") return setUpload(outcome);
+    const form = formRef.current;
+    for (const [name, value] of Object.entries(outcome.values)) {
+      const field = form?.elements.namedItem(name);
+      if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
+        field.value = value;
+      }
+    }
+    if (outcome.risks) {
+      const rows = outcome.risks;
+      setRiskRows((r) => ({ version: r.version + 1, rows }));
+    }
+    setUpload({
+      kind: "applied",
+      filled: outcome.filled,
+      kept: outcome.kept,
+      risks: outcome.risks?.length ?? 0,
+      risksKept: outcome.risksKept,
+    });
+  };
+  const pickDocument = async (file: File) => {
+    setPicked(file);
+    setUpload({ kind: "reading" });
+    const checked = await checkDocument(file, answersNow(), risksNow(), readWithAction);
+    if (checked.kind === "apply") land(checked);
+    else setUpload(checked);
+  };
+  const chooseMode = async (mode: PrefillMode) => {
+    if (!picked) return;
+    setUpload({ kind: "reading" });
+    land(await applyDocument(picked, mode, answersNow(), risksNow(), readWithAction));
+  };
+
   return (
-    <form action={formAction} className="qualify-form">
+    <>
+      {/* outside the qualification's form, so a file is never posted with it;
+          the class gives it the form's look */}
+      <div className="qualify-form qualify-prefill">
+        <DocumentUpload status={upload} onPick={pickDocument} onChoose={chooseMode} />
+      </div>
+
+      <form ref={formRef} action={formAction} className="qualify-form">
       {state?.error && <div className="error">{state.error}</div>}
 
       <section className="qf-section">
@@ -227,7 +304,7 @@ export default function QualifyForm({
         })}
       </section>
 
-      <RiskRows initial={initial?.risks} />
+      <RiskRows key={riskRows.version} initial={riskRows.rows} />
 
       <div className="qf-actions">
         <button className="btn" type="submit" disabled={pending}>
@@ -235,7 +312,8 @@ export default function QualifyForm({
         </button>
       </div>
       <SubmitOverlay open={pending} />
-    </form>
+      </form>
+    </>
   );
 }
 
