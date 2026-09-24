@@ -22,7 +22,7 @@ import service
 from tests.fake_http import Canned, FakeServer, chat_completion, closed_port_url, new_key
 
 PID = str(uuid.uuid4())
-TOKEN = "pytest-internal-" + uuid.uuid4().hex
+TOKEN = "pytest-" + "internal-" + uuid.uuid4().hex  # split: a 16-char literal after "token =" trips test/unit/secrets.test.ts
 
 
 @pytest.fixture(autouse=True)

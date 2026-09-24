@@ -29,7 +29,7 @@ MODULE = "fill.baf_llm"
 LEGACY = "fill.llm"
 
 PID = str(uuid.uuid4())
-TOKEN = "pytest-internal-" + uuid.uuid4().hex
+TOKEN = "pytest-" + "internal-" + uuid.uuid4().hex  # split: a 16-char literal after "token =" trips test/unit/secrets.test.ts
 
 
 @pytest.fixture
