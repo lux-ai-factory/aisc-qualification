@@ -4,6 +4,7 @@ import type {
   OntologyView,
 } from "@/domain/OntologyView";
 import type { QualificationExport } from "./QualificationExporter";
+import { serviceTokenHeaders } from "./http";
 
 export type OntologyBuild = {
   view: OntologyView;
@@ -24,6 +25,8 @@ export class OntologyClient {
   constructor(
     private readonly serviceUrl: string,
     private readonly fetchImpl: typeof fetch = fetch,
+    /** This app's token for the ontology service: it refuses a caller without one. */
+    private readonly serviceToken: string = "",
   ) {}
 
   static fromEnv(): OntologyClient {
@@ -31,7 +34,7 @@ export class OntologyClient {
     if (!url) {
       throw new Error("ONTOLOGY_SERVICE_URL is not configured on the server.");
     }
-    return new OntologyClient(url);
+    return new OntologyClient(url, fetch, process.env.QUALIFICATION_WEB_TO_ONTOLOGY_TOKEN ?? "");
   }
 
   async build(
@@ -41,7 +44,7 @@ export class OntologyClient {
   ): Promise<OntologyBuild> {
     const res = await this.fetchImpl(`${this.serviceUrl}/build`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...serviceTokenHeaders(this.serviceToken) },
       body: JSON.stringify({
         qualification,
         ...(extracted ? { extracted } : {}),
@@ -64,6 +67,7 @@ export class OntologyClient {
   /** The VAIR terms a reviewer may pick, per AIRO class. */
   async vocabularies(): Promise<Record<string, string[]>> {
     const res = await this.fetchImpl(`${this.serviceUrl}/vocabularies`, {
+      headers: serviceTokenHeaders(this.serviceToken),
       cache: "no-store",
     });
     if (!res.ok) {

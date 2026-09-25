@@ -60,3 +60,9 @@ export async function fetchAccess(
     return null;
   }
 }
+
+/** What a refused write is told, by status: the same words as the door above. */
+export const REFUSED = {
+  403: "403: you can read this project but not change it.",
+  404: "Qualification not found.",
+} as const;

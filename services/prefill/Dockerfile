@@ -12,7 +12,7 @@ COPY services/prefill/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY services/prefill/prefill ./prefill
-COPY services/prefill/app.py ./
+COPY services/prefill/app.py services/prefill/service_token.py ./
 # The shared field mapping, beside the package where fields.py looks for it
 # before falling back to the repo layout.
 COPY src/data/prefillFields.json ./prefill/prefill_fields.json

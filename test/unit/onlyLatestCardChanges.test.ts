@@ -74,6 +74,9 @@ vi.mock("@/server/services/OntologyClient", () => ({
 }));
 vi.mock("@/server/access/qualificationAccess", () => ({
   qualificationForCaller: vi.fn(async () => PROJECT_ID),
+  // API auth WP2: writes ask for write access to the card's own project
+  // (writeAccess.test.ts); here the caller is an editor of it.
+  qualificationForWriter: vi.fn(async () => ({ ok: true, project: PROJECT_ID })),
 }));
 
 const WRITES = [repo.saveOntologyPatch, repo.saveOntologyExtracted, repo.saveKnowledgeGraph, repo.create];

@@ -19,10 +19,14 @@ from typing import Any, Literal
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 
 from agent import fill_one
+from service_token import ServiceTokens
 
 State = Literal["queued", "running", "done", "failed"]
 
 app = FastAPI(title="Ontology filler", version="0.1.0")
+# Only qualification-web calls this, with its own token: a run spends the
+# qualification's project key, so nothing else on the network may start one.
+app.add_middleware(ServiceTokens, names=("QUALIFICATION_WEB_TO_AGENTS_TOKEN",))
 
 #: qualification id -> what its latest run is doing. Guarded because BackgroundTasks
 #: runs on a worker thread.

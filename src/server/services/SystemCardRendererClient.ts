@@ -1,3 +1,5 @@
+import { serviceTokenHeaders } from "./http";
+
 export class RendererUnreachableError extends Error {
   constructor(url: string, cause: unknown) {
     const msg = cause instanceof Error ? cause.message : String(cause);
@@ -20,6 +22,8 @@ export class SystemCardRendererClient {
   constructor(
     private readonly baseUrl: string = process.env.SYSTEM_CARD_RENDERER_URL ??
       "http://localhost:8005",
+    /** This app's token for the renderer: it refuses a caller without one. */
+    private readonly serviceToken: string = process.env.QUALIFICATION_WEB_TO_PDF_TOKEN ?? "",
   ) {}
 
   async renderPdf(card: unknown): Promise<ArrayBuffer> {
@@ -27,7 +31,7 @@ export class SystemCardRendererClient {
     try {
       res = await fetch(`${this.baseUrl}/render/pdf`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...serviceTokenHeaders(this.serviceToken) },
         body: JSON.stringify(card),
       });
     } catch (err) {

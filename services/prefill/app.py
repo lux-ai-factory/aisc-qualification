@@ -15,8 +15,11 @@ from prefill.documents import DocumentUnreadable, read_document
 from prefill.fields import proposals_from_text
 from prefill.merge import UnknownMode, merge
 from prefill.risks import merge_risks, risks_from_text
+from service_token import ServiceTokens
 
 app = FastAPI(title="AISC qualification prefill", docs_url="/docs")
+# Only qualification-web calls this, with its own token.
+app.add_middleware(ServiceTokens, names=("QUALIFICATION_WEB_TO_PREFILL_TOKEN",))
 
 #: A document a person can hand over, not a data set. Large enough for a
 #: technical documentation file, small enough not to be a way to fill the disk.

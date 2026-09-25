@@ -14,6 +14,7 @@ from fastapi.responses import Response
 
 from models import SystemCard
 from renderer import RenderingError, SystemCardRenderer
+from service_token import ServiceTokens
 from template_engine import TemplateEngine
 
 ROOT = Path(__file__).resolve().parent
@@ -22,6 +23,8 @@ TEMPLATES = ROOT / "templates"
 renderer = SystemCardRenderer(TemplateEngine(TEMPLATES))
 
 app = FastAPI(title="AI Card Renderer", version="0.3.0")
+# Only qualification-web calls this, with its own token.
+app.add_middleware(ServiceTokens, names=("QUALIFICATION_WEB_TO_PDF_TOKEN",))
 
 
 @app.get("/health")

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { qualificationForCaller } from "@/server/access/qualificationAccess";
+import { serviceTokenHeaders } from "@/server/services/http";
 
 // The filler's run state, for the card to poll.
 //
@@ -20,7 +21,11 @@ export async function GET(
   if (!serviceUrl) return NextResponse.json({ state: "idle" });
 
   try {
-    const res = await fetch(`${serviceUrl}/fill/${id}`, { cache: "no-store" });
+    // The filler refuses a caller without this app's token for it.
+    const res = await fetch(`${serviceUrl}/fill/${id}`, {
+      headers: serviceTokenHeaders(process.env.QUALIFICATION_WEB_TO_AGENTS_TOKEN),
+      cache: "no-store",
+    });
     if (res.status === 404) return NextResponse.json({ state: "idle" });
     if (!res.ok) return NextResponse.json({ state: "idle" });
     const body = await res.json();

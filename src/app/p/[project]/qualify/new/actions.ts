@@ -4,14 +4,23 @@ import { redirect } from "next/navigation";
 import { qualificationService } from "@/server/services/QualificationService";
 import { requestFill } from "@/server/services/FillerClient";
 import { FormValidationError } from "@/server/forms/QualificationFormParser";
+import { projectForWriter } from "@/server/access/qualificationAccess";
+import { REFUSED } from "@/server/access/projectAccess";
 
 export type SubmitState = { error?: string } | undefined;
+
+const PLATFORM_SILENT = "The platform did not answer; nothing was saved";
 
 export async function submitQualification(
   project: string,
   _prev: SubmitState,
   formData: FormData,
 ): Promise<SubmitState> {
+  // `project` is bound in the browser, so it is checked here, not only by the
+  // middleware on the page the form was posted to.
+  const mayWrite = await projectForWriter(project);
+  if (mayWrite === null) return { error: PLATFORM_SILENT };
+  if (!mayWrite) return { error: REFUSED[403] };
   let id: string;
   try {
     ({ id } = await qualificationService.createFromForm(project, formData));
@@ -19,7 +28,7 @@ export async function submitQualification(
     if (err instanceof FormValidationError) return { error: err.message };
     // The platform did not answer: no version was made, so nothing was saved.
     if (err instanceof Error && /did not answer/i.test(err.message)) {
-      return { error: "The platform did not answer; nothing was saved" };
+      return { error: PLATFORM_SILENT };
     }
     // The version could not be made for another reason: say so plainly rather
     // than storing a qualification nothing else can point at.

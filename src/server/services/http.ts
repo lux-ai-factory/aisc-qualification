@@ -9,3 +9,15 @@ export function serviceUrl(baseUrl: string, path: string): string {
 export function bearerHeaders(token: string | null): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
+
+/**
+ * The header a sidecar reads its caller's service token from, the same one the
+ * platform's internal route reads. Every edge has a token of its own, so a
+ * caller holds only the tokens of the services it calls.
+ */
+export const SERVICE_TOKEN_HEADER = "X-AISC-Service-Token";
+
+/** The header that carries a service token; none without one, so the sidecar refuses honestly. */
+export function serviceTokenHeaders(token: string | null | undefined): Record<string, string> {
+  return token ? { [SERVICE_TOKEN_HEADER]: token } : {};
+}

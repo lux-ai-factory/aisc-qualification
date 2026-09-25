@@ -54,3 +54,49 @@ export async function qualificationForCaller(
   if (!access || !access.role) return null;
   return project;
 }
+
+/** A write to a qualification addressed by id: its own project, or why not. */
+export type WriteAccess = { ok: true; project: string } | { ok: false; status: 403 | 404 };
+
+/**
+ * The project this caller may WRITE this qualification in: an editor or owner
+ * of the qualification's own project, or a platform admin (whom the platform
+ * answers as owner).
+ *
+ * The project is read from the qualification, never taken from the request: a
+ * server action is posted to a page of one project and may name another in its
+ * arguments. A member who may only read is told 403; everybody else 404, as on
+ * the read above.
+ */
+export async function qualificationForWriter(
+  id: string,
+  deps: QualificationAccessDeps = live,
+): Promise<WriteAccess> {
+  const project = await deps.projectOf(id);
+  if (!project) return { ok: false, status: 404 };
+  const access = await deps.accessTo(project);
+  if (!access || !access.role) return { ok: false, status: 404 };
+  if (!access.may_write) return { ok: false, status: 403 };
+  return { ok: true, project };
+}
+
+/**
+ * Whether this caller may write in a project named directly (a new card has no
+ * id yet); null when the platform could not say, which refuses too.
+ */
+export async function projectForWriter(
+  project: string,
+  accessTo: QualificationAccessDeps["accessTo"] = callerAccess,
+): Promise<boolean | null> {
+  const access = await accessTo(project);
+  return access === null ? null : access.may_write === true;
+}
+
+/**
+ * The qualification's own project, with no question about the caller. Only for a
+ * caller that has already proved it is a service allowed here (the card agent's
+ * token on /extracted); null if there is no such qualification.
+ */
+export async function qualificationProject(id: string): Promise<string | null> {
+  return live.projectOf(id);
+}

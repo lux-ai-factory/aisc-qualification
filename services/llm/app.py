@@ -20,12 +20,17 @@ import litellm
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from service_token import ServiceTokens
+
 # Default model; override per-request or via env. litellm uses the
 # "<provider>/<model>" form and reads the provider key from the environment
 # (ANTHROPIC_API_KEY for anthropic/*, OPENAI_API_KEY for openai/*, etc.).
 DEFAULT_MODEL = os.environ.get("LLM_MODEL", "mistral/mistral-large-latest")
 
 app = FastAPI(title="AISC LiteLLM Service", version="0.1.0")
+# A completion relay with a caller-chosen model: only qualification-web, which
+# holds LLM_SERVICE_URL, may call it, with its own token.
+app.add_middleware(ServiceTokens, names=("QUALIFICATION_WEB_TO_LLM_TOKEN",))
 
 
 class GenerateRequest(BaseModel):

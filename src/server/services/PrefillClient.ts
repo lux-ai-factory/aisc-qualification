@@ -9,7 +9,7 @@
  * form opens empty and the person types.
  */
 import type { RiskExample } from "@/data/examples";
-import { serviceUrl } from "@/server/services/http";
+import { serviceTokenHeaders, serviceUrl } from "@/server/services/http";
 
 export type PrefillMode = "empty" | "replace";
 
@@ -42,6 +42,8 @@ export class PrefillClient {
   constructor(
     private readonly baseUrl: string = process.env.PREFILL_URL ?? "",
     private readonly fetchImpl: typeof fetch = fetch,
+    /** This app's token for the prefill service: it refuses a caller without one. */
+    private readonly serviceToken: string = process.env.QUALIFICATION_WEB_TO_PREFILL_TOKEN ?? "",
   ) {}
 
   async read(
@@ -63,6 +65,7 @@ export class PrefillClient {
     try {
       response = await this.fetchImpl(serviceUrl(this.baseUrl, "/prefill"), {
         method: "POST",
+        headers: serviceTokenHeaders(this.serviceToken),
         body,
         cache: "no-store",
       });
