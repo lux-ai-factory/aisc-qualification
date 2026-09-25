@@ -10,7 +10,7 @@ import { APP, FORMS_SKIP_REASON, formsMerged, read } from "../support/isolation"
 // live one minus project_id) is test/db/projectDatabase.db.test.ts.
 
 const MIGRATIONS = join(APP, "prisma", "migrations");
-const BASELINE = "20260926000000_project_database";
+const BASELINE = "20260925000000_project_database";
 const FORMS = ["20260925090000_forms_are_data", "20260925120000_the_default_form_is_fixed"];
 /** The uncommitted originals of the forms work (read only, never edited: RULES.md). */
 const FORMS_ORIGINALS = join(homedir(), "aisc-install", "apps", "qualification", "prisma", "migrations");

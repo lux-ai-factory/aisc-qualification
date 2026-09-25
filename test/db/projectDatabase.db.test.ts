@@ -27,7 +27,7 @@ if (enabled && [TEMPLATE, ADMIN_TEMPLATE, LIBRARY_URL].some((u) => /:5432\//.tes
 
 const APP = resolve(__dirname, "..", "..");
 const MIGRATIONS = join(APP, "prisma", "migrations");
-const BASELINE = "20260926000000_project_database";
+const BASELINE = "20260925000000_project_database";
 const FORMS = ["20260925090000_forms_are_data", "20260925120000_the_default_form_is_fixed"];
 const formsOnBranch = FORMS.every((d) => existsSync(join(MIGRATIONS, d, "migration.sql")));
 
