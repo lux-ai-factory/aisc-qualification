@@ -24,6 +24,9 @@ export async function GET(
   return NextResponse.json({
     ...toExport(q),
     extracted: q.ontologyExtracted ?? null,
+    // The filler takes its project from here, never from whoever started it, so a
+    // run can only use the model and key of the qualification's own project.
+    projectId: project,
   });
 }
 

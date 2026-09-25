@@ -12,9 +12,9 @@ export async function submitQualification(
   _prev: SubmitState,
   formData: FormData,
 ): Promise<SubmitState> {
-  let made: { id: string; projectId: string };
+  let id: string;
   try {
-    made = await qualificationService.createFromForm(project, formData);
+    ({ id } = await qualificationService.createFromForm(project, formData));
   } catch (err) {
     if (err instanceof FormValidationError) return { error: err.message };
     // The platform did not answer: no version was made, so nothing was saved.
@@ -32,9 +32,8 @@ export async function submitQualification(
   // Ask the filler to draft the two properties that come from prose (Annex IV
   // 2(a) and 2(c)). It runs in its own service over seconds to a minute, so this
   // only starts it: the qualification is already stored, and a filler that is
-  // down or absent costs nothing but an emptier first draft. It is asked for
-  // this project, so it uses the model the project chose.
-  await requestFill(made.id, made.projectId);
+  // down or absent costs nothing but an emptier first draft.
+  await requestFill(id);
 
-  redirect(`/p/${project}/qualify/${made.id}`);
+  redirect(`/p/${project}/qualify/${id}`);
 }

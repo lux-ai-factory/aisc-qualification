@@ -1,9 +1,11 @@
 """The card agent works for a project, with that project's model (01-specs.md S3.7).
 
-`POST /fill/{id}?project=<pid>` carries the project; `fill_one(..., project=pid)` builds its
-completer from `baf_llm.config_for(project, "card_agent")`. The platform and the model are
-fake servers on 127.0.0.1; the ontology service and the app (`fill.clients`) are
-monkeypatched, as in test_service.py.
+The project is never the caller's to name: `fill_one` reads it from the qualification it
+works on (`projectId` in the app's export) and builds its completer from
+`baf_llm.config_for(<that project>, "card_agent")`. `POST /fill/{id}` takes no project, and
+a `?project=` a caller adds changes nothing. The platform and the model are fake servers on
+127.0.0.1; the ontology service and the app (`fill.clients`) are monkeypatched, as in
+test_service.py.
 """
 from __future__ import annotations
 
@@ -22,6 +24,9 @@ import service
 from tests.fake_http import Canned, FakeServer, chat_completion, closed_port_url, new_key
 
 PID = str(uuid.uuid4())
+OTHER = str(uuid.uuid4())
+#: qualification id -> the project the app says it belongs to (None: an export without one)
+QUALIFICATIONS = {"q1": PID, "q9": PID, "q-none": None}
 TOKEN = "pytest-" + "internal-" + uuid.uuid4().hex  # split: a 16-char literal after "token =" trips test/unit/secrets.test.ts
 
 
@@ -57,7 +62,7 @@ def model_server():
 @pytest.fixture
 def no_services(monkeypatch):
     """The ontology service and the app, faked; run_fill makes one model call."""
-    monkeypatch.setattr(agent.clients, "qualification", lambda qid: {"id": qid})
+    monkeypatch.setattr(agent.clients, "qualification", lambda qid: {"id": qid, "projectId": QUALIFICATIONS.get(qid)})
     monkeypatch.setattr(agent.clients, "vocabularies", lambda: {})
     monkeypatch.setattr(agent.clients, "publish", lambda qid, payload: None)
 
@@ -80,9 +85,9 @@ def choose(platform, body, status=200):
 def client(monkeypatch):
     calls = []
 
-    def fake_fill(qualification_id, dry_run=False, project=None):
-        calls.append((qualification_id, project))
-        return {"rounds": 1, "calls": 1, "flagged": 0, "model": "fake/model"}
+    def fake_fill(qualification_id, dry_run=False, **extra):
+        calls.append((qualification_id, extra))
+        return {"rounds": 1, "calls": 1, "flagged": 0, "model": "fake/model", "project": PID}
 
     monkeypatch.setattr(service, "fill_one", fake_fill)
     service.RUNS.clear()
@@ -91,24 +96,21 @@ def client(monkeypatch):
     return c
 
 
-def test_s3_7_the_project_is_passed_to_the_run_and_recorded(client):
-    res = client.post(f"/fill/q1?project={PID}")
-    assert res.status_code == 202
-    assert client.calls == [("q1", PID)]
-    assert client.get("/fill/q1").json()["project"] == PID
-
-
-def test_s3_7_a_project_that_is_not_a_uuid_is_422_and_starts_nothing(client):
-    res = client.post("/fill/q1?project=not-a-pid")
-    assert res.status_code == 422
-    assert client.calls == []
-    assert client.get("/fill/q1").status_code == 404
-
-
-def test_s3_7_no_project_is_todays_behaviour(client):
+def test_s3_7_a_run_is_started_with_the_qualification_only(client):
     assert client.post("/fill/q1").status_code == 202
-    assert client.calls == [("q1", None)]
-    assert client.get("/fill/q1").json().get("project") is None
+    assert client.calls == [("q1", {})]
+
+
+def test_s3_7_a_project_named_by_the_caller_changes_nothing(client):
+    """The hole this closes: a caller naming another project to spend its key."""
+    assert client.post(f"/fill/q1?project={OTHER}").status_code == 202
+    assert client.calls == [("q1", {})]
+    assert client.get("/fill/q1").json().get("project") != OTHER
+
+
+def test_s3_7_the_run_records_the_project_it_used(client):
+    client.post("/fill/q1")
+    assert client.get("/fill/q1").json()["result"]["project"] == PID
 
 
 # ── fill_one with a project ──────────────────────────────────────────────────
@@ -120,21 +122,22 @@ def test_s3_7_fill_one_uses_the_projects_resolved_model(platform, model_server, 
     monkeypatch.setenv("MISTRAL_API_KEY", env_key)
     choose(platform, {"configured": True, "provider": "compatible", "model": "project-model",
                       "base_url": model_server.url + "/v1", "api_key": key})
-    result = agent.fill_one("q1", project=PID)
+    result = agent.fill_one("q1")
     assert result["model"] == "compatible/project-model"
+    assert result["project"] == PID
     (sent,) = model_server.seen("/v1/chat/completions")
     assert sent.header("Authorization") == f"Bearer {key}"
     assert json.loads(sent.body)["model"] == "project-model"
     assert platform.seen(f"/internal/projects/{PID}/llm/card_agent")[0].header("X-AISC-Service-Token") == TOKEN
 
 
-def test_s3_7_fill_one_without_a_project_uses_the_environment(model_server, no_services, monkeypatch):
+def test_s3_7_a_qualification_without_a_project_uses_the_environment(model_server, no_services, monkeypatch):
     monkeypatch.delenv("PLATFORM_URL", raising=False)
     monkeypatch.setenv("BAF_LLM_PROVIDER", "compatible")
     monkeypatch.setenv("BAF_LLM_MODEL", "env-model")
     monkeypatch.setenv("BAF_LLM_BASE_URL", model_server.url + "/v1")
     monkeypatch.delenv("BAF_LLM_API_KEY", raising=False)
-    result = agent.fill_one("q1")
+    result = agent.fill_one("q-none")
     assert result["model"] == "compatible/env-model"
     assert json.loads(model_server.seen("/v1/chat/completions")[0].body)["model"] == "env-model"
 
@@ -144,16 +147,16 @@ def test_s3_7_a_project_with_no_choice_uses_the_environment(platform, model_serv
     monkeypatch.setenv("BAF_LLM_MODEL", "env-model")
     monkeypatch.setenv("BAF_LLM_BASE_URL", model_server.url + "/v1")
     choose(platform, {"configured": False})
-    assert agent.fill_one("q1", project=PID)["model"] == "compatible/env-model"
+    assert agent.fill_one("q1")["model"] == "compatible/env-model"
 
 
 # ── failures are the run's, never a key's ────────────────────────────────────
 
 
-def _run_through_service(project):
+def _run_through_service():
     service.RUNS.clear()
     c = TestClient(service.app)
-    assert c.post(f"/fill/q9?project={project}").status_code == 202
+    assert c.post("/fill/q9").status_code == 202
     return c.get("/fill/q9").json()
 
 
@@ -161,18 +164,31 @@ def test_s3_7_d4_a_resolve_error_fails_the_run_with_the_platforms_reason(platfor
     monkeypatch.setenv("BAF_LLM_PROVIDER", "ollama")   # must NOT be used instead (fail closed)
     monkeypatch.setenv("BAF_LLM_BASE_URL", closed_port_url())  # and never the host's real ollama
     choose(platform, {"detail": "the stored key for openai cannot be decrypted; enter it again"}, status=409)
-    run = _run_through_service(PID)
+    run = _run_through_service()
     assert run["state"] == "failed"
     assert "cannot be decrypted" in run["error"]
     assert TOKEN not in run["error"]
-    assert run["project"] == PID
 
 
 def test_s3_7_s5_3_a_build_error_fails_the_run_without_the_key(platform, no_services):
     key = new_key()
     choose(platform, {"configured": True, "provider": "telepathy", "model": "x", "base_url": None, "api_key": key})
-    run = _run_through_service(PID)
+    run = _run_through_service()
     assert run["state"] == "failed"
-    assert run["project"] == PID
     assert "telepathy" in run["error"]
     assert key not in json.dumps(run)
+
+
+def test_s3_7_fill_one_takes_no_project_from_its_caller():
+    import inspect
+    assert "project" not in inspect.signature(agent.fill_one).parameters
+
+
+def test_s3_7_the_platform_is_asked_for_the_qualifications_project_only(platform, model_server, no_services):
+    key = new_key()
+    platform.reply(f"/internal/projects/{PID}/llm/card_agent",
+                   {"configured": True, "provider": "compatible", "model": "m",
+                    "base_url": model_server.url + "/v1", "api_key": key})
+    agent.fill_one("q1")
+    assert platform.seen(f"/internal/projects/{OTHER}/llm/card_agent") == []
+    assert len(platform.seen(f"/internal/projects/{PID}/llm/card_agent")) == 1

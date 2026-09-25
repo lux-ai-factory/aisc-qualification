@@ -9,14 +9,12 @@ export class FillerClient {
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
-  /** True when the filler accepted the request. Never throws.
-   *  `projectId` (the platform pid) lets the filler use that project's model. */
-  async request(qualificationId: string, projectId?: string): Promise<boolean> {
+  /** True when the filler accepted the request. Never throws. */
+  async request(qualificationId: string): Promise<boolean> {
     if (!this.serviceUrl) return false; // no filler in this deployment
-    const query = projectId ? `?project=${encodeURIComponent(projectId)}` : "";
     try {
       const res = await this.fetchImpl(
-        `${this.serviceUrl}/fill/${qualificationId}${query}`,
+        `${this.serviceUrl}/fill/${qualificationId}`,
         { method: "POST", cache: "no-store" },
       );
       return res.ok;
@@ -27,6 +25,6 @@ export class FillerClient {
 }
 
 /** Convenience for server actions. */
-export async function requestFill(qualificationId: string, projectId?: string): Promise<boolean> {
-  return new FillerClient().request(qualificationId, projectId);
+export async function requestFill(qualificationId: string): Promise<boolean> {
+  return new FillerClient().request(qualificationId);
 }
