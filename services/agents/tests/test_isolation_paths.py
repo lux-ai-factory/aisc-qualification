@@ -51,7 +51,7 @@ def no_model(monkeypatch):
 
     def config_for(project, agent_name):
         projects.append(project)
-        return {"provider": "fake"}
+        return types.SimpleNamespace(provider="fake", model="m")
 
     monkeypatch.setattr(agent.baf_llm, "config_for", config_for)
     monkeypatch.setattr(agent.baf_llm, "build_llm", lambda config, agent_name=None: object())
