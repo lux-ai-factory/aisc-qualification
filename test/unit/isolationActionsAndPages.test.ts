@@ -116,7 +116,8 @@ function fetchStub(input: unknown, init?: RequestInit): Promise<Response> {
 const openedA = () => constructedUrls.some((u) => u.includes(`/${dbName(A)}`));
 const openedB = () => constructedUrls.some((u) => u.includes(`/${dbName(B)}`));
 
-beforeEach(() => {
+beforeEach(async () => {
+  await (await load<{ closeProjectDatabases?: () => Promise<void> }>(join(SRC, "lib", "projectDb.ts"))).mod?.closeProjectDatabases?.();
   resetFakes();
   calls.build.length = 0;
   calls.deliver.length = 0;
