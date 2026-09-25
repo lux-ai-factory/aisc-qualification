@@ -44,4 +44,6 @@ COPY --from=builder /app/next.config.ts ./next.config.ts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 USER app
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx next start -p 3000"]
+# No schema step here: each project database is migrated by scripts/migrate-projects.mjs
+# (the qualification-migrate one-shot) and, on first open, by the app itself.
+CMD ["npx", "next", "start", "-p", "3000"]
