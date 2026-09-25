@@ -176,7 +176,8 @@ describe("save = next version (QualificationService.createFromForm)", () => {
       name: "MCAS", version: "1.3", provider: "LIST", description: "Scores loans",
     });
     expect(created.map((c) => c.systemId)).toEqual(["v1", "v2"]);
-    expect(created.every((c) => c.projectId === PROJECT_ID)).toBe(true);
+    // isolation Q1: the card goes into its project's own database and names no project
+    expect(created.every((c) => !("projectId" in c))).toBe(true);
   });
 
   it("S3.1 CardExistsError is gone", async () => {
@@ -224,6 +225,8 @@ describe("the save action reports the platform plainly (S3.6)", () => {
     const redirect = vi.fn();
     vi.doMock("next/navigation", () => ({ redirect }));
     vi.doMock("@/server/services/FillerClient", () => ({ requestFill: vi.fn(async () => true) }));
+    // isolation Q1: the action's door lets the editor in (the non-pid "mcas" would be 404)
+    vi.doMock("@/lib/projectDb", () => ({ projectDbForAction: vi.fn(async () => ({ db: {} })) }));
     vi.doMock("@/server/services/QualificationService", async (orig) => {
       const real = (await orig()) as Record<string, unknown>;
       return {
@@ -243,6 +246,7 @@ describe("the save action reports the platform plainly (S3.6)", () => {
     expect(redirect).not.toHaveBeenCalled();
     vi.doUnmock("next/navigation");
     vi.doUnmock("@/server/services/FillerClient");
+    vi.doUnmock("@/lib/projectDb");
     vi.doUnmock("@/server/services/QualificationService");
   });
 });

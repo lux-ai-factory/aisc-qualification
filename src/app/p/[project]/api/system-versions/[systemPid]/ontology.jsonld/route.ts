@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { callerAccess } from "@/server/access/qualificationAccess";
+import { PROJECT_ID, projectDbForRoute } from "@/lib/projectDb";
+import { QualificationRepository } from "@/server/repositories/QualificationRepository";
 import { ontologyService } from "@/server/services/OntologyService";
 import { knowledgeGraphStore } from "@/server/services/KnowledgeGraphStore";
 
@@ -9,27 +9,30 @@ import { knowledgeGraphStore } from "@/server/services/KnowledgeGraphStore";
  * start an assessment of that version.
  *
  * `{project}` is the platform project pid and `{systemPid}` the card version
- * (a row of core.system). The caller must be in the project; the card must be
- * of that project. The bytes are exactly those of
- * /api/qualifications/{id}/ontology.jsonld (the knowledge graph store's).
+ * (a row of project.system in that project's own database). The caller must be
+ * in the project; the card is looked up in the project's database, so a version
+ * of another project is simply not found. The bytes are exactly those of
+ * /p/{project}/api/qualifications/{id}/ontology.jsonld (the knowledge graph
+ * store's).
  */
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ project: string; systemPid: string }> },
 ) {
   const { project, systemPid } = await params;
-  const access = await callerAccess(project);
-  if (!access?.role) return new NextResponse("Not found", { status: 404 });
+  if (!PROJECT_ID.test(systemPid)) return new NextResponse("Not found", { status: 404 });
+  const db = await projectDbForRoute(project, { write: false });
+  if (db instanceof Response) return db;
 
-  const card = await prisma.qualification.findUnique({
-    where: { systemId: systemPid },
-    select: { id: true, projectId: true, systemId: true, systemName: true, systemVersion: true },
-  });
-  if (!card || card.projectId !== project) return new NextResponse("Not found", { status: 404 });
+  const card = await new QualificationRepository(db).findBySystem(systemPid);
+  if (!card) return new NextResponse("Not found", { status: 404 });
 
   try {
-    const { document } = await knowledgeGraphStore.deliver(card.id, "jsonld", () =>
-      ontologyService.build(card.projectId, card.id),
+    const { document } = await knowledgeGraphStore.deliver(
+      card.id,
+      "jsonld",
+      () => ontologyService.build(project, card.id),
+      project,
     );
     return new NextResponse(document, {
       headers: {

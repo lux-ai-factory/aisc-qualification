@@ -63,8 +63,8 @@ describe("submitting an AI card", () => {
     const { id } = await svc.createFromForm("mcas", new FormData());
     expect(id).toBe("card-2");
     expect(calls).toEqual(["version", "create"]);
-    expect(repo.create).toHaveBeenCalledWith(
-      expect.objectContaining({ systemId: "v2", projectId: "core-project-1" }),
-    );
+    // isolation Q1: the card is written into its project's own database and names no project
+    expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ systemId: "v2" }));
+    expect((repo.create.mock.calls[0] as unknown[])[0]).not.toHaveProperty("projectId");
   });
 });

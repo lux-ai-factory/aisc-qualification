@@ -16,8 +16,11 @@ type State = "idle" | "queued" | "running" | "done" | "failed";
 
 export default function FillStatus({
   qualificationId,
+  statusUrl,
 }: {
   qualificationId: string;
+  /** Where this card's run state is read: the fill route under its project. */
+  statusUrl: string;
 }) {
   const [state, setState] = useState<State>("idle");
   const router = useRouter();
@@ -34,10 +37,7 @@ export default function FillStatus({
 
     const ask = async () => {
       try {
-        const res = await fetch(
-          `/api/qualifications/${qualificationId}/fill`,
-          { cache: "no-store" },
-        );
+        const res = await fetch(statusUrl, { cache: "no-store" });
         if (!res.ok) return;
         const body = (await res.json()) as { state?: State };
         if (!live) return;
@@ -62,7 +62,7 @@ export default function FillStatus({
       live = false;
       if (timer) clearTimeout(timer);
     };
-  }, [qualificationId]);
+  }, [qualificationId, statusUrl]);
 
   if (state === "idle" || state === "done") return null;
 

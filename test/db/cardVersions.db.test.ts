@@ -1,26 +1,22 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { execSync } from "node:child_process";
-import { readFileSync, existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 
-// WP3 (pipeline 2026-09-23): a card points at one row of core.system, the card
-// version. Only the latest version's card may change; older ones are kept as
-// they were, by the database itself, and deleting the project takes everything.
+// WP3 (pipeline 2026-09-23): a card points at one row of the card versions, the
+// card version. Only the latest version's card may change; older ones are kept as
+// they were, by the database itself, and deleting a version takes its card with it.
 //
-// Runs only against a throwaway database: test/db/throwaway-db.sh starts one,
-// migrates it and sets the three variables. Never the live DB.
+// Isolation Q1: the versions are project.system of the project's own database, and
+// the card names no project (the database is the project). Runs only against a
+// throwaway project database: test/db/throwaway-db.sh provisions project F the
+// platform's way, migrates it and sets the variables. Never the live DB.
 
 const APP_URL = process.env.QUALIFICATION_TEST_DATABASE_URL ?? "";
 const ADMIN_URL = process.env.QUALIFICATION_TEST_ADMIN_URL ?? "";
-const PSQL = process.env.QUALIFICATION_TEST_PSQL ?? "";
 const enabled = APP_URL !== "" && ADMIN_URL !== "";
 if (enabled && (/:5432\//.test(APP_URL) || /:5432\//.test(ADMIN_URL))) {
   throw new Error("refusing to run the DB tests against port 5432 (the live stack)");
 }
-
-const MIGRATION =
-  "prisma/migrations/20260923210000_card_versions_point_at_core_system/migration.sql";
 
 let app: PrismaClient;
 let admin: PrismaClient;
@@ -35,21 +31,21 @@ afterAll(async () => {
   await admin?.$disconnect();
 });
 
-function card(projectId: string, systemId: string, name: string) {
+function card(systemId: string, name: string) {
   return {
-    projectId, systemId, systemName: name, systemVersion: "1", company: "LIST",
+    systemId, systemName: name, systemVersion: "1", company: "LIST",
     description: "d", targetUseCase: "u", targetUsers: "t",
   };
 }
 
 describe.skipIf(!enabled)("the migration's schema (catalog)", () => {
-  // S3.3, S3.7: the card's key is into core.system now, and cascades from it
-  it("S3.7 qualification.system_id references core.system(pid) ON DELETE CASCADE", async () => {
+  // S3.3, S3.7: the card's key is into the project's card versions, and cascades from it
+  it("S3.7 qualification.system_id references project.system(pid) ON DELETE CASCADE", async () => {
     const rows = await admin.$queryRawUnsafe<{ target: string; del: string }[]>(
       `SELECT confrelid::regclass::text AS target, confdeltype::text AS del
          FROM pg_constraint WHERE conname = 'qualification_system_id_fkey'`,
     );
-    expect(rows).toEqual([{ target: "core.system", del: "c" }]);
+    expect(rows).toEqual([{ target: "project.system", del: "c" }]);
   });
 
   it("S3.1 one card per version: the unique index on system_id stays (already passing)", async () => {
@@ -78,7 +74,7 @@ describe.skipIf(!enabled)("the migration's schema (catalog)", () => {
     ]);
   });
 
-  it("S3.7 no DELETE trigger on the answers, so the project cascade is never blocked", async () => {
+  it("S3.7 no DELETE trigger on the answers, so the version cascade is never blocked", async () => {
     const rows = await admin.$queryRawUnsafe<{ n: bigint }[]>(
       // tgtype bit 3 (8) is DELETE
       `SELECT count(*) AS n FROM pg_trigger
@@ -113,52 +109,27 @@ describe.skipIf(!enabled)("the migration's schema (catalog)", () => {
     expect(defs).toMatch(/UNIQUE INDEX .*\(qualification_id, component_pid\)/);
     expect(defs).toMatch(/INDEX .*\(component_pid\)/);
   });
-
-  it("S3.3 the migration file refuses cards pointing at versions missing from core.system", () => {
-    expect(existsSync(MIGRATION)).toBe(true);
-    expect(PSQL).not.toBe("");
-    const sql = readFileSync(MIGRATION, "utf8");
-    const project = randomUUID();
-    const dangling = randomUUID();
-    const script = `
-      SET search_path TO qualification;
-      BEGIN;
-      ALTER TABLE qualification DROP CONSTRAINT IF EXISTS qualification_system_id_fkey;
-      INSERT INTO qualification (id, project_id, system_id, "systemName", "systemVersion",
-        company, description, "targetUseCase", "targetUsers", updated_at)
-      VALUES ('dangling-card', '${project}', '${dangling}', 'x', '1', 'c', 'd', 'u', 't', now());
-      ${sql}
-      ROLLBACK;`;
-    let out = "";
-    try {
-      execSync(PSQL, { input: script, stdio: ["pipe", "pipe", "pipe"] });
-    } catch (err) {
-      out = String((err as { stderr?: Buffer }).stderr ?? err);
-    }
-    expect(out).toMatch(/cards point at system versions missing from core\.system/);
-    expect(out).toContain(dangling);
-  });
 });
 
 describe.skipIf(!enabled)("only the latest card version changes (S3.3, S3.7)", () => {
-  const project = randomUUID();
   const v1 = randomUUID();
   const v2 = randomUUID();
   let c1 = "";
   let c2 = "";
 
   beforeAll(async () => {
-    await admin.$executeRawUnsafe(
-      `INSERT INTO core.project (pid, name, slug) VALUES ('${project}', 'T', 't-${project.slice(0, 8)}')`,
+    // numbers above any other test's in this database, so v2 is the latest here
+    const top = await admin.$queryRawUnsafe<{ n: number }[]>(
+      `SELECT coalesce(max(number), 0)::int AS n FROM project.system`,
     );
+    const n1 = top[0].n + 1;
     await admin.$executeRawUnsafe(
-      `INSERT INTO core.system (pid, project_id, name, version, number)
-       VALUES ('${v1}', '${project}', 'MCAS', '1', 1)`,
+      `INSERT INTO project.system (pid, number, name, version) VALUES ('${v1}', ${n1}, 'MCAS', '1')`,
     );
     c1 = (
       await app.qualification.create({
         data: {
-          ...card(project, v1, "MCAS"),
+          ...card(v1, "MCAS"),
           answers: { create: [{ toolId: "annex-1", questionId: "1a", answer: "a" }] },
           risks: { create: [{ position: 0, risk: "r", source: "s", consequence: "c",
                              affected: "user", control: "k" }] },
@@ -166,10 +137,9 @@ describe.skipIf(!enabled)("only the latest card version changes (S3.3, S3.7)", (
       })
     ).id;
     await admin.$executeRawUnsafe(
-      `INSERT INTO core.system (pid, project_id, name, version, number)
-       VALUES ('${v2}', '${project}', 'MCAS', '1', 2)`,
+      `INSERT INTO project.system (pid, number, name, version) VALUES ('${v2}', ${n1 + 1}, 'MCAS', '1')`,
     );
-    c2 = (await app.qualification.create({ data: card(project, v2, "MCAS") })).id;
+    c2 = (await app.qualification.create({ data: card(v2, "MCAS") })).id;
   });
 
   it("S3.3 card_is_latest says which version is the latest", async () => {
@@ -231,18 +201,18 @@ describe.skipIf(!enabled)("only the latest card version changes (S3.3, S3.7)", (
     ).rejects.toThrow();
   });
 
-  it("S3.7 deleting the project removes its cards, answers, risks, graphs and components", async () => {
+  it("S3.7 deleting a version removes its card, answers, risks, graph and components", async () => {
     await app.knowledgeGraph.create({
       data: { qualificationId: c2, digest: "d", turtle: "t", jsonld: "{}", nodes: 1, triples: 1 },
     });
-    await admin.$executeRawUnsafe(`DELETE FROM core.project WHERE pid = '${project}'`);
+    await admin.$executeRawUnsafe(`DELETE FROM project.system WHERE pid IN ('${v1}', '${v2}')`);
     const left = await admin.$queryRawUnsafe<{ n: bigint }[]>(
-      `SELECT (SELECT count(*) FROM qualification.qualification WHERE project_id = '${project}')
+      `SELECT (SELECT count(*) FROM qualification.qualification WHERE id IN ('${c1}','${c2}'))
             + (SELECT count(*) FROM qualification.qualification_answer WHERE "qualificationId" IN ('${c1}','${c2}'))
             + (SELECT count(*) FROM qualification.qualification_risk WHERE "qualificationId" IN ('${c1}','${c2}'))
             + (SELECT count(*) FROM qualification.knowledge_graph WHERE "qualificationId" IN ('${c1}','${c2}'))
             + (SELECT count(*) FROM qualification.card_component WHERE qualification_id IN ('${c1}','${c2}'))
-            + (SELECT count(*) FROM core.system WHERE project_id = '${project}') AS n`,
+            + (SELECT count(*) FROM project.system WHERE pid IN ('${v1}', '${v2}')) AS n`,
     );
     expect(Number(left[0].n)).toBe(0);
   });

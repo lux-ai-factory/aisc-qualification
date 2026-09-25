@@ -40,29 +40,37 @@ describe("the shared header helper", () => {
   });
 });
 
+// Runs are addressed by project and card (isolation Q1: /fill/{pid}/{id}).
+const PID = "a1b2c3d4-0000-4000-8000-000000000002";
+
 describe("qualification-agents", () => {
   it("the save's POST /fill carries the web-to-agents token", async () => {
     vi.stubEnv("QUALIFICATION_WEB_TO_AGENTS_TOKEN", tok("agents"));
     const fetchImpl = fakeFetch();
     const { FillerClient } = await import("@/server/services/FillerClient");
-    await new FillerClient("http://agents:8012", fetchImpl as unknown as typeof fetch).request("q1");
+    await new FillerClient("http://agents:8012", fetchImpl as unknown as typeof fetch).request(PID, "q1");
     expect(headersOf(fetchImpl)[HEADER]).toBe(tok("agents"));
   });
 
   it("the card's GET /fill proxy carries it too", async () => {
     vi.stubEnv("QUALIFICATION_WEB_TO_AGENTS_TOKEN", tok("agents"));
     vi.stubEnv("AGENT_SERVICE_URL", "http://agents:8012");
-    vi.doMock("@/server/access/qualificationAccess", () => ({
-      qualificationForCaller: async () => "p1",
+    // isolation Q1: the door lets the caller read the project, and the card is in its database
+    vi.doMock("@/lib/projectDb", () => ({ projectDbForRoute: async () => ({}) }));
+    vi.doMock("@/server/repositories/QualificationRepository", () => ({
+      QualificationRepository: class {
+        cardSummary = async (id: string) => ({ id });
+      },
     }));
     const fetchImpl = fakeFetch({ state: "done" });
     vi.stubGlobal("fetch", fetchImpl);
-    const { GET } = await import("@/app/api/qualifications/[id]/fill/route");
-    const res = await GET(new Request("http://q/x"), { params: Promise.resolve({ id: "q1" }) });
+    const { GET } = await import("@/app/p/[project]/api/qualifications/[id]/fill/route");
+    const res = await GET(new Request("http://q/x"), { params: Promise.resolve({ project: PID, id: "q1" }) });
     expect(res.status).toBe(200);
-    expect(fetchImpl.mock.calls[0][0]).toBe("http://agents:8012/fill/q1");
+    expect(fetchImpl.mock.calls[0][0]).toBe(`http://agents:8012/fill/${PID}/q1`);
     expect(headersOf(fetchImpl)[HEADER]).toBe(tok("agents"));
-    vi.doUnmock("@/server/access/qualificationAccess");
+    vi.doUnmock("@/lib/projectDb");
+    vi.doUnmock("@/server/repositories/QualificationRepository");
   });
 });
 
@@ -113,7 +121,7 @@ describe("no client sends another edge's token", () => {
     const owners: Record<string, string[]> = {
       QUALIFICATION_WEB_TO_AGENTS_TOKEN: [
         "src/server/services/FillerClient.ts",
-        "src/app/api/qualifications/[id]/fill/route.ts",
+        "src/app/p/[project]/api/qualifications/[id]/fill/route.ts",
       ],
       QUALIFICATION_WEB_TO_ONTOLOGY_TOKEN: ["src/server/services/OntologyClient.ts"],
       QUALIFICATION_WEB_TO_PREFILL_TOKEN: ["src/server/services/PrefillClient.ts"],

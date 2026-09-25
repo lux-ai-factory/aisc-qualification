@@ -27,16 +27,3 @@ export async function isLatestCard(projectId: string, systemId: string): Promise
 export async function assertLatestCard(projectId: string, systemId: string): Promise<void> {
   if (!(await isLatestCard(projectId, systemId))) throw new NotLatestError();
 }
-
-/**
- * The same question, asked of the database rather than the platform: the rule
- * the only-latest triggers enforce (qualification.card_is_latest). For a caller
- * with no user behind it, the card agent, which the platform's
- * /system-versions/latest would not answer.
- */
-export async function isLatestCardInDb(systemId: string): Promise<boolean> {
-  const { prisma } = await import("@/lib/prisma");
-  const rows = await prisma.$queryRaw<{ latest: boolean }[]>`
-    SELECT qualification.card_is_latest(${systemId}::uuid) AS latest`;
-  return rows[0]?.latest === true;
-}

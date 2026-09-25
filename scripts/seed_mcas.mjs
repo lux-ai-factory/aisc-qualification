@@ -1,6 +1,8 @@
 import { pathToFileURL } from "node:url";
 
 import { PrismaClient } from "@prisma/client";
+
+import { PROJECT_ID, projectDatabaseUrl } from "./projectDb.mjs";
 // The prose extraction and the curated node names: the parts of the AIRO graph
 // that need judgment rather than a form field. See
 // services/ontology/skills/filling-the-airo-ontology/SKILL.md.
@@ -187,7 +189,8 @@ function platformBase(options) {
 
 /**
  * The card version MCAS's card will describe, saved with MCAS's identity: the
- * two ids a card cannot be stored without. One POST makes the project's next
+ * version's pid (a row of project.system in the project's own database) and the
+ * project it was made in. One POST makes the project's next
  * card version. Called only when the card is about to be written, never on the
  * run that finds it seeded.
  */
@@ -195,8 +198,8 @@ export async function systemForProject(project, options = {}) {
   const fetchImpl = options.fetchImpl ?? fetch;
   if (!project) {
     throw new Error(
-      "Say which project to seed MCAS into: `node scripts/seed_mcas.mjs <project>` " +
-        "(its slug or its pid), or SEED_PROJECT=<project>.",
+      "Say which project to seed MCAS into: `node scripts/seed_mcas.mjs <pid>` " +
+        "or SEED_PROJECT=<pid>.",
     );
   }
   const url = `${platformBase(options)}/projects/${encodeURIComponent(project)}/system-versions`;
@@ -214,6 +217,9 @@ export async function systemForProject(project, options = {}) {
 
 /**
  * Put the MCAS walkthrough in the database, once.
+ *
+ * `prisma` is a client on the project's own database: the card names no project,
+ * the database is the project.
  *
  * The migrate container runs this on every `docker compose up`, so a second run
  * has to be a no-op: it leaves the row alone rather than adding a second copy,
@@ -246,12 +252,11 @@ export async function seedMcas(prisma, { force = false, project, platform } = {}
   // Only now is the system named: finding the card already seeded must not
   // make a version nobody asked for, and a card of a system nothing else can
   // point at would be a dead end (the database refuses it anyway).
-  const { projectId, systemId } = platform ?? (await systemForProject(project));
+  const { systemId } = platform ?? (await systemForProject(project));
 
   const created = await prisma.qualification.create({
     data: {
       id: MCAS_ID,
-      projectId,
       systemId,
       systemName: QUALIFICATION.systemName,
       systemVersion: QUALIFICATION.systemVersion,
@@ -280,9 +285,20 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  const prisma = new PrismaClient();
   const project = process.argv[2] || process.env.SEED_PROJECT || "";
-  console.log(`Seeding MCAS qualification into project ${project || "<none given>"}`);
+  // Only a pid names a project's database; a slug is refused rather than guessed at.
+  if (!PROJECT_ID.test(project)) {
+    console.error(
+      `Say which project to seed MCAS into by its pid: \`node scripts/seed_mcas.mjs <pid>\` ` +
+        `or SEED_PROJECT=<pid> (${project ? `${JSON.stringify(project)} is not a pid` : "none given"}).`,
+    );
+    process.exit(2);
+  }
+  // The project's own database, from PROJECT_DATABASE_URL.
+  const prisma = new PrismaClient({
+    datasourceUrl: projectDatabaseUrl(project, process.env.PROJECT_DATABASE_URL ?? ""),
+  });
+  console.log(`Seeding MCAS qualification into project ${project}`);
   seedMcas(prisma, { force: process.env.SEED_FORCE === "1", project })
     .catch((err) => {
       console.error(err);

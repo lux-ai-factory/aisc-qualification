@@ -43,10 +43,8 @@ for f in "$ROOT"/platform/migrations/*.sql; do
     psql -q -h 127.0.0.1 -U platform_rw -d platform -v ON_ERROR_STOP=1 < "$f" >/dev/null
 done
 
-export DATABASE_URL="postgresql://qualification_rw:qualification_rw@127.0.0.1:$PORT/platform?schema=qualification"
-case "$DATABASE_URL" in *:5432/*) echo "refusing live DSN"; exit 1;; esac
-(cd "$APP" && npx prisma migrate deploy >/dev/null)
-
+# (isolation Q1: the qualification schema no longer lives in `platform`; the history of
+# prisma/migrations is replayed in each project database instead, below.)
 # ── isolation (docs/superpowers/isolation-2026-09-25, stage 2) ─────────────────
 # Project databases made the platform's way (platform_service.projectdb.provision, so
 # they get the real template), for test/db/projectDatabase.db.test.ts and
@@ -57,6 +55,7 @@ ISO_A=aaaaaaaa-0000-4000-8000-00000000000a
 ISO_B=bbbbbbbb-0000-4000-8000-00000000000b
 ISO_C=cccccccc-0000-4000-8000-00000000000c   # qualification_rw may not connect: skipped
 ISO_E=eeeeeeee-0000-4000-8000-00000000000e   # dropped mid-test (I2.5)
+ISO_F=ffffffff-0000-4000-8000-00000000000f   # the older DB tests (cardVersions) run here
 ISO_SETUP=ok
 if (cd "$ROOT/platform" && PROVISION_DSN="postgresql://platform_rw:platform_rw@127.0.0.1:$PORT/platform" \
     uv run --quiet python -c '
@@ -64,8 +63,11 @@ import os, sys
 from platform_service.projectdb import provision
 for pid in sys.argv[1:]:
     provision(os.environ["PROVISION_DSN"], pid)
-' "$ISO_A" "$ISO_B" "$ISO_C" "$ISO_E") >/dev/null 2>&1; then
+' "$ISO_A" "$ISO_B" "$ISO_C" "$ISO_E" "$ISO_F") >/dev/null 2>&1; then
   hex() { echo "$1" | tr -d '-'; }
+  F_URL="postgresql://qualification_rw:qualification_rw@127.0.0.1:$PORT/project_$(hex $ISO_F)?schema=qualification"
+  case "$F_URL" in *:5432/*) echo "refusing live DSN"; exit 1;; esac
+  (cd "$APP" && DATABASE_URL="$F_URL" npx prisma migrate deploy >/dev/null) || ISO_SETUP="project F could not be migrated"
   su_psql -c "REVOKE CONNECT ON DATABASE project_$(hex $ISO_C) FROM qualification_rw" >/dev/null 2>&1 || true
   su_psql -c "CREATE DATABASE project_notapid" >/dev/null
   su_psql -c "CREATE DATABASE live_shape" >/dev/null
@@ -86,9 +88,17 @@ export QUALIFICATION_TEST_FORM_LIBRARY_URL="postgresql://qualification_rw:qualif
 export QUALIFICATION_TEST_PLATFORM_ROLE_URL="postgresql://platform_rw:platform_rw@127.0.0.1:$PORT/platform"
 export QUALIFICATION_TEST_PROJECTS="$ISO_A,$ISO_B,$ISO_C,$ISO_E"
 
-export QUALIFICATION_TEST_DATABASE_URL="$DATABASE_URL"
-export QUALIFICATION_TEST_ADMIN_URL="postgresql://aisc-postgres-user:$PW@127.0.0.1:$PORT/platform?schema=qualification"
-export QUALIFICATION_TEST_PSQL="docker exec -i $NAME psql -q -U aisc-postgres-user -d platform -v ON_ERROR_STOP=1"
+F_DB="project_$(echo "$ISO_F" | tr -d '-')"
+export QUALIFICATION_TEST_DATABASE_URL="postgresql://qualification_rw:qualification_rw@127.0.0.1:$PORT/$F_DB?schema=qualification"
+export QUALIFICATION_TEST_ADMIN_URL="postgresql://aisc-postgres-user:$PW@127.0.0.1:$PORT/$F_DB?schema=qualification"
+export QUALIFICATION_TEST_PSQL="docker exec -i $NAME psql -q -U aisc-postgres-user -d $F_DB -v ON_ERROR_STOP=1"
+
+# Every URL the tests get points at this container's port and never at a live database name.
+for v in QUALIFICATION_TEST_DATABASE_URL QUALIFICATION_TEST_ADMIN_URL QUALIFICATION_TEST_PROJECT_DATABASE_URL \
+         QUALIFICATION_TEST_PROJECT_ADMIN_URL QUALIFICATION_TEST_FORM_LIBRARY_URL QUALIFICATION_TEST_PLATFORM_ROLE_URL; do
+  case "${!v}" in *"127.0.0.1:$PORT/"*) ;; *) echo "refusing: $v is not on the throwaway port"; exit 1;; esac
+  case "${!v}" in *:5432/*) echo "refusing: $v names port 5432"; exit 1;; esac
+done
 
 if [ "${KEEP:-}" = "1" ]; then
   echo "export QUALIFICATION_TEST_DATABASE_URL='$QUALIFICATION_TEST_DATABASE_URL'"

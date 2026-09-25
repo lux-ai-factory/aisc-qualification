@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { qualificationForCaller } from "@/server/access/qualificationAccess";
+import { projectDbForRoute } from "@/lib/projectDb";
+import { QualificationRepository } from "@/server/repositories/QualificationRepository";
 import { serviceTokenHeaders } from "@/server/services/http";
 
 // The filler's run state, for the card to poll.
@@ -9,12 +10,15 @@ import { serviceTokenHeaders } from "@/server/services/http";
 // "idle".
 export async function GET(
   _req: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ project: string; id: string }> },
 ) {
-  const { id } = await params;
+  const { project, id } = await params;
   // Only a run state, but it still says whether this qualification exists and
-  // what is happening to it. Same question as the routes beside it.
-  if (!(await qualificationForCaller(id))) {
+  // what is happening to it. Same question as the routes beside it: the card
+  // must be in this project's database, for a caller the platform lets read it.
+  const db = await projectDbForRoute(project, { write: false });
+  if (db instanceof Response) return db;
+  if (!(await new QualificationRepository(db).cardSummary(id))) {
     return new NextResponse("Not found", { status: 404 });
   }
   const serviceUrl = process.env.AGENT_SERVICE_URL;
@@ -22,7 +26,8 @@ export async function GET(
 
   try {
     // The filler refuses a caller without this app's token for it.
-    const res = await fetch(`${serviceUrl}/fill/${id}`, {
+    // Runs are kept per project and card.
+    const res = await fetch(`${serviceUrl}/fill/${encodeURIComponent(project)}/${encodeURIComponent(id)}`, {
       headers: serviceTokenHeaders(process.env.QUALIFICATION_WEB_TO_AGENTS_TOKEN),
       cache: "no-store",
     });

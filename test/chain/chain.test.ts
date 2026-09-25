@@ -25,7 +25,6 @@ describe.skipIf(!CHAIN_JSON)("pipeline chain", () => {
 
       const card = await prisma.qualification.create({
         data: {
-          projectId: state.project_pid,
           systemId: state.v1_pid,
           systemName: "MCAS",
           systemVersion: "1.2.0",

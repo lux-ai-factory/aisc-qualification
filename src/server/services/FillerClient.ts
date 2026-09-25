@@ -13,12 +13,16 @@ export class FillerClient {
     private readonly serviceToken: string = process.env.QUALIFICATION_WEB_TO_AGENTS_TOKEN ?? "",
   ) {}
 
-  /** True when the filler accepted the request. Never throws. */
-  async request(qualificationId: string): Promise<boolean> {
+  /** True when the filler accepted the request. Never throws.
+   *
+   * The project says which project database the filler reads the card from; the
+   * model it uses is still the one of the card's own project, which the app
+   * tells it from that database. */
+  async request(project: string, qualificationId: string): Promise<boolean> {
     if (!this.serviceUrl) return false; // no filler in this deployment
     try {
       const res = await this.fetchImpl(
-        `${this.serviceUrl}/fill/${qualificationId}`,
+        `${this.serviceUrl}/fill/${encodeURIComponent(project)}/${encodeURIComponent(qualificationId)}`,
         { method: "POST", headers: serviceTokenHeaders(this.serviceToken), cache: "no-store" },
       );
       return res.ok;
@@ -29,6 +33,6 @@ export class FillerClient {
 }
 
 /** Convenience for server actions. */
-export async function requestFill(qualificationId: string): Promise<boolean> {
-  return new FillerClient().request(qualificationId);
+export async function requestFill(project: string, qualificationId: string): Promise<boolean> {
+  return new FillerClient().request(project, qualificationId);
 }

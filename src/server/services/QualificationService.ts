@@ -1,7 +1,8 @@
 import {
   QualificationRepository,
-  qualificationRepository,
+  repositoryFor,
   type QualificationWithAnswers,
+  type RepositoryFor,
 } from "@/server/repositories/QualificationRepository";
 import {
   QualificationFormParser,
@@ -17,18 +18,29 @@ import {
 } from "@/domain/cardVersions";
 import type { FormExample } from "@/data/examples/types";
 
+/**
+ * The AI cards of a project. Every method names its project, and its cards are
+ * read from and written to that project's own database. The pages call this
+ * behind the middleware's door, the actions after their own.
+ */
 export class QualificationService {
+  private readonly repos: RepositoryFor;
+
   constructor(
-    private readonly repo: QualificationRepository = qualificationRepository,
+    /** The repository of each project; a single repository (a test's) serves every project. */
+    repos: RepositoryFor | QualificationRepository = repositoryFor,
     private readonly parser: QualificationFormParser = qualificationFormParser,
     private readonly platform: PlatformClient = platformClient,
-  ) {}
+  ) {
+    this.repos = typeof repos === "function" ? repos : async () => repos;
+  }
 
   /**
    * Save the AI card of the project's AI system.
    *
-   * Every save makes the next card version (a row of core.system, numbered by
-   * the platform) and then the card that describes it. Nothing is frozen: an
+   * Every save makes the next card version (a row of project.system in the
+   * project's own database, numbered by the platform) and then the card that
+   * describes it, in the same database. Nothing is frozen: an
    * older version is read-only because it is not the latest, which the
    * database enforces. When the platform does not answer, nothing is stored.
    */
@@ -40,9 +52,9 @@ export class QualificationService {
       provider: parsed.company,
       description: parsed.description,
     });
-    const made = await this.repo.create({
+    const repo = await this.repos(project);
+    const made = await repo.create({
       ...parsed,
-      projectId: version.project_id,
       systemId: version.pid,
     });
     // The platform pid travels on to the filler, which uses the project's model.
@@ -53,7 +65,7 @@ export class QualificationService {
    *  has no card either: every card points at a version. */
   private async versionsAndCards(project: string) {
     const versions = await this.platform.listVersions(project);
-    const cards = versions.length ? await this.repo.list(versions[0].project_id) : [];
+    const cards = versions.length ? await (await this.repos(project)).list() : [];
     return { versions, cards };
   }
 
@@ -76,9 +88,9 @@ export class QualificationService {
   }
 
   /** Where one card stands among the card versions. */
-  async standing(project: string, card: { projectId: string; systemId: string }): Promise<CardStanding> {
+  async standing(project: string, card: { systemId: string }): Promise<CardStanding> {
     const versions = await this.platform.listVersions(project);
-    const cards = await this.repo.list(card.projectId);
+    const cards = await (await this.repos(project)).list();
     return cardStanding(versions, cards, card.systemId);
   }
 
@@ -93,14 +105,13 @@ export class QualificationService {
     return this.platform.listVersions(project);
   }
 
-  list(projectId: string): Promise<QualificationWithAnswers[]> {
-    return this.repo.list(projectId);
+  async list(project: string): Promise<QualificationWithAnswers[]> {
+    return (await this.repos(project)).list();
   }
 
-  /** One qualification of one project. The project is part of the query: see
-   *  QualificationRepository.find. */
-  get(projectId: string, id: string): Promise<QualificationWithAnswers | null> {
-    return this.repo.find(projectId, id);
+  /** One qualification of one project, looked up in that project's database. */
+  async get(project: string, id: string): Promise<QualificationWithAnswers | null> {
+    return (await this.repos(project)).find(id);
   }
 }
 

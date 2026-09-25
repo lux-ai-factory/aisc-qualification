@@ -11,8 +11,9 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 
-import { decide, fetchAccess, projectFromPath } from "@/server/access/projectAccess";
+import { decide, fetchAccess, isProjectId, projectFromPath } from "@/server/access/projectAccess";
 import { tokenFromHeaders } from "@/server/services/callerToken";
+import { SERVICE_TOKEN_HEADER } from "@/server/services/http";
 
 export const config = {
   // Only the pages that are inside a project. The methodology, the health
@@ -21,9 +22,29 @@ export const config = {
   matcher: ["/p/:path*"],
 };
 
+/**
+ * The one route a service may reach without a person: the card agent reads and
+ * publishes a card's extracted document with its own token. The route itself
+ * checks that token (in constant time, which the edge runtime here cannot);
+ * this only leaves it to the route when the agent's header is there.
+ */
+const AGENT_ROUTE = /^\/p\/[^/]+\/api\/qualifications\/[^/]+\/extracted\/?$/;
+const AGENT_METHODS = new Set(["GET", "PUT"]);
+
 export async function middleware(request: NextRequest) {
-  const project = projectFromPath(request.nextUrl.pathname);
-  if (!project) return NextResponse.next();
+  const pathname = request.nextUrl.pathname;
+  const project = projectFromPath(pathname);
+  if (project === null) return NextResponse.next();
+  // Only a pid names a project (and its database): anything else is not found,
+  // and the platform is not asked about it.
+  if (!isProjectId(project)) return new NextResponse("No such project.", { status: 404 });
+  if (
+    AGENT_ROUTE.test(pathname) &&
+    AGENT_METHODS.has(request.method.toUpperCase()) &&
+    request.headers.get(SERVICE_TOKEN_HEADER) !== null
+  ) {
+    return NextResponse.next();
+  }
 
   const access = await fetchAccess(project, tokenFromHeaders(request.headers) || null, {
     platformUrl: process.env.PLATFORM_URL ?? "",

@@ -31,8 +31,8 @@ const BUILT = {
 };
 
 const repo = {
-  find: vi.fn(async (_p: string, id: string) => CARDS[id] ?? null),
-  cardSummary: vi.fn(async (_p: string, id: string) => CARDS[id] ?? null),
+  find: vi.fn(async (id: string) => CARDS[id] ?? null),
+  cardSummary: vi.fn(async (id: string) => CARDS[id] ?? null),
   findBySystem: vi.fn(async () => null),
   list: vi.fn(async () => Object.values(CARDS)),
   saveOntologyPatch: vi.fn(async () => ({})),
@@ -60,10 +60,21 @@ const build = vi.fn(async () => BUILT);
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
-vi.mock("@/lib/prisma", () => ({ prisma: {} }));
+// isolation Q1: the doors of src/lib/projectDb.ts open the project's database (here the
+// caller is an editor of it), and the repository is bound to that database.
+vi.mock("@/lib/projectDb", () => ({
+  projectDbForAction: vi.fn(async () => ({ db: {} })),
+  projectDbForRoute: vi.fn(async () => ({})),
+  projectDbForService: vi.fn(async () => ({})),
+  projectDbPastDoor: vi.fn(async () => ({})),
+}));
 vi.mock("@/server/repositories/QualificationRepository", () => ({
-  QualificationRepository: class {},
-  qualificationRepository: repo,
+  QualificationRepository: class {
+    constructor() {
+      return repo;
+    }
+  },
+  repositoryFor: async () => repo,
 }));
 vi.mock("@/server/services/PlatformClient", () => ({
   PlatformClient: class {},
@@ -71,12 +82,6 @@ vi.mock("@/server/services/PlatformClient", () => ({
 }));
 vi.mock("@/server/services/OntologyClient", () => ({
   OntologyClient: { fromEnv: () => ({ build, vocabularies: async () => ({}) }) },
-}));
-vi.mock("@/server/access/qualificationAccess", () => ({
-  qualificationForCaller: vi.fn(async () => PROJECT_ID),
-  // API auth WP2: writes ask for write access to the card's own project
-  // (writeAccess.test.ts); here the caller is an editor of it.
-  qualificationForWriter: vi.fn(async () => ({ ok: true, project: PROJECT_ID })),
 }));
 
 const WRITES = [repo.saveOntologyPatch, repo.saveOntologyExtracted, repo.saveKnowledgeGraph, repo.create];
@@ -111,20 +116,20 @@ describe("reviewer actions on the card page", () => {
   });
 });
 
-describe("the filler's draft (PUT /api/qualifications/{id}/extracted)", () => {
+describe("the filler's draft (PUT /p/{pid}/api/qualifications/{id}/extracted)", () => {
   const put = (body: unknown) =>
     new Request("http://q/api", { method: "PUT", body: JSON.stringify(body) });
 
   it("S3.3 aimed at the v1 card, it is 403 and nothing is stored", async () => {
-    const { PUT } = await import("@/app/api/qualifications/[id]/extracted/route");
-    const res = await PUT(put({ techniques: [] }), { params: Promise.resolve({ id: "c1" }) });
+    const { PUT } = await import("@/app/p/[project]/api/qualifications/[id]/extracted/route");
+    const res = await PUT(put({ techniques: [] }), { params: Promise.resolve({ project: PROJECT_ID, id: "c1" }) });
     expect(res.status).toBe(403);
     expect(repo.saveOntologyExtracted).not.toHaveBeenCalled();
   });
 
   it("S3.4 aimed at the latest card, it is stored in place and no version is made (already passing)", async () => {
-    const { PUT } = await import("@/app/api/qualifications/[id]/extracted/route");
-    const res = await PUT(put({ techniques: [] }), { params: Promise.resolve({ id: "c2" }) });
+    const { PUT } = await import("@/app/p/[project]/api/qualifications/[id]/extracted/route");
+    const res = await PUT(put({ techniques: [] }), { params: Promise.resolve({ project: PROJECT_ID, id: "c2" }) });
     expect(res.status).toBe(200);
     expect(repo.saveOntologyExtracted).toHaveBeenCalledWith("c2", expect.anything());
     expect(platform.createVersion).not.toHaveBeenCalled();

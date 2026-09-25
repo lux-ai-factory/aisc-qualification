@@ -74,6 +74,8 @@ describe("seed_mcas and card versions", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(fetchImpl.mock.calls[0][0]).toBe("http://platform:8000/projects/mcas/system-versions");
     const data = prisma.qualification.create.mock.calls[0][0].data;
-    expect(data).toMatchObject({ projectId: PROJECT_ID, systemId: V1.pid });
+    // isolation Q1: the seed writes into the project's own database; the card names no project
+    expect(data).toMatchObject({ systemId: V1.pid });
+    expect(data).not.toHaveProperty("projectId");
   });
 });

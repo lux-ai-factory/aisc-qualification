@@ -3,6 +3,9 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import FillStatus from "@/app/p/[project]/qualify/[id]/FillStatus";
 
+// isolation Q1: the page passes the fill route under its project
+const STATUS_URL = "/p/a1b2c3d4-0000-4000-8000-000000000002/api/qualifications/q1/fill";
+
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 
@@ -27,7 +30,7 @@ describe("the card telling you the filler is working", () => {
   it("reports a run in flight", async () => {
     withStates("running");
     await act(async () => {
-      render(<FillStatus qualificationId="q1" />);
+      render(<FillStatus qualificationId="q1" statusUrl={STATUS_URL} />);
     });
     expect(screen.getByRole("status").textContent).toMatch(/drafting/i);
   });
@@ -36,7 +39,7 @@ describe("the card telling you the filler is working", () => {
     vi.useFakeTimers();
     const fetchMock = withStates("running", "running", "done");
     await act(async () => {
-      render(<FillStatus qualificationId="q1" />);
+      render(<FillStatus qualificationId="q1" statusUrl={STATUS_URL} />);
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     await act(async () => {
@@ -49,7 +52,7 @@ describe("the card telling you the filler is working", () => {
     vi.useFakeTimers();
     withStates("running", "done");
     await act(async () => {
-      render(<FillStatus qualificationId="q1" />);
+      render(<FillStatus qualificationId="q1" statusUrl={STATUS_URL} />);
     });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2500);
@@ -61,7 +64,7 @@ describe("the card telling you the filler is working", () => {
     vi.useFakeTimers();
     const fetchMock = withStates("done");
     await act(async () => {
-      render(<FillStatus qualificationId="q1" />);
+      render(<FillStatus qualificationId="q1" statusUrl={STATUS_URL} />);
     });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10000);
@@ -71,7 +74,7 @@ describe("the card telling you the filler is working", () => {
 
   it("shows nothing at all when no run exists for this card", async () => {
     withStates("idle");
-    const { container } = render(<FillStatus qualificationId="q1" />);
+    const { container } = render(<FillStatus qualificationId="q1" statusUrl={STATUS_URL} />);
     await act(async () => {});
     expect(container.textContent).toBe("");
   });
@@ -79,7 +82,7 @@ describe("the card telling you the filler is working", () => {
   it("reports a failed run", async () => {
     withStates("failed");
     await act(async () => {
-      render(<FillStatus qualificationId="q1" />);
+      render(<FillStatus qualificationId="q1" statusUrl={STATUS_URL} />);
     });
     expect(screen.getByRole("status").textContent).toMatch(/could not|failed/i);
   });
@@ -91,7 +94,7 @@ describe("the card telling you the filler is working", () => {
         throw new Error("connection refused");
       }),
     );
-    const { container } = render(<FillStatus qualificationId="q1" />);
+    const { container } = render(<FillStatus qualificationId="q1" statusUrl={STATUS_URL} />);
     await act(async () => {});
     expect(container.textContent).toBe("");
     expect(refresh).not.toHaveBeenCalled();

@@ -4,8 +4,7 @@ import { redirect } from "next/navigation";
 import { qualificationService } from "@/server/services/QualificationService";
 import { requestFill } from "@/server/services/FillerClient";
 import { FormValidationError } from "@/server/forms/QualificationFormParser";
-import { projectForWriter } from "@/server/access/qualificationAccess";
-import { REFUSED } from "@/server/access/projectAccess";
+import { projectDbForAction } from "@/lib/projectDb";
 
 export type SubmitState = { error?: string } | undefined;
 
@@ -17,10 +16,11 @@ export async function submitQualification(
   formData: FormData,
 ): Promise<SubmitState> {
   // `project` is bound in the browser, so it is checked here, not only by the
-  // middleware on the page the form was posted to.
-  const mayWrite = await projectForWriter(project);
-  if (mayWrite === null) return { error: PLATFORM_SILENT };
-  if (!mayWrite) return { error: REFUSED[403] };
+  // middleware on the page the form was posted to: the platform is asked about
+  // the caller in that project before its database is opened.
+  const door = await projectDbForAction(project, { write: true });
+  if (door.error !== undefined && door.status === 503) return { error: PLATFORM_SILENT };
+  if (door.error !== undefined) return { error: door.error };
   let id: string;
   try {
     ({ id } = await qualificationService.createFromForm(project, formData));
@@ -42,7 +42,7 @@ export async function submitQualification(
   // 2(a) and 2(c)). It runs in its own service over seconds to a minute, so this
   // only starts it: the qualification is already stored, and a filler that is
   // down or absent costs nothing but an emptier first draft.
-  await requestFill(id);
+  await requestFill(project, id);
 
   redirect(`/p/${project}/qualify/${id}`);
 }
