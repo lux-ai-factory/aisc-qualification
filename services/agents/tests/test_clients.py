@@ -4,10 +4,14 @@ The model is not reached over HTTP from here: BAF's own wrapper holds it, see
 fill/llm.py and tests/test_llm.py.
 """
 import json
+import uuid
 
 import pytest
 
 from fill import clients
+
+#: the card's project: its database is where the app finds it (isolation Q1)
+PID = str(uuid.uuid4())
 
 
 class FakeResponse:
@@ -45,13 +49,13 @@ def sent(monkeypatch):
 
 
 def test_publishing_puts_to_the_app(sent):
-    clients.publish("q1", {"techniques": []})
-    assert sent[0]["url"].endswith("/api/qualifications/q1/extracted")
+    clients.publish(PID, "q1", {"techniques": []})
+    assert sent[0]["url"].endswith(f"/p/{PID}/api/qualifications/q1/extracted")
     assert sent[0]["method"] == "PUT"
 
 
 # ── API auth WP2 (2026-09-25): a token per service it calls ──────────────────
-# The app accepts the agent's own token on /api/qualifications/{id}/extracted,
+# The app accepts the agent's own token on /p/{pid}/api/qualifications/{id}/extracted,
 # and the ontology service accepts the agent's own token (not the app's). Each
 # call carries the token of the service it goes to and never the other one.
 
@@ -80,10 +84,10 @@ def headers_sent(monkeypatch):
 
 
 def test_reading_and_publishing_carry_the_apps_token(tokens, headers_sent):
-    clients.qualification("q1")
-    clients.publish("q1", {"techniques": []})
+    clients.qualification(PID, "q1")
+    clients.publish(PID, "q1", {"techniques": []})
     for url, headers in headers_sent:
-        assert url.endswith("/api/qualifications/q1/extracted")
+        assert url.endswith(f"/p/{PID}/api/qualifications/q1/extracted")
         assert headers["x-aisc-service-token"] == tokens[WEB]
 
 
@@ -98,7 +102,7 @@ def test_the_ontology_calls_carry_the_ontology_services_token(tokens, headers_se
 def test_without_a_token_nothing_is_sent_in_its_place(monkeypatch, headers_sent):
     monkeypatch.delenv(WEB, raising=False)
     monkeypatch.delenv(ONTOLOGY, raising=False)
-    clients.qualification("q1")
+    clients.qualification(PID, "q1")
     clients.vocabularies()
     for _, headers in headers_sent:
         assert "x-aisc-service-token" not in headers

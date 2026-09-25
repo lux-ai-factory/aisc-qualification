@@ -5,6 +5,7 @@ The card agent is called by qualification-web only (POST /fill on save, GET /fil
 without the right token and 503 when this service has no token set.
 """
 import os
+import uuid
 
 import pytest
 
@@ -17,7 +18,8 @@ DOOR_TEST = True  # conftest gives this module's clients no token of their own
 HEADER = "X-AISC-Service-Token"
 NAMES = ('QUALIFICATION_WEB_TO_AGENTS_TOKEN',)
 #: (method, path, body) for each kind of route; the body is only there to get past the door
-PROBES = [['GET', '/fill/q1', None], ['GET', '/docs', None], ['GET', '/openapi.json', None]]
+PID = str(uuid.uuid4())  # runs are addressed by project and card (isolation Q1)
+PROBES = [['GET', f'/fill/{PID}/q1', None], ['GET', '/docs', None], ['GET', '/openapi.json', None]]
 
 
 @pytest.fixture
@@ -83,10 +85,10 @@ def test_a_token_that_is_not_set_closes_the_service(client, tokens, monkeypatch,
 def test_starting_a_run_needs_the_token_too(client, tokens, monkeypatch):
     """POST /fill spends the qualification's project key, so it is the door that matters most."""
     runs = []
-    monkeypatch.setattr(service, "fill_one", lambda qid: runs.append(qid) or {})
+    monkeypatch.setattr(service, "fill_one", lambda pid, qid: runs.append((pid, qid)) or {})
     service.RUNS.clear()
-    assert client.post("/fill/q1").status_code == 401
-    assert client.post("/fill/q1", headers={HEADER: "wrong"}).status_code == 401
+    assert client.post(f"/fill/{PID}/q1").status_code == 401
+    assert client.post(f"/fill/{PID}/q1", headers={HEADER: "wrong"}).status_code == 401
     assert runs == []
-    assert client.post("/fill/q1", headers={HEADER: tokens[NAMES[0]]}).status_code == 202
-    assert runs == ["q1"]
+    assert client.post(f"/fill/{PID}/q1", headers={HEADER: tokens[NAMES[0]]}).status_code == 202
+    assert runs == [(PID, "q1")]
