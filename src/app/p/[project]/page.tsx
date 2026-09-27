@@ -18,7 +18,7 @@ export default async function HomePage({
 
       <div className="actions">
         <Link className="btn" href={`/p/${project}/system`}>
-          Open the AI system
+          Qualify AI system
         </Link>
         <Link className="btn ghost" href={`/p/${project}/qualifications`}>
           Versions
