@@ -1,5 +1,7 @@
 import { parseTargetSystemTag, findSector } from "@/data";
 import type { QualificationWithAnswers } from "@/server/repositories/QualificationRepository";
+import type { AnnexPointId } from "@/domain/forms/annexPoints";
+import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
 
 /**
  * The shape the ontology service consumes. This app owns the database and the
@@ -21,7 +23,16 @@ export type QualificationExport = {
   sectors: Array<{ id: string; name: string }>;
   marketFormTags: string[];
   localityTags: string[];
-  answers: Array<{ toolId: string; questionId: string; answer: string }>;
+  /** With a form version, an answer to one of its questions also carries the
+   *  question's citation and Annex IV point; a stored answer the version does
+   *  not ask keeps the plain shape. */
+  answers: Array<{
+    toolId: string;
+    questionId: string;
+    answer: string;
+    citation?: string;
+    annexPoint?: AnnexPointId | null;
+  }>;
   risks: Array<{
     position: number;
     risk: string;
@@ -42,9 +53,75 @@ export type QualificationExport = {
     objectName: string;
     property: string;
   }>;
+  /** The questionnaire version the card was filled with; absent without one. */
+  form?: {
+    name: string;
+    version: number;
+    questions: Array<{
+      key: string;
+      text: string;
+      citation: string;
+      required: boolean;
+      annexPoint: AnnexPointId | null;
+      /** The question set the wording is from. */
+      ownerSet: string;
+      /** The set's id: two sets may share a name (a retired one and its successor). */
+      ownerSetId: string;
+      ownerBuiltin: boolean;
+    }>;
+  };
 };
 
-export function toExport(q: QualificationWithAnswers): QualificationExport {
+type ExportAnswer = QualificationExport["answers"][number];
+
+/**
+ * The answers, in the version's question order, each tagged from the version's
+ * snapshot. Answers the version does not ask come last, by key, in the plain
+ * shape, so the graph of an older card built from them does not change.
+ */
+function answersInForm(
+  q: QualificationWithAnswers,
+  form: ResolvedQuestionnaireVersion,
+): ExportAnswer[] {
+  const byKey = new Map(
+    q.answers.map((a) => [`${a.toolId}:${a.questionId}`, a]),
+  );
+  const asked = new Set(form.questions.map((fq) => fq.key));
+  const inForm = form.questions.flatMap((fq) => {
+    const a = byKey.get(fq.key);
+    return a
+      ? [
+          {
+            toolId: a.toolId,
+            questionId: a.questionId,
+            answer: a.answer,
+            citation: fq.citation,
+            annexPoint: fq.annexPoint,
+          },
+        ]
+      : [];
+  });
+  const stray = q.answers
+    .filter((a) => !asked.has(`${a.toolId}:${a.questionId}`))
+    .map((a) => ({
+      toolId: a.toolId,
+      questionId: a.questionId,
+      answer: a.answer,
+    }))
+    .sort((a, b) => {
+      const ka = `${a.toolId}:${a.questionId}`;
+      const kb = `${b.toolId}:${b.questionId}`;
+      return ka < kb ? -1 : ka > kb ? 1 : 0;
+    });
+  return [...inForm, ...stray];
+}
+
+/** The card as the ontology service reads it. Without a form version it is the
+ *  export as it always was. */
+export function toExport(
+  q: QualificationWithAnswers,
+  form?: ResolvedQuestionnaireVersion,
+): QualificationExport {
   const links = q.components ?? [];
   return {
     id: q.id,
@@ -75,13 +152,15 @@ export function toExport(q: QualificationWithAnswers): QualificationExport {
     }),
     marketFormTags: q.marketFormTags,
     localityTags: q.localityTags,
-    answers: q.answers
-      .map((a) => ({
-        toolId: a.toolId,
-        questionId: a.questionId,
-        answer: a.answer,
-      }))
-      .sort((a, b) => a.questionId.localeCompare(b.questionId)),
+    answers: form
+      ? answersInForm(q, form)
+      : q.answers
+          .map((a) => ({
+            toolId: a.toolId,
+            questionId: a.questionId,
+            answer: a.answer,
+          }))
+          .sort((a, b) => a.questionId.localeCompare(b.questionId)),
     risks: q.risks.map((r) => ({
       position: r.position,
       risk: r.risk,
@@ -102,6 +181,24 @@ export function toExport(q: QualificationWithAnswers): QualificationExport {
             objectName: c.objectName,
             property: c.airoProperty,
           })),
+        }
+      : {}),
+    ...(form
+      ? {
+          form: {
+            name: form.questionnaireName,
+            version: form.versionNumber,
+            questions: form.questions.map((fq) => ({
+              key: fq.key,
+              text: fq.text,
+              citation: fq.citation,
+              required: fq.required,
+              annexPoint: fq.annexPoint,
+              ownerSet: fq.setName,
+              ownerSetId: fq.setId,
+              ownerBuiltin: fq.setBuiltin,
+            })),
+          },
         }
       : {}),
   };

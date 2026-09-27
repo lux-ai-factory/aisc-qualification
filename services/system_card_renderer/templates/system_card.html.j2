@@ -56,13 +56,20 @@
   {% if card.overview %}
   <p>{{ card.overview }}</p>
   {% endif %}
+  {# A form may leave these out: an empty row is left out rather than printed blank. #}
   <dl class="kv">
+    {% if card.description %}
     <dt>Description</dt>
     <dd>{{ card.description }}</dd>
+    {% endif %}
+    {% if card.target_use_case %}
     <dt>Target use case</dt>
     <dd>{{ card.target_use_case }}</dd>
+    {% endif %}
+    {% if card.target_users %}
     <dt>Target users</dt>
     <dd>{{ card.target_users }}</dd>
+    {% endif %}
   </dl>
 </section>
 
@@ -83,6 +90,7 @@
 {% if card.ontology %}
 <section class="onto-pdf">
   <h2>Ontology</h2>
+  {% if card.ontology.coverage %}<p class="coverage">{{ card.ontology.coverage.summary }}</p>{% endif %}
   <p class="muted">
     This card as a filled AIRO graph (AI Risk Ontology, core concepts):
     {{ card.ontology.counts.nodes }} nodes, {{ card.ontology.counts.triples }} triples,
@@ -128,6 +136,16 @@
     {% if c.control %}<tr><th>Control</th><td>{{ c.control.label }}</td></tr>{% endif %}
     {% if c.followUp %}<tr><th>If insufficient</th><td>{{ c.followUp.label }}</td></tr>{% endif %}
   </table>
+  {% endfor %}
+
+  {% for s in card.ontology.additionalDocumentation %}
+  <h3>Additional documentation: {{ s.form }}</h3>
+  <dl class="kv">
+    {% for e in s.entries %}
+    <dt>{{ e.question }}{% if e.citation %}<span class="cite">{{ e.citation }}</span>{% endif %}</dt>
+    <dd>{{ e.answer }}</dd>
+    {% endfor %}
+  </dl>
   {% endfor %}
 </section>
 {% endif %}

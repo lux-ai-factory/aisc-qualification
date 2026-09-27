@@ -44,7 +44,7 @@ def test_the_export_fills_every_new_form_element(qualification):
     assert qualification["localityTags"], "locality picker is empty"
     assert qualification["intendedDeployers"], "intended deployers is empty"
     assert len(qualification["risks"]) >= 3
-    assert len(qualification["answers"]) == 13  # all but 1(f), not a physical product
+    assert len(qualification["answers"]) == 14  # every sub-item answered (addendum 06, R72)
 
 
 def test_the_risk_rows_exercise_both_stakeholders_and_the_optional_fields(qualification):
@@ -99,7 +99,8 @@ def test_each_answer_is_labelled_with_its_annex_iv_citation(graph):
     assert "Annex IV(1)(d)-(e)" in citations  # the merged sub-item
     assert "Annex IV(1)(g)-(h)" in citations
     assert "Annex IV(2)(h)" in citations
-    assert len(citations) == 13
+    assert "Annex IV(1)(f)" in citations  # addendum 06, R72
+    assert len(citations) == 14
 
 
 def test_the_mapped_tags_carry_their_vair_types(graph):
@@ -227,3 +228,19 @@ def test_the_committed_jsonld_is_the_same_graph():
     ttl = Graph().parse(EXAMPLES / "mcas.ttl", format="turtle")
     jsonld = Graph().parse(EXAMPLES / "mcas.jsonld", format="json-ld")
     assert len(jsonld) == len(ttl)
+
+
+# ── Addendum 06, R72: the example answers 1(f) ─────────────────────────────
+
+
+def test_r72_the_graph_is_413_triples_and_the_view_still_59_nodes(graph):
+    from airo_min.view import build_view
+
+    assert len(graph) == 413
+    assert build_view(graph)["counts"]["nodes"] == 59
+
+
+def test_r72_the_1f_answer_sits_right_after_1de(qualification):
+    ids = [a["questionId"] for a in qualification["answers"]]
+    assert ids.index("1f") == ids.index("1de") + 1
+    assert next(a for a in qualification["answers"] if a["questionId"] == "1f")["toolId"] == "annex-1"

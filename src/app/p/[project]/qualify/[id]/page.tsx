@@ -12,6 +12,10 @@ import ComponentsPanel from "./ComponentsPanel";
 import { engineClient } from "@/server/services/EngineClient";
 import type { EngineComponent } from "@/domain/cardComponents";
 import type { OntologyExtracted } from "@/domain/OntologyView";
+import { questionnaireService } from "@/server/services/QuestionnaireService";
+import { newerVersion } from "@/domain/forms/moveCard";
+import { annexDefaultVersion } from "@/domain/forms/legacy";
+import FormLine from "../../FormLine";
 
 export default async function QualificationDetailPage({
   params,
@@ -56,6 +60,14 @@ export default async function QualificationDetailPage({
       err instanceof Error ? err.message : "The knowledge graph could not be built.";
   }
 
+  // The questionnaire version the card was filled with; a card from before
+  // questionnaires is the default version, and so is one whose version cannot
+  // be found. Only the current card is offered a newer version to move to (T42).
+  const form = (await questionnaireService.resolve(q.questionnaireVersionId ?? null)) ?? annexDefaultVersion();
+  const newer = standing?.current
+    ? newerVersion(form, await questionnaireService.latestVersion(form.questionnaireId).catch(() => null))
+    : null;
+
   const savedAt = q.createdAt.toISOString().slice(0, 16).replace("T", " ");
 
   return (
@@ -71,6 +83,7 @@ export default async function QualificationDetailPage({
               {q.company} · {versionLabel(q.systemVersion)} · saved {savedAt}{" "}
               UTC
             </p>
+            <FormLine project={project} questionnaireId={form.questionnaireId} questionnaireName={form.questionnaireName} versionNumber={form.versionNumber} basePath={basePath} newer={newer} />
           </div>
           <div className="qf-header-actions">
             {standing?.current && (
@@ -114,6 +127,7 @@ export default async function QualificationDetailPage({
       <QualificationTabs
         form={
           <AnsweredForm
+            form={form}
             metadata={{
               systemName: q.systemName,
               systemVersion: q.systemVersion,

@@ -123,7 +123,11 @@ describe.skipIf(!enabled)("the migration's schema (catalog)", () => {
     const script = `
       SET search_path TO qualification;
       BEGIN;
+      -- the card's project is real: only its version is missing (Qualification_project_id_fkey)
+      INSERT INTO core.project (pid, name, slug) VALUES ('${project}', 'T', 't-${project.slice(0, 8)}');
       ALTER TABLE qualification DROP CONSTRAINT IF EXISTS qualification_system_id_fkey;
+      -- added after this migration (20260924120000); it would refuse the dangling card first
+      ALTER TABLE qualification DROP CONSTRAINT IF EXISTS qualification_system_id_project_id_fkey;
       INSERT INTO qualification (id, project_id, system_id, "systemName", "systemVersion",
         company, description, "targetUseCase", "targetUsers", updated_at)
       VALUES ('dangling-card', '${project}', '${dangling}', 'x', '1', 'c', 'd', 'u', 't', now());

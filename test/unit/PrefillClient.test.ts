@@ -90,3 +90,48 @@ describe("PrefillClient", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
+
+// ── Form assembly: the prefill is told which form it is filling ────────────
+// (spec docs/superpowers/form-assembly-2026-09-24/01-spec.md, R38, R40)
+//
+// read(file, mode, current, currentRisks, formSpec?) with
+// formSpec = { fields: string[], questions: {field, text, citation, annexPoint}[] }.
+
+describe("PrefillClient with a form (R38, R40)", () => {
+  const ok = { values: {}, filled: [], kept: [], model: null };
+  const file = () => new File([new Uint8Array([104, 105])], "doc.md", { type: "text/markdown" });
+
+  it("R40 sends the form's fields and questions as JSON", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ok });
+    const spec = {
+      fields: ["systemName", "systemVersion", "company", "q:f-x:q1"],
+      questions: [{ field: "q:f-x:q1", text: "Who signs off?", citation: "Acme AI Policy §4.2", annexPoint: null }],
+    };
+    await new PrefillClient("http://x", fetchImpl).read(file(), "empty", {}, [], spec);
+    const sent = fetchImpl.mock.calls[0][1].body as FormData;
+    expect(JSON.parse(sent.get("fields") as string)).toEqual(spec.fields);
+    expect(JSON.parse(sent.get("questions") as string)).toEqual(spec.questions);
+  });
+
+  it("T58 a set question pinned to its v1 is sent with the v1 wording under q:s-acme:q1", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ok });
+    const spec = {
+      fields: ["systemName", "systemVersion", "company", "q:annex-2:2a", "q:s-acme:q1"],
+      questions: [
+        { field: "q:annex-2:2a", text: "How was the system built, step by step?", citation: "Annex IV(2)(a)", annexPoint: "2a" },
+        { field: "q:s-acme:q1", text: "Who signs off a model release?", citation: "Acme AI Policy §4.2", annexPoint: null },
+      ],
+    };
+    await new PrefillClient("http://x", fetchImpl).read(file(), "empty", {}, [], spec);
+    const sent = fetchImpl.mock.calls[0][1].body as FormData;
+    expect(JSON.parse(sent.get("fields") as string)).toEqual(spec.fields);
+    expect(JSON.parse(sent.get("questions") as string)).toEqual(spec.questions);
+  });
+
+  it("R38 without a form it sends exactly what it sends today", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ok });
+    await new PrefillClient("http://x", fetchImpl).read(file(), "empty", {}, []);
+    const sent = fetchImpl.mock.calls[0][1].body as FormData;
+    expect([...sent.keys()].sort()).toEqual(["current", "current_risks", "file", "mode"]);
+  });
+});

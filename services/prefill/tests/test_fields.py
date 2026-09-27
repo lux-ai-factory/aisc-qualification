@@ -147,3 +147,46 @@ def test_the_repo_layout_still_finds_the_shared_file():
         for p in candidate_paths(Path("/w/apps/qualification/services/prefill/prefill/fields.py"))
     ]
     assert "/w/apps/qualification/src/data/prefillFields.json" in places
+
+
+# ── Form assembly: the default form through the custom-form reader ──────────
+# (docs/superpowers/form-assembly-2026-09-24/01-spec.md, R38, R39)
+
+
+def _default_questions():
+    from tests.test_app import default_questions
+
+    return default_questions()
+
+
+def test_r38_the_default_questions_propose_what_the_annex_headings_do():
+    from prefill.fields import annex_sections
+
+    try:
+        from prefill.fields import proposals_for_questions
+    except ImportError as exc:  # the spec's new function
+        raise AssertionError(f"prefill.fields.proposals_for_questions is missing: {exc}")
+    text = (
+        "Annex IV(1)(a)\nThis release replaces 1.1.0. The scoring model was retrained.\n\n"
+        "Annex IV(1)(b)\nIt reads the core banking system over an API.\n"
+        "1(d)\nSupplied as a download.\n1(e)\nRuns on the portal.\n"
+        "2(a)\nBuilt from a pre-trained model.\n2(b)\nThe design choices were these.\n"
+    )
+    assert proposals_for_questions(text, _default_questions()) == annex_sections(text)
+
+
+# ── Addendum 06, R53: the 14 point ids in the prefill service ───────────────
+
+
+def test_r53_annex_point_ids_equal_the_repo_json_in_order():
+    import json
+    from pathlib import Path
+
+    try:
+        from prefill.fields import ANNEX_POINT_IDS
+    except ImportError as exc:  # the addendum's new constant
+        raise AssertionError(f"prefill.fields.ANNEX_POINT_IDS is missing: {exc}")
+    points = Path(__file__).resolve().parents[1] / ".." / ".." / "src" / "data" / "annexPoints.json"
+    ids = [p["id"] for p in json.loads(points.read_text(encoding="utf-8"))["points"]]
+    assert len(ids) == 14
+    assert list(ANNEX_POINT_IDS) == ids

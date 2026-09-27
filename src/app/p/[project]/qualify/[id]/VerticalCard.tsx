@@ -28,32 +28,38 @@ export default function VerticalCard({
 }) {
   return (
     <>
-      <h3 className="qf-group">About the system</h3>
-      <table className="onto-table">
-        <tbody>
-          {view.rows.map((row) => (
-            <tr key={row.property}>
-              <th>
-                {row.label}
-                <span className="qf-citation">{row.citation}</span>
-                <code>{row.property}</code>
-              </th>
-              <td>
-                {row.nodes.map((node) => (
-                  <NodeChip
-                    key={node.id}
-                    node={node}
-                    vocabularies={vocabularies}
-                    onEdit={() => setEditing(node.id)}
-                  />
-                ))}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {view.coverage && <p className="qf-coverage">{view.coverage.summary}</p>}
 
-      <h3 className="qf-group">Risks</h3>
+      {view.rows.length > 0 && (
+        <>
+          <h3 className="qf-group">About the system</h3>
+          <table className="onto-table">
+            <tbody>
+              {view.rows.map((row) => (
+                <tr key={row.property}>
+                  <th>
+                    {row.label}
+                    <span className="qf-citation">{row.citation}</span>
+                    <code>{row.property}</code>
+                  </th>
+                  <td>
+                    {row.nodes.map((node) => (
+                      <NodeChip
+                        key={node.id}
+                        node={node}
+                        vocabularies={vocabularies}
+                        onEdit={() => setEditing(node.id)}
+                      />
+                    ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      {view.chains.length > 0 && <h3 className="qf-group">Risks</h3>}
       {view.chains.map((chain, i) => (
         <Chain
           key={chain.risk.id}
@@ -66,6 +72,24 @@ export default function VerticalCard({
           setEditing={setEditing}
           onSave={onSave}
         />
+      ))}
+
+      {/* Answers to questions no Annex IV point covers, per form that asked them. */}
+      {(view.additionalDocumentation ?? []).map((section) => (
+        <div key={section.form} className="qf-additional">
+          <h3 className="qf-group">Additional documentation: {section.form}</h3>
+          <dl className="qf-read-list">
+            {section.entries.map((entry) => (
+              <div className="qf-read-field" key={entry.key}>
+                <dt>
+                  {entry.question}
+                  {entry.citation !== "" && <span className="qf-citation">{entry.citation}</span>}
+                </dt>
+                <dd>{entry.answer}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       ))}
     </>
   );

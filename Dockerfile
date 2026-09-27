@@ -44,4 +44,4 @@ COPY --from=builder /app/next.config.ts ./next.config.ts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 USER app
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx next start -p 3000"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx next start -p 3000"]

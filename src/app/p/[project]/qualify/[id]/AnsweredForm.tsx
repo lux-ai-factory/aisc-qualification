@@ -7,13 +7,17 @@ import {
   MARKET_FORMS,
   vocabLabel,
 } from "@/data/airoVocab";
-import { KEY_QUESTIONS } from "@/data/keyQuestions";
 import { METADATA_FIELDS, type MetadataFieldId } from "@/data/formFields";
 import { RISK_BLOCK, RISK_FIELDS } from "@/data/riskFields";
 import { findSector, parseTargetSystemTag } from "@/data";
+import { annexDefaultVersion } from "@/domain/forms/legacy";
+import type { FormBlock } from "@/domain/forms/blocks";
+import type { ResolvedQuestionnaireVersion, ResolvedQuestion } from "@/domain/forms/types";
 
 // The qualification as it was answered: the same fields, in the same order,
 // with the same AI Act citations as the form that collected them, but read-only.
+// The form is the card's own form version: its blocks and its questions, in the
+// wording they had when the card was filled.
 //
 // Everything is resolved here rather than by the page, so the one place that
 // knows how a stored value turns back into what the user saw is this file.
@@ -48,6 +52,8 @@ export type AnsweredFormProps = {
     control: string;
     followUpControl: string | null;
   }[];
+  /** The version the card was filled with. Absent is the default version. */
+  form?: ResolvedQuestionnaireVersion;
 };
 
 const BLANK = <span className="qf-blank">left blank</span>;
@@ -69,7 +75,7 @@ function Row({
       <dt>
         {label}
         {note}
-        <span className="qf-citation">{citation}</span>
+        {citation !== "" && <span className="qf-citation">{citation}</span>}
       </dt>
       <dd>{children}</dd>
     </div>
@@ -107,24 +113,23 @@ export default function AnsweredForm({
   metadata,
   answers,
   risks,
+  form = annexDefaultVersion(),
 }: AnsweredFormProps) {
-  const byId = new Map(
+  const has = (block: FormBlock) => form.blocks.includes(block);
+  const byId = new Map<string, AnsweredFormProps["answers"][number]>(
     answers.map((a) => [`${a.toolId}:${a.questionId}`, a] as const),
   );
   // Walk the question set, not the stored answers: an optional question left
   // blank has no row in the database, and the reader still needs to see that it
-  // was asked and skipped rather than never asked at all.
-  const groups = KEY_QUESTIONS.reduce<
-    { group: string; label: string; questions: typeof KEY_QUESTIONS }[]
+  // was asked and skipped rather than never asked at all. A new group starts
+  // wherever the heading changes, as on the qualification form.
+  const groups = form.questions.reduce<
+    { label: string; questions: ResolvedQuestion[] }[]
   >((acc, question) => {
+    const label = question.groupLabel ?? question.setName;
     const last = acc[acc.length - 1];
-    if (last && last.group === question.group) last.questions.push(question);
-    else
-      acc.push({
-        group: question.group,
-        label: question.groupLabel,
-        questions: [question],
-      });
+    if (last && last.label === label) last.questions.push(question);
+    else acc.push({ label, questions: [question] });
     return acc;
   }, []);
 
@@ -137,43 +142,59 @@ export default function AnsweredForm({
           <Field id="systemName">{metadata.systemName}</Field>
           <Field id="systemVersion">{metadata.systemVersion}</Field>
           <Field id="company">{metadata.company}</Field>
-          <Field id="description">{metadata.description}</Field>
-          <Field id="targetUseCase">{metadata.targetUseCase}</Field>
-          <Field id="targetUsers">{metadata.targetUsers}</Field>
-          <Field id="intendedDeployers">
-            {metadata.intendedDeployers || BLANK}
-          </Field>
-          <Field id="targetSystemTags">
-            {tags(metadata.targetSystemTags, (t) => {
-              const parsed = parseTargetSystemTag(t);
-              return parsed ? `${parsed.category.name}: ${parsed.sub.name}` : t;
-            })}
-          </Field>
-          <Field id="sectorTags">
-            {tags(metadata.sectorTags, (t) => findSector(t)?.name ?? t)}
-          </Field>
-          <Field id="marketFormTags">
-            {tags(metadata.marketFormTags, (t) => vocabLabel(MARKET_FORMS, t))}
-          </Field>
-          <Field id="localityTags">
-            {tags(metadata.localityTags, (t) => vocabLabel(LOCALITIES, t))}
-          </Field>
+          {has("description") && (
+            <Field id="description">{metadata.description}</Field>
+          )}
+          {has("targetUseCase") && (
+            <Field id="targetUseCase">{metadata.targetUseCase}</Field>
+          )}
+          {has("targetUsers") && (
+            <Field id="targetUsers">{metadata.targetUsers}</Field>
+          )}
+          {has("intendedDeployers") && (
+            <Field id="intendedDeployers">
+              {metadata.intendedDeployers || BLANK}
+            </Field>
+          )}
+          {has("targetSystemTags") && (
+            <Field id="targetSystemTags">
+              {tags(metadata.targetSystemTags, (t) => {
+                const parsed = parseTargetSystemTag(t);
+                return parsed ? `${parsed.category.name}: ${parsed.sub.name}` : t;
+              })}
+            </Field>
+          )}
+          {has("sectorTags") && (
+            <Field id="sectorTags">
+              {tags(metadata.sectorTags, (t) => findSector(t)?.name ?? t)}
+            </Field>
+          )}
+          {has("marketFormTags") && (
+            <Field id="marketFormTags">
+              {tags(metadata.marketFormTags, (t) => vocabLabel(MARKET_FORMS, t))}
+            </Field>
+          )}
+          {has("localityTags") && (
+            <Field id="localityTags">
+              {tags(metadata.localityTags, (t) => vocabLabel(LOCALITIES, t))}
+            </Field>
+          )}
         </dl>
       </section>
 
-      {groups.map((group) => (
-        <section className="qf-section" key={group.group}>
+      {groups.map((group, i) => (
+        <section className="qf-section" key={`${i}:${group.label}`}>
           <h2 className="qf-group">{group.label}</h2>
           <dl className="qf-read-list">
             {group.questions.map((question) => {
-              const stored = byId.get(`${question.group}:${question.id}`);
+              const stored = byId.get(question.key);
               return (
                 <Row
-                  key={question.id}
+                  key={question.key}
                   label={question.text}
                   citation={question.citation}
                   note={
-                    question.optional ? (
+                    !question.required ? (
                       <span className="qf-optional"> optional</span>
                     ) : undefined
                   }
@@ -186,34 +207,36 @@ export default function AnsweredForm({
         </section>
       ))}
 
-      <section className="qf-section">
-        <h2>
-          {RISK_BLOCK.title} ({risks.length})
-          <span className="qf-citation">{RISK_BLOCK.citation}</span>
-        </h2>
-        {risks.map((row, i) => (
-          <div className="qf-risk-view" key={row.id}>
-            <h3>Risk {i + 1}</h3>
-            <dl className="qf-read-list">
-              {RISK_FIELDS.map((field) => {
-                const value = riskValue(row, field.id);
-                // An optional field left blank is not shown at all: the risk
-                // rows are read as a chain, and a row of "left blank" breaks it.
-                if (value === null) return null;
-                return (
-                  <Row
-                    key={field.id}
-                    label={field.label}
-                    citation={field.citation}
-                  >
-                    {value}
-                  </Row>
-                );
-              })}
-            </dl>
-          </div>
-        ))}
-      </section>
+      {has("risks") && (
+        <section className="qf-section">
+          <h2>
+            {RISK_BLOCK.title} ({risks.length})
+            <span className="qf-citation">{RISK_BLOCK.citation}</span>
+          </h2>
+          {risks.map((row, i) => (
+            <div className="qf-risk-view" key={row.id}>
+              <h3>Risk {i + 1}</h3>
+              <dl className="qf-read-list">
+                {RISK_FIELDS.map((field) => {
+                  const value = riskValue(row, field.id);
+                  // An optional field left blank is not shown at all: the risk
+                  // rows are read as a chain, and a row of "left blank" breaks it.
+                  if (value === null) return null;
+                  return (
+                    <Row
+                      key={field.id}
+                      label={field.label}
+                      citation={field.citation}
+                    >
+                      {value}
+                    </Row>
+                  );
+                })}
+              </dl>
+            </div>
+          ))}
+        </section>
+      )}
     </div>
   );
 }

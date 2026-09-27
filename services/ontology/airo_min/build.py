@@ -22,6 +22,11 @@ from .schema import AIRO, SCHEMA_VERSION
 from .vair_map import VAIR, vair_capability, vair_sector
 from .vair_terms import every_vair_term, is_term_for
 from .pickers import PICKERS
+from .annex_points import annex_citation
+
+#: The seeded questions' scopes. Their answers get no triple beyond today's, so a
+#: card filled with the default form builds the very graph it built before forms.
+_SEEDED_SCOPES = frozenset({"annex-1", "annex-2"})
 
 # Our own vocabulary, for what AIRO does not model: the source answers and their
 # citations. Never mixed into the airo: namespace.
@@ -185,10 +190,12 @@ def build_graph(
         g,
         ex.system,
         "AISystem",
-        f"{qualification['systemName']} {qualification['systemVersion']}".strip(),
+        f"{qualification.get('systemName', '')} {qualification.get('systemVersion', '')}".strip(),
     )
     g.add((system, QUAL.qualificationId, Literal(qid)))
-    g.add((system, QUAL.description, Literal(qualification["description"])))
+    # A form may leave a block out: it then arrives as "" (or is missing) and adds nothing.
+    if qualification.get("description", ""):
+        g.add((system, QUAL.description, Literal(qualification["description"])))
 
     # ── capabilities: our tag, plus its VAIR type where one exists ───────────
     for i, ts in enumerate(qualification.get("targetSystems", [])):
@@ -232,17 +239,18 @@ def build_graph(
             link(g, system, prop, node)
 
     # ── purpose, operators, users ────────────────────────────────────────────
-    link(
-        g,
-        system,
-        "hasPurpose",
-        named(g, ex.purpose, "Purpose", qualification["targetUseCase"], names.get("purpose")),
-    )
+    if qualification.get("targetUseCase", ""):
+        link(
+            g,
+            system,
+            "hasPurpose",
+            named(g, ex.purpose, "Purpose", qualification["targetUseCase"], names.get("purpose")),
+        )
     link(
         g,
         system,
         "isProvidedBy",
-        named(g, ex.provider, "AIOperator", qualification["company"], names.get("provider")),
+        named(g, ex.provider, "AIOperator", qualification.get("company", ""), names.get("provider")),
     )
     if qualification.get("intendedDeployers"):
         link(
@@ -257,12 +265,13 @@ def build_graph(
                 names.get("deployer"),
             ),
         )
-    link(
-        g,
-        system,
-        "hasAIUser",
-        named(g, ex.users, "AIUser", qualification["targetUsers"], names.get("users")),
-    )
+    if qualification.get("targetUsers", ""):
+        link(
+            g,
+            system,
+            "hasAIUser",
+            named(g, ex.users, "AIUser", qualification["targetUsers"], names.get("users")),
+        )
 
     # ── prose-derived, supplied by an agent ──────────────────────────────────
     for prop, key, cls, prefix, citation in (
@@ -334,12 +343,31 @@ def build_graph(
         g.add((system, QUAL.builtWith, Literal(stamp)))
 
     # ── the Annex IV answers, verbatim ───────────────────────────────────────
+    # An answer exported with a form carries its question's `annexPoint`. Tagged,
+    # it is an answer under that point's citation; untagged (None), it is not
+    # Annex IV documentation and stays out of the graph (A17): the card lists it
+    # under "Additional documentation" instead. No key at all is a legacy export.
     for answer in qualification.get("answers", []):
+        if "annexPoint" in answer and answer["annexPoint"] is None:
+            continue
         node = BNode()
         g.add((system, QUAL.answer, node))
-        g.add((node, QUAL.citation, Literal(_annex_citation(answer))))
+        if "annexPoint" in answer:
+            point = str(answer["annexPoint"])
+            try:
+                citation = annex_citation(point)
+            except KeyError:
+                raise ValueError(f"{point!r} is not an Annex IV point") from None
+            g.add((node, QUAL.citation, Literal(citation)))
+        else:
+            g.add((node, QUAL.citation, Literal(_annex_citation(answer))))
         g.add((node, QUAL.questionId, Literal(f"{answer['toolId']}:{answer['questionId']}")))
         g.add((node, QUAL.text, Literal(answer["answer"])))
+        if "annexPoint" in answer and answer["toolId"] not in _SEEDED_SCOPES:
+            # A custom question: which point it answers, and the source it cites.
+            g.add((node, QUAL.annexPoint, Literal(point)))
+            if answer.get("citation"):
+                g.add((node, QUAL.sourceCitation, Literal(answer["citation"])))
 
     return g
 
@@ -411,8 +439,11 @@ def _add_risk(
     # The affected stakeholder is the system's own operator or user node, so the
     # graph has one node per stakeholder rather than one per risk.
     stakeholder_prop = _AFFECTED_CLASS[affected]
-    stakeholder = next(iter(g.objects(system, URIRef(AIRO + stakeholder_prop))))
-    link(g, impact, "hasImpactOnStakeholder", stakeholder)
+    # A form without the users block has no AIUser node: the chain then has no
+    # stakeholder rather than failing.
+    stakeholder = next(iter(g.objects(system, URIRef(AIRO + stakeholder_prop))), None)
+    if stakeholder is not None:
+        link(g, impact, "hasImpactOnStakeholder", stakeholder)
 
     for area_id in row.get("impactAreas", []):
         node = areas.get(area_id)

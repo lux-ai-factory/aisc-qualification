@@ -74,3 +74,119 @@ describe("the risk rows the form holds now", () => {
     expect(currentRisks(new FormData())).toEqual([]);
   });
 });
+
+// ── Form assembly: what a document may propose depends on the form ─────────
+// (spec docs/superpowers/form-assembly-2026-09-24/01-spec.md, R40)
+//
+// Interface chosen here, in src/lib/prefillChoice.ts:
+//   prefillableFor(form): Set<string>   identity + included metadata text fields + question fields
+//   prefillFormSpec(form): { fields, questions }   what useDocumentPrefill sends
+//   currentAnswers(formData, prefillable?)          limited to that set (default: PREFILLABLE)
+
+import * as choice from "@/lib/prefillChoice";
+import { KEY_QUESTIONS, keyQuestionField } from "@/data/keyQuestions";
+import { customQuestion, formVersion, loadSrc, seededQuestion, setQuestion } from "../support/forms";
+
+describe("the prefillable fields of a form (R40)", () => {
+  const acme = formVersion({
+    blocks: ["targetUsers", "sectorTags", "risks"] as never,
+    questions: [
+      customQuestion("acme", "q1", { text: "Who signs off?", citation: "Acme AI Policy §4.2" }),
+      customQuestion("acme", "q2", { text: "Tagged?", annexPoint: "2a" as never }),
+    ],
+  });
+
+  it("R40 are the identity, the included metadata text fields and the questions, never a tag picker", () => {
+    expect([...choice.prefillableFor(acme)].sort()).toEqual(
+      ["company", "q:f-acme:q1", "q:f-acme:q2", "systemName", "systemVersion", "targetUsers"].sort(),
+    );
+  });
+
+  it("R40 for the default version they are exactly today's 21", async () => {
+    const { annexDefaultVersion } = await loadSrc("domain/forms/legacy.ts");
+    const set = choice.prefillableFor(annexDefaultVersion());
+    expect(set.size).toBe(21);
+    expect([...set].sort()).toEqual([...choice.PREFILLABLE].sort());
+    for (const q of KEY_QUESTIONS) expect(set.has(keyQuestionField(q))).toBe(true);
+  });
+
+  it('R40 the spec sent to the prefill: identity, included blocks, "risks" when included, every question', () => {
+    const spec = choice.prefillFormSpec(acme);
+    expect([...spec.fields].sort()).toEqual(
+      ["company", "q:f-acme:q1", "q:f-acme:q2", "risks", "sectorTags", "systemName", "systemVersion", "targetUsers"].sort(),
+    );
+    expect(spec.questions).toEqual([
+      { field: "q:f-acme:q1", text: "Who signs off?", citation: "Acme AI Policy §4.2", annexPoint: null },
+      { field: "q:f-acme:q2", text: "Tagged?", citation: "", annexPoint: "2a" },
+    ]);
+  });
+
+  it('R40 no "risks" in the spec when the form has no risk block', () => {
+    expect(choice.prefillFormSpec(formVersion({ blocks: [] })).fields).not.toContain("risks");
+  });
+
+  it("R40 what the form holds is read against the form's own fields", () => {
+    const fd = new FormData();
+    fd.append("systemName", "MCAS");
+    fd.append("q:f-acme:q1", "The head of data science.");
+    fd.append("description", "Not on this form.");
+    expect(choice.currentAnswers(fd, choice.prefillableFor(acme))).toEqual({
+      systemName: "MCAS",
+      "q:f-acme:q1": "The head of data science.",
+    });
+  });
+});
+
+// ── Two-level forms T58: prefill uses the pinned wording ───────────────────
+// (docs/superpowers/two-level-forms-2026-09-25/01-spec.md). The questionnaire version pins
+// s-acme:q1 to set v1; set v2 rewords it. The spec sent to the prefill holds the v1 wording,
+// because it is built from the resolved questionnaire version only.
+
+describe("the prefill spec of a questionnaire version (T58)", () => {
+  const V1_TEXT = "Who signs off a model release?";
+  const pinned = formVersion({
+    questionnaireId: "mix",
+    questionnaireName: "Mix",
+    versionId: "mix-v1",
+    blocks: ["targetUseCase", "risks"] as never,
+    questions: [
+      seededQuestion("2a"),
+      setQuestion("acme", "q1", {
+        text: V1_TEXT,
+        citation: "Acme AI Policy §4.2",
+        setVersionId: "acme-v1",
+        setVersionNumber: 1,
+      }),
+    ],
+  });
+
+  it("T58 questions hold the pinned v1 wording of s-acme:q1, with its field, citation and point", () => {
+    const spec = choice.prefillFormSpec(pinned);
+    expect(spec.questions).toEqual([
+      {
+        field: "q:annex-2:2a",
+        text: KEY_QUESTIONS.find((k) => k.id === "2a")!.text,
+        citation: "Annex IV(2)(a)",
+        annexPoint: "2a",
+      },
+      { field: "q:s-acme:q1", text: V1_TEXT, citation: "Acme AI Policy §4.2", annexPoint: null },
+    ]);
+    expect(JSON.stringify(spec)).not.toContain("Who signs off a release, v2?");
+  });
+
+  it("T58 fields are the identity, the version's blocks, risks when included, and every question field (01 R40)", () => {
+    const spec = choice.prefillFormSpec(pinned);
+    expect([...spec.fields].sort()).toEqual(
+      ["company", "q:annex-2:2a", "q:s-acme:q1", "risks", "systemName", "systemVersion", "targetUseCase"].sort(),
+    );
+    expect(choice.prefillFormSpec({ ...pinned, blocks: [] }).fields).not.toContain("risks");
+  });
+
+  it("T58 useDocumentPrefill takes the resolved questionnaire version (source)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("src/app/p/[project]/qualify/new/useDocumentPrefill.ts", "utf8");
+    expect(src).toMatch(/ResolvedQuestionnaireVersion/);
+    expect(src).not.toMatch(/ResolvedFormVersion/);
+    expect(src).toMatch(/prefillFormSpec\(/);
+  });
+});

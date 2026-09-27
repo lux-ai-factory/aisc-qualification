@@ -44,8 +44,13 @@ model Qualification {
   knowledgeGraph    KnowledgeGraph?
   risks             QualificationRisk[]
   components        CardComponent[]
+  /// The questionnaire version this card was filled with. NULL means "Annex IV default" v1
+  /// (annex-iv-default-v1): every card saved before forms existed.
+  questionnaireVersionId String?               @map("questionnaire_version_id")
+  questionnaireVersion   QuestionnaireVersion? @relation(fields: [questionnaireVersionId], references: [id], onDelete: Restrict, map: "qualification_questionnaire_version_id_fkey")
 
   @@index([projectId])
+  @@index([questionnaireVersionId], map: "qualification_questionnaire_version_id_idx")
   @@map("qualification")
 }
 
@@ -123,7 +128,129 @@ model QualificationAnswer {
   answer          String
   qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
 
-  @@unique([qualificationId, questionId])
+  // toolId is the question's scope ("annex-1"/"annex-2" for the seeded questions),
+  // questionId its local id within that scope.
+  @@unique([qualificationId, toolId, questionId], map: "qualification_answer_qualification_id_tool_id_question_id_key")
   @@index([qualificationId, toolId])
   @@map("qualification_answer")
+}
+
+/// Where questions are written. The builtin set is id "annex-iv" (ANNEX_SET_ID in src/domain/forms/legacy.ts).
+model QuestionSet {
+  id          String               @id @default(cuid())
+  /// Fixed at creation.
+  name        String
+  description String               @default("")
+  /// "builtin" (Annex IV), "builder" or "import".
+  origin      String
+  /// Retired: hidden from lists and pickers, still resolvable. Set once, never cleared.
+  retiredAt   DateTime?            @map("retired_at") @db.Timestamptz(3)
+  createdAt   DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdBy   String               @map("created_by")
+  versions    QuestionSetVersion[]
+  questions   Question[]
+
+  @@map("question_set")
+}
+
+/// One immutable version of a question set. Append-only.
+model QuestionSetVersion {
+  id        String                   @id @default(cuid())
+  setId     String                   @map("set_id")
+  number    Int
+  createdAt DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdBy String                   @map("created_by")
+  set       QuestionSet              @relation(fields: [setId], references: [id], onDelete: Restrict)
+  items     QuestionSetVersionItem[]
+
+  @@unique([setId, number], map: "question_set_version_set_id_number_key")
+  @@map("question_set_version")
+}
+
+/// A question's identity. Its wording is per set version.
+model Question {
+  id        String                   @id @default(cuid())
+  setId     String                   @map("set_id")
+  /// "annex-1"/"annex-2" (builtin), "f-<old form id>" (before 2026-09-25), "s-<set id>" (after).
+  scope     String
+  /// "1a" ... (builtin), "q1", "q2", ... per set, never reused.
+  localId   String                   @map("local_id")
+  createdAt DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  set       QuestionSet              @relation(fields: [setId], references: [id], onDelete: Restrict)
+  items     QuestionSetVersionItem[]
+
+  @@unique([scope, localId], map: "question_scope_local_id_key")
+  @@index([setId], map: "question_set_id_idx")
+  @@map("question")
+}
+
+/// A question as one set version words it. Immutable. The only place wording lives.
+model QuestionSetVersionItem {
+  setVersionId String                     @map("set_version_id")
+  questionId   String                     @map("question_id")
+  position     Int
+  text         String
+  /// Free text for any source, e.g. "Acme AI Policy §4.2". May be "".
+  citation     String                     @default("")
+  required     Boolean
+  /// One of the 14 ids in src/data/annexPoints.json, or null (untagged).
+  annexPoint   String?                    @map("annex_point")
+  /// The builtin questions keep "About the system" / "How the system was built"; others null.
+  groupLabel   String?                    @map("group_label")
+  setVersion   QuestionSetVersion         @relation(fields: [setVersionId], references: [id], onDelete: Restrict)
+  question     Question                   @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  usedBy       QuestionnaireVersionItem[]
+
+  @@id([setVersionId, questionId], map: "question_set_version_item_pkey")
+  @@unique([setVersionId, position], map: "question_set_version_item_set_version_id_position_key")
+  @@index([questionId], map: "question_set_version_item_question_id_idx")
+  @@map("question_set_version_item")
+}
+
+/// What a card is filled with. The default is always id "annex-iv-default" (DEFAULT_QUESTIONNAIRE_ID). There is no default flag.
+model Questionnaire {
+  id          String                 @id @default(cuid())
+  name        String
+  description String                 @default("")
+  origin      String
+  /// false for "Use once": never in lists or the chooser.
+  listed      Boolean                @default(true)
+  retiredAt   DateTime?              @map("retired_at") @db.Timestamptz(3)
+  createdAt   DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdBy   String                 @map("created_by")
+  versions    QuestionnaireVersion[]
+
+  @@map("questionnaire")
+}
+
+/// One immutable questionnaire version. Append-only.
+model QuestionnaireVersion {
+  id              String                     @id @default(cuid())
+  questionnaireId String                     @map("questionnaire_id")
+  number          Int
+  /// Included blocks, a subset of FORM_BLOCKS. The identity block is implicit.
+  blocks          String[]
+  createdAt       DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdBy       String                     @map("created_by")
+  questionnaire   Questionnaire              @relation(fields: [questionnaireId], references: [id], onDelete: Restrict)
+  items           QuestionnaireVersionItem[]
+  qualifications  Qualification[]
+
+  @@unique([questionnaireId, number], map: "questionnaire_version_questionnaire_id_number_key")
+  @@map("questionnaire_version")
+}
+
+/// One picked question, pinned to the set version whose wording it shows.
+model QuestionnaireVersionItem {
+  questionnaireVersionId String                 @map("questionnaire_version_id")
+  position               Int
+  setVersionId           String                 @map("set_version_id")
+  questionId             String                 @map("question_id")
+  questionnaireVersion   QuestionnaireVersion   @relation(fields: [questionnaireVersionId], references: [id], onDelete: Restrict)
+  setItem                QuestionSetVersionItem @relation(fields: [setVersionId, questionId], references: [setVersionId, questionId], onDelete: Restrict, map: "questionnaire_version_item_set_item_fkey")
+
+  @@id([questionnaireVersionId, questionId], map: "questionnaire_version_item_pkey")
+  @@unique([questionnaireVersionId, position], map: "questionnaire_version_item_version_id_position_key")
+  @@index([setVersionId, questionId], map: "questionnaire_version_item_set_version_id_question_id_idx")
+  @@map("questionnaire_version_item")
 }

@@ -10,6 +10,8 @@ import type {
 } from "@/domain/OntologyView";
 import { OntologyClient, type OntologyBuild } from "./OntologyClient";
 import { toExport } from "./QualificationExporter";
+import { questionnaireService } from "./QuestionnaireService";
+import type { QuestionnaireResolver } from "@/domain/forms/types";
 import { assertLatestCard } from "./cardLatest";
 import {
   knowledgeGraphStore,
@@ -29,7 +31,15 @@ export class OntologyService {
     private readonly clientFactory: () => OntologyClient = () =>
       OntologyClient.fromEnv(),
     private readonly graphs: KnowledgeGraphStore = knowledgeGraphStore,
+    private readonly forms: QuestionnaireResolver = questionnaireService,
   ) {}
+
+  /** The card's export with its form version; a card saved before forms
+   *  existed reads as the default version, and an unknown one as no form. */
+  private async exportOf(q: Parameters<typeof toExport>[0]) {
+    const form = await this.forms.resolve(q.questionnaireVersionId ?? null);
+    return toExport(q, form ?? undefined);
+  }
 
   /**
    * Build the graph and store it if it has changed.
@@ -42,7 +52,7 @@ export class OntologyService {
     const q = await this.repo.find(projectId, qualificationId);
     if (!q) throw new Error("Qualification not found.");
     const built = await this.clientFactory().build(
-      toExport(q),
+      await this.exportOf(q),
       (q.ontologyExtracted as OntologyExtracted | null) ?? undefined,
       (q.ontologyPatch as OntologyPatch | null) ?? undefined,
     );
@@ -73,7 +83,7 @@ export class OntologyService {
     // Build BEFORE saving, so a rejected term (an invented VAIR type) leaves the
     // stored patch untouched rather than persisting something the graph refuses.
     const built = await this.clientFactory().build(
-      toExport(q),
+      await this.exportOf(q),
       (q.ontologyExtracted as OntologyExtracted | null) ?? undefined,
       patch,
     );

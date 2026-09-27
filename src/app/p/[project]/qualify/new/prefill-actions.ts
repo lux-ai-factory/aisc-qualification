@@ -2,6 +2,7 @@
 
 import {
   prefillClient,
+  type PrefillFormSpec,
   type PrefillMode,
   type PrefillResult,
   type PrefillRisk,
@@ -31,11 +32,21 @@ export async function readDocument(
   }
   let current: PrefillValues = {};
   let currentRisks: PrefillRisk[] = [];
+  // Sent only for a form other than the default: which fields it has, and its questions.
+  let formSpec: PrefillFormSpec | undefined;
   try {
     current = JSON.parse((formData.get("current") as string) || "{}");
     currentRisks = JSON.parse((formData.get("current_risks") as string) || "[]");
+    const fields = formData.get("fields");
+    const questions = formData.get("questions");
+    if (typeof fields === "string" || typeof questions === "string") {
+      formSpec = {
+        fields: JSON.parse((fields as string) || "[]"),
+        questions: JSON.parse((questions as string) || "[]"),
+      };
+    }
   } catch {
     return { ok: false, error: "The form's answers could not be read." };
   }
-  return prefillClient.read(file, mode, current, currentRisks);
+  return prefillClient.read(file, mode, current, currentRisks, formSpec);
 }

@@ -4,6 +4,7 @@ import {
   type QualificationWithAnswers,
 } from "@/server/repositories/QualificationRepository";
 import {
+  FormValidationError,
   QualificationFormParser,
   qualificationFormParser,
 } from "@/server/forms/QualificationFormParser";
@@ -16,12 +17,22 @@ import {
   type NextCard,
 } from "@/domain/cardVersions";
 import type { FormExample } from "@/data/examples/types";
+import { questionnaireService } from "@/server/services/QuestionnaireService";
+import { resolveQuestionnaireVersionId } from "@/domain/forms/legacy";
+import type { QuestionnaireResolver } from "@/domain/forms/types";
+
+/** A posted text field, trimmed; null when absent or blank. */
+function postedId(formData: FormData, name: string): string | null {
+  const raw = formData.get(name);
+  return typeof raw === "string" && raw.trim() !== "" ? raw.trim() : null;
+}
 
 export class QualificationService {
   constructor(
     private readonly repo: QualificationRepository = qualificationRepository,
     private readonly parser: QualificationFormParser = qualificationFormParser,
     private readonly platform: PlatformClient = platformClient,
+    private readonly forms: QuestionnaireResolver = questionnaireService,
   ) {}
 
   /**
@@ -31,17 +42,30 @@ export class QualificationService {
    * the platform) and then the card that describes it. Nothing is frozen: an
    * older version is read-only because it is not the latest, which the
    * database enforces. When the platform does not answer, nothing is stored.
+   *
+   * The questionnaire version the card was filled with is loaded here, from its
+   * id: which questions and blocks count is never taken from the request. A page
+   * opened before the rename posts `formVersionId`; it is read when the new name
+   * is absent (D20).
    */
   async createFromForm(project: string, formData: FormData): Promise<{ id: string; projectId: string }> {
-    const parsed = this.parser.parse(formData);
+    const id = postedId(formData, "questionnaireVersionId") ?? postedId(formData, "formVersionId");
+    const form = await this.forms.resolve(id);
+    if (!form) {
+      throw new FormValidationError("The questionnaire this was filled with no longer exists. Reload the page.");
+    }
+    // The parser names the version it read `formVersionId`; the card stores it as questionnaireVersionId.
+    const { formVersionId: _parsedVersion, ...parsed } = this.parser.parse(formData, form);
+    void _parsedVersion;
     const version = await this.platform.createVersion(project, {
       name: parsed.systemName,
       version: parsed.systemVersion,
       provider: parsed.company,
-      description: parsed.description,
+      description: parsed.description === "" ? null : parsed.description,
     });
     const made = await this.repo.create({
       ...parsed,
+      questionnaireVersionId: form.versionId,
       projectId: version.project_id,
       systemId: version.pid,
     });
@@ -61,11 +85,17 @@ export class QualificationService {
    * Where the next card starts: the version it will make, and the newest card
    * before it, loaded into the form to be reviewed.
    */
-  async startingPoint(project: string): Promise<{ next: NextCard; initial: FormExample | null }> {
+  async startingPoint(
+    project: string,
+  ): Promise<{ next: NextCard; initial: FormExample | null; fromQuestionnaireVersionId: string | null }> {
     const { versions, cards } = await this.versionsAndCards(project);
     const next = nextCard(versions, cards);
     const from = cards.find((c) => c.id === next.fromCardId);
-    return { next, initial: from ? cardAsFormStart(from) : null };
+    return {
+      next,
+      initial: from ? cardAsFormStart(from) : null,
+      fromQuestionnaireVersionId: from ? resolveQuestionnaireVersionId(from.questionnaireVersionId ?? null) : null,
+    };
   }
 
   /** The latest version's card, if it has one: what the system's page shows. */

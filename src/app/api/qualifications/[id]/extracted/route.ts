@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 import { qualificationRepository } from "@/server/repositories/QualificationRepository";
 import { toExport } from "@/server/services/QualificationExporter";
 import { ontologyService } from "@/server/services/OntologyService";
+import { questionnaireService } from "@/server/services/QuestionnaireService";
 import { parseExtracted } from "@/server/forms/ExtractedParser";
 import { NOT_LATEST, isLatestCard, isLatestCardInDb } from "@/server/services/cardLatest";
 
@@ -54,8 +55,9 @@ export async function GET(
 
   const q = await qualificationRepository.find(project, id);
   if (!q) return new NextResponse("Not found", { status: 404 });
+  const form = await questionnaireService.resolve(q.questionnaireVersionId ?? null);
   return NextResponse.json({
-    ...toExport(q),
+    ...toExport(q, form ?? undefined),
     extracted: q.ontologyExtracted ?? null,
     // The filler takes its project from here, never from whoever started it, so a
     // run can only use the model and key of the qualification's own project.

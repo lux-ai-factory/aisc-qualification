@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import type { Sector, TargetSystemCategory } from "@/data";
 import type { FormExample } from "@/data/examples";
-import { keyQuestionField, type KeyQuestion } from "@/data/keyQuestions";
+import type { KeyQuestion } from "@/data/keyQuestions";
 import { LOCALITIES, MARKET_FORMS } from "@/data/airoVocab";
 import { METADATA_FIELDS, type MetadataFieldId } from "@/data/formFields";
 import ChipPicker from "./ChipPicker";
@@ -12,11 +12,25 @@ import { submitQualification, type SubmitState } from "./actions";
 import SubmitOverlay from "./SubmitOverlay";
 import DocumentUpload from "./DocumentUpload";
 import { useDocumentPrefill } from "./useDocumentPrefill";
+import { annexDefaultVersion } from "@/domain/forms/legacy";
+import type { FormBlock } from "@/domain/forms/blocks";
+import { moveNotice, rewordedSince } from "@/domain/forms/moveCard";
+import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
 
 type Props = {
   /** The project whose AI system this describes. */
   project: string;
-  keyQuestions: KeyQuestion[];
+  /** The questionnaire version to fill: which blocks and questions it has.
+   *  Absent is the default version. */
+  form?: ResolvedQuestionnaireVersion;
+  /** The version the previous card was filled with, when this card moves to
+   *  another one (T41): the move is announced, reworded questions flagged. */
+  previous?: ResolvedQuestionnaireVersion | null;
+  /** The previous card's version number, for "Reworded since v<N>". */
+  cardNumber?: number;
+  /** No longer read: the questions come from `form`. Kept so older mounts
+   *  still type-check. */
+  keyQuestions?: KeyQuestion[];
   targetSystems: TargetSystemCategory[];
   sectors: Sector[];
   /** A worked example to open the form on, for reading and correcting rather
@@ -36,11 +50,26 @@ function FieldLabel({ htmlFor, id }: { htmlFor: string; id: MetadataFieldId }) {
 
 export default function QualifyForm({
   project,
-  keyQuestions,
+  form,
+  previous,
+  cardNumber,
   targetSystems,
   sectors,
   initial,
 }: Props) {
+  const v = useMemo(() => form ?? annexDefaultVersion(), [form]);
+  // A card moving to another questionnaire version: what the notice says, and
+  // which carried answers sit under a question worded differently now (T41).
+  const carried = initial?.answers ?? {};
+  const moving =
+    previous && previous.versionId !== v.versionId
+      ? moveNotice({ from: previous, to: v, cardNumber: cardNumber ?? 0, answers: carried })
+      : null;
+  const reworded = useMemo<Record<string, string>>(
+    () => (previous && previous.versionId !== v.versionId ? rewordedSince(previous, v) : {}),
+    [previous, v],
+  );
+  const has = (block: FormBlock) => v.blocks.includes(block);
   const meta = initial?.metadata;
   const [targetTags, setTargetTags] = useState<Set<string>>(
     new Set(meta?.targetSystemTags ?? []),
@@ -77,12 +106,14 @@ export default function QualifyForm({
 
   const { formRef, upload, riskRows, pickDocument, chooseMode } = useDocumentPrefill(
     initial?.risks,
+    v,
   );
 
   return (
     <>
       {/* outside the qualification's form, so a file is never posted with it;
           the class gives it the form's look */}
+      {moving && <p className="qf-moving">{moving}</p>}
       <div className="qualify-form qualify-prefill">
         <DocumentUpload status={upload} onPick={pickDocument} onChoose={chooseMode} />
       </div>
@@ -129,120 +160,147 @@ export default function QualifyForm({
               />
             </div>
           </div>
-          <div className="field">
-            <FieldLabel htmlFor="description" id="description" />
-            <textarea
-              id="description"
-              name="description"
-              defaultValue={meta?.description ?? ""}
-              rows={3}
-              placeholder="One or two sentences explaining what the system does. e.g. 'Computer vision system that detects out-of-stock items on retail shelves from in-store camera footage.'"
-              required
-            />
-          </div>
-          <div className="field">
-            <FieldLabel htmlFor="targetUseCase" id="targetUseCase" />
-            <textarea
-              id="targetUseCase"
-              name="targetUseCase"
-              defaultValue={meta?.targetUseCase ?? ""}
-              rows={3}
-              placeholder="The specific scenario the system is built for. e.g. 'Real-time alerts to store associates when high-velocity SKUs fall below the replenishment threshold.'"
-              required
-            />
-          </div>
-          <div className="field">
-            <FieldLabel htmlFor="targetUsers" id="targetUsers" />
-            <textarea
-              id="targetUsers"
-              name="targetUsers"
-              defaultValue={meta?.targetUsers ?? ""}
-              rows={2}
-              placeholder="Who interacts with the system and who is affected by its results. e.g. 'Store associates and shelf-replenishment staff in supermarkets across the EU.'"
-              required
-            />
-          </div>
-          <div className="field">
-            <FieldLabel htmlFor="intendedDeployers" id="intendedDeployers" />
-            <textarea
-              id="intendedDeployers"
-              name="intendedDeployers"
-              defaultValue={meta?.intendedDeployers ?? ""}
-              rows={2}
-              placeholder="Who will operate the system day to day. e.g. 'Supermarket chains running the cameras in their own stores.'"
-              required
-            />
-          </div>
+          {has("description") && (
+            <div className="field">
+              <FieldLabel htmlFor="description" id="description" />
+              <textarea
+                id="description"
+                name="description"
+                defaultValue={meta?.description ?? ""}
+                rows={3}
+                placeholder="One or two sentences explaining what the system does. e.g. 'Computer vision system that detects out-of-stock items on retail shelves from in-store camera footage.'"
+                required
+              />
+            </div>
+          )}
+          {has("targetUseCase") && (
+            <div className="field">
+              <FieldLabel htmlFor="targetUseCase" id="targetUseCase" />
+              <textarea
+                id="targetUseCase"
+                name="targetUseCase"
+                defaultValue={meta?.targetUseCase ?? ""}
+                rows={3}
+                placeholder="The specific scenario the system is built for. e.g. 'Real-time alerts to store associates when high-velocity SKUs fall below the replenishment threshold.'"
+                required
+              />
+            </div>
+          )}
+          {has("targetUsers") && (
+            <div className="field">
+              <FieldLabel htmlFor="targetUsers" id="targetUsers" />
+              <textarea
+                id="targetUsers"
+                name="targetUsers"
+                defaultValue={meta?.targetUsers ?? ""}
+                rows={2}
+                placeholder="Who interacts with the system and who is affected by its results. e.g. 'Store associates and shelf-replenishment staff in supermarkets across the EU.'"
+                required
+              />
+            </div>
+          )}
+          {has("intendedDeployers") && (
+            <div className="field">
+              <FieldLabel htmlFor="intendedDeployers" id="intendedDeployers" />
+              <textarea
+                id="intendedDeployers"
+                name="intendedDeployers"
+                defaultValue={meta?.intendedDeployers ?? ""}
+                rows={2}
+                placeholder="Who will operate the system day to day. e.g. 'Supermarket chains running the cameras in their own stores.'"
+                required
+              />
+            </div>
+          )}
 
-          <TargetSystemPicker
-            targetSystems={targetSystems}
-            selected={targetTags}
-            onToggle={toggleTarget}
-          />
+          {has("targetSystemTags") && (
+            <TargetSystemPicker
+              targetSystems={targetSystems}
+              selected={targetTags}
+              onToggle={toggleTarget}
+            />
+          )}
 
-          <SectorPicker
-            sectors={sectors}
-            selected={sectorTagSet}
-            onToggle={toggleSector}
-          />
+          {has("sectorTags") && (
+            <SectorPicker
+              sectors={sectors}
+              selected={sectorTagSet}
+              onToggle={toggleSector}
+            />
+          )}
 
-          <ChipPicker
-            name="marketFormTags"
-            label={METADATA_FIELDS.marketFormTags.label}
-            citation={METADATA_FIELDS.marketFormTags.citation}
-            help="Pick every form that applies."
-            options={MARKET_FORMS}
-            selected={marketForms}
-            onToggle={toggleMarketForm}
-          />
+          {has("marketFormTags") && (
+            <ChipPicker
+              name="marketFormTags"
+              label={METADATA_FIELDS.marketFormTags.label}
+              citation={METADATA_FIELDS.marketFormTags.citation}
+              help="Pick every form that applies."
+              options={MARKET_FORMS}
+              selected={marketForms}
+              onToggle={toggleMarketForm}
+            />
+          )}
 
-          <ChipPicker
-            name="localityTags"
-            label={METADATA_FIELDS.localityTags.label}
-            citation={METADATA_FIELDS.localityTags.citation}
-            help="The kind of setting it operates in."
-            options={LOCALITIES}
-            selected={localities}
-            onToggle={toggleLocality}
-          />
+          {has("localityTags") && (
+            <ChipPicker
+              name="localityTags"
+              label={METADATA_FIELDS.localityTags.label}
+              citation={METADATA_FIELDS.localityTags.citation}
+              help="The kind of setting it operates in."
+              options={LOCALITIES}
+              selected={localities}
+              onToggle={toggleLocality}
+            />
+          )}
         </section>
 
-        <section className="qf-section">
-          <h2>Technical documentation</h2>
-          <p className="qf-help">
-            Answer in your own words: plain descriptions are more useful here than
-            formal language. Everything is required except the questions marked{" "}
-            <em>where applicable</em>, which you can leave blank when they do not
-            apply to your system. The tag on each question shows which part of EU
-            AI Act Annex IV it covers, for whoever reviews your answers later.
-          </p>
-          {keyQuestions.map((kq, i) => {
-            const fieldId = keyQuestionField(kq);
-            const isGroupStart =
-              i === 0 || keyQuestions[i - 1].group !== kq.group;
-            return (
-              <div key={fieldId} className="field">
-                {isGroupStart && <h3 className="qf-group">{kq.groupLabel}</h3>}
-                <label className="qf-question" htmlFor={fieldId}>
-                  <span className="qf-citation">{kq.citation}</span>
-                  {kq.optional && (
-                    <span className="qf-optional">where applicable</span>
+        {v.questions.length > 0 && (
+          <section className="qf-section">
+            <h2>Technical documentation</h2>
+            <p className="qf-help">
+              Answer in your own words: plain descriptions are more useful here than
+              formal language. Everything is required except the questions marked{" "}
+              <em>where applicable</em>, which you can leave blank when they do not
+              apply to your system. The tag on each question shows which part of EU
+              AI Act Annex IV it covers, for whoever reviews your answers later.
+            </p>
+            {v.questions.map((q, i) => {
+              const heading = q.groupLabel ?? q.setName;
+              const prev = v.questions[i - 1];
+              const isGroupStart = i === 0 || (prev.groupLabel ?? prev.setName) !== heading;
+              const oldWording = reworded[q.field];
+              const flagged = oldWording !== undefined && (carried[q.field] ?? "").trim() !== "";
+              return (
+                <div key={q.field} className="field">
+                  {isGroupStart && <h3 className="qf-group">{heading}</h3>}
+                  <label className="qf-question" htmlFor={q.field}>
+                    {q.citation !== "" && <span className="qf-citation">{q.citation}</span>}
+                    {!q.required && (
+                      <span className="qf-optional">where applicable</span>
+                    )}
+                    <span className="qf-question-text">{q.text}</span>
+                  </label>
+                  {flagged && (
+                    <p className="qf-wording-changed">
+                      {`Reworded since v${cardNumber ?? 0}. Previous wording: ${oldWording}`}
+                    </p>
                   )}
-                  <span className="qf-question-text">{kq.text}</span>
-                </label>
-                <textarea
-                  id={fieldId}
-                  name={fieldId}
-                  defaultValue={initial?.answers[fieldId] ?? ""}
-                  rows={kq.text.length > 300 ? 5 : 3}
-                  required={!kq.optional}
-                />
-              </div>
-            );
-          })}
-        </section>
+                  <textarea
+                    id={q.field}
+                    name={q.field}
+                    defaultValue={initial?.answers[q.field] ?? ""}
+                    rows={q.text.length > 300 ? 5 : 3}
+                    required={q.required}
+                  />
+                </div>
+              );
+            })}
+          </section>
+        )}
 
-        <RiskRows key={riskRows.version} initial={riskRows.rows} />
+        {has("risks") && <RiskRows key={riskRows.version} initial={riskRows.rows} />}
+
+        <input type="hidden" name="questionnaireVersionId" value={v.versionId} />
 
         <div className="qf-actions">
           <button className="btn" type="submit" disabled={pending}>

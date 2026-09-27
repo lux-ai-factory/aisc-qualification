@@ -248,3 +248,233 @@ describe("QualificationFormParser", () => {
     );
   });
 });
+
+// ── Form assembly: the parser takes the resolved form version ──────────────
+// (spec docs/superpowers/form-assembly-2026-09-24/01-spec.md, R10 to R14)
+//
+// parse(formData, form) reads the blocks and questions of `form`. The cases
+// above call parse(formData) with no form; that stays the default version, so
+// they, and prefillOnEditPage.test.ts, keep passing unmodified.
+
+import {
+  ALL_BLOCKS,
+  customQuestion,
+  formVersion,
+  loadSrc,
+  seededQuestion,
+} from "../support/forms";
+
+function identity(): FormData {
+  const fd = new FormData();
+  fd.set("systemName", "Acme Vision");
+  fd.set("systemVersion", "1.0");
+  fd.set("company", "Acme");
+  return fd;
+}
+
+const bare = formVersion({ versionId: "bare-v1", blocks: [], questions: [] });
+
+describe("the identity block is always required (R10)", () => {
+  it("R10 a form with no blocks and no questions still needs the three identity fields", () => {
+    const parser = new QualificationFormParser(fakeTaxonomy());
+    for (const [field, message] of [
+      ["systemName", /System name is required/],
+      ["systemVersion", /Version is required/],
+      ["company", /Company is required/],
+    ] as const) {
+      const fd = identity();
+      fd.set(field, "   ");
+      expect(() => parser.parse(fd, bare), field).toThrow(FormValidationError);
+      expect(() => parser.parse(fd, bare), field).toThrow(message);
+      const missing = identity();
+      missing.delete(field);
+      expect(() => parser.parse(missing, bare), field).toThrow(message);
+    }
+  });
+
+  it("R10 the identity alone is a complete submission of an empty form", () => {
+    const parser = new QualificationFormParser(fakeTaxonomy());
+    expect(parser.parse(identity(), bare)).toEqual({
+      systemName: "Acme Vision",
+      systemVersion: "1.0",
+      company: "Acme",
+      description: "",
+      targetUseCase: "",
+      targetUsers: "",
+      intendedDeployers: null,
+      targetSystemTags: [],
+      sectorTags: [],
+      marketFormTags: [],
+      localityTags: [],
+      answers: [],
+      risks: [],
+      formVersionId: "bare-v1",
+    });
+  });
+});
+
+describe("metadata text fields follow the form's blocks (R11, A5)", () => {
+  const cases = [
+    ["description", /Description is required/, ""],
+    ["targetUseCase", /Target use case is required/, ""],
+    ["targetUsers", /Target users are required/, ""],
+    ["intendedDeployers", /Intended deployers are required/, null],
+  ] as const;
+
+  for (const [field, message] of cases) {
+    it(`R11 ${field} in the blocks keeps today's rule: blank is refused`, () => {
+      const parser = new QualificationFormParser(fakeTaxonomy());
+      const fd = identity();
+      fd.set(field, "  ");
+      expect(() => parser.parse(fd, formVersion({ blocks: [field] as never }))).toThrow(message);
+    });
+  }
+
+  for (const [field, , absent] of cases) {
+    it(`R11 ${field} not in the blocks is ignored even when posted`, () => {
+      const parser = new QualificationFormParser(fakeTaxonomy());
+      const fd = identity();
+      fd.set(field, "Posted anyway.");
+      expect(parser.parse(fd, bare)[field]).toBe(absent);
+    });
+  }
+
+  it("R11 an included field is kept, trimmed as today", () => {
+    const parser = new QualificationFormParser(fakeTaxonomy());
+    const fd = identity();
+    fd.set("description", "A vision system.");
+    expect(parser.parse(fd, formVersion({ blocks: ["description"] as never })).description).toBe(
+      "A vision system.",
+    );
+  });
+});
+
+describe("pickers follow the form's blocks (R12)", () => {
+  const pickers = [
+    ["targetSystemTags", /at least one target-system/, "computer-vision:object-detection"],
+    ["sectorTags", /at least one sector/i, "health"],
+    ["marketFormTags", /at least one market form/i, "software"],
+    ["localityTags", /at least one locality/i, "workplace"],
+  ] as const;
+
+  for (const [block, message, good] of pickers) {
+    it(`R12 ${block} in the blocks needs at least one valid value`, () => {
+      const parser = new QualificationFormParser(fakeTaxonomy());
+      const form = formVersion({ blocks: [block] as never });
+      expect(() => parser.parse(identity(), form)).toThrow(message);
+      const fd = identity();
+      fd.append(block, good);
+      expect(parser.parse(fd, form)[block]).toEqual([good]);
+    });
+
+    it(`R12 ${block} not in the blocks parses as [] and ignores posted values, even invalid ones`, () => {
+      const parser = new QualificationFormParser(
+        fakeTaxonomy({ isValidTargetSystemTag: () => false, isValidSectorTag: () => false }),
+      );
+      const fd = identity();
+      fd.append(block, "not-a-real-id");
+      expect(parser.parse(fd, bare)[block]).toEqual([]);
+    });
+  }
+
+  it("R12 an included picker still refuses ids outside its vocabulary", () => {
+    const parser = new QualificationFormParser(fakeTaxonomy());
+    const fd = identity();
+    fd.append("marketFormTags", "hologram");
+    expect(() => parser.parse(fd, formVersion({ blocks: ["marketFormTags"] as never }))).toThrow(
+      /Unknown market form: hologram/,
+    );
+  });
+});
+
+describe("the risk block follows the form's blocks (R13)", () => {
+  it('R13 with "risks" in the blocks, today\'s rules hold, including at least one risk', () => {
+    const parser = new QualificationFormParser(fakeTaxonomy());
+    const form = formVersion({ blocks: ["risks"] as never });
+    expect(() => parser.parse(identity(), form)).toThrow(/Add at least one risk\./);
+    const fd = identity();
+    addRisk(fd, 0);
+    expect(parser.parse(fd, form).risks).toHaveLength(1);
+    const bad = identity();
+    addRisk(bad, 0, { affected: "subject" });
+    expect(() => parser.parse(bad, form)).toThrow(/Risk 1: who is affected must be operator or user/);
+  });
+
+  it("R13 without it every risk field is ignored and there is no error", () => {
+    const parser = new QualificationFormParser(fakeTaxonomy());
+    const fd = identity();
+    addRisk(fd, 0, { affected: "subject" });
+    expect(parser.parse(fd, bare).risks).toEqual([]);
+  });
+});
+
+describe("questions come from the version (R14)", () => {
+  const acme = formVersion({
+    versionId: "acme-v1",
+    questions: [
+      customQuestion("acme", "q1", { required: true }),
+      customQuestion("acme", "q2", { required: false }),
+      customQuestion("acme", "q3", { required: true }),
+    ],
+  });
+
+  it("R14 counts the required questions left blank", () => {
+    const parser = new QualificationFormParser(fakeTaxonomy());
+    const fd = identity();
+    fd.set("q:f-acme:q1", "  ");
+    expect(() => parser.parse(fd, acme)).toThrow("Please answer all required questions (2 missing).");
+  });
+
+  it("R14 a blank optional question gives no answer; answers are {toolId: scope, questionId: localId}, trimmed", () => {
+    const parser = new QualificationFormParser(fakeTaxonomy());
+    const fd = identity();
+    fd.set("q:f-acme:q1", "  First.  ");
+    fd.set("q:f-acme:q2", "   ");
+    fd.set("q:f-acme:q3", "Third.");
+    expect(parser.parse(fd, acme).answers).toEqual([
+      { toolId: "f-acme", questionId: "q1", answer: "First." },
+      { toolId: "f-acme", questionId: "q3", answer: "Third." },
+    ]);
+  });
+
+  it("R14 a q: field that is not a question of this version is ignored", () => {
+    const parser = new QualificationFormParser(fakeTaxonomy());
+    const fd = identity();
+    fd.set("q:f-acme:q1", "One.");
+    fd.set("q:f-acme:q3", "Three.");
+    fd.set("q:annex-2:2a", "Not asked on this form.");
+    fd.set("q:f-other:q1", "Another form's key.");
+    fd.set("q:f-acme:q9", "Not in this version.");
+    const answers = parser.parse(fd, acme).answers.map((a) => `${a.toolId}:${a.questionId}`);
+    expect(answers).toEqual(["f-acme:q1", "f-acme:q3"]);
+  });
+
+  it("R14 a mixed version reads seeded and custom questions alike", () => {
+    const parser = new QualificationFormParser(fakeTaxonomy());
+    const mixed = formVersion({ questions: [seededQuestion("2a"), customQuestion("acme", "q1")] });
+    const fd = identity();
+    fd.set("q:annex-2:2a", "Built from a pre-trained model.");
+    fd.set("q:f-acme:q1", "The head of data science.");
+    expect(parser.parse(fd, mixed).answers).toEqual([
+      { toolId: "annex-2", questionId: "2a", answer: "Built from a pre-trained model." },
+      { toolId: "f-acme", questionId: "q1", answer: "The head of data science." },
+    ]);
+  });
+
+  it("R14 the default version behaves exactly as the parser does today", async () => {
+    const { annexDefaultVersion } = await loadSrc("domain/forms/legacy.ts");
+    const form = annexDefaultVersion();
+    expect(form.blocks).toEqual([...ALL_BLOCKS]);
+    const parser = new QualificationFormParser(fakeTaxonomy());
+    const legacy = parser.parse(fullySubmittable());
+    const withForm = parser.parse(fullySubmittable(), form);
+    expect({ ...withForm, formVersionId: undefined }).toEqual({ ...legacy, formVersionId: undefined });
+    expect(withForm.formVersionId).toBe("annex-iv-default-v1");
+    const missing = fullySubmittable();
+    missing.set("q:annex-2:2g", "   ");
+    expect(() => parser.parse(missing, form)).toThrow(/1 missing/);
+    const retired = fullySubmittable();
+    retired.set("q:data:data-source", "Left over.");
+    expect(parser.parse(retired, form).answers).toHaveLength(10);
+  });
+});

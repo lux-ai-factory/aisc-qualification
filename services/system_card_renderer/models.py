@@ -71,6 +71,48 @@ class OntologyCounts(BaseModel):
     untyped: int = 0
 
 
+class CoveragePoint(BaseModel):
+    id: str
+    citation: str
+    covered: bool
+
+
+class CoverageAnnex(BaseModel):
+    covered: int
+    total: int
+    points: List[CoveragePoint] = Field(default_factory=list)
+    #: points left blank that the form asked only optionally
+    optionalBlank: int = 0
+
+
+class CoverageForm(BaseModel):
+    name: str
+    answered: int
+    total: int
+
+
+class Coverage(BaseModel):
+    """How much of Annex IV the card covers, as services/ontology computes it."""
+
+    annex: CoverageAnnex
+    forms: List[CoverageForm] = Field(default_factory=list)
+    summary: str
+
+
+class AdditionalEntry(BaseModel):
+    key: str
+    question: str
+    citation: str = ""
+    answer: str
+
+
+class AdditionalSection(BaseModel):
+    """One owner form's answers that answer no Annex IV point."""
+
+    form: str
+    entries: List[AdditionalEntry] = Field(default_factory=list)
+
+
 class Ontology(BaseModel):
     """The filled AIRO graph. When present, the card leads with it."""
 
@@ -78,6 +120,9 @@ class Ontology(BaseModel):
     rows: List[OntologyRow] = Field(default_factory=list)
     chains: List[OntologyChain] = Field(default_factory=list)
     counts: OntologyCounts = Field(default_factory=OntologyCounts)
+    # Present when the card was filled with a known form version.
+    coverage: Optional[Coverage] = None
+    additionalDocumentation: List[AdditionalSection] = Field(default_factory=list)
 
 
 class SystemCard(BaseModel):

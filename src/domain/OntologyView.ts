@@ -65,7 +65,32 @@ export type OntologyAnswer = {
   text: string;
 };
 
+/** How much of Annex IV a card covers, out of 14 points, and per custom form how
+ *  many of its questions are answered. Computed by services/ontology/airo_min/coverage.py. */
+export type Coverage = {
+  annex: {
+    covered: number;
+    total: number;
+    points: Array<{ id: string; citation: string; covered: boolean }>;
+    /** Points left uncovered that only optional questions of the form answer. */
+    optionalBlank?: number;
+  };
+  forms: Array<{ name: string; answered: number; total: number }>;
+  /** One line, e.g. "Annex IV coverage: 13 of 14 points." */
+  summary: string;
+};
+
+/** Answers to questions tagged with no Annex IV point, per owner form. */
+export type AdditionalSection = {
+  form: string;
+  entries: Array<{ key: string; question: string; citation: string; answer: string }>;
+};
+
 export type OntologyView = {
+  /** Present when the card was built with its form version. */
+  form?: { name: string; version: number };
+  coverage?: Coverage;
+  additionalDocumentation?: AdditionalSection[];
   system: OntologyNode;
   answers: OntologyAnswer[];
   rows: OntologyRow[];

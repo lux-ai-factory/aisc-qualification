@@ -63,9 +63,9 @@ prompt". The filler loads it as its system prompt before drafting an `extracted`
 
 | file | what it is |
 |---|---|
-| `mcas.qualification.json` | the saved form, exported: 13 Annex IV answers, 5 risk rows, all pickers |
+| `mcas.qualification.json` | the saved form, exported: 14 Annex IV answers, 5 risk rows, all pickers |
 | `mcas.extracted.json` | the curated prose extraction (techniques, components) |
-| `mcas.ttl` / `mcas.jsonld` | the filled AIRO graph, 295 triples |
+| `mcas.ttl` / `mcas.jsonld` | the filled AIRO graph, 413 triples |
 
 MicroCredit Assist Score v1.2.0 is a consumer-credit scoring system, so Annex III
 5(b) high-risk. Its graph instantiates 17 of the 19 classes (`Stakeholder` and

@@ -76,6 +76,11 @@
     },
     {
       "toolId": "annex-1",
+      "questionId": "1f",
+      "answer": "No physical product. MCAS is software: it runs as a set of containers on the deployer bank's own servers and reaches its users through the bank's web portal, mobile app and staff dashboard. There is nothing to photograph, no markings and no internal arrangement to describe, so no drawings are held."
+    },
+    {
+      "toolId": "annex-1",
       "questionId": "1gh",
       "answer": "Loan officers and compliance staff use a case dashboard showing the 0-1000 score, the risk category, the recommendation, the influential factors, the generated explanation with its cited policy clause, and the full decision audit trail; it is also where an override is entered. Instructions for use ship as a versioned PDF plus an in-product help centre keyed to the running version, covering intended purpose, the supported loan range and markets, accuracy bounds, known limitations, the mandatory human review of every rejection and Review-bucket case, the written-justification requirement for overrides, and the escalation path to the bank's risk committee."
     },

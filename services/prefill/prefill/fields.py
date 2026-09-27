@@ -17,6 +17,7 @@ import json
 import os
 import pathlib
 import re
+import unicodedata
 
 from prefill.risks import RISKS_HEADING
 
@@ -180,3 +181,165 @@ def proposals_from_text(text: str) -> dict[str, str]:
     """
     found = {**metadata_from_text(text), **annex_sections(text)}
     return {field: value for field, value in found.items() if value}
+
+
+# ── a custom form: questions matched by their own wording ──────────────────
+#
+# A form built or imported by the install asks its own questions. The document
+# names one the way it names a metadata field: a line that is the question's
+# text, its citation, or both, possibly as "Label: value". What follows, up to
+# the next line that names something, is the answer. A question tagged with an
+# Annex point is also answered by that point's heading, as the default form is.
+
+_NORM_WRAPPERS = ("**", "__")
+_NORM_HASHES = re.compile(r"^#+\s*")
+_NORM_MARKER = re.compile(r"^(?:[-*]\s+|\u2022\s*)")
+_NORM_NUMBER = re.compile(r"^\d+(?:\.\d+)*[.)]?\s+")
+_MARKDOWN_HEADING = re.compile(r"^#{1,6}\s")
+
+
+def norm(s: str) -> str:
+    """A line or a question, as a comparable string.
+
+    NFKC and lowercase; leading #s, list markers, numbering and surrounding
+    **/__ removed until nothing changes; no space around §; whitespace
+    collapsed; no trailing ?, : or full stop.
+    """
+    s = unicodedata.normalize("NFKC", s).lower().strip()
+    while True:
+        before = s
+        for wrapper in _NORM_WRAPPERS:
+            if len(s) > 2 * len(wrapper) and s.startswith(wrapper) and s.endswith(wrapper):
+                s = s[len(wrapper) : -len(wrapper)].strip()
+        s = _NORM_HASHES.sub("", s).strip()
+        s = _NORM_MARKER.sub("", s).strip()
+        s = _NORM_NUMBER.sub("", s).strip()
+        if s == before:
+            break
+    s = re.sub(r"\s*§\s*", "§", s)
+    s = " ".join(s.split())
+    return s.rstrip("?:. ")
+
+
+def _point_of(field: str) -> str:
+    """"q:annex-1:1de" -> "1de": the Annex point a default-form field answers."""
+    return field.rsplit(":", 1)[-1]
+
+
+#: The 14 Annex IV point ids, in the order the default form asks them. Built
+#: from the shared field mapping, so it cannot drift from src/data/annexPoints.json.
+ANNEX_POINT_IDS: tuple[str, ...] = tuple(dict.fromkeys(_point_of(f) for f in ANNEX_FIELDS.values()))
+
+
+def annex_sections_by_point(text: str) -> dict[str, tuple[str, int]]:
+    """annex_sections keyed by Annex point id, with the line of each point's first heading.
+
+    The same walk: the same headings, the risk heading ends a section, and both
+    letters of a merged point (1(d) and 1(e)) are joined in document order.
+    """
+    sections: dict[str, list[str]] = {}
+    first_line: dict[str, int] = {}
+    current: str | None = None
+    for index, line in enumerate(text.splitlines()):
+        if RISKS_HEADING.match(line):
+            current = None
+            continue
+        heading = _ANNEX_HEADING.match(line)
+        if heading:
+            field = ANNEX_FIELDS.get((heading.group(1), heading.group(2).lower()))
+            current = _point_of(field) if field else None
+            if current is not None:
+                first_line.setdefault(current, index)
+            continue
+        if current is None:
+            continue
+        if line.strip():
+            sections.setdefault(current, []).append(line.strip())
+    return {
+        point: (_clean(" ".join(lines)), first_line[point])
+        for point, lines in sections.items()
+        if lines
+    }
+
+
+#: The default form's citations. They name a question only through its Annex
+#: heading (annex_sections_by_point), never as a label of their own, so the
+#: default form proposes exactly what the Annex headings do (R38).
+_ANNEX_CITATIONS = frozenset(
+    norm(f"Annex IV({point})({letter})") for point, letter in ANNEX_FIELDS
+) | frozenset({norm("Annex IV(1)(d)-(e)"), norm("Annex IV(1)(g)-(h)")})
+
+
+def _names_for(question: dict) -> set[str]:
+    """The normalised strings a line may be to name this question."""
+    text = norm(str(question.get("text") or ""))
+    citation = norm(str(question.get("citation") or ""))
+    names = {text} if text else set()
+    if len(citation) >= 3 and citation not in _ANNEX_CITATIONS:
+        names.add(citation)
+    if text and citation:
+        names.add(f"{citation} {text}")
+    return names
+
+
+def _named(line: str, names: list[set[str]]) -> tuple[list[int], str] | None:
+    """Which questions this line names, and the value on it, if any."""
+    whole = norm(line)
+    hits = [i for i, n in enumerate(names) if whole and whole in n]
+    if hits:
+        return hits, ""
+    if ":" in line:
+        label, value = line.split(":", 1)
+        label = norm(label)
+        hits = [i for i, n in enumerate(names) if label and label in n]
+        if hits:
+            return hits, value.strip()
+    return None
+
+
+def proposals_for_questions(text: str, questions: list[dict]) -> dict[str, str]:
+    """What this document answers, for a form's own questions, by field.
+
+    `questions` are {"field", "text", "citation", "annexPoint"}. Per field, the
+    match that starts first in the document wins; on a tie, the Annex heading.
+    A match with nothing under it claims nothing, and a field with nothing is
+    absent rather than empty.
+    """
+    lines = text.splitlines()
+    names = [_names_for(q) for q in questions]
+    # field -> (first line, 1 for a naming match and 0 for an Annex match, answer)
+    candidates: dict[str, list[tuple[int, int, str]]] = {}
+
+    def stops(line: str) -> bool:
+        return bool(
+            _named(line, names)
+            or _ANNEX_HEADING.match(line)
+            or _MARKDOWN_HEADING.match(line)
+            or RISKS_HEADING.match(line)
+        )
+
+    for index, line in enumerate(lines):
+        found = _named(line, names)
+        if not found:
+            continue
+        hits, value = found
+        body = [value] if value else []
+        for following in lines[index + 1 :]:
+            if stops(following):
+                break
+            if following.strip():
+                body.append(following.strip())
+        answer = _clean(" ".join(body))
+        if not answer:
+            continue
+        for i in hits:
+            candidates.setdefault(questions[i]["field"], []).append((index, 1, answer))
+
+    by_point = annex_sections_by_point(text)
+    for q in questions:
+        point = q.get("annexPoint")
+        if point and point in by_point:
+            answer, index = by_point[point]
+            candidates.setdefault(q["field"], []).append((index, 0, answer))
+
+    return {field: min(found)[2] for field, found in candidates.items()}
