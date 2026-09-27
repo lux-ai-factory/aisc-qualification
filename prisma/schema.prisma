@@ -9,13 +9,13 @@ datasource db {
 
 model Qualification {
   id                String                @id @default(cuid())
-  // The platform project this qualification belongs to, and the card version
-  // it describes: a row of core.system, numbered per project. Both are uuids
-  // from `core` in the one database. One card per version; every save makes
-  // the next version, and only the latest version's card changes. The foreign
-  // keys are made in the migration, since Prisma cannot model a key into a
-  // schema this app only reads.
-  projectId         String                @map("project_id") @db.Uuid
+  // The card version it describes: a row of project.system in this project's
+  // own database, numbered by the platform. The database is the project, so the
+  // card names no project. One card per version; every save makes the next
+  // version, and only the latest version's card changes. The foreign key is
+  // made in the migration, since Prisma cannot model a key into a schema this
+  // app only reads. `url` stays env("DATABASE_URL") for the Prisma CLI, which
+  // scripts/migrate-projects.mjs sets per project database.
   systemId          String                @unique @map("system_id") @db.Uuid
   systemName        String
   systemVersion     String
@@ -45,7 +45,6 @@ model Qualification {
   risks             QualificationRisk[]
   components        CardComponent[]
 
-  @@index([projectId])
   @@map("qualification")
 }
 

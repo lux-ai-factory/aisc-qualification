@@ -10,6 +10,7 @@ import json
 import os
 from typing import Any
 from urllib import error, request
+from urllib.parse import quote
 
 ONTOLOGY_URL = os.environ.get("ONTOLOGY_SERVICE_URL", "http://localhost:8011")
 APP_URL = os.environ.get("APP_URL", "http://localhost:3399")
@@ -71,10 +72,19 @@ def build(qualification: dict, extracted: dict) -> dict:
     )
 
 
-def qualification(qualification_id: str) -> dict:
+def _extracted_url(pid: str, qualification_id: str) -> str:
+    """Where the app serves a card's extracted document: under its project, because
+    the card lives in that project's own database."""
+    return (
+        f"{APP_URL}/p/{quote(pid, safe='')}/api/qualifications/"
+        f"{quote(qualification_id, safe='')}/extracted"
+    )
+
+
+def qualification(pid: str, qualification_id: str) -> dict:
     """The saved form, in the export shape the builder reads."""
     req = request.Request(
-        f"{APP_URL}/api/qualifications/{qualification_id}/extracted",
+        _extracted_url(pid, qualification_id),
         headers=_token_headers(APP_TOKEN_VAR),
     )
     try:
@@ -84,10 +94,10 @@ def qualification(qualification_id: str) -> dict:
         raise ServiceError(f"cannot read qualification {qualification_id}: {exc}")
 
 
-def publish(qualification_id: str, extracted: dict) -> dict:
+def publish(pid: str, qualification_id: str, extracted: dict) -> dict:
     """Write the reviewed draft where the card reads it from."""
     return _post(
-        f"{APP_URL}/api/qualifications/{qualification_id}/extracted",
+        _extracted_url(pid, qualification_id),
         extracted,
         APP_TOKEN_VAR,
         method="PUT",

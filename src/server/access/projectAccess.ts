@@ -19,10 +19,24 @@ export type Verdict = "allow" | "not-found" | "forbidden" | "unavailable";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
-/** The project a path is inside, or null if it is not inside one. */
+/**
+ * A project id (pid): a UUID, which is what names a project's database. Only a
+ * pid is a project here; a slug or anything else is "not found".
+ */
+export const PROJECT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const isProjectId = (x: string): boolean => PROJECT_ID.test(x);
+
+/** The project a path is inside, or null if it is not inside one. A malformed
+ *  escape is returned as it is, so the pid check answers it (404), not a crash. */
 export function projectFromPath(pathname: string): string | null {
   const match = /^\/p\/([^/]+)/.exec(pathname);
-  return match ? decodeURIComponent(match[1]) : null;
+  if (!match) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
 }
 
 /**

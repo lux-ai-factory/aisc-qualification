@@ -1,6 +1,7 @@
 import {
-  qualificationRepository,
+  repositoryFor,
   type QualificationRepository,
+  type RepositoryFor,
 } from "@/server/repositories/QualificationRepository";
 import type { OntologyBuild } from "./OntologyClient";
 
@@ -20,10 +21,9 @@ export function stampOf(turtle: string): string[] {
   return [...stamps].sort();
 }
 
+/** The graphs of one project: the store is bound to that project's repository. */
 export class KnowledgeGraphStore {
-  constructor(
-    private readonly repo: QualificationRepository = qualificationRepository,
-  ) {}
+  constructor(private readonly repo: QualificationRepository) {}
 
   /** Keep this graph, unless the stored one is already it. Never throws. */
   async save(
@@ -100,4 +100,23 @@ export class KnowledgeGraphStore {
   }
 }
 
-export const knowledgeGraphStore = new KnowledgeGraphStore();
+/**
+ * The store for whichever project a request is in: each delivery opens that
+ * project's repository (its own database) and hands over from there.
+ */
+export class ProjectKnowledgeGraphs {
+  constructor(private readonly repos: RepositoryFor = repositoryFor) {}
+
+  /** As KnowledgeGraphStore.deliver, in `project`'s database. The card id stays
+   *  first, as in the store itself. */
+  async deliver(
+    qualificationId: string,
+    format: "turtle" | "jsonld",
+    build: () => Promise<OntologyBuild>,
+    project: string,
+  ): Promise<{ document: string; fromStore: boolean }> {
+    return new KnowledgeGraphStore(await this.repos(project)).deliver(qualificationId, format, build);
+  }
+}
+
+export const knowledgeGraphStore = new ProjectKnowledgeGraphs();

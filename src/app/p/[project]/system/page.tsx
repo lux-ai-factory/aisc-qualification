@@ -21,7 +21,7 @@ export default async function SystemPage({
   if (card) {
     // Drift between the latest card's links and the engine is shown, not
     // fixed. An engine that is down makes no claim either way.
-    const engine = await engineClient.components(card.projectId).catch(() => null);
+    const engine = await engineClient.components(project).catch(() => null);
     const drift = engine ? componentDrift(card.components, engine) : null;
     if (!drift || !hasDrift(drift)) redirect(`/p/${project}/qualify/${card.id}`);
     return (

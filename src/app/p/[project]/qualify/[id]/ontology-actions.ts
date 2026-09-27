@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { ontologyService } from "@/server/services/OntologyService";
-import { qualificationForCaller, qualificationForWriter } from "@/server/access/qualificationAccess";
+import { projectDbForAction } from "@/lib/projectDb";
 import { REFUSED } from "@/server/access/projectAccess";
+import { QualificationRepository } from "@/server/repositories/QualificationRepository";
 import type { NodePatch, OntologyView } from "@/domain/OntologyView";
 
 // A discriminated union on `ok`, so a truthiness check narrows in the client.
@@ -11,20 +12,32 @@ export type OntologyState =
   | { ok: true; view: OntologyView; problems: string[] }
   | { ok: false; error: string };
 
-// Every action here takes the project from the qualification it acts on. The
-// browser sends one too (`_clientProject`), and it is ignored: the middleware
-// checked the project in the URL the action was posted to, which need not be
-// the qualification's.
+// Every action here acts on the card in the database of the project it is
+// given. That project comes from the browser, so it is not trusted: the
+// platform is asked about the caller in THAT project before its database is
+// opened, and a card of another project is simply not in it.
+
+/** The card, if it is in this project's database and the caller may (read or) write it. */
+async function cardIn(
+  project: string,
+  qualificationId: string,
+  write: boolean,
+): Promise<{ error: string } | null> {
+  const d = await projectDbForAction(project, { write });
+  if (d.error !== undefined) return { error: d.error };
+  const card = await new QualificationRepository(d.db).cardSummary(qualificationId);
+  return card ? null : { error: REFUSED[404] };
+}
 
 /** Build (or rebuild) the filled graph for the card. */
 export async function loadOntology(
-  _clientProject: string,
+  project: string,
   qualificationId: string,
 ): Promise<OntologyState> {
   try {
-    const projectId = await qualificationForCaller(qualificationId);
-    if (!projectId) return { ok: false, error: REFUSED[404] };
-    const built = await ontologyService.build(projectId, qualificationId);
+    const refused = await cardIn(project, qualificationId, false);
+    if (refused) return { ok: false, ...refused };
+    const built = await ontologyService.build(project, qualificationId);
     return { ok: true, view: built.view, problems: built.problems };
   } catch (err) {
     return {
@@ -36,21 +49,16 @@ export async function loadOntology(
 
 /** Record one reviewer correction to one node, then rebuild. */
 export async function patchOntologyNode(
-  _clientProject: string,
+  project: string,
   qualificationId: string,
   nodeId: string,
   change: NodePatch,
 ): Promise<OntologyState> {
   try {
-    const write = await qualificationForWriter(qualificationId);
-    if (!write.ok) return { ok: false, error: REFUSED[write.status] };
-    const built = await ontologyService.patchNode(
-      write.project,
-      qualificationId,
-      nodeId,
-      change,
-    );
-    revalidatePath(`/qualify/${qualificationId}`);
+    const refused = await cardIn(project, qualificationId, true);
+    if (refused) return { ok: false, ...refused };
+    const built = await ontologyService.patchNode(project, qualificationId, nodeId, change);
+    revalidatePath(`/p/${project}/qualify/${qualificationId}`);
     return { ok: true, view: built.view, problems: built.problems };
   } catch (err) {
     return {
@@ -62,14 +70,14 @@ export async function patchOntologyNode(
 
 /** Discard every correction and return to the generated graph. */
 export async function resetOntology(
-  _clientProject: string,
+  project: string,
   qualificationId: string,
 ): Promise<OntologyState> {
   try {
-    const write = await qualificationForWriter(qualificationId);
-    if (!write.ok) return { ok: false, error: REFUSED[write.status] };
-    const built = await ontologyService.resetPatch(write.project, qualificationId);
-    revalidatePath(`/qualify/${qualificationId}`);
+    const refused = await cardIn(project, qualificationId, true);
+    if (refused) return { ok: false, ...refused };
+    const built = await ontologyService.resetPatch(project, qualificationId);
+    revalidatePath(`/p/${project}/qualify/${qualificationId}`);
     return { ok: true, view: built.view, problems: built.problems };
   } catch (err) {
     return {

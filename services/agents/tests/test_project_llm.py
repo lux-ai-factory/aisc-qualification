@@ -2,8 +2,9 @@
 
 The project is never the caller's to name: `fill_one` reads it from the qualification it
 works on (`projectId` in the app's export) and builds its completer from
-`baf_llm.config_for(<that project>, "card_agent")`. `POST /fill/{id}` takes no project, and
-a `?project=` a caller adds changes nothing. The platform and the model are fake servers on
+`baf_llm.config_for(<that project>, "card_agent")`. `POST /fill/{pid}/{id}` names only the
+project database the card is read from (isolation Q1), and a `?project=` a caller adds
+changes nothing. The platform and the model are fake servers on
 127.0.0.1; the ontology service and the app (`fill.clients`) are monkeypatched, as in
 test_service.py.
 """
@@ -62,9 +63,9 @@ def model_server():
 @pytest.fixture
 def no_services(monkeypatch):
     """The ontology service and the app, faked; run_fill makes one model call."""
-    monkeypatch.setattr(agent.clients, "qualification", lambda qid: {"id": qid, "projectId": QUALIFICATIONS.get(qid)})
+    monkeypatch.setattr(agent.clients, "qualification", lambda pid, qid: {"id": qid, "projectId": QUALIFICATIONS.get(qid)})
     monkeypatch.setattr(agent.clients, "vocabularies", lambda: {})
-    monkeypatch.setattr(agent.clients, "publish", lambda qid, payload: None)
+    monkeypatch.setattr(agent.clients, "publish", lambda pid, qid, payload: None)
 
     def run_fill(qualification, terms, complete, publish, max_rounds):
         complete("the system prompt", "the user prompt")
@@ -85,8 +86,8 @@ def choose(platform, body, status=200):
 def client(monkeypatch):
     calls = []
 
-    def fake_fill(qualification_id, dry_run=False, **extra):
-        calls.append((qualification_id, extra))
+    def fake_fill(pid, qualification_id, dry_run=False, **extra):
+        calls.append((pid, qualification_id, extra))
         return {"rounds": 1, "calls": 1, "flagged": 0, "model": "fake/model", "project": PID}
 
     monkeypatch.setattr(service, "fill_one", fake_fill)
@@ -97,20 +98,20 @@ def client(monkeypatch):
 
 
 def test_s3_7_a_run_is_started_with_the_qualification_only(client):
-    assert client.post("/fill/q1").status_code == 202
-    assert client.calls == [("q1", {})]
+    assert client.post(f"/fill/{PID}/q1").status_code == 202
+    assert client.calls == [(PID, "q1", {})]
 
 
 def test_s3_7_a_project_named_by_the_caller_changes_nothing(client):
     """The hole this closes: a caller naming another project to spend its key."""
-    assert client.post(f"/fill/q1?project={OTHER}").status_code == 202
-    assert client.calls == [("q1", {})]
-    assert client.get("/fill/q1").json().get("project") != OTHER
+    assert client.post(f"/fill/{PID}/q1?project={OTHER}").status_code == 202
+    assert client.calls == [(PID, "q1", {})]
+    assert client.get(f"/fill/{PID}/q1").json().get("project") != OTHER
 
 
 def test_s3_7_the_run_records_the_project_it_used(client):
-    client.post("/fill/q1")
-    assert client.get("/fill/q1").json()["result"]["project"] == PID
+    client.post(f"/fill/{PID}/q1")
+    assert client.get(f"/fill/{PID}/q1").json()["result"]["project"] == PID
 
 
 # ── fill_one with a project ──────────────────────────────────────────────────
@@ -122,7 +123,7 @@ def test_s3_7_fill_one_uses_the_projects_resolved_model(platform, model_server, 
     monkeypatch.setenv("MISTRAL_API_KEY", env_key)
     choose(platform, {"configured": True, "provider": "compatible", "model": "project-model",
                       "base_url": model_server.url + "/v1", "api_key": key})
-    result = agent.fill_one("q1")
+    result = agent.fill_one(PID, "q1")
     assert result["model"] == "compatible/project-model"
     assert result["project"] == PID
     (sent,) = model_server.seen("/v1/chat/completions")
@@ -137,7 +138,7 @@ def test_s3_7_a_qualification_without_a_project_uses_the_environment(model_serve
     monkeypatch.setenv("BAF_LLM_MODEL", "env-model")
     monkeypatch.setenv("BAF_LLM_BASE_URL", model_server.url + "/v1")
     monkeypatch.delenv("BAF_LLM_API_KEY", raising=False)
-    result = agent.fill_one("q-none")
+    result = agent.fill_one(PID, "q-none")
     assert result["model"] == "compatible/env-model"
     assert json.loads(model_server.seen("/v1/chat/completions")[0].body)["model"] == "env-model"
 
@@ -147,7 +148,7 @@ def test_s3_7_a_project_with_no_choice_uses_the_environment(platform, model_serv
     monkeypatch.setenv("BAF_LLM_MODEL", "env-model")
     monkeypatch.setenv("BAF_LLM_BASE_URL", model_server.url + "/v1")
     choose(platform, {"configured": False})
-    assert agent.fill_one("q1")["model"] == "compatible/env-model"
+    assert agent.fill_one(PID, "q1")["model"] == "compatible/env-model"
 
 
 # ── failures are the run's, never a key's ────────────────────────────────────
@@ -156,8 +157,8 @@ def test_s3_7_a_project_with_no_choice_uses_the_environment(platform, model_serv
 def _run_through_service():
     service.RUNS.clear()
     c = TestClient(service.app)
-    assert c.post("/fill/q9").status_code == 202
-    return c.get("/fill/q9").json()
+    assert c.post(f"/fill/{PID}/q9").status_code == 202
+    return c.get(f"/fill/{PID}/q9").json()
 
 
 def test_s3_7_d4_a_resolve_error_fails_the_run_with_the_platforms_reason(platform, no_services, monkeypatch):
@@ -180,6 +181,8 @@ def test_s3_7_s5_3_a_build_error_fails_the_run_without_the_key(platform, no_serv
 
 
 def test_s3_7_fill_one_takes_no_project_from_its_caller():
+    """Its `pid` names only the database the card is read from; the model's project is
+    the card's `projectId` (isolation Q1). No parameter lets a caller choose it."""
     import inspect
     assert "project" not in inspect.signature(agent.fill_one).parameters
 
@@ -189,6 +192,6 @@ def test_s3_7_the_platform_is_asked_for_the_qualifications_project_only(platform
     platform.reply(f"/internal/projects/{PID}/llm/card_agent",
                    {"configured": True, "provider": "compatible", "model": "m",
                     "base_url": model_server.url + "/v1", "api_key": key})
-    agent.fill_one("q1")
+    agent.fill_one(PID, "q1")
     assert platform.seen(f"/internal/projects/{OTHER}/llm/card_agent") == []
     assert len(platform.seen(f"/internal/projects/{PID}/llm/card_agent")) == 1

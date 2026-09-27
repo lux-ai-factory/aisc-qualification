@@ -8,7 +8,8 @@ whoever starts the run, so a run can only spend its own project's key.
 
 Two ways in, one flow:
 
-    python agent.py --qualification <id>   fill one qualification and exit
+    python agent.py --qualification <id> --project <pid>
+                                           fill one qualification and exit
     python agent.py --serve                BAF agent on the A2A platform
 
 The state machine (fill/workflow.py) is the description of the flow and what
@@ -24,19 +25,27 @@ from fill import baf_llm, clients
 from fill.workflow import MAX_ROUNDS, build_agent, run_fill
 
 
-def fill_one(qualification_id: str, dry_run: bool = False) -> dict:
+def fill_one(pid: str, qualification_id: str, dry_run: bool = False) -> dict:
     """Draft, review and publish one qualification's extracted document.
 
-    The model is the one the qualification's own project chose (`projectId` in the
-    app's export), or the environment's when the project chose none or the export
-    names no project. The qualification is read first, because that is where the
-    project comes from; the model is settled before any drafting starts.
+    `pid` only says which project database the card is in (the app's path
+    `/p/{pid}/api/qualifications/{id}/extracted`): a card of another project is not
+    found there. The model is the one the qualification's own project chose
+    (`projectId` in the app's export, which is the database the card was found in),
+    or the environment's when the project chose none or the export names no
+    project. An export naming a project other than `pid` is refused. The
+    qualification is read first, because that is where the project comes from; the
+    model is settled before any drafting starts.
 
     Returns what the run did, so an HTTP caller can report it without parsing
     stdout.
     """
-    qualification = clients.qualification(qualification_id)
+    qualification = clients.qualification(pid, qualification_id)
     project = qualification.get("projectId")
+    if project and str(project).lower() != pid.lower():
+        raise clients.ServiceError(
+            f"qualification {qualification_id} belongs to another project than {pid}"
+        )
     config = baf_llm.config_for(project, "card_agent")
     llm = baf_llm.build_llm(config, agent_name="ontology_filler_llm")
 
@@ -46,7 +55,9 @@ def fill_one(qualification_id: str, dry_run: bool = False) -> dict:
         qualification,
         terms=terms,
         complete=baf_llm.completer(llm),
-        publish=(lambda qid, payload: None) if dry_run else clients.publish,
+        publish=(lambda qid, payload: None)
+        if dry_run
+        else (lambda qid, payload: clients.publish(pid, qid, payload)),
         max_rounds=MAX_ROUNDS,
     )
 
@@ -77,6 +88,7 @@ def fill_one(qualification_id: str, dry_run: bool = False) -> dict:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--qualification", help="fill this qualification and exit")
+    parser.add_argument("--project", help="the pid of the project whose database holds it")
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -88,7 +100,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.qualification:
-        fill_one(args.qualification, dry_run=args.dry_run)
+        if not args.project:
+            parser.error("--qualification needs --project <pid>")
+        fill_one(args.project, args.qualification, dry_run=args.dry_run)
         return 0
     if args.serve:
         agent = build_agent()

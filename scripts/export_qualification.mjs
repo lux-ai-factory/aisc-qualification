@@ -5,10 +5,15 @@
 // display labels and writes the shape airo_min.build.build_graph expects, so the
 // Python side never parses the Prisma schema or the taxonomy files.
 //
-//   node scripts/export_qualification.mjs --name "MicroCredit" --out mcas.json
-//   node scripts/export_qualification.mjs --id cmtv... > q.json
+// A card lives in its project's own database, so the project is named by its pid and the
+// database is opened from PROJECT_DATABASE_URL.
+//
+//   node scripts/export_qualification.mjs --project <pid> --name "MicroCredit" --out mcas.json
+//   node scripts/export_qualification.mjs --project <pid> --id cmtv... > q.json
 import { writeFileSync } from "node:fs";
 import { PrismaClient } from "@prisma/client";
+
+import { PROJECT_ID, projectDatabaseUrl } from "./projectDb.mjs";
 import targetSystems from "../src/data/target_systems.json" with { type: "json" };
 import sectors from "../src/data/sectors.json" with { type: "json" };
 
@@ -30,7 +35,14 @@ function resolveSector(id) {
   return s ? { id: s.id, name: s.name } : null;
 }
 
-const prisma = new PrismaClient();
+const project = arg("--project") ?? "";
+if (!PROJECT_ID.test(project)) {
+  console.error("pass --project <pid>: the card is read from that project's own database");
+  process.exit(2);
+}
+const prisma = new PrismaClient({
+  datasourceUrl: projectDatabaseUrl(project, process.env.PROJECT_DATABASE_URL ?? ""),
+});
 
 async function main() {
   const id = arg("--id");

@@ -1,66 +1,75 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// LLM keys (2026-09-25). The card agent is never told a project: it reads the
-// project from the qualification it works on, so a caller cannot point a run
-// at another project's key. What it reads is GET /api/qualifications/:id/extracted,
-// which therefore carries the qualification's own project id.
+// LLM keys (2026-09-25). The card agent is never told whose model to use: it reads the
+// project from the qualification it works on, so a caller cannot point a run at another
+// project's key. What it reads is GET /p/{pid}/api/qualifications/:id/extracted
+// (isolation Q1), which carries the project of the database the card was found in: the
+// path's pid, never anything in the query string.
 
 const OWN_PROJECT = "a1b2c3d4-0000-4000-8000-000000000002";
 
-const repo = { find: vi.fn(async (_p: string, id: string) => ({ id, projectId: OWN_PROJECT, ontologyExtracted: null })) };
-const access = vi.fn(async (_id: string): Promise<string | null> => OWN_PROJECT);
+const repo = { find: vi.fn(async (id: string): Promise<unknown> => ({ id, ontologyExtracted: null })) };
+const door = vi.fn(async (_pid: string, _o?: { write: boolean }): Promise<unknown> => ({ db: OWN_PROJECT }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
-vi.mock("@/lib/prisma", () => ({ prisma: {} }));
+vi.mock("@/lib/projectDb", () => ({ projectDbForRoute: door, projectDbForService: door }));
 vi.mock("@/server/repositories/QualificationRepository", () => ({
-  QualificationRepository: class {},
-  qualificationRepository: repo,
+  QualificationRepository: class {
+    constructor() {
+      return repo;
+    }
+  },
+  repositoryFor: async () => repo,
 }));
 vi.mock("@/server/services/QualificationExporter", () => ({ toExport: (q: { id: string }) => ({ id: q.id }) }));
 vi.mock("@/server/services/FormService", () => ({ formService: { resolve: async () => null } }));
-vi.mock("@/server/access/qualificationAccess", () => ({ qualificationForCaller: access }));
 
+const ctx = (id: string) => ({ params: Promise.resolve({ project: OWN_PROJECT, id }) });
 const get = async (id: string) => {
-  const { GET } = await import("@/app/api/qualifications/[id]/extracted/route");
-  return GET(new Request(`http://x/api/qualifications/${id}/extracted`), { params: Promise.resolve({ id }) });
+  const { GET } = await import("@/app/p/[project]/api/qualifications/[id]/extracted/route");
+  return GET(new Request(`http://x/p/${OWN_PROJECT}/api/qualifications/${id}/extracted`), ctx(id));
 };
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  door.mockResolvedValue({ db: OWN_PROJECT });
+  repo.find.mockImplementation(async (id: string) => ({ id, ontologyExtracted: null }));
+});
 
 describe("the filler reads its project from the qualification", () => {
-  it("the export carries the qualification's own project id", async () => {
+  it("the export carries the project of the database the card is in", async () => {
     const res = await get("q1");
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ id: "q1", projectId: OWN_PROJECT });
   });
 
-  it("the project comes from the qualification, not from the request", async () => {
-    const { GET } = await import("@/app/api/qualifications/[id]/extracted/route");
+  it("the project comes from the path's database, not from the request's query", async () => {
+    const { GET } = await import("@/app/p/[project]/api/qualifications/[id]/extracted/route");
     const res = await GET(
-      new Request("http://x/api/qualifications/q1/extracted?project=b0000000-0000-4000-8000-000000000009"),
-      { params: Promise.resolve({ id: "q1" }) },
+      new Request(`http://x/p/${OWN_PROJECT}/api/qualifications/q1/extracted?project=b0000000-0000-4000-8000-000000000009`),
+      ctx("q1"),
     );
     expect((await res.json()).projectId).toBe(OWN_PROJECT);
   });
 
   it("a qualification the caller may not read is still a 404", async () => {
-    access.mockResolvedValueOnce(null);
+    door.mockResolvedValueOnce(new Response("Not found", { status: 404 }));
     expect((await get("q1")).status).toBe(404);
   });
 });
 
-describe("the save starts the filler with the qualification id only", () => {
-  it("requestFill takes one argument and posts no query", async () => {
+describe("the save starts the filler with the project and the qualification id only", () => {
+  it("requestFill takes the project and the card, and posts no query", async () => {
     vi.resetModules();
     const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 202 });
     vi.stubGlobal("fetch", fetchImpl);
     vi.stubEnv("AGENT_SERVICE_URL", "http://agents:8012");
     try {
       const mod = await import("@/server/services/FillerClient");
-      expect(mod.requestFill.length).toBe(1);
-      await mod.requestFill("q1");
-      expect(fetchImpl.mock.calls[0][0]).toBe("http://agents:8012/fill/q1");
+      expect(mod.requestFill.length).toBe(2);
+      await mod.requestFill(OWN_PROJECT, "q1");
+      expect(fetchImpl.mock.calls[0][0]).toBe(`http://agents:8012/fill/${OWN_PROJECT}/q1`);
     } finally {
       vi.unstubAllGlobals();
       vi.unstubAllEnvs();

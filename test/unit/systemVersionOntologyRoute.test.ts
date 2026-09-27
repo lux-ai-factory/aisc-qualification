@@ -5,13 +5,12 @@ import { resolve } from "node:path";
 // WP7 (pipeline 2026-09-23). Control objectives reads the card of one system
 // version by that version's pid:
 //   GET /p/{project}/api/system-versions/{systemPid}/ontology.jsonld
-// It asks the platform who the caller is (fetchAccess), finds the card by
-// systemId, checks it belongs to that project, and hands over exactly the
-// bytes the existing /api/qualifications/{id}/ontology.jsonld hands over
-// (knowledgeGraphStore.deliver); 502 when the builder is down.
-//
-// ASSUMED: the {project} segment in these tests is the project's pid, the same
-// value the card stores in projectId.
+// Under isolation (Q1) it goes through the door of src/lib/projectDb.ts (the
+// platform decides who the caller is, then that project's database is opened),
+// finds the card by systemId in that database, and hands over exactly the bytes
+// /p/{project}/api/qualifications/{id}/ontology.jsonld hands over
+// (knowledgeGraphStore.deliver); 502 when the builder is down. A version of
+// another project is in another database, so it is simply not found here.
 
 const ROUTE_FILE = "src/app/p/[project]/api/system-versions/[systemPid]/ontology.jsonld/route.ts";
 // A runtime path: an alias in a non-literal import is not resolved.
@@ -25,21 +24,24 @@ const V2 = "5f1b0000-0000-4000-8000-000000000002";
 const BYTES = '{"@context":{"airo":"https://w3id.org/airo#"},"@graph":[]}';
 
 const access = { role: "viewer" as string | null };
-const card = { current: { id: "c2", projectId: PROJECT, systemId: V2 } as Record<string, string> | null };
+/** Which project's database holds the card of V2, and the card. */
+const card = { in: PROJECT, current: { id: "c2", systemId: V2 } as Record<string, string> | null };
 const deliver = vi.fn(async () => ({ document: BYTES, fromStore: false }));
 
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
-vi.mock("@/server/services/callerToken", () => ({ callerToken: async () => "caller-tok" }));
-vi.mock("@/server/access/projectAccess", async (orig) => ({
-  ...((await orig()) as object),
-  fetchAccess: vi.fn(async () => ({ role: access.role, admin: false, may_write: false })),
+vi.mock("@/lib/projectDb", async () => ({
+  PROJECT_ID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+  // the door: a member reads the project's database, anybody else is 404
+  projectDbForRoute: vi.fn(async (project: string) =>
+    access.role ? { project } : new Response("Not found", { status: 404 }),
+  ),
 }));
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    qualification: {
-      findUnique: vi.fn(async () => card.current),
-      findFirst: vi.fn(async () => card.current),
-    },
+vi.mock("@/server/repositories/QualificationRepository", () => ({
+  QualificationRepository: class {
+    constructor(private readonly db: { project: string }) {}
+    async findBySystem(systemId: string) {
+      return this.db.project === card.in && card.current?.systemId === systemId ? card.current : null;
+    }
   },
 }));
 vi.mock("@/server/services/KnowledgeGraphStore", () => ({
@@ -61,7 +63,8 @@ const get = async (project: string, systemPid: string) => {
 
 beforeEach(() => {
   access.role = "viewer";
-  card.current = { id: "c2", projectId: PROJECT, systemId: V2 };
+  card.in = PROJECT;
+  card.current = { id: "c2", systemId: V2 };
   deliver.mockClear();
   deliver.mockImplementation(async () => ({ document: BYTES, fromStore: false }));
 });
@@ -76,7 +79,7 @@ describe("GET /p/{project}/api/system-versions/{systemPid}/ontology.jsonld", () 
     expect(res.status).toBe(200);
     expect(await res.text()).toBe(BYTES);
     expect(res.headers.get("content-type")).toMatch(/application\/ld\+json/);
-    expect(deliver).toHaveBeenCalledWith("c2", "jsonld", expect.any(Function));
+    expect(deliver).toHaveBeenCalledWith("c2", "jsonld", expect.any(Function), PROJECT);
   });
 
   it("S7.3 a non-member gets 404", async () => {
@@ -86,8 +89,9 @@ describe("GET /p/{project}/api/system-versions/{systemPid}/ontology.jsonld", () 
     expect(deliver).not.toHaveBeenCalled();
   });
 
-  it("S7.3 a version whose card belongs to another project is 404", async () => {
-    card.current = { id: "c9", projectId: OTHER, systemId: V2 };
+  it("S7.3 a version with no card in this project's database (it is another project's) is 404", async () => {
+    card.in = OTHER;
+    card.current = { id: "c9", systemId: V2 };
     const res = await get(PROJECT, V2);
     expect(res.status).toBe(404);
     expect(deliver).not.toHaveBeenCalled();

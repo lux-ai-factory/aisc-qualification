@@ -6,7 +6,7 @@ import type {
   QualificationAnswer,
   QualificationRisk,
 } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { projectDbPastDoor } from "@/lib/projectDb";
 import type { RiskInput } from "@/server/forms/QualificationFormParser";
 
 export type AnswerInput = {
@@ -16,9 +16,8 @@ export type AnswerInput = {
 };
 
 export type CreateQualificationInput = {
-  /** The platform project this qualification belongs to (uuid). */
-  projectId: string;
-  /** The system it describes, as named by the platform (uuid). */
+  /** The card version it describes: a row of project.system in this project's
+   *  own database, as named by the platform (uuid). */
   systemId: string;
   systemName: string;
   systemVersion: string;
@@ -58,8 +57,13 @@ const WITH_ANSWERS = {
   components: { orderBy: { linkedAt: "asc" } },
 } as const satisfies Prisma.QualificationInclude;
 
+/**
+ * The cards of ONE project: a repository is bound to that project's own
+ * database, so every query is inside the project without naming it. A card id
+ * from another project is simply not in this database.
+ */
 export class QualificationRepository {
-  constructor(private readonly db: PrismaClient = prisma) {}
+  constructor(private readonly db: PrismaClient) {}
 
   create(input: CreateQualificationInput): Promise<{ id: string }> {
     const { answers, risks, ...rest } = input;
@@ -74,33 +78,32 @@ export class QualificationRepository {
   }
 
   /**
-   * One qualification of one project, or null.
+   * One qualification of this project, or null.
    *
-   * Never by id alone. The id comes out of a URL and the project is what says
-   * whose it is: without it, anyone who could open one project's page could
-   * read any project's system description, answers and risks.
+   * The id comes out of a URL; the database this repository is bound to is what
+   * says whose it is, so a card of another project is not found here.
    */
-  find(projectId: string, id: string): Promise<QualificationWithAnswers | null> {
+  find(id: string): Promise<QualificationWithAnswers | null> {
     return this.db.qualification.findFirst({
-      where: { id, projectId },
+      where: { id },
       include: WITH_ANSWERS,
     });
   }
 
   /** The AI card of one version of the project's system, if it has one. One
    *  card per version: the database holds that too (system_id is unique). */
-  findBySystem(projectId: string, systemId: string): Promise<{ id: string } | null> {
+  findBySystem(
+    systemId: string,
+  ): Promise<{ id: string; systemId: string; systemName: string; systemVersion: string } | null> {
     return this.db.qualification.findFirst({
-      where: { projectId, systemId },
-      select: { id: true },
+      where: { systemId },
+      select: { id: true, systemId: true, systemName: true, systemVersion: true },
     });
   }
 
-  /** The qualifications of one project, and no other's: a module reads what
-   *  it needs and no more. */
-  list(projectId: string): Promise<QualificationWithAnswers[]> {
+  /** The qualifications of this project, newest first. */
+  list(): Promise<QualificationWithAnswers[]> {
     return this.db.qualification.findMany({
-      where: { projectId },
       orderBy: { createdAt: "desc" },
       include: WITH_ANSWERS,
     });
@@ -124,7 +127,6 @@ export class QualificationRepository {
   /** Everything an AI card needs that is not in the graph: the facts the
    *  form collects, plus the generated prose if any exists. */
   cardSummary(
-    projectId: string,
     id: string,
   ): Promise<
     | (Pick<
@@ -145,7 +147,7 @@ export class QualificationRepository {
     | null
   > {
     return this.db.qualification.findFirst({
-      where: { id, projectId },
+      where: { id },
       select: {
         id: true,
         systemId: true,
@@ -208,6 +210,26 @@ export class QualificationRepository {
       data: { systemCardJson: json, systemCardAt: new Date() },
     });
   }
+
+  /**
+   * Whether this card version is the latest in this project's database: the
+   * rule the only-latest triggers enforce (qualification.card_is_latest). For
+   * a caller with no user behind it, the card agent, which the platform's
+   * /system-versions/latest would not answer.
+   */
+  async isLatest(systemId: string): Promise<boolean> {
+    const rows = await this.db.$queryRaw<{ latest: boolean }[]>`
+      SELECT qualification.card_is_latest(${systemId}::uuid) AS latest`;
+    return rows[0]?.latest === true;
+  }
 }
 
-export const qualificationRepository = new QualificationRepository();
+/** Opens the repository of one project. */
+export type RepositoryFor = (project: string) => Promise<QualificationRepository>;
+
+/**
+ * The repository of a project whose door has already been passed (a page under
+ * the middleware, a service called after an action's or a route's door).
+ */
+export const repositoryFor: RepositoryFor = async (project) =>
+  new QualificationRepository(await projectDbPastDoor(project));

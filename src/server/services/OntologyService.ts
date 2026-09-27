@@ -1,7 +1,8 @@
 import type { Prisma } from "@prisma/client";
 import {
-  QualificationRepository,
-  qualificationRepository,
+  repositoryFor,
+  type QualificationRepository,
+  type RepositoryFor,
 } from "@/server/repositories/QualificationRepository";
 import type {
   OntologyExtracted,
@@ -11,10 +12,7 @@ import type {
 import { OntologyClient, type OntologyBuild } from "./OntologyClient";
 import { toExport } from "./QualificationExporter";
 import { assertLatestCard } from "./cardLatest";
-import {
-  knowledgeGraphStore,
-  type KnowledgeGraphStore,
-} from "./KnowledgeGraphStore";
+import { KnowledgeGraphStore } from "./KnowledgeGraphStore";
 
 /**
  * The knowledge graph for one qualification.
@@ -22,13 +20,17 @@ import {
  * Rebuilt from the form, the drafted extraction and the reviewer's patch, so a
  * change to any of the three shows on the next read. Only those three are the
  * source of truth; the built graph is stored alongside them.
+ *
+ * Each call names its project, and the card is read from that project's own
+ * database: a card of another project is not found there.
  */
 export class OntologyService {
   constructor(
-    private readonly repo: QualificationRepository = qualificationRepository,
+    private readonly repos: RepositoryFor = repositoryFor,
     private readonly clientFactory: () => OntologyClient = () =>
       OntologyClient.fromEnv(),
-    private readonly graphs: KnowledgeGraphStore = knowledgeGraphStore,
+    private readonly graphsFor: (repo: QualificationRepository) => KnowledgeGraphStore = (repo) =>
+      new KnowledgeGraphStore(repo),
   ) {}
 
   /**
@@ -39,14 +41,15 @@ export class OntologyService {
    * repeated reads of an unchanged card write nothing.
    */
   async build(projectId: string, qualificationId: string): Promise<OntologyBuild> {
-    const q = await this.repo.find(projectId, qualificationId);
+    const repo = await this.repos(projectId);
+    const q = await repo.find(qualificationId);
     if (!q) throw new Error("Qualification not found.");
     const built = await this.clientFactory().build(
       toExport(q),
       (q.ontologyExtracted as OntologyExtracted | null) ?? undefined,
       (q.ontologyPatch as OntologyPatch | null) ?? undefined,
     );
-    await this.graphs.save(qualificationId, built);
+    await this.graphsFor(repo).save(qualificationId, built);
     return built;
   }
 
@@ -61,7 +64,7 @@ export class OntologyService {
     nodeId: string,
     change: NodePatch,
   ): Promise<OntologyBuild> {
-    const q = await this.findChangeable(projectId, qualificationId);
+    const { repo, q } = await this.findChangeable(projectId, qualificationId);
 
     const patch: OntologyPatch = {
       ...((q.ontologyPatch as OntologyPatch | null) ?? {}),
@@ -77,11 +80,11 @@ export class OntologyService {
       (q.ontologyExtracted as OntologyExtracted | null) ?? undefined,
       patch,
     );
-    await this.repo.saveOntologyPatch(
+    await repo.saveOntologyPatch(
       qualificationId,
       patch as unknown as Prisma.InputJsonValue,
     );
-    await this.graphs.save(qualificationId, built);
+    await this.graphsFor(repo).save(qualificationId, built);
     return built;
   }
 
@@ -92,18 +95,19 @@ export class OntologyService {
   async resetPatch(projectId: string, qualificationId: string): Promise<OntologyBuild> {
     // Read first, so a qualification of another project is refused before
     // anything is written rather than after.
-    await this.findChangeable(projectId, qualificationId);
-    await this.repo.saveOntologyPatch(qualificationId, {});
+    const { repo } = await this.findChangeable(projectId, qualificationId);
+    await repo.saveOntologyPatch(qualificationId, {});
     return this.build(projectId, qualificationId);
   }
 
   /** The qualification, if it is of this project and its card is the latest
    *  version's: only that card changes, an older one is kept as it was. */
   private async findChangeable(projectId: string, qualificationId: string) {
-    const q = await this.repo.find(projectId, qualificationId);
+    const repo = await this.repos(projectId);
+    const q = await repo.find(qualificationId);
     if (!q) throw new Error("Qualification not found.");
     await assertLatestCard(projectId, q.systemId);
-    return q;
+    return { repo, q };
   }
 }
 

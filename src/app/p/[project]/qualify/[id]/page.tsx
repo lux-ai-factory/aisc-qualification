@@ -24,7 +24,8 @@ export default async function QualificationDetailPage({
   // (same pattern as SiteHeader) so the downloads work when served under a subpath.
   const basePath = process.env.NEXT_BASE_PATH || "";
 
-  // Looked up within this project, never by the id from the URL alone.
+  // Looked up in this project's own database: a card of another project is not
+  // there. The middleware has already asked the platform about this project.
   const q = await qualificationService.get(project, id);
   if (!q) notFound();
 
@@ -32,13 +33,13 @@ export default async function QualificationDetailPage({
   // history. Only the latest changes; when the platform cannot say, nothing is
   // offered for editing either.
   const standing = await qualificationService
-    .standing(project, { projectId: q.projectId, systemId: q.systemId })
+    .standing(project, { systemId: q.systemId })
     .catch(() => null);
   const readOnly = !standing?.current;
 
   const { engineComponents, engineError } = readOnly
     ? { engineComponents: [], engineError: null }
-    : await loadEngineComponents(q.projectId);
+    : await loadEngineComponents(project);
   const suggestions = componentSuggestions(q.ontologyExtracted as OntologyExtracted | null);
 
   // The ontology IS the card: built on read from the form, the agent's
@@ -98,7 +99,12 @@ export default async function QualificationDetailPage({
 
       {/* The filler starts when the qualification is saved, so arriving here
           usually means arriving before its draft exists. */}
-      {!readOnly && <FillStatus qualificationId={q.id} />}
+      {!readOnly && (
+        <FillStatus
+          qualificationId={q.id}
+          statusUrl={`${basePath}/p/${project}/api/qualifications/${q.id}/fill`}
+        />
+      )}
 
       {!readOnly && (
         <ComponentsPanel
@@ -156,9 +162,9 @@ export default async function QualificationDetailPage({
               vocabularies={vocabularies}
               readOnly={readOnly}
               downloads={{
-                pdf: `${basePath}/api/qualifications/${q.id}/ai-card.pdf`,
-                json: `${basePath}/api/qualifications/${q.id}/ai-card.json`,
-                jsonld: `${basePath}/api/qualifications/${q.id}/ontology.jsonld`,
+                pdf: `${basePath}/p/${project}/api/qualifications/${q.id}/ai-card.pdf`,
+                json: `${basePath}/p/${project}/api/qualifications/${q.id}/ai-card.json`,
+                jsonld: `${basePath}/p/${project}/api/qualifications/${q.id}/ontology.jsonld`,
               }}
             />
           ) : (
