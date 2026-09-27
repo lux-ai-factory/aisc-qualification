@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { startTransition, useActionState, useMemo, useState } from "react";
 import type { Sector, TargetSystemCategory } from "@/data";
 import type { FormExample } from "@/data/examples";
 import type { KeyQuestion } from "@/data/keyQuestions";
@@ -118,7 +118,18 @@ export default function QualifyForm({
         <DocumentUpload status={upload} onPick={pickDocument} onChoose={chooseMode} />
       </div>
 
-      <form ref={formRef} action={formAction} className="qualify-form">
+      {/* Submitted through onSubmit, not action={formAction}: React resets a form whose
+          action finishes, even when the save was refused, and these fields are uncontrolled
+          (the document prefill writes onto them), so a refusal erased everything filled in. */}
+      <form
+        ref={formRef}
+        onSubmit={(e) => {
+          e.preventDefault();
+          const data = new FormData(e.currentTarget);
+          startTransition(() => formAction(data));
+        }}
+        className="qualify-form"
+      >
         {state?.error && <div className="error">{state.error}</div>}
 
         <section className="qf-section">
