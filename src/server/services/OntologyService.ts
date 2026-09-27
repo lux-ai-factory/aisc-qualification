@@ -11,6 +11,8 @@ import type {
 } from "@/domain/OntologyView";
 import { OntologyClient, type OntologyBuild } from "./OntologyClient";
 import { toExport } from "./QualificationExporter";
+import { questionnaireResolverFor } from "./QuestionnaireService";
+import type { QuestionnaireResolver } from "@/domain/forms/types";
 import { assertLatestCard } from "./cardLatest";
 import { KnowledgeGraphStore } from "./KnowledgeGraphStore";
 
@@ -31,7 +33,16 @@ export class OntologyService {
       OntologyClient.fromEnv(),
     private readonly graphsFor: (repo: QualificationRepository) => KnowledgeGraphStore = (repo) =>
       new KnowledgeGraphStore(repo),
+    private readonly formsFor: (projectId: string) => Promise<QuestionnaireResolver> = questionnaireResolverFor,
   ) {}
+
+  /** The card's export with its form version, read in the card's own project;
+   *  a card saved before forms existed reads as the default version, and an
+   *  unknown one as no form. */
+  private async exportOf(projectId: string, q: Parameters<typeof toExport>[0]) {
+    const form = await (await this.formsFor(projectId)).resolve(q.questionnaireVersionId ?? null);
+    return toExport(q, form ?? undefined);
+  }
 
   /**
    * Build the graph and store it if it has changed.
@@ -45,7 +56,7 @@ export class OntologyService {
     const q = await repo.find(qualificationId);
     if (!q) throw new Error("Qualification not found.");
     const built = await this.clientFactory().build(
-      toExport(q),
+      await this.exportOf(projectId, q),
       (q.ontologyExtracted as OntologyExtracted | null) ?? undefined,
       (q.ontologyPatch as OntologyPatch | null) ?? undefined,
     );
@@ -76,7 +87,7 @@ export class OntologyService {
     // Build BEFORE saving, so a rejected term (an invented VAIR type) leaves the
     // stored patch untouched rather than persisting something the graph refuses.
     const built = await this.clientFactory().build(
-      toExport(q),
+      await this.exportOf(projectId, q),
       (q.ontologyExtracted as OntologyExtracted | null) ?? undefined,
       patch,
     );

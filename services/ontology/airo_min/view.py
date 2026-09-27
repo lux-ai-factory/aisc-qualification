@@ -9,6 +9,7 @@ from typing import Any
 from rdflib import Graph, RDF, RDFS, URIRef
 
 from .build import QUAL
+from .coverage import additional_documentation, coverage
 from .mapping import FORM_MAPPING
 from .schema import AIRO, CLASSES
 from .vair_terms import typeable_classes
@@ -100,8 +101,17 @@ def _opt(g: Graph, node: URIRef, prop: URIRef) -> str | None:
     return str(value) if value is not None else None
 
 
-def build_view(g: Graph) -> dict[str, Any]:
-    """The whole card view for one filled graph."""
+def build_view(
+    g: Graph,
+    form: dict[str, Any] | None = None,
+    answers: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """The whole card view for one filled graph.
+
+    With the form version the card was filled with (and its answers), the view
+    also says how much of Annex IV it covers and what it documents beyond it.
+    Without one it is exactly the view it always was.
+    """
     system = next(g.subjects(RDF.type, URIRef(AIRO + "AISystem")))
 
     rows = []
@@ -126,7 +136,7 @@ def build_view(g: Graph) -> dict[str, Any]:
     ]
 
     named = {s for s in g.subjects() if isinstance(s, URIRef)}
-    return {
+    view = {
         "system": node_view(g, system),
         "answers": _answers(g, system),
         "rows": rows,
@@ -161,6 +171,11 @@ def build_view(g: Graph) -> dict[str, Any]:
             ),
         },
     }
+    if form is not None:
+        view["form"] = {"name": form.get("name", ""), "version": form.get("version")}
+        view["coverage"] = coverage(form, answers or [])
+        view["additionalDocumentation"] = additional_documentation(form, answers or [])
+    return view
 
 
 def _expects_a_term(cls: str | None) -> bool:

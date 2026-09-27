@@ -7,6 +7,8 @@ the reason in the message, so the form can say why instead of appearing to work.
 from __future__ import annotations
 
 import io
+import os
+import zipfile
 
 
 class DocumentUnreadable(ValueError):
@@ -37,7 +39,43 @@ def _from_pdf(raw: bytes) -> str:
         raise DocumentUnreadable(f"this PDF could not be read: {exc}") from exc
 
 
+#: What a .docx may unpack to, in bytes, unless PREFILL_MAX_UNZIPPED_BYTES says otherwise.
+DEFAULT_MAX_UNZIPPED_BYTES = 52428800
+
+
+def _max_unzipped_bytes() -> int:
+    raw = os.environ.get("PREFILL_MAX_UNZIPPED_BYTES", "").strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        return DEFAULT_MAX_UNZIPPED_BYTES
+    return value if value > 0 else DEFAULT_MAX_UNZIPPED_BYTES
+
+
+def check_docx_expansion(raw: bytes) -> None:
+    """Refuse a .docx whose parts unpack to more than the limit, before opening it.
+
+    A .docx is a zip, and a small zip can unpack to gigabytes. The declared
+    sizes in the zip directory are summed without decompressing anything. The
+    limit is PREFILL_MAX_UNZIPPED_BYTES, read at every call; a missing,
+    non-integer or non-positive value means DEFAULT_MAX_UNZIPPED_BYTES.
+    Exactly the limit passes.
+    """
+    limit = _max_unzipped_bytes()
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            total = sum(info.file_size for info in archive.infolist())
+    except Exception as exc:
+        raise DocumentUnreadable(f"this .docx could not be read: {exc}") from exc
+    if total > limit:
+        raise DocumentUnreadable(
+            f"this .docx expands to more than {limit} bytes when unpacked; "
+            "remove embedded media or split it"
+        )
+
+
 def _from_docx(raw: bytes) -> str:
+    check_docx_expansion(raw)
     import docx
 
     try:

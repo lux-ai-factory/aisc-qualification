@@ -55,4 +55,26 @@ describe("a compiled qualification uses the window's width", () => {
     // and the default column is unchanged for everything else
     expect(rule(".qualify-page")).toMatch(/max-width: 820px/);
   });
+
+  it("gives the questionnaire builder the card's wide page, the same way (addendum 06 R74, two-level forms T32)", () => {
+    // The builder is two columns of long questions: it takes the same class
+    // as the compiled card, not a rule of its own. The questionnaires list and
+    // every question-set page stay 1080px (two-level forms, 01-spec T32).
+    for (const path of [
+      "src/app/p/[project]/questionnaires/new/page.tsx",
+      "src/app/p/[project]/questionnaires/[questionnaireId]/edit/page.tsx",
+    ]) {
+      expect(readFileSync(path, "utf8"), path).toMatch(/className="qualify-page qualify-page--wide qf-forms-page"/);
+    }
+    const importStep = readFileSync("src/app/p/[project]/questionnaires/import/QuestionnaireImport.tsx", "utf8");
+    expect(importStep).toContain('"qualify-page qualify-page--wide qf-forms-page"');
+    const library = readFileSync("src/app/p/[project]/questionnaires/page.tsx", "utf8");
+    expect(library).toMatch(/className="qualify-page qualify-page--form qf-forms-page"/);
+    expect(library).not.toMatch(/qualify-page--wide/);
+    const sets = readFileSync("src/app/p/[project]/question-sets/page.tsx", "utf8");
+    expect(sets).toMatch(/className="qualify-page qualify-page--form qf-forms-page"/);
+    expect(sets).not.toMatch(/qualify-page--wide/);
+    const setImport = readFileSync("src/app/p/[project]/question-sets/import/QuestionSetImport.tsx", "utf8");
+    expect(setImport).not.toMatch(/qualify-page--wide/);
+  });
 });

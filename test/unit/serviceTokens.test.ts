@@ -100,6 +100,30 @@ describe("qualification-prefill", () => {
     );
     expect(headersOf(fetchImpl)[HEADER]).toBe(tok("prefill"));
   });
+
+  it("the form reader's POST /forms/import carries it too", async () => {
+    vi.stubEnv("QUALIFICATION_WEB_TO_PREFILL_TOKEN", tok("prefill"));
+    const fetchImpl = fakeFetch({ format: "csv", found: 0, questions: [], warnings: [] });
+    const { FormImportClient } = await import("@/server/services/FormImportClient");
+    await new FormImportClient("http://prefill:8012", fetchImpl as unknown as typeof fetch).read(
+      new File(["question\nWho?\n"], "a.csv"),
+    );
+    expect(fetchImpl.mock.calls[0][0]).toBe("http://prefill:8012/forms/import");
+    expect(headersOf(fetchImpl)[HEADER]).toBe(tok("prefill"));
+  });
+
+  it("the form writer's POST /forms/export carries it too, beside its JSON content type", async () => {
+    vi.stubEnv("QUALIFICATION_WEB_TO_PREFILL_TOKEN", tok("prefill"));
+    const fetchImpl = fakeFetch({ filename: "f.csv", contentType: "text/csv", content: "" });
+    const { FormExportClient } = await import("@/server/services/FormExportClient");
+    await new FormExportClient("http://prefill:8012", fetchImpl as unknown as typeof fetch).write(
+      { formName: "F", versionNumber: 1, questions: [] } as never,
+      "csv",
+    );
+    expect(fetchImpl.mock.calls[0][0]).toBe("http://prefill:8012/forms/export");
+    expect(headersOf(fetchImpl)[HEADER]).toBe(tok("prefill"));
+    expect(headersOf(fetchImpl)["Content-Type"]).toBe("application/json");
+  });
 });
 
 describe("qualification-pdf", () => {
@@ -124,7 +148,11 @@ describe("no client sends another edge's token", () => {
         "src/app/p/[project]/api/qualifications/[id]/fill/route.ts",
       ],
       QUALIFICATION_WEB_TO_ONTOLOGY_TOKEN: ["src/server/services/OntologyClient.ts"],
-      QUALIFICATION_WEB_TO_PREFILL_TOKEN: ["src/server/services/PrefillClient.ts"],
+      QUALIFICATION_WEB_TO_PREFILL_TOKEN: [
+        "src/server/services/PrefillClient.ts",
+        "src/server/services/FormImportClient.ts",
+        "src/server/services/FormExportClient.ts",
+      ],
       QUALIFICATION_WEB_TO_PDF_TOKEN: ["src/server/services/SystemCardRendererClient.ts"],
     };
     const files = Object.values(owners).flat();

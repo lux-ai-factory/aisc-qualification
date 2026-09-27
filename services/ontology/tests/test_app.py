@@ -129,3 +129,25 @@ def test_the_build_response_carries_the_graphs_identity(client, payload):
     second = client.post("/build", json=payload).json()
     assert first["digest"] == second["digest"]
     assert first["turtle"] != second["turtle"], "blank nodes are relabelled"
+
+
+# ── Form assembly (docs/superpowers/form-assembly-2026-09-24/01-spec.md) ─────
+
+
+def test_r33_description_use_case_and_users_are_optional_now(client, payload):
+    """A form may leave those blocks out; the request then omits them (R33)."""
+    q = {
+        k: v
+        for k, v in payload["qualification"].items()
+        if k not in ("description", "targetUseCase", "targetUsers")
+    }
+    q["risks"] = [r for r in q["risks"] if r["affected"] == "operator"]
+    r = client.post("/build", json={"qualification": q})
+    assert r.status_code == 200, r.text
+    rows = [row["property"] for row in r.json()["view"]["rows"]]
+    assert "hasPurpose" not in rows and "hasAIUser" not in rows
+
+
+def test_r34_a_request_without_a_form_gets_no_coverage_keys(client, payload):
+    view = client.post("/build", json=payload).json()["view"]
+    assert not {"form", "coverage", "additionalDocumentation"} & set(view)

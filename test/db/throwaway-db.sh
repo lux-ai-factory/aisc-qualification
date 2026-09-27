@@ -48,7 +48,7 @@ done
 # ── isolation (docs/superpowers/isolation-2026-09-25, stage 2) ─────────────────
 # Project databases made the platform's way (platform_service.projectdb.provision, so
 # they get the real template), for test/db/projectDatabase.db.test.ts and
-# test/db/formLibrary.db.test.ts. A failure here does not stop the older tests: the
+# test/db/projectForms.db.test.ts. A failure here does not stop the older tests: the
 # isolation tests then fail naming ISOLATION_SETUP.
 for f in report-roles inspector-role; do su_psql < "$ROOT/init/$f.sql" >/dev/null 2>&1 || true; done
 ISO_A=aaaaaaaa-0000-4000-8000-00000000000a
@@ -84,7 +84,6 @@ fi
 export ISOLATION_SETUP="$ISO_SETUP"
 export QUALIFICATION_TEST_PROJECT_DATABASE_URL="postgresql://qualification_rw:qualification_rw@127.0.0.1:$PORT/{database}?schema=qualification"
 export QUALIFICATION_TEST_PROJECT_ADMIN_URL="postgresql://aisc-postgres-user:$PW@127.0.0.1:$PORT/{database}"
-export QUALIFICATION_TEST_FORM_LIBRARY_URL="postgresql://qualification_rw:qualification_rw@127.0.0.1:$PORT/platform?schema=form_library"
 export QUALIFICATION_TEST_PLATFORM_ROLE_URL="postgresql://platform_rw:platform_rw@127.0.0.1:$PORT/platform"
 export QUALIFICATION_TEST_PROJECTS="$ISO_A,$ISO_B,$ISO_C,$ISO_E"
 
@@ -95,7 +94,7 @@ export QUALIFICATION_TEST_PSQL="docker exec -i $NAME psql -q -U aisc-postgres-us
 
 # Every URL the tests get points at this container's port and never at a live database name.
 for v in QUALIFICATION_TEST_DATABASE_URL QUALIFICATION_TEST_ADMIN_URL QUALIFICATION_TEST_PROJECT_DATABASE_URL \
-         QUALIFICATION_TEST_PROJECT_ADMIN_URL QUALIFICATION_TEST_FORM_LIBRARY_URL QUALIFICATION_TEST_PLATFORM_ROLE_URL; do
+         QUALIFICATION_TEST_PROJECT_ADMIN_URL QUALIFICATION_TEST_PLATFORM_ROLE_URL; do
   case "${!v}" in *"127.0.0.1:$PORT/"*) ;; *) echo "refusing: $v is not on the throwaway port"; exit 1;; esac
   case "${!v}" in *:5432/*) echo "refusing: $v names port 5432"; exit 1;; esac
 done
@@ -105,7 +104,7 @@ if [ "${KEEP:-}" = "1" ]; then
   echo "export QUALIFICATION_TEST_ADMIN_URL='$QUALIFICATION_TEST_ADMIN_URL'"
   echo "export QUALIFICATION_TEST_PSQL='$QUALIFICATION_TEST_PSQL'"
   for v in ISOLATION_SETUP QUALIFICATION_TEST_PROJECT_DATABASE_URL QUALIFICATION_TEST_PROJECT_ADMIN_URL \
-           QUALIFICATION_TEST_FORM_LIBRARY_URL QUALIFICATION_TEST_PLATFORM_ROLE_URL QUALIFICATION_TEST_PROJECTS; do
+           QUALIFICATION_TEST_PLATFORM_ROLE_URL QUALIFICATION_TEST_PROJECTS; do
     echo "export $v='${!v}'"
   done
   echo "# remove with: docker rm -f $NAME"

@@ -65,11 +65,11 @@ export function sourceFiles(dir: string = SRC): string[] {
 export const read = (file: string) => readFileSync(file, "utf8");
 export const rel = (file: string) => relative(APP, file);
 
-/** Q2: the forms work (gate I4.6) is on this branch when these exist. */
+/** Q2: the forms work (gate I4.6, two-level forms) is on this branch when these exist. */
 export const FORMS_FILES = [
-  join(SRC, "server", "repositories", "FormRepository.ts"),
-  join(SRC, "server", "services", "FormService.ts"),
-  join(APP, "prisma", "migrations", "20260925090000_forms_are_data", "migration.sql"),
+  join(SRC, "server", "repositories", "QuestionSetRepository.ts"),
+  join(SRC, "server", "services", "QuestionnaireService.ts"),
+  join(APP, "prisma", "migrations", "20260925150000_two_level_forms", "migration.sql"),
 ];
 export const formsMerged = FORMS_FILES.every((f) => existsSync(f));
 export const FORMS_SKIP_REASON =

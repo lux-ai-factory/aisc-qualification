@@ -130,3 +130,38 @@ describe("the AI card as JSON", () => {
     expect(exported.ontology_graph).toBeNull();
   });
 });
+
+// ── Form assembly: the JSON export carries form, coverage and extra sections ─
+// (spec docs/superpowers/form-assembly-2026-09-24/01-spec.md, R37)
+
+describe("the AI card as JSON, for a card built with a form (R37)", () => {
+  const formView = {
+    ...view,
+    form: { name: "Acme AI policy", version: 2 },
+    coverage: {
+      annex: { covered: 3, total: 14, points: [] },
+      forms: [{ name: "Acme AI policy", answered: 18, total: 18 }],
+      summary: "Annex IV coverage: 3 of 14 points; Acme AI policy: 18 of 18 answered.",
+    },
+    additionalDocumentation: [
+      {
+        form: "Acme AI policy",
+        entries: [{ key: "f-acme:q1", question: "Who signs off?", citation: "§4.2", answer: "The head of data science." }],
+      },
+    ],
+  } as unknown as OntologyView;
+
+  it("R37 its ontology holds the form, the coverage and the additional documentation", () => {
+    const ontology = aiCardExport(facts, { ...build, view: formView }).ontology as Record<string, unknown>;
+    expect(ontology.form).toEqual({ name: "Acme AI policy", version: 2 });
+    expect((ontology.coverage as { summary: string }).summary).toMatch(/^Annex IV coverage: 3 of 14 points/);
+    expect(ontology.additionalDocumentation).toHaveLength(1);
+  });
+
+  it("R37 nothing else in the export changes shape", () => {
+    const plain = aiCardExport(facts, build, new Date("2026-09-25T09:00:00Z"));
+    const withForm = aiCardExport(facts, { ...build, view: formView }, new Date("2026-09-25T09:00:00Z"));
+    expect(Object.keys(withForm).sort()).toEqual(Object.keys(plain).sort());
+    expect({ ...withForm, ontology: null }).toEqual({ ...plain, ontology: null });
+  });
+});

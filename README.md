@@ -19,7 +19,9 @@ is your answers restructured, and it downloads as JSON-LD, Turtle, JSON or PDF.
 
 - **14 questions** taken verbatim in intent from Annex IV points 1 and 2, each
   showing the sub-item it comes from. Four are optional, because the Annex
-  itself qualifies them with "where applicable".
+  itself qualifies them with "where applicable". Forms are data: the 14 are the
+  seeded "Annex IV default" form, and an install can build or import other forms
+  under `/p/<project>/forms`.
 - **Closed pickers** for what the system does and where: 50 capabilities across
   14 categories, 23 sectors, 4 market forms, 4 kinds of setting.
 - **One row per risk**, 8 fields following AIRO's risk chain: what could go

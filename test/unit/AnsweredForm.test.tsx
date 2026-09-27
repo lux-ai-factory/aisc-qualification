@@ -154,3 +154,121 @@ describe("the answered form, read back", () => {
     expect(screen.getAllByText(/left blank/i).length).toBeGreaterThan(0);
   });
 });
+
+// ── Form assembly: the answered form walks the card's own form version ─────
+// (spec docs/superpowers/form-assembly-2026-09-24/01-spec.md, R6, R7, R29, R36)
+//
+// AnsweredForm takes `form: ResolvedFormVersion`. Without it the form is the
+// default version, so the cases above keep passing unmodified.
+// Two-level forms (T40): the prop is a ResolvedQuestionnaireVersion and the heading is
+// `groupLabel ?? setName`.
+
+import { customQuestion, formVersion, loadSrc, seededQuestion } from "../support/forms";
+
+const acmeV2 = formVersion({
+  versionId: "acme-v2",
+  versionNumber: 2,
+  blocks: [],
+  questions: [
+    customQuestion("acme", "q1", { text: "Wording as of v2?", citation: "Acme AI Policy §4.2" }),
+    customQuestion("acme", "q2", { text: "Left blank here?", citation: "", required: false }),
+  ],
+});
+
+const withForm = (form: unknown, over: Partial<AnsweredFormProps> = {}) =>
+  ({ ...props(over), form }) as AnsweredFormProps;
+
+describe("the answered form of a card filled with a custom form (R6, R36)", () => {
+  const acmeAnswers = [
+    { id: "x1", toolId: "f-acme", questionId: "q1", answer: "The head of data science." },
+  ];
+
+  it("R6 shows that version's questions and wording", () => {
+    render(<AnsweredForm {...withForm(acmeV2, { answers: acmeAnswers })} />);
+    expect(screen.getByText("Wording as of v2?")).toBeTruthy();
+    expect(screen.getByText("The head of data science.")).toBeTruthy();
+    expect(screen.queryByText(/If this version replaces an earlier one/)).toBeNull();
+  });
+
+  it("R36 an unanswered question of the version reads left blank", () => {
+    const { container } = render(<AnsweredForm {...withForm(acmeV2, { answers: acmeAnswers })} />);
+    const row = [...container.querySelectorAll(".qf-read-field")].find((r) =>
+      r.querySelector("dt")?.textContent?.includes("Left blank here?"),
+    )!;
+    expect(row.querySelector("dd")!.textContent).toMatch(/left blank/i);
+  });
+
+  it("R36 renders the identity always, and no metadata, picker or risk section the form leaves out", () => {
+    const { container } = render(<AnsweredForm {...withForm(acmeV2, { answers: acmeAnswers })} />);
+    expect(screen.getByText("MicroCredit Assist Score (MCAS)")).toBeTruthy();
+    expect(screen.getByText("Creditum AI SARL")).toBeTruthy();
+    for (const hidden of [
+      "Short description",
+      "Target use case",
+      "Intended deployers",
+      "How the system reaches the market",
+      "Where the system is used",
+      "What could go wrong",
+    ]) {
+      expect(container.textContent, hidden).not.toContain(hidden);
+    }
+    expect(container.querySelector(".qf-risk-view")).toBeNull();
+  });
+
+  it("R36 renders a block the form includes", () => {
+    const form = formVersion({ blocks: ["intendedDeployers", "risks"] as never, questions: [] });
+    render(<AnsweredForm {...withForm(form, { answers: [] })} />);
+    expect(screen.getByText("Retail banks in the EU.")).toBeTruthy();
+    expect(screen.getByText("What could go wrong")).toBeTruthy();
+    expect(screen.queryByText("Short description")).toBeNull();
+  });
+
+  it("R29 a free-text citation uses the same chip as an Annex citation; none when empty", () => {
+    const { container } = render(<AnsweredForm {...withForm(acmeV2, { answers: acmeAnswers })} />);
+    const dt = (text: string) =>
+      [...container.querySelectorAll(".qf-read-field dt")].find((d) => d.textContent?.includes(text))!;
+    expect(dt("Wording as of v2?").querySelector("span.qf-citation")?.textContent).toBe("Acme AI Policy §4.2");
+    expect(dt("Left blank here?").querySelector("span.qf-citation")).toBeNull();
+  });
+
+  it("R36 groups questions as the qualification form does: group label, else owner form name", () => {
+    const mixed = formVersion({
+      questions: [seededQuestion("1a"), customQuestion("acme", "q1"), seededQuestion("2a")],
+    });
+    const { container } = render(<AnsweredForm {...withForm(mixed, { answers: [] })} />);
+    expect([...container.querySelectorAll(".qf-group")].map((h) => h.textContent)).toEqual([
+      "About the system",
+      "Acme AI policy",
+      "How the system was built",
+    ]);
+  });
+});
+
+describe("the answered form heads a run of questions by its question set (T40)", () => {
+  it("T40 groupLabel, else the set's name, with a new heading whenever it changes", () => {
+    const mixed = formVersion({
+      questions: [
+        customQuestion("acme", "q1", { setName: "Acme AI policy" }),
+        customQuestion("gov", "q1", { setId: "gov", setName: "Governance checklist" }),
+        customQuestion("gov", "q2", { setId: "gov", setName: "Governance checklist" }),
+        seededQuestion("2a"),
+      ],
+    });
+    const { container } = render(<AnsweredForm {...withForm(mixed, { answers: [] })} />);
+    expect([...container.querySelectorAll(".qf-group")].map((h) => h.textContent)).toEqual([
+      "Acme AI policy",
+      "Governance checklist",
+      "How the system was built",
+    ]);
+  });
+});
+
+describe("a legacy card reads back exactly as before (R7)", () => {
+  it("R7 the default version renders the same output as no form at all", async () => {
+    const { annexDefaultVersion } = await loadSrc("domain/forms/legacy.ts");
+    const before = render(<AnsweredForm {...props()} />).container.innerHTML;
+    cleanup();
+    const after = render(<AnsweredForm {...withForm(annexDefaultVersion())} />).container.innerHTML;
+    expect(after).toBe(before);
+  });
+});

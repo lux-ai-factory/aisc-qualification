@@ -69,6 +69,8 @@ export type CardContent = {
   localityTags: string[];
   answers: { toolId: string; questionId: string; answer: string }[];
   risks: CardRisk[];
+  /** The questionnaire version it was filled with; NULL (or absent) is the default version. */
+  questionnaireVersionId?: string | null;
 };
 
 /** A card, as the form's starting point: every field where it came from. */

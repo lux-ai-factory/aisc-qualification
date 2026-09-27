@@ -41,9 +41,10 @@ class Qualification(BaseModel):
     systemName: str
     systemVersion: str
     company: str
-    description: str
-    targetUseCase: str
-    targetUsers: str
+    # A form may leave these blocks out (R33).
+    description: str = ""
+    targetUseCase: str = ""
+    targetUsers: str = ""
     intendedDeployers: str | None = None
     targetSystems: list[dict[str, Any]] = Field(default_factory=list)
     sectors: list[dict[str, Any]] = Field(default_factory=list)
@@ -51,6 +52,9 @@ class Qualification(BaseModel):
     localityTags: list[str] = Field(default_factory=list)
     answers: list[dict[str, Any]] = Field(default_factory=list)
     risks: list[dict[str, Any]] = Field(default_factory=list)
+    #: The form version the card was filled with, as toExport sends it. Declared,
+    #: or pydantic would drop it without a word and the view would lose coverage.
+    form: dict[str, Any] | None = None
 
 
 class BuildRequest(BaseModel):
@@ -100,8 +104,14 @@ def build(request: BuildRequest) -> BuildResponse:
         # A bad VAIR term or an unknown picker id is the caller's mistake.
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+    form = qualification.get("form")
+    view = (
+        build_view(graph)
+        if form is None
+        else build_view(graph, form=form, answers=qualification["answers"])
+    )
     return BuildResponse(
-        view=build_view(graph),
+        view=view,
         turtle=graph.serialize(format="turtle"),
         jsonld=graph.serialize(format="json-ld"),
         problems=validate(graph),

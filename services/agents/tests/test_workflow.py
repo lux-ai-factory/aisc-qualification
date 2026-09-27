@@ -353,3 +353,50 @@ class TestTheMachineAndTheFunctionAreOneImplementation:
 
         with pytest.raises(ValueError, match="no run in the session"):
             load._body(session)
+
+
+# ── Form assembly: the filler drafts from tagged answers ─────────────────────
+# (docs/superpowers/form-assembly-2026-09-24/01-spec.md, R32)
+
+from fill.workflow import answer_for  # noqa: E402
+
+
+def _tagged(tool: str, qid: str, text: str, point):
+    return {"toolId": tool, "questionId": qid, "answer": text, "annexPoint": point}
+
+
+def test_r32_every_answer_tagged_with_the_point_is_used_in_export_order():
+    q = {
+        "answers": [
+            _tagged("f-acme", "q3", "Acme's build steps.", "2a"),
+            _tagged("annex-2", "2c", "Three parts.", "2c"),
+            _tagged("annex-2", "2a", "Gradient boosting.", "2a"),
+        ]
+    }
+    assert answer_for(q, "Annex IV(2)(a)") == "Acme's build steps.\n\nGradient boosting."
+    assert answer_for(q, "Annex IV(2)(c)") == "Three parts."
+
+
+def test_r32_an_untagged_answer_is_never_matched_by_its_key():
+    """f-x:q12a ends in "2a", but once any answer carries annexPoint the suffix
+    rule is off: only the tag says which point an answer is about."""
+    q = {
+        "answers": [
+            _tagged("f-x", "q12a", "Not about 2(a) at all.", None),
+            _tagged("annex-2", "2c", "Three parts.", "2c"),
+        ]
+    }
+    assert answer_for(q, "Annex IV(2)(a)") == ""
+
+
+def test_r32_no_tagged_answer_for_the_point_means_nothing_to_draft_from():
+    q = {"answers": [_tagged("f-acme", "q1", "Policy text.", None)]}
+    assert answer_for(q, "Annex IV(2)(a)") == ""
+    assert answer_for(q, "Annex IV(2)(c)") == ""
+
+
+def test_r32_without_any_annex_point_key_the_suffix_rule_is_as_today():
+    assert answer_for(QUALIFICATION, "Annex IV(2)(a)").startswith("A gradient-boosted decision tree")
+    assert answer_for(QUALIFICATION, "Annex IV(2)(c)").startswith("A scoring model")
+    legacy = {"answers": [{"toolId": "f-x", "questionId": "q12a", "answer": "Suffix match."}]}
+    assert answer_for(legacy, "Annex IV(2)(a)") == "Suffix match."

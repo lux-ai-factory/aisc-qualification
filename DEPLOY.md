@@ -60,7 +60,18 @@ docker compose up -d --build
 docker compose logs -f app
 ```
 
-The container runs `prisma db push` on startup, so the schema is created automatically.
+Every project has a database of its own. The `qualification-migrate` one-shot runs `scripts/migrate-projects.mjs`,
+which runs `prisma migrate deploy` in every project database at start, and the app migrates a project's database
+the first time it opens it. The web container itself runs no schema step.
+
+Before deploying 20260925150000_two_level_forms, take a backup of the qualification schema: `pg_dump --schema=qualification`
+(for example `docker compose exec db pg_dump -U <user> -d <db> --schema=qualification > qualification-before-two-level-forms.sql`).
+The migration drops the old form tables in the same transaction that copies them, and there is no down
+migration: the dump is the way back.
+
+A database created by `prisma db push` has no migration history. Baseline it before the first start with the
+new image: run `prisma migrate resolve --applied <name>` for every migration in `prisma/migrations` that the
+database already reflects, then start the container, which applies the rest.
 
 ### 2d. HTTPS (Caddy — easiest)
 

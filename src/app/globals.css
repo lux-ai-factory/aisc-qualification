@@ -373,7 +373,8 @@ a:hover {
 .qualify-form .qf-question-text {
   flex: 1 1 100%;
 }
-.qualify-form .qf-citation {
+.qualify-form .qf-citation,
+.qf-forms-page .qf-citation {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -458,7 +459,8 @@ a:hover {
   font-weight: 700;
 }
 
-.qualify-form .qf-tag {
+.qualify-form .qf-tag,
+.qf-forms-page .qf-tag {
   display: inline-block;
   background: var(--panel-2);
   border: 1px solid var(--border);
@@ -2097,3 +2099,741 @@ a:hover {
 
 /* The card page's header buttons: editing the system, beside its versions. */
 .qf-header-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+/* ── Form assembly: library, builder, import, chooser, form line ───────── */
+/* 10-ui-plan.md. Every rule reuses a pattern of the pages around it: panels,
+   group heads, chips and tags from the qualify form, the notice box from
+   .qf-prefilled, the warning palette from .onto-flag. */
+
+/* The crumb sits above the title: .qualify-header p would give it the intro's
+   32px gap. */
+.qualify-header .qf-crumb {
+  margin: 0 0 8px;
+}
+
+/* Library page */
+.qf-forms-scroll {
+  overflow-x: auto;
+}
+.qf-forms-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.qf-forms-table thead th {
+  text-align: left;
+  padding: 0 16px 8px 0;
+  border-bottom: 2px solid var(--border-strong);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.qf-forms-table td {
+  padding: 16px 16px 16px 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.qf-forms-table tbody tr:hover {
+  background: var(--panel-2);
+}
+.qf-forms-name strong {
+  font-size: 16px;
+  font-weight: 700;
+}
+.qf-forms-desc {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.qf-forms-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--graph-muted);
+}
+.qf-forms-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 14px;
+}
+.qf-forms-actions .btn {
+  width: auto;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+.qf-forms-export {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.qualify-form .qf-tag--default,
+.qf-forms-page .qf-tag--default {
+  background: var(--info-soft);
+  border-color: var(--primary);
+  color: var(--primary);
+  margin-left: 8px;
+  vertical-align: 2px;
+}
+.qf-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 720px) {
+  .qf-forms-page .qf-header-row {
+    flex-direction: column;
+  }
+}
+
+/* Builder: the library on the left, the form being made on the right */
+.qf-builder {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
+  gap: 24px;
+  align-items: start;
+}
+.qualify-form.qf-builder > .qf-section {
+  margin-bottom: 0;
+}
+/* Sticky under the 89px site header, scrolling on its own; its footer sticks
+   to its bottom. */
+.qf-builder-form {
+  position: sticky;
+  top: 105px;
+  max-height: calc(100vh - 121px);
+  overflow-y: auto;
+  padding-bottom: 0;
+}
+.qualify-form .qf-builder-form {
+  padding-bottom: 0;
+}
+@media (max-width: 960px) {
+  .qf-builder {
+    grid-template-columns: 1fr;
+  }
+  .qf-builder-form {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+  .qf-builder-groups {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+}
+.qf-builder input[type="checkbox"],
+.qf-import-row input[type="checkbox"],
+.qf-chooser input[type="radio"] {
+  accent-color: var(--primary);
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: none;
+}
+
+/* One select, the same look as .field input */
+.qualify-form select.qf-select {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+}
+.qualify-form select.qf-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 15, 223, 0.1);
+}
+
+
+/* Library rows: a checkbox column and a body; the text and its chips are
+   separate lines, so a citation is never glued to the sentence. */
+.qf-builder-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.qf-builder-list > li + li {
+  border-top: 1px solid var(--border);
+}
+.qf-builder-pick {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 12px;
+  padding: 12px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.55;
+  border-left: 3px solid transparent;
+}
+.qf-builder-pick input {
+  margin-top: 3px;
+}
+.qf-builder-pick:hover {
+  background: var(--panel-2);
+}
+.qf-builder-pick:has(input:checked) {
+  background: var(--info-soft);
+  border-left-color: var(--primary);
+}
+.qf-builder-pick .qf-question-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.qf-builder-pick:hover .qf-question-text,
+.qf-builder-pick:focus-within .qf-question-text,
+.qf-builder-pick:has(input:checked) .qf-question-text {
+  -webkit-line-clamp: unset;
+  display: block;
+}
+.qf-builder-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.qf-overlap {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a0044;
+  background: var(--pink-soft);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+/* Blocks: the identity is locked in, the rest are chip toggles */
+.qf-builder-identity {
+  margin: 0 0 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.qf-builder-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px dashed var(--border-strong);
+  color: var(--graph-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: default;
+}
+.qf-builder-locked::before {
+  content: "✓";
+  font-weight: 800;
+  color: var(--muted);
+}
+.qf-builder-blocks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.qf-builder-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.qf-builder-block:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.qf-builder-block:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--info-soft);
+  color: var(--primary);
+}
+
+/* Picked rows: a numbered square, the wording, its chips, and small tools */
+.qf-builder-empty {
+  color: var(--muted);
+  font-size: 13px;
+  font-style: italic;
+  margin: 0 0 12px;
+}
+.qf-builder-rows {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+.qf-builder-row {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+  line-height: 1.5;
+  cursor: grab;
+}
+.qf-builder-row:first-child {
+  border-top: 0;
+}
+.qf-builder-row:hover {
+  background: var(--panel-2);
+}
+.qf-builder-pos {
+  width: 26px;
+  height: 26px;
+  line-height: 25px;
+  text-align: center;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.qf-builder-row .qf-question-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.qf-builder-row:hover .qf-question-text,
+.qf-builder-row:focus-within .qf-question-text {
+  -webkit-line-clamp: unset;
+  display: block;
+}
+.qf-builder-owner {
+  font-size: 12px;
+  color: var(--muted);
+}
+.qf-builder-owner::before {
+  content: "from ";
+}
+.qf-builder-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px 12px;
+  margin-top: 8px;
+}
+.qf-builder-move {
+  display: inline-flex;
+  gap: 4px;
+  margin-right: auto;
+}
+.qf-builder-tool {
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+}
+.qf-builder-tool:hover:not(:disabled) {
+  color: var(--primary);
+}
+.qf-builder-tool:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.qf-builder-arrow {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border);
+  background: #ffffff;
+}
+.qf-builder-remove:hover:not(:disabled) {
+  color: var(--error);
+}
+/* "Source updated": a notice box under the current wording, like .qf-prefilled */
+.qf-builder-update {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--info-soft);
+  border-left: 3px solid var(--primary);
+  font-size: 13px;
+}
+.qf-builder-update .qf-new-wording {
+  margin: 4px 0 8px;
+}
+.qf-builder-update .btn {
+  width: auto;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.qualify-form .qf-tag--notice {
+  background: var(--pink-soft);
+  border-color: var(--accent);
+  color: #8a0044;
+}
+
+/* Add, editor, footer: the editor is an inset panel with small buttons, the
+   form's own buttons sit large at the bottom, so the two cannot be confused. */
+.qf-builder-add {
+  border-style: dashed;
+  margin-bottom: 16px;
+}
+.qf-builder-editor {
+  margin: 0 0 16px;
+  padding: 4px 16px 12px;
+  background: var(--panel-2);
+  border-left: 3px solid var(--primary);
+}
+.qualify-form .qf-builder-editor .qf-group {
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 12px;
+}
+.qf-builder-editor-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.qf-builder-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.qualify-form .qf-builder-editor-actions {
+  gap: 8px;
+  margin-top: 0;
+}
+.qualify-form .qf-builder-editor-actions .btn {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+.qualify-form .qf-builder-footer {
+  position: sticky;
+  bottom: 0;
+  gap: 8px;
+  margin: 0 -24px;
+  padding: 14px 24px;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+}
+
+/* Import page */
+.qf-import-drop {
+  border: 1px dashed var(--border-strong);
+  background: var(--panel-2);
+  padding: 18px;
+}
+.qf-import-drop input[type="file"] {
+  font: inherit;
+  font-size: 14px;
+}
+.qf-import-drop input[type="file"]::file-selector-button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--primary);
+  background: #ffffff;
+  border: 1px solid var(--primary);
+  padding: 8px 14px;
+  margin-right: 12px;
+  cursor: pointer;
+}
+.qualify-form .qf-import-found {
+  font-size: 18px;
+  margin: 0 0 10px;
+}
+.qf-import-warnings {
+  margin: 0 0 16px;
+  padding: 8px 12px 8px 30px;
+  background: var(--info-soft);
+  border-left: 3px solid var(--primary);
+  font-size: 13px;
+}
+.qf-import-rows {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+.qf-import-row {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+.qf-import-meta {
+  grid-column: 2 / -1;
+  display: grid;
+  grid-template-columns: 1fr 220px auto;
+  gap: 12px;
+  align-items: end;
+}
+.qf-import-row input:not([type]),
+.qf-import-row input[type="text"] {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: #ffffff;
+}
+.qf-import-row input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 15, 223, 0.1);
+  outline: none;
+}
+.qf-import-point {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.qf-import-point .qf-field-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.qf-import-row .qf-builder-check {
+  margin-bottom: 10px;
+}
+@media (max-width: 720px) {
+  .qf-import-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* "Which form?" chooser */
+.qf-chooser fieldset {
+  margin: 0 0 20px;
+  min-width: 0;
+}
+.qf-chooser legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  margin: 0 0 14px;
+  font-size: 18px;
+  font-weight: 900;
+}
+.qf-chooser-option {
+  clear: both;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.qf-chooser-option:hover {
+  border-color: var(--primary);
+}
+.qf-chooser-option:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--info-soft);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+.qf-chooser-name {
+  font-weight: 700;
+}
+.qf-chooser-meta {
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.qf-chooser-meta + .qf-chooser-meta::before {
+  content: "· ";
+}
+.qf-chooser-tags {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 4px;
+}
+.qualify-form.qf-chooser .qf-actions {
+  justify-content: flex-start;
+  gap: 8px;
+}
+.qualify-form.qf-chooser .qf-actions .btn:last-child {
+  margin-left: auto;
+}
+
+/* The "Form: <name> vN" line under a card page's intro, with its export links
+   as small chips. The dots stay in the text for copy and paste; the gap does
+   the spacing on screen. */
+.qualify-header p:has(+ .qf-row-form) {
+  margin-bottom: 10px;
+}
+.qualify-header .qf-row-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--graph-muted);
+}
+.qf-row-form-sep {
+  display: none;
+}
+.qf-row-form a {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  padding: 2px 8px;
+}
+.qf-row-form a::before {
+  content: "↓ ";
+}
+.qf-row-form a:hover {
+  border-color: var(--primary);
+}
+
+/* Multi-form select (addendum 06 R75): the library's forms as toggle chips,
+   the look of the block chips; the builder takes more of a wide page (R74). */
+.qf-builder-forms {
+  border: 0;
+  margin: 0 0 14px;
+  padding: 0;
+  min-width: 0;
+}
+.qf-builder-forms legend {
+  padding: 0;
+  margin: 0 0 8px;
+}
+.qf-builder-formchips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.qf-builder-formchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.qf-builder-formchip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.qf-builder-formchip:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--info-soft);
+  color: var(--primary);
+}
+.qf-builder-formchip-meta {
+  font-weight: 400;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.qf-builder-prompt {
+  padding: 12px 10px;
+  margin: 0;
+}
+.qf-builder-group + .qf-builder-group {
+  margin-top: 18px;
+}
+@media (min-width: 961px) {
+  .qualify-page--wide .qf-builder {
+    grid-template-columns: minmax(0, 1fr) minmax(380px, 560px);
+  }
+}
+
+/* Two-level forms: question sets and questionnaires. Notices reuse the
+   .qf-prefilled look; lists and small print reuse the builder's. */
+.qf-set-versions {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.qf-set-versions a[aria-current="page"] {
+  font-weight: 700;
+}
+.qf-moving,
+.qf-questionnaire-update {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  background: var(--info-soft);
+  border-left: 3px solid var(--primary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.qf-wording-changed {
+  margin: 4px 0 6px;
+  font-size: 12px;
+  color: #8a0044;
+}
+.qf-import-missing {
+  margin: 8px 0 0;
+  padding: 8px 12px 8px 30px;
+  background: var(--pink-soft);
+  border-left: 3px solid var(--accent);
+  font-size: 13px;
+}
+.qualify-header .qf-saved-by,
+.qf-builder-author,
+.qf-forms-toggle {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.qf-builder-questions-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.qf-builder-questions-head .btn {
+  width: auto;
+}
+.qf-forms-table .qf-tag--notice {
+  background: var(--pink-soft);
+  border-color: var(--accent);
+  color: #8a0044;
+}
+.qf-retire {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.qf-retire-question {
+  font-size: 13px;
+}

@@ -7,6 +7,8 @@
  */
 import { KEY_QUESTIONS, keyQuestionField } from "@/data/keyQuestions";
 import type { RiskExample } from "@/data/examples";
+import { IDENTITY_FIELDS } from "@/domain/forms/blocks";
+import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
 
 /** The seven metadata fields a document can propose. The tag pickers are
  *  chosen rather than written, so nothing proposes them. */
@@ -25,14 +27,47 @@ export const PREFILLABLE = new Set<string>([
   ...KEY_QUESTIONS.map(keyQuestionField),
 ]);
 
+/** The metadata text fields a form includes or leaves out as blocks. */
+const TEXT_BLOCKS = new Set<string>(["description", "targetUseCase", "targetUsers", "intendedDeployers"]);
+
+/** What a document may propose for this questionnaire version: the identity, the
+ *  included metadata text fields and every question. For the default version
+ *  this is exactly PREFILLABLE. */
+export function prefillableFor(form: ResolvedQuestionnaireVersion): Set<string> {
+  return new Set<string>([
+    ...IDENTITY_FIELDS,
+    ...form.blocks.filter((b) => TEXT_BLOCKS.has(b)),
+    ...form.questions.map((q) => q.field),
+  ]);
+}
+
+/** The form being filled, as the prefill service is told it: the fields it may
+ *  fill ("risks" only when the form has the risk block) and the questions. */
+export type PrefillFormSpec = {
+  fields: string[];
+  questions: { field: string; text: string; citation: string; annexPoint: string | null }[];
+};
+
+export function prefillFormSpec(form: ResolvedQuestionnaireVersion): PrefillFormSpec {
+  return {
+    fields: [...IDENTITY_FIELDS, ...form.blocks, ...form.questions.map((q) => q.field)],
+    questions: form.questions.map((q) => ({
+      field: q.field,
+      text: q.text,
+      citation: q.citation,
+      annexPoint: q.annexPoint,
+    })),
+  };
+}
+
 export type Answers = Record<string, string>;
 
 /** What the form holds now, limited to what a document could propose. */
-export function currentAnswers(form: FormData): Answers {
+export function currentAnswers(form: FormData, prefillable: Set<string> = PREFILLABLE): Answers {
   const found: Answers = {};
   for (const [name, value] of form.entries()) {
     if (typeof value !== "string") continue;
-    if (!PREFILLABLE.has(name)) continue;
+    if (!prefillable.has(name)) continue;
     found[name] = value;
   }
   return found;

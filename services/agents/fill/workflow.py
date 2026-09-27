@@ -68,7 +68,15 @@ class FillResult:
 def answer_for(qualification: dict, citation: str) -> str:
     """The answer a property is drafted from, found by its Annex IV citation."""
     wanted = citation.replace("Annex IV(", "").replace(")", "").replace("(", "")
-    for answer in qualification.get("answers", []):
+    answers = qualification.get("answers", [])
+    if any("annexPoint" in a for a in answers):
+        # Exported with a form: only the tag says which point an answer is about,
+        # and several questions may answer the same point.
+        point = wanted.lower().replace("-", "")
+        return "\n\n".join(
+            a["answer"] for a in answers if a.get("annexPoint") == point and a.get("answer")
+        )
+    for answer in answers:
         key = f"{answer.get('toolId', '')}:{answer.get('questionId', '')}"
         if key.endswith(wanted.lower()) or answer.get("questionId") == wanted.lower():
             return answer.get("answer", "")

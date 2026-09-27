@@ -64,3 +64,70 @@ def test_a_docx_that_is_not_a_docx_is_refused_not_crashed():
 def test_a_pdf_that_is_not_a_pdf_is_refused_not_crashed():
     with pytest.raises(DocumentUnreadable):
         read_document(b"not a pdf", "broken.pdf")
+
+
+# ── Addendum 06, R70: a .docx may expand to at most 50 MiB ──────────────────
+# (docs/superpowers/form-assembly-2026-09-24/06-spec-addendum.md)
+
+from tests.test_form_import import EXPANDS, docx_bomb, small_docx  # noqa: E402
+
+
+def _check():
+    try:
+        from prefill.documents import check_docx_expansion
+    except ImportError as exc:  # the addendum's new helper
+        raise AssertionError(f"prefill.documents.check_docx_expansion is missing: {exc}")
+    return check_docx_expansion
+
+
+def test_r70_check_docx_expansion_passes_a_normal_docx(monkeypatch):
+    monkeypatch.delenv("PREFILL_MAX_UNZIPPED_BYTES", raising=False)
+    assert _check()(small_docx()) is None
+
+
+def test_r70_check_docx_expansion_refuses_more_than_the_limit(monkeypatch):
+    monkeypatch.delenv("PREFILL_MAX_UNZIPPED_BYTES", raising=False)
+    with pytest.raises(DocumentUnreadable) as refused:
+        _check()(docx_bomb())
+    assert str(refused.value) == EXPANDS.format(52428800)
+
+
+def test_r70_check_docx_expansion_turns_a_bad_zip_into_the_existing_message():
+    with pytest.raises(DocumentUnreadable) as refused:
+        _check()(b"not a zip at all")
+    assert str(refused.value).startswith("this .docx could not be read: ")
+
+
+def test_r70_exactly_the_limit_is_still_fine(monkeypatch):
+    import zipfile
+
+    raw = small_docx()
+    with zipfile.ZipFile(io.BytesIO(raw)) as z:
+        total = sum(i.file_size for i in z.infolist())
+    monkeypatch.setenv("PREFILL_MAX_UNZIPPED_BYTES", str(total))
+    assert _check()(raw) is None
+    monkeypatch.setenv("PREFILL_MAX_UNZIPPED_BYTES", str(total - 1))
+    with pytest.raises(DocumentUnreadable) as refused:
+        _check()(raw)
+    assert str(refused.value) == EXPANDS.format(total - 1)
+
+
+def test_r70_the_prefill_reader_refuses_the_bomb_before_docx_reads_it(monkeypatch):
+    import docx
+
+    def never(*_a, **_k):
+        raise AssertionError("docx.Document was called")
+
+    monkeypatch.delenv("PREFILL_MAX_UNZIPPED_BYTES", raising=False)
+    bomb = docx_bomb()
+    monkeypatch.setattr(docx, "Document", never)
+    with pytest.raises(DocumentUnreadable) as refused:
+        read_document(bomb, "technical-documentation.docx")
+    assert str(refused.value) == EXPANDS.format(52428800)
+
+
+def test_r70_the_prefill_reader_uses_the_environment_limit(monkeypatch):
+    monkeypatch.setenv("PREFILL_MAX_UNZIPPED_BYTES", "1000")
+    with pytest.raises(DocumentUnreadable) as refused:
+        read_document(small_docx(), "doc.docx")
+    assert "more than 1000 bytes when unpacked; " in str(refused.value)

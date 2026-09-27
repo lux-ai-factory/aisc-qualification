@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { QualificationRepository } from "@/server/repositories/QualificationRepository";
 import { toExport } from "@/server/services/QualificationExporter";
 import { ontologyService } from "@/server/services/OntologyService";
+import { questionnairesOn } from "@/server/services/QuestionnaireService";
 import { parseExtracted } from "@/server/forms/ExtractedParser";
 import { NOT_LATEST, isLatestCard } from "@/server/services/cardLatest";
 
@@ -58,8 +59,10 @@ export async function GET(
 
   const q = await new QualificationRepository(db).find(id);
   if (!q) return new NextResponse("Not found", { status: 404 });
+  // Its form is read from the same database: the card's questionnaire is its project's.
+  const form = await questionnairesOn(db).resolve(q.questionnaireVersionId ?? null);
   return NextResponse.json({
-    ...toExport(q),
+    ...toExport(q, form ?? undefined),
     extracted: q.ontologyExtracted ?? null,
     // The filler takes its project from here, never from whoever started it, so
     // a run can only use the model and key of the project whose database holds

@@ -36,6 +36,8 @@ export default function SiteHeader({ project }: { project?: string }) {
             <>
               <Link href={`/p/${project}/system`}>AI system</Link>
               <Link href={`/p/${project}/qualifications`}>Versions</Link>
+              <Link href={`/p/${project}/question-sets`}>Question sets</Link>
+              <Link href={`/p/${project}/questionnaires`}>Questionnaires</Link>
             </>
           )}
           <Link href="/methodology">Methodology</Link>

@@ -25,13 +25,16 @@ export type CreateQualificationInput = {
   description: string;
   targetUseCase: string;
   targetUsers: string;
-  intendedDeployers: string;
+  /** null when the card's form does not include the deployers block. */
+  intendedDeployers: string | null;
   targetSystemTags: string[];
   sectorTags: string[];
   marketFormTags: string[];
   localityTags: string[];
   answers: AnswerInput[];
   risks: RiskInput[];
+  /** The questionnaire version the card was filled with. */
+  questionnaireVersionId: string;
 };
 
 export type QualificationWithAnswers = Qualification & {
@@ -141,6 +144,7 @@ export class QualificationRepository {
         | "targetUsers"
         | "targetSystemTags"
         | "sectorTags"
+        | "questionnaireVersionId"
       > & {
         systemCardJson: Prisma.JsonValue | null;
       })
@@ -160,6 +164,7 @@ export class QualificationRepository {
         targetUsers: true,
         targetSystemTags: true,
         sectorTags: true,
+        questionnaireVersionId: true,
       },
     });
   }

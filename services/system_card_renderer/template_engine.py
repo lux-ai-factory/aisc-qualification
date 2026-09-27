@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader
 
 
 class TemplateEngine:
@@ -12,7 +12,10 @@ class TemplateEngine:
         self._templates_dir = templates_dir
         self._env = Environment(
             loader=FileSystemLoader(str(templates_dir)),
-            autoescape=select_autoescape(["html", "xml"]),
+            # Always on: the only template is `*.html.j2`, which
+            # select_autoescape(["html", "xml"]) did not match, so card text
+            # (answers, form names, citations) reached the PDF as raw HTML.
+            autoescape=True,
             trim_blocks=True,
             lstrip_blocks=True,
         )

@@ -1,6 +1,7 @@
-import { z } from "zod";
 import { TaxonomyService, taxonomyService } from "@/domain/Taxonomy";
-import { KEY_QUESTIONS, keyQuestionIdSet } from "@/data/keyQuestions";
+import type { FormBlock } from "@/domain/forms/blocks";
+import { annexDefaultVersion } from "@/domain/forms/legacy";
+import type { ResolvedQuestionnaireVersion, ResolvedQuestion } from "@/domain/forms/types";
 import {
   isAffected,
   isImpactArea,
@@ -9,15 +10,20 @@ import {
 } from "@/data/airoVocab";
 import type { AnswerInput } from "@/server/repositories/QualificationRepository";
 
-const metadataSchema = z.object({
-  systemName: z.string().min(1, "System name is required"),
-  systemVersion: z.string().min(1, "Version is required"),
-  company: z.string().min(1, "Company is required"),
-  description: z.string().min(1, "Description is required"),
-  targetUseCase: z.string().min(1, "Target use case is required"),
-  targetUsers: z.string().min(1, "Target users are required"),
-  intendedDeployers: z.string().min(1, "Intended deployers are required"),
-});
+// The identity: every form has it, whatever its blocks.
+const IDENTITY_REQUIRED: Array<["systemName" | "systemVersion" | "company", string]> = [
+  ["systemName", "System name is required"],
+  ["systemVersion", "Version is required"],
+  ["company", "Company is required"],
+];
+
+// The metadata text blocks, required when the form includes them. Checked in
+// this order, after the identity, so the first message is the one it always was.
+const TEXT_BLOCKS: Array<["description" | "targetUseCase" | "targetUsers", string]> = [
+  ["description", "Description is required"],
+  ["targetUseCase", "Target use case is required"],
+  ["targetUsers", "Target users are required"],
+];
 
 /** One row of the risk block (question 15): one full AIRO risk chain. */
 export type RiskInput = {
@@ -40,13 +46,24 @@ const RISK_REQUIRED: Array<[keyof RiskInput, string]> = [
   ["control", "What you do about it"],
 ];
 
-export type ParsedQualification = z.infer<typeof metadataSchema> & {
+export type ParsedQualification = {
+  systemName: string;
+  systemVersion: string;
+  company: string;
+  /** "" when the form does not include the block. */
+  description: string;
+  targetUseCase: string;
+  targetUsers: string;
+  /** null when the form does not include the block. */
+  intendedDeployers: string | null;
   targetSystemTags: string[];
   sectorTags: string[];
   marketFormTags: string[];
   localityTags: string[];
   answers: AnswerInput[];
   risks: RiskInput[];
+  /** The form version the submission was parsed against. */
+  formVersionId: string;
 };
 
 export class FormValidationError extends Error {
@@ -59,28 +76,50 @@ export class FormValidationError extends Error {
 export class QualificationFormParser {
   constructor(private readonly taxonomy: TaxonomyService = taxonomyService) {}
 
-  parse(formData: FormData): ParsedQualification {
-    const metadata = metadataSchema.safeParse({
-      systemName: formData.get("systemName"),
-      systemVersion: formData.get("systemVersion"),
-      company: formData.get("company"),
-      description: formData.get("description"),
-      targetUseCase: formData.get("targetUseCase"),
-      targetUsers: formData.get("targetUsers"),
-      intendedDeployers: this.trimmed(formData, "intendedDeployers"),
-    });
-    if (!metadata.success) {
-      throw new FormValidationError(metadata.error.issues[0].message);
+  /**
+   * The submission, read against the form version it was filled with. Only
+   * that version's blocks and questions are read; anything else posted is
+   * ignored. Without a form, the seeded default version.
+   */
+  parse(
+    formData: FormData,
+    form: ResolvedQuestionnaireVersion = annexDefaultVersion(),
+  ): ParsedQualification {
+    const has = (block: FormBlock) => form.blocks.includes(block);
+
+    const identity = {
+      systemName: this.trimmed(formData, "systemName"),
+      systemVersion: this.trimmed(formData, "systemVersion"),
+      company: this.trimmed(formData, "company"),
+    };
+    for (const [field, message] of IDENTITY_REQUIRED) {
+      if (identity[field] === "") throw new FormValidationError(message);
+    }
+    const text = { description: "", targetUseCase: "", targetUsers: "" };
+    for (const [field, message] of TEXT_BLOCKS) {
+      if (!has(field)) continue;
+      text[field] = this.trimmed(formData, field);
+      if (text[field] === "") throw new FormValidationError(message);
+    }
+    let intendedDeployers: string | null = null;
+    if (has("intendedDeployers")) {
+      intendedDeployers = this.trimmed(formData, "intendedDeployers");
+      if (intendedDeployers === "") {
+        throw new FormValidationError("Intended deployers are required");
+      }
     }
 
-    const targetSystemTags = this.collectStrings(formData, "targetSystemTags");
-    const sectorTags = this.collectStrings(formData, "sectorTags");
-    if (targetSystemTags.length === 0) {
+    const picked = (block: FormBlock) =>
+      has(block) ? this.collectStrings(formData, block) : [];
+
+    const targetSystemTags = picked("targetSystemTags");
+    const sectorTags = picked("sectorTags");
+    if (has("targetSystemTags") && targetSystemTags.length === 0) {
       throw new FormValidationError(
         "Pick at least one target-system capability.",
       );
     }
-    if (sectorTags.length === 0) {
+    if (has("sectorTags") && sectorTags.length === 0) {
       throw new FormValidationError("Pick at least one sector.");
     }
     for (const t of targetSystemTags) {
@@ -95,12 +134,12 @@ export class QualificationFormParser {
     }
 
     // AIRO-aligned pickers: controlled ids from src/data/airo_vocab.json.
-    const marketFormTags = this.collectStrings(formData, "marketFormTags");
-    const localityTags = this.collectStrings(formData, "localityTags");
-    if (marketFormTags.length === 0) {
+    const marketFormTags = picked("marketFormTags");
+    const localityTags = picked("localityTags");
+    if (has("marketFormTags") && marketFormTags.length === 0) {
       throw new FormValidationError("Pick at least one market form.");
     }
-    if (localityTags.length === 0) {
+    if (has("localityTags") && localityTags.length === 0) {
       throw new FormValidationError("Pick at least one locality of use.");
     }
     for (const m of marketFormTags) {
@@ -114,47 +153,46 @@ export class QualificationFormParser {
       }
     }
 
-    // The Annex IV sub-items flagged "where applicable" may be left blank; the
-    // rest must be answered.
-    const missing: string[] = [];
-    for (const k of KEY_QUESTIONS) {
-      if (k.optional) continue;
-      const value = formData.get(`q:${k.group}:${k.id}`);
-      if (typeof value !== "string" || value.trim().length === 0) {
-        missing.push(k.id);
-      }
-    }
+    // A question marked optional ("where applicable" in Annex IV, or by the
+    // form's author) may be left blank; the rest must be answered.
+    const missing = form.questions.filter(
+      (q) => q.required && this.trimmed(formData, q.field) === "",
+    );
     if (missing.length > 0) {
       throw new FormValidationError(
         `Please answer all required questions (${missing.length} missing).`,
       );
     }
 
-    const validIds = keyQuestionIdSet();
+    // Only this version's questions are answers: a key from another form, or
+    // one this version dropped, is ignored rather than stored.
+    const byField = new Map<string, ResolvedQuestion>(
+      form.questions.map((q) => [q.field, q]),
+    );
     const answers: AnswerInput[] = [];
     for (const [field, raw] of formData.entries()) {
       if (!field.startsWith("q:")) continue;
       if (typeof raw !== "string") continue;
       const value = raw.trim();
       if (!value) continue;
-      const parts = field.split(":");
-      if (parts.length < 3) continue;
-      const toolId = parts[1];
-      const questionId = parts.slice(2).join(":");
-      if (!validIds.has(`${toolId}:${questionId}`)) continue;
-      answers.push({ toolId, questionId, answer: value });
+      const q = byField.get(field);
+      if (!q) continue;
+      answers.push({ toolId: q.scope, questionId: q.localId, answer: value });
     }
 
-    const risks = this.parseRisks(formData);
+    const risks = has("risks") ? this.parseRisks(formData) : [];
 
     return {
-      ...metadata.data,
+      ...identity,
+      ...text,
+      intendedDeployers,
       targetSystemTags,
       sectorTags,
       marketFormTags,
       localityTags,
       answers,
       risks,
+      formVersionId: form.versionId,
     };
   }
 

@@ -17,18 +17,23 @@ import { PrismaClient } from "@prisma/client";
 
 const TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_DATABASE_URL ?? "";
 const ADMIN_TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_ADMIN_URL ?? "";
-const LIBRARY_URL = process.env.QUALIFICATION_TEST_FORM_LIBRARY_URL ?? "";
 const SETUP = process.env.ISOLATION_SETUP ?? "";
 const [A, B, C, E] = (process.env.QUALIFICATION_TEST_PROJECTS ?? "").split(",");
 const enabled = TEMPLATE !== "" && ADMIN_TEMPLATE !== "";
-if (enabled && [TEMPLATE, ADMIN_TEMPLATE, LIBRARY_URL].some((u) => /:5432\//.test(u))) {
+if (enabled && [TEMPLATE, ADMIN_TEMPLATE].some((u) => /:5432\//.test(u))) {
   throw new Error("refusing to run the DB tests against port 5432 (the live stack)");
 }
 
 const APP = resolve(__dirname, "..", "..");
 const MIGRATIONS = join(APP, "prisma", "migrations");
 const BASELINE = "20260925000000_project_database";
-const FORMS = ["20260925090000_forms_are_data", "20260925120000_the_default_form_is_fixed"];
+const FORMS = [
+  "20260925090000_forms_are_data",
+  "20260925120000_the_default_form_is_fixed",
+  "20260925150000_two_level_forms",
+];
+/** The readers' grant on the two-level forms tables, after the forms migrations. */
+const READERS_READ_FORMS = "20260927000000_readers_read_the_forms";
 const formsOnBranch = FORMS.every((d) => existsSync(join(MIGRATIONS, d, "migration.sql")));
 
 const dbName = (pid: string) => `project_${pid.toLowerCase().replace(/-/g, "")}`;
@@ -55,7 +60,7 @@ async function tryQuery<T>(c: PrismaClient, sql: string): Promise<T[] | string> 
 }
 
 function migrateProjects(extraEnv: Record<string, string> = {}) {
-  const env: NodeJS.ProcessEnv = { ...process.env, PROJECT_DATABASE_URL: TEMPLATE, FORM_LIBRARY_DATABASE_URL: LIBRARY_URL, ...extraEnv };
+  const env: NodeJS.ProcessEnv = { ...process.env, PROJECT_DATABASE_URL: TEMPLATE, ...extraEnv };
   delete env.DATABASE_URL;
   const script = join(APP, "scripts", "migrate-projects.mjs");
   if (!existsSync(script)) return { status: -1, out: "I3.6: scripts/migrate-projects.mjs is missing" };
@@ -177,11 +182,16 @@ async function shape(c: PrismaClient, live: boolean): Promise<string[]> {
       FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'qualification'`);
   let lines = [...cols, ...cons, ...idx, ...trg, ...fns];
   const formsLine = /\bform(_version|_question|_version_question)?\b|form_version_id|form_(name|builtin|question_identity|version)_is_|form_version_question_is/;
-  // Q2 compares them (gate I4.6). The forms migration also replaces the answers' unique index
-  // (qualificationId, questionId) by (qualificationId, toolId, questionId): both sides of that
-  // swap are the forms work's, so neither is compared before it is merged.
+  // The forms tables are not compared here. The live shape (2026-09-25) holds the one-level
+  // forms (form, form_version, ...) of 20260925120000; a project database is at
+  // 20260925150000_two_level_forms, which replaces them by question sets and questionnaires.
+  // Those are pinned by their own tests (twoLevelForms.db.test.ts, projectForms.db.test.ts).
+  const twoLevelLine = /\bquestion(naire)?(_set)?(_version)?(_item)?\b|questionnaire_version_id|question(naire)?(_set)?(_version)?(_item)?_is_|question_identity_is_fixed|questionnaire_row_is_fixed|question_set_row_is_fixed/;
+  // The forms migration also replaces the answers' unique index (qualificationId, questionId)
+  // by (qualificationId, toolId, questionId): both sides of that swap are the forms work's.
   const formsIndex = /qualification_answer_qualification_id_tool_id_question_id_key|"QualificationAnswer_qualificationId_questionId_key"/;
   if (!formsOnBranch) lines = lines.filter((l) => !formsLine.test(l) && !formsIndex.test(l));
+  else lines = lines.filter((l) => !formsLine.test(l) && !twoLevelLine.test(l));
   if (live) {
     lines = lines
       // I1.7: project_id, its index and the keys to core go
@@ -203,7 +213,7 @@ describe.skipIf(!enabled)("I3.5 I3.7 a project database's qualification schema i
     expect(why).toBe("");
     const names = await migrations(A);
     expect(Array.isArray(names) ? names[0] : names).toBe(BASELINE);
-    if (formsOnBranch) expect(names).toEqual(expect.arrayContaining(FORMS));
+    if (formsOnBranch) expect(names).toEqual(expect.arrayContaining([...FORMS, READERS_READ_FORMS]));
     const dirs = readdirSync(MIGRATIONS).filter((d) => /^\d{14}_/.test(d));
     expect(names).toEqual([...dirs].sort());
   });
@@ -328,7 +338,10 @@ describe.skipIf(!enabled)("I2.6 report_ro and dashboard_ro read exactly the list
 
   const readable = [
     "qualification", "qualification_answer", "qualification_risk", "knowledge_graph", "card_component",
-    ...(formsOnBranch ? ["form", "form_version", "form_question", "form_version_question"] : []),
+    ...(formsOnBranch
+      ? ["question_set", "question_set_version", "question_set_version_item", "question",
+         "questionnaire", "questionnaire_version", "questionnaire_version_item"]
+      : []),
   ];
 
   it.each(["report_ro", "dashboard_ro"])("I2.6 %s: SELECT on every listed table, nothing on _prisma_migrations, no writes", async (role) => {

@@ -297,7 +297,7 @@ describe("I3.4 I3.6 I3.8 wiring that is only visible in the source", () => {
     expect(text, "I3.6: the seed opens the project's database from PROJECT_DATABASE_URL").toMatch(/PROJECT_DATABASE_URL|projectDb/);
   });
 
-  it("I3.8 nothing in src/ or scripts/ reads DATABASE_URL: project databases come from PROJECT_DATABASE_URL, the library from FORM_LIBRARY_DATABASE_URL", () => {
+  it("I3.8 nothing in src/ or scripts/ reads DATABASE_URL: project databases come from PROJECT_DATABASE_URL", () => {
     const offenders = [...sourceFiles(), ...sourceFiles(join(APP, "scripts"))]
       .filter((f) => /\bprocess\.env\.DATABASE_URL\b|\benv\.DATABASE_URL\b|\["DATABASE_URL"\]/.test(read(f)))
       .map(rel);

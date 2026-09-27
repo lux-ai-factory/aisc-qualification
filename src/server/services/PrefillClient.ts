@@ -10,6 +10,9 @@
  */
 import type { RiskExample } from "@/data/examples";
 import { serviceTokenHeaders, serviceUrl } from "@/server/services/http";
+import type { PrefillFormSpec } from "@/lib/prefillChoice";
+
+export type { PrefillFormSpec };
 
 export type PrefillMode = "empty" | "replace";
 
@@ -51,6 +54,7 @@ export class PrefillClient {
     mode: PrefillMode = "empty",
     current: PrefillValues = {},
     currentRisks: PrefillRisk[] = [],
+    formSpec?: PrefillFormSpec,
   ): Promise<PrefillResult> {
     if (!this.baseUrl) {
       return { ok: false, error: "Reading documents is not available on this install." };
@@ -60,6 +64,12 @@ export class PrefillClient {
     body.set("mode", mode);
     body.set("current", JSON.stringify(current));
     body.set("current_risks", JSON.stringify(currentRisks));
+    // Without a form the request is exactly what it was before forms existed,
+    // so the service reads the default form the way it always has.
+    if (formSpec) {
+      body.set("fields", JSON.stringify(formSpec.fields));
+      body.set("questions", JSON.stringify(formSpec.questions));
+    }
 
     let response: Response;
     try {
