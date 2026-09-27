@@ -1,0 +1,102 @@
+/**
+ * Who may read a qualification that is addressed by its own id.
+ *
+ * The pages live under /p/:project and the door in middleware.ts answers for
+ * them. The routes under /api/qualifications/:id carry no project, yet they
+ * hand over the AI card, the ontology and the PDF, which is the whole system
+ * description.
+ *
+ * So this reads the qualification's own project and asks the platform what
+ * this caller is to it. Injected dependencies rather than imports, so the rule
+ * can be tested without a database or a platform.
+ */
+import { prisma } from "@/lib/prisma";
+import { fetchAccess, type Access } from "@/server/access/projectAccess";
+import { callerToken } from "@/server/services/callerToken";
+
+export type QualificationAccessDeps = {
+  /** The project a qualification belongs to, or null if there is no such one. */
+  projectOf: (id: string) => Promise<string | null>;
+  /** What this caller is to that project, or null if it could not be established. */
+  accessTo: (project: string) => Promise<Access | null>;
+};
+
+/** What the person behind this request is to a project, or null if the platform could not say. */
+export async function callerAccess(project: string): Promise<Access | null> {
+  return fetchAccess(project, await callerToken(), { platformUrl: process.env.PLATFORM_URL ?? "" });
+}
+
+const live: QualificationAccessDeps = {
+  projectOf: async (id) =>
+    (
+      await prisma.qualification.findUnique({
+        where: { id },
+        select: { projectId: true },
+      })
+    )?.projectId ?? null,
+  accessTo: callerAccess,
+};
+
+/**
+ * The project this caller may read this qualification through, or null.
+ *
+ * Null covers all three refusals on purpose: no such qualification, not in its
+ * project, and the platform could not be asked. A route turns any of them into
+ * the same 404, which is what a stranger may know.
+ */
+export async function qualificationForCaller(
+  id: string,
+  deps: QualificationAccessDeps = live,
+): Promise<string | null> {
+  const project = await deps.projectOf(id);
+  if (!project) return null;
+  const access = await deps.accessTo(project);
+  if (!access || !access.role) return null;
+  return project;
+}
+
+/** A write to a qualification addressed by id: its own project, or why not. */
+export type WriteAccess = { ok: true; project: string } | { ok: false; status: 403 | 404 };
+
+/**
+ * The project this caller may WRITE this qualification in: an editor or owner
+ * of the qualification's own project, or a platform admin (whom the platform
+ * answers as owner).
+ *
+ * The project is read from the qualification, never taken from the request: a
+ * server action is posted to a page of one project and may name another in its
+ * arguments. A member who may only read is told 403; everybody else 404, as on
+ * the read above.
+ */
+export async function qualificationForWriter(
+  id: string,
+  deps: QualificationAccessDeps = live,
+): Promise<WriteAccess> {
+  const project = await deps.projectOf(id);
+  if (!project) return { ok: false, status: 404 };
+  const access = await deps.accessTo(project);
+  if (!access || !access.role) return { ok: false, status: 404 };
+  if (!access.may_write) return { ok: false, status: 403 };
+  return { ok: true, project };
+}
+
+/**
+ * Whether this caller may write in a project named directly (a new card has no
+ * id yet); null when the platform could not say, which refuses too.
+ */
+export async function projectForWriter(
+  project: string,
+  accessTo: QualificationAccessDeps["accessTo"] = callerAccess,
+): Promise<boolean | null> {
+  const access = await accessTo(project);
+  return access === null ? null : access.may_write === true;
+}
+
+/**
+ * The qualification's own project, with no question about the caller. Only for a
+ * caller that has already proved it is a service allowed here (the card agent's
+ * token on /extracted); null if there is no such qualification.
+ */
+export async function qualificationProject(id: string): Promise<string | null> {
+  return live.projectOf(id);
+}

@@ -19,10 +19,14 @@ from typing import Any, Literal
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 
 from agent import fill_one
+from service_token import ServiceTokens
 
 State = Literal["queued", "running", "done", "failed"]
 
 app = FastAPI(title="Ontology filler", version="0.1.0")
+# Only qualification-web calls this, with its own token: a run spends the
+# qualification's project key, so nothing else on the network may start one.
+app.add_middleware(ServiceTokens, names=("QUALIFICATION_WEB_TO_AGENTS_TOKEN",))
 
 #: qualification id -> what its latest run is doing. Guarded because BackgroundTasks
 #: runs on a worker thread.
@@ -63,7 +67,10 @@ def _run(qualification_id: str) -> None:
 
 @app.post("/fill/{qualification_id}", status_code=202)
 def start(qualification_id: str, background: BackgroundTasks) -> dict[str, Any]:
-    """Start a run, unless one is already in flight for this qualification."""
+    """Start a run, unless one is already in flight for this qualification.
+
+    No project is taken here: the run reads it from the qualification, so whoever
+    can reach this service can start a run but cannot choose whose key it spends."""
     with _LOCK:
         current = RUNS.get(qualification_id)
         in_flight = current and current["state"] in {"queued", "running"}

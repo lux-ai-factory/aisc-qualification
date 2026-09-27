@@ -5,6 +5,9 @@ simplification of stakeholders to Operator and User:
   - AIProvider and AIDeployer are dropped; isProvidedBy / isDeployedBy range over
     AIOperator (both were already subClassOf AIOperator in AIRO).
   - AISubject and hasAISubject are dropped; affected persons are Users.
+Added for the engine components an AI card links (pipeline 2026-09-23, WP6): AIModel
+and Data (both subClassOf AIComponent) and hasModel, hasTrainingData, hasTestingData,
+hasValidationData (sub-properties of hasComponent).
 Everything here is cross-checked against the vendored airo.ttl by tests/test_schema.py.
 """
 
@@ -25,6 +28,9 @@ CLASSES: dict[str, str | None] = {
     "Domain": None,
     "LocalityOfUse": None,  # the kind of setting: workplace, school, public space
     "AIComponent": None,
+    # what an engine component is to the system, for the links a card makes (WP6)
+    "AIModel": "AIComponent",
+    "Data": "AIComponent",
     "Stakeholder": None,
     "AIOperator": "Stakeholder",
     "AIUser": "Stakeholder",
@@ -48,6 +54,11 @@ PROPERTIES: dict[str, tuple[tuple[str, ...], str]] = {
     "isAppliedWithinDomain": (("AISystem", "AIComponent"), "Domain"),
     "isUsedWithinLocality": (("AISystem", "AIComponent"), "LocalityOfUse"),
     "hasComponent": ((), "AIComponent"),
+    # sub-properties of hasComponent; airo.ttl declares no domain for them
+    "hasModel": ((), "AIModel"),
+    "hasTrainingData": ((), "Data"),
+    "hasTestingData": ((), "Data"),
+    "hasValidationData": ((), "Data"),
     "isProvidedBy": (("AISystem", "AIComponent"), "AIOperator"),
     "isDeployedBy": (("AISystem", "AIComponent"), "AIOperator"),
     "hasAIUser": (("AISystem",), "AIUser"),

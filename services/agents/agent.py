@@ -1,7 +1,10 @@
 """Run the ontology filler.
 
-The model is BAF's: fill/llm.py builds one of its wrappers from
-BAF_LLM_PROVIDER / BAF_LLM_MODEL and BAF's property store holds the credential.
+The model is BAF's: fill/baf_llm.py builds one of its wrappers and BAF's
+property store holds the credential. Which model: the one the qualification's
+project chose on the platform, else BAF_LLM_PROVIDER / BAF_LLM_MODEL from the
+environment. The project is read from the qualification itself, never taken from
+whoever starts the run, so a run can only spend its own project's key.
 
 Two ways in, one flow:
 
@@ -17,24 +20,32 @@ import argparse
 import json
 import sys
 
-from fill import clients
-from fill.llm import build_llm, completer
+from fill import baf_llm, clients
 from fill.workflow import MAX_ROUNDS, build_agent, run_fill
 
 
 def fill_one(qualification_id: str, dry_run: bool = False) -> dict:
     """Draft, review and publish one qualification's extracted document.
 
+    The model is the one the qualification's own project chose (`projectId` in the
+    app's export), or the environment's when the project chose none or the export
+    names no project. The qualification is read first, because that is where the
+    project comes from; the model is settled before any drafting starts.
+
     Returns what the run did, so an HTTP caller can report it without parsing
     stdout.
     """
     qualification = clients.qualification(qualification_id)
+    project = qualification.get("projectId")
+    config = baf_llm.config_for(project, "card_agent")
+    llm = baf_llm.build_llm(config, agent_name="ontology_filler_llm")
+
     terms = clients.vocabularies()
 
     result = run_fill(
         qualification,
         terms=terms,
-        complete=completer(build_llm()),
+        complete=baf_llm.completer(llm),
         publish=(lambda qid, payload: None) if dry_run else clients.publish,
         max_rounds=MAX_ROUNDS,
     )
@@ -58,6 +69,8 @@ def fill_one(qualification_id: str, dry_run: bool = False) -> dict:
         "calls": result.calls,
         "flagged": len(result.payload.get("flags", {})),
         "stops": result.stop_reasons,
+        "model": f"{config.provider}/{config.model}",
+        "project": project,
     }
 
 

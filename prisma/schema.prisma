@@ -9,6 +9,14 @@ datasource db {
 
 model Qualification {
   id                String                @id @default(cuid())
+  // The platform project this qualification belongs to, and the card version
+  // it describes: a row of core.system, numbered per project. Both are uuids
+  // from `core` in the one database. One card per version; every save makes
+  // the next version, and only the latest version's card changes. The foreign
+  // keys are made in the migration, since Prisma cannot model a key into a
+  // schema this app only reads.
+  projectId         String                @map("project_id") @db.Uuid
+  systemId          String                @unique @map("system_id") @db.Uuid
   systemName        String
   systemVersion     String
   company           String
@@ -27,14 +35,37 @@ model Qualification {
   // node id; the graph itself is rebuilt from them, never stored as the truth.
   ontologyExtracted Json?
   ontologyPatch     Json?
-  ontologyAt        DateTime?
-  systemCardAt      DateTime?
+  ontologyAt        DateTime?             @map("ontology_at") @db.Timestamptz(3)
+  systemCardAt      DateTime?             @map("system_card_at") @db.Timestamptz(3)
   systemCardPdfPath String?
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
   answers           QualificationAnswer[]
   knowledgeGraph    KnowledgeGraph?
   risks             QualificationRisk[]
+  components        CardComponent[]
+
+  @@index([projectId])
+  @@map("qualification")
+}
+
+// An engine component the card links through an AIRO property (hasModel,
+// hasTrainingData, hasTestingData, hasValidationData, hasComponent), with a
+// snapshot of what it was when linked, so drift from the engine can be shown.
+model CardComponent {
+  id              String        @id @default(cuid())
+  qualificationId String        @map("qualification_id")
+  componentPid    String        @map("component_pid") @db.Uuid
+  airoProperty    String        @map("airo_property")
+  name            String
+  componentType   String        @map("component_type")
+  objectName      String        @default("") @map("object_name")
+  linkedAt        DateTime      @default(now()) @map("linked_at") @db.Timestamptz(3)
+  qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
+
+  @@unique([qualificationId, componentPid])
+  @@index([componentPid])
+  @@map("card_component")
 }
 
 // One row of the risk block (question 15): one full AIRO risk chain.
@@ -54,6 +85,7 @@ model QualificationRisk {
   qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
 
   @@index([qualificationId])
+  @@map("qualification_risk")
 }
 
 /// The knowledge graph for one system.
@@ -77,8 +109,10 @@ model KnowledgeGraph {
   stamp           String[]      @default([])
   nodes           Int
   triples         Int
-  builtAt         DateTime      @default(now())
+  builtAt         DateTime      @default(now()) @map("built_at") @db.Timestamptz(3)
   qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
+
+  @@map("knowledge_graph")
 }
 
 model QualificationAnswer {
@@ -91,4 +125,5 @@ model QualificationAnswer {
 
   @@unique([qualificationId, questionId])
   @@index([qualificationId, toolId])
+  @@map("qualification_answer")
 }

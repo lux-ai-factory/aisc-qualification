@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { ReactFlowProvider } from "@xyflow/react";
 
-import OntologyGraph from "@/app/qualify/[id]/OntologyGraph";
+import OntologyGraph from "@/app/p/[project]/qualify/[id]/OntologyGraph";
 import { installReactFlowEnv } from "../support/reactFlowEnv";
 import { hubId } from "@/domain/ontologyFigure";
 import type { OntologyNode, OntologyView } from "@/domain/OntologyView";

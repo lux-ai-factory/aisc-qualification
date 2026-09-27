@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, beforeAll } from "vitest";
 import { cleanup, render } from "@testing-library/react";
-import OntologyView from "@/app/qualify/[id]/OntologyView";
+import OntologyView from "@/app/p/[project]/qualify/[id]/OntologyView";
 import type { OntologyView as View } from "@/domain/OntologyView";
 import { installReactFlowEnv } from "../support/reactFlowEnv";
 
@@ -66,6 +66,7 @@ const view: View = {
 function mount() {
   return render(
     <OntologyView
+      projectId="proj"
       qualificationId="abc"
       initialView={view}
       initialProblems={[]}

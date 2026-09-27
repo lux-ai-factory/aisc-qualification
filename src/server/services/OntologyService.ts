@@ -10,6 +10,7 @@ import type {
 } from "@/domain/OntologyView";
 import { OntologyClient, type OntologyBuild } from "./OntologyClient";
 import { toExport } from "./QualificationExporter";
+import { assertLatestCard } from "./cardLatest";
 import {
   knowledgeGraphStore,
   type KnowledgeGraphStore,
@@ -37,8 +38,8 @@ export class OntologyService {
    * vendored ontology rather than the answers. Digests are compared first, so
    * repeated reads of an unchanged card write nothing.
    */
-  async build(qualificationId: string): Promise<OntologyBuild> {
-    const q = await this.repo.find(qualificationId);
+  async build(projectId: string, qualificationId: string): Promise<OntologyBuild> {
+    const q = await this.repo.find(projectId, qualificationId);
     if (!q) throw new Error("Qualification not found.");
     const built = await this.clientFactory().build(
       toExport(q),
@@ -55,12 +56,12 @@ export class OntologyService {
    * removes that node's entry, which reverts it to the generated value.
    */
   async patchNode(
+    projectId: string,
     qualificationId: string,
     nodeId: string,
     change: NodePatch,
   ): Promise<OntologyBuild> {
-    const q = await this.repo.find(qualificationId);
-    if (!q) throw new Error("Qualification not found.");
+    const q = await this.findChangeable(projectId, qualificationId);
 
     const patch: OntologyPatch = {
       ...((q.ontologyPatch as OntologyPatch | null) ?? {}),
@@ -88,9 +89,21 @@ export class OntologyService {
    *
    * The corrected states stay in the archive: discarding an edit is a decision,
    * and the record should show that it was made. */
-  async resetPatch(qualificationId: string): Promise<OntologyBuild> {
+  async resetPatch(projectId: string, qualificationId: string): Promise<OntologyBuild> {
+    // Read first, so a qualification of another project is refused before
+    // anything is written rather than after.
+    await this.findChangeable(projectId, qualificationId);
     await this.repo.saveOntologyPatch(qualificationId, {});
-    return this.build(qualificationId);
+    return this.build(projectId, qualificationId);
+  }
+
+  /** The qualification, if it is of this project and its card is the latest
+   *  version's: only that card changes, an older one is kept as it was. */
+  private async findChangeable(projectId: string, qualificationId: string) {
+    const q = await this.repo.find(projectId, qualificationId);
+    if (!q) throw new Error("Qualification not found.");
+    await assertLatestCard(projectId, q.systemId);
+    return q;
   }
 }
 

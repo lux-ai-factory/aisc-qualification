@@ -151,6 +151,16 @@ def _build_stamp() -> list[str]:
     return stamps
 
 
+#: The AIRO property an engine component is linked by, and the class of its node.
+COMPONENT_RANGE = {
+    "hasModel": "AIModel",
+    "hasTrainingData": "Data",
+    "hasTestingData": "Data",
+    "hasValidationData": "Data",
+    "hasComponent": "AIComponent",
+}
+
+
 def build_graph(
     qualification: dict[str, Any],
     extracted: dict[str, Iterable[str]] | None = None,
@@ -269,6 +279,22 @@ def build_graph(
             _provenance(g, node, "extracted")
             g.add((node, QUAL.derivedFrom, Literal(citation)))
             link(g, system, prop, node)
+
+    # ── engine components the card links, each by its AIRO property ──────────
+    # One node per engine component, named by its engine pid, so the card joins
+    # what the engine tests. The free-text components above stay as they are.
+    for entry in qualification.get("engineComponents") or []:
+        prop = entry["property"]
+        if prop not in COMPONENT_RANGE:
+            raise ValueError(
+                f"{prop!r} is not a component property; expected one of "
+                f"{', '.join(sorted(COMPONENT_RANGE))}"
+            )
+        node = add_individual(
+            g, URIRef("urn:aisc:component:" + entry["pid"]), COMPONENT_RANGE[prop], entry.get("name")
+        )
+        g.add((node, QUAL.objectName, Literal(entry.get("objectName", ""))))
+        link(g, system, prop, node)
 
     # ── risk rows: one full chain each ───────────────────────────────────────
     # AreaOfImpact nodes are shared across risks, exactly as the stakeholder

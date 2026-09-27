@@ -159,6 +159,59 @@ export const MCAS_SEED = QUALIFICATION;
  */
 export const MCAS_ID = "cmpeno6uw0001h9ig8l1d5b27";
 
+async function platformCall(what, url, init, fetchImpl) {
+  let response;
+  try {
+    response = await fetchImpl(url, {
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      ...init,
+    });
+  } catch (cause) {
+    throw new Error(`Could not ${what}: the platform did not answer.`, { cause });
+  }
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Could not ${what}: the platform answered ${response.status}. ${detail}`.trim());
+  }
+  return response.json();
+}
+
+function platformBase(options) {
+  const platformUrl = (options.platformUrl ?? process.env.PLATFORM_URL ?? "").replace(/\/+$/, "");
+  if (!platformUrl) {
+    throw new Error("PLATFORM_URL is not set: MCAS's system cannot be named without the platform.");
+  }
+  return platformUrl;
+}
+
+/**
+ * The card version MCAS's card will describe, saved with MCAS's identity: the
+ * two ids a card cannot be stored without. One POST makes the project's next
+ * card version. Called only when the card is about to be written, never on the
+ * run that finds it seeded.
+ */
+export async function systemForProject(project, options = {}) {
+  const fetchImpl = options.fetchImpl ?? fetch;
+  if (!project) {
+    throw new Error(
+      "Say which project to seed MCAS into: `node scripts/seed_mcas.mjs <project>` " +
+        "(its slug or its pid), or SEED_PROJECT=<project>.",
+    );
+  }
+  const url = `${platformBase(options)}/projects/${encodeURIComponent(project)}/system-versions`;
+  const version = await platformCall("name MCAS's system", url, {
+    method: "POST",
+    body: JSON.stringify({
+      name: QUALIFICATION.systemName,
+      version: QUALIFICATION.systemVersion,
+      provider: QUALIFICATION.company,
+      description: QUALIFICATION.description,
+    }),
+  }, fetchImpl);
+  return { projectId: version.project_id, systemId: version.pid };
+}
+
 /**
  * Put the MCAS walkthrough in the database, once.
  *
@@ -166,8 +219,14 @@ export const MCAS_ID = "cmpeno6uw0001h9ig8l1d5b27";
  * has to be a no-op: it leaves the row alone rather than adding a second copy,
  * and it does not overwrite a card someone has since edited. `force` (or
  * SEED_FORCE=1) replaces it, which is what you want after changing the fixture.
+ *
+ * @param {import("@prisma/client").PrismaClient} prisma
+ * @param {{ force?: boolean, project?: string,
+ *           platform?: { projectId: string, systemId: string } }} [options]
+ *        `platform` is the answer the platform would give, for a caller that
+ *        already has it (the tests); otherwise it is asked for.
  */
-export async function seedMcas(prisma, { force = false } = {}) {
+export async function seedMcas(prisma, { force = false, project, platform } = {}) {
   const existing = await prisma.qualification.findUnique({
     where: { id: MCAS_ID },
     select: { id: true },
@@ -184,9 +243,16 @@ export async function seedMcas(prisma, { force = false } = {}) {
     await prisma.qualification.delete({ where: { id: existing.id } });
   }
 
+  // Only now is the system named: finding the card already seeded must not
+  // make a version nobody asked for, and a card of a system nothing else can
+  // point at would be a dead end (the database refuses it anyway).
+  const { projectId, systemId } = platform ?? (await systemForProject(project));
+
   const created = await prisma.qualification.create({
     data: {
       id: MCAS_ID,
+      projectId,
+      systemId,
       systemName: QUALIFICATION.systemName,
       systemVersion: QUALIFICATION.systemVersion,
       company: QUALIFICATION.company,
@@ -215,8 +281,9 @@ if (
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
   const prisma = new PrismaClient();
-  console.log("Seeding MCAS qualification");
-  seedMcas(prisma, { force: process.env.SEED_FORCE === "1" })
+  const project = process.argv[2] || process.env.SEED_PROJECT || "";
+  console.log(`Seeding MCAS qualification into project ${project || "<none given>"}`);
+  seedMcas(prisma, { force: process.env.SEED_FORCE === "1", project })
     .catch((err) => {
       console.error(err);
       process.exit(1);

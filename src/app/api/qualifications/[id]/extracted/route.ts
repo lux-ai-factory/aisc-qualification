@@ -1,22 +1,65 @@
 import { NextResponse } from "next/server";
+import {
+  qualificationForCaller,
+  qualificationForWriter,
+  qualificationProject,
+} from "@/server/access/qualificationAccess";
+import { REFUSED } from "@/server/access/projectAccess";
+import { serviceCall } from "@/server/access/serviceToken";
 import { revalidatePath } from "next/cache";
 import { qualificationRepository } from "@/server/repositories/QualificationRepository";
 import { toExport } from "@/server/services/QualificationExporter";
 import { ontologyService } from "@/server/services/OntologyService";
 import { parseExtracted } from "@/server/forms/ExtractedParser";
+import { NOT_LATEST, isLatestCard, isLatestCardInDb } from "@/server/services/cardLatest";
+
+/**
+ * The card agent, when the request carries its token.
+ *
+ * The agent is a service with no user behind it, so it sends a token of its own
+ * (QUALIFICATION_AGENTS_TO_WEB_TOKEN) and only these two routes accept it. Null
+ * means no token was sent and the caller is a person; a response is the refusal.
+ * It fails closed: a wrong token is 401, and an app with no token set is 503.
+ */
+function agentCall(req: Request): "agent" | Response | null {
+  switch (serviceCall(req.headers, process.env.QUALIFICATION_AGENTS_TO_WEB_TOKEN)) {
+    case "none":
+      return null;
+    case "valid":
+      return "agent";
+    case "wrong":
+      return NextResponse.json({ error: "That service token is not the card agent's." }, { status: 401 });
+    case "unset":
+      return NextResponse.json(
+        { error: "The card agent's token is not set here, so no service may call this." },
+        { status: 503 },
+      );
+  }
+}
 
 // What the filler reads: the form in the same export shape the ontology service
 // is given, plus whatever draft is already stored.
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const q = await qualificationRepository.find(id);
+  const agent = agentCall(req);
+  if (agent instanceof Response) return agent;
+  // The path carries no project, so access is checked against the
+  // qualification's own project. The agent's token proves the caller, not the
+  // project: the qualification must still exist, and its own project is used.
+  const project = agent ? await qualificationProject(id) : await qualificationForCaller(id);
+  if (!project) return new NextResponse("Not found", { status: 404 });
+
+  const q = await qualificationRepository.find(project, id);
   if (!q) return new NextResponse("Not found", { status: 404 });
   return NextResponse.json({
     ...toExport(q),
     extracted: q.ontologyExtracted ?? null,
+    // The filler takes its project from here, never from whoever started it, so a
+    // run can only use the model and key of the qualification's own project.
+    projectId: project,
   });
 }
 
@@ -30,9 +73,36 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const agent = agentCall(req);
+  if (agent instanceof Response) return agent;
+  // Writing the reviewed draft is changing somebody's card: a person needs to
+  // be an editor of the qualification's own project, a viewer is refused.
+  let project: string;
+  if (agent) {
+    const own = await qualificationProject(id);
+    if (!own) return new NextResponse("Not found", { status: 404 });
+    project = own;
+  } else {
+    const write = await qualificationForWriter(id);
+    if (!write.ok) {
+      return write.status === 403
+        ? NextResponse.json({ error: REFUSED[403] }, { status: 403 })
+        : new NextResponse("Not found", { status: 404 });
+    }
+    project = write.project;
+  }
 
-  const exists = await qualificationRepository.cardSummary(id);
+  const exists = await qualificationRepository.cardSummary(project, id);
   if (!exists) return new NextResponse("Not found", { status: 404 });
+  // Only the latest version's card changes: a draft for an older one is refused
+  // before anything is read or written. The platform answers that for a person;
+  // the agent has no user token, so the database's own rule answers for it.
+  const latest = agent
+    ? await isLatestCardInDb(exists.systemId)
+    : await isLatestCard(project, exists.systemId);
+  if (!latest) {
+    return NextResponse.json({ error: NOT_LATEST }, { status: 403 });
+  }
 
   let body: unknown;
   try {
@@ -49,7 +119,7 @@ export async function PUT(
   await qualificationRepository.saveOntologyExtracted(id, parsed.value);
   // Rebuild so the stored knowledge graph reflects this draft.
   try {
-    await ontologyService.build(id);
+    await ontologyService.build(project, id);
   } catch {
     // The draft is stored; the next build will pick it up.
   }

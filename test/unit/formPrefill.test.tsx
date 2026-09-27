@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, render } from "@testing-library/react";
-import QualifyForm from "@/app/qualify/new/QualifyForm";
+import QualifyForm from "@/app/p/[project]/qualify/new/QualifyForm";
 import { findExample } from "@/data/examples";
 import { sectors, targetSystems } from "@/data";
 import { KEY_QUESTIONS } from "@/data/keyQuestions";
@@ -13,6 +13,7 @@ const example = findExample("mcas")!;
 const mount = (initial = example) =>
   render(
     <QualifyForm
+      project="p"
       keyQuestions={KEY_QUESTIONS}
       targetSystems={targetSystems}
       sectors={sectors}
@@ -77,6 +78,7 @@ describe("opening the form on a worked example", () => {
   it("stays empty when no example is asked for", () => {
     const { container } = render(
       <QualifyForm
+        project="p"
         keyQuestions={KEY_QUESTIONS}
         targetSystems={targetSystems}
         sectors={sectors}

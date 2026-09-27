@@ -15,15 +15,29 @@ ONTOLOGY_URL = os.environ.get("ONTOLOGY_SERVICE_URL", "http://localhost:8011")
 APP_URL = os.environ.get("APP_URL", "http://localhost:3399")
 TIMEOUT = float(os.environ.get("HTTP_TIMEOUT", "120"))
 
+#: The token each service this calls expects from it, by the variable holding it.
+#: One per edge: the app's is not the ontology service's.
+APP_TOKEN_VAR = "QUALIFICATION_AGENTS_TO_WEB_TOKEN"
+ONTOLOGY_TOKEN_VAR = "QUALIFICATION_AGENTS_TO_ONTOLOGY_TOKEN"
+
+
+def _token_headers(name: str) -> dict[str, str]:
+    """X-AISC-Service-Token with the token in `name`, read per call; none if unset."""
+    token = os.environ.get(name) or ""
+    return {"X-AISC-Service-Token": token} if token else {}
+
 
 class ServiceError(RuntimeError):
     """A service answered with something unusable, or not at all."""
 
 
-def _post(url: str, payload: dict, method: str = "POST") -> Any:
+def _post(url: str, payload: dict, token: str, method: str = "POST") -> Any:
     body = json.dumps(payload).encode("utf-8")
     req = request.Request(
-        url, data=body, method=method, headers={"Content-Type": "application/json"}
+        url,
+        data=body,
+        method=method,
+        headers={"Content-Type": "application/json", **_token_headers(token)},
     )
     try:
         with request.urlopen(req, timeout=TIMEOUT) as res:
@@ -40,7 +54,7 @@ def vocabularies() -> dict[str, list[str]]:
     Asked rather than derived, so the writer can never be offered a term the
     builder would refuse.
     """
-    req = request.Request(f"{ONTOLOGY_URL}/vocabularies")
+    req = request.Request(f"{ONTOLOGY_URL}/vocabularies", headers=_token_headers(ONTOLOGY_TOKEN_VAR))
     try:
         with request.urlopen(req, timeout=TIMEOUT) as res:
             return json.loads(res.read().decode("utf-8"))
@@ -53,13 +67,15 @@ def build(qualification: dict, extracted: dict) -> dict:
     return _post(
         f"{ONTOLOGY_URL}/build",
         {"qualification": qualification, "extracted": extracted},
+        ONTOLOGY_TOKEN_VAR,
     )
 
 
 def qualification(qualification_id: str) -> dict:
     """The saved form, in the export shape the builder reads."""
     req = request.Request(
-        f"{APP_URL}/api/qualifications/{qualification_id}/extracted"
+        f"{APP_URL}/api/qualifications/{qualification_id}/extracted",
+        headers=_token_headers(APP_TOKEN_VAR),
     )
     try:
         with request.urlopen(req, timeout=TIMEOUT) as res:
@@ -73,5 +89,6 @@ def publish(qualification_id: str, extracted: dict) -> dict:
     return _post(
         f"{APP_URL}/api/qualifications/{qualification_id}/extracted",
         extracted,
+        APP_TOKEN_VAR,
         method="PUT",
     )

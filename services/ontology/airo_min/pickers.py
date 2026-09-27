@@ -19,13 +19,22 @@ import os
 from pathlib import Path
 
 _PACKAGE = Path(__file__).resolve().parent
-# .../apps/qualification/services/ontology/airo_min -> apps/qualification.
-# In the image the package sits at /app/airo_min, which has no third parent, so
-# this falls back to the filesystem root and the repo-layout candidate below
-# simply misses. Computing it unguarded raised IndexError at import time, which
-# killed the service before the vocabulary fallbacks could be tried at all.
-_PARENTS = _PACKAGE.parents
-_APP_ROOT = _PARENTS[2] if len(_PARENTS) > 2 else _PARENTS[-1]
+
+
+def app_root_for(package_dir: Path) -> Path | None:
+    """The app root three levels above the package, when there is one.
+
+    In the repo the package is .../apps/qualification/services/ontology/airo_min,
+    so the app root is apps/qualification. In the image it is /app/airo_min, with
+    nothing three levels up: that is an ordinary absence (the vocabulary is
+    copied in beside the package), not an error, and asking for it by index used
+    to raise at import and take the service down on start.
+    """
+    parents = package_dir.parents
+    return parents[2] if len(parents) > 2 else None
+
+
+_APP_ROOT = app_root_for(_PACKAGE)
 
 
 def candidate_paths() -> list[Path]:
@@ -34,7 +43,8 @@ def candidate_paths() -> list[Path]:
     override = os.environ.get("AIRO_VOCAB_PATH")
     if override:
         paths.append(Path(override))
-    paths.append(_APP_ROOT / "src" / "data" / "airo_vocab.json")
+    if _APP_ROOT is not None:
+        paths.append(_APP_ROOT / "src" / "data" / "airo_vocab.json")
     paths.append(_PACKAGE / "airo_vocab.json")
     return paths
 

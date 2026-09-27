@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { qualificationForCaller } from "@/server/access/qualificationAccess";
 import { qualificationRepository } from "@/server/repositories/QualificationRepository";
 import { ontologyService } from "@/server/services/OntologyService";
 import {
@@ -13,14 +14,19 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const q = await qualificationRepository.cardSummary(id);
+  // The path carries no project, so access is checked against the
+  // qualification's own project.
+  const project = await qualificationForCaller(id);
+  if (!project) return new NextResponse("Not found", { status: 404 });
+
+  const q = await qualificationRepository.cardSummary(project, id);
   if (!q) return new NextResponse("Not found", { status: 404 });
   // The filled graph IS the card, so the PDF is a rendering of it. There is no
   // prose path any more: the app makes no LLM calls at all, and the only model
   // in the system is the one the filler service configures through BAF.
   let ontology: unknown = undefined;
   try {
-    ontology = (await ontologyService.build(id)).view;
+    ontology = (await ontologyService.build(project, id)).view;
   } catch {
     ontology = undefined;
   }

@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
   // client components must prefix it themselves. Inline it into the client
   // bundle at build time so they can.
   env: { NEXT_PUBLIC_BASE_PATH: basePath || "" },
+  // The document upload on a new qualification is a server action, and Next
+  // refuses an action body over 1 MB by default. The prefill service takes
+  // 10 MB (PREFILL_MAX_BYTES); the extra room is the form's other fields.
+  experimental: { serverActions: { bodySizeLimit: "11mb" } },
 };
 
 export default nextConfig;

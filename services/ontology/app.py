@@ -24,8 +24,14 @@ from airo_min.patch import apply_patch
 from airo_min.vair_terms import vocabularies as vair_vocabularies
 from airo_min.validate import validate
 from airo_min.view import build_view
+from service_token import ServiceTokens
 
 app = FastAPI(title="AIRO Ontology Service", version="0.1.0")
+# Two callers, a token each: qualification-web and the card agent.
+app.add_middleware(
+    ServiceTokens,
+    names=("QUALIFICATION_WEB_TO_ONTOLOGY_TOKEN", "QUALIFICATION_AGENTS_TO_ONTOLOGY_TOKEN"),
+)
 
 
 class Qualification(BaseModel):

@@ -2,6 +2,7 @@ import type {
   PrismaClient,
   Prisma,
   Qualification,
+  CardComponent,
   QualificationAnswer,
   QualificationRisk,
 } from "@prisma/client";
@@ -15,6 +16,10 @@ export type AnswerInput = {
 };
 
 export type CreateQualificationInput = {
+  /** The platform project this qualification belongs to (uuid). */
+  projectId: string;
+  /** The system it describes, as named by the platform (uuid). */
+  systemId: string;
   systemName: string;
   systemVersion: string;
   company: string;
@@ -33,7 +38,25 @@ export type CreateQualificationInput = {
 export type QualificationWithAnswers = Qualification & {
   answers: QualificationAnswer[];
   risks: QualificationRisk[];
+  /** The engine components the card links, oldest link first. */
+  components: CardComponent[];
 };
+
+/** A link from a card to one engine component, with its snapshot. */
+export type ComponentLinkInput = {
+  componentPid: string;
+  airoProperty: string;
+  name: string;
+  componentType: string;
+  objectName: string;
+};
+
+/** What a qualification is read with: its answers, and its risks and links in order. */
+const WITH_ANSWERS = {
+  answers: true,
+  risks: { orderBy: { position: "asc" } },
+  components: { orderBy: { linkedAt: "asc" } },
+} as const satisfies Prisma.QualificationInclude;
 
 export class QualificationRepository {
   constructor(private readonly db: PrismaClient = prisma) {}
@@ -50,26 +73,64 @@ export class QualificationRepository {
     });
   }
 
-  find(id: string): Promise<QualificationWithAnswers | null> {
-    return this.db.qualification.findUnique({
-      where: { id },
-      include: { answers: true, risks: { orderBy: { position: "asc" } } },
+  /**
+   * One qualification of one project, or null.
+   *
+   * Never by id alone. The id comes out of a URL and the project is what says
+   * whose it is: without it, anyone who could open one project's page could
+   * read any project's system description, answers and risks.
+   */
+  find(projectId: string, id: string): Promise<QualificationWithAnswers | null> {
+    return this.db.qualification.findFirst({
+      where: { id, projectId },
+      include: WITH_ANSWERS,
     });
   }
 
-  list(): Promise<QualificationWithAnswers[]> {
-    return this.db.qualification.findMany({
-      orderBy: { createdAt: "desc" },
-      include: { answers: true, risks: { orderBy: { position: "asc" } } },
+  /** The AI card of one version of the project's system, if it has one. One
+   *  card per version: the database holds that too (system_id is unique). */
+  findBySystem(projectId: string, systemId: string): Promise<{ id: string } | null> {
+    return this.db.qualification.findFirst({
+      where: { projectId, systemId },
+      select: { id: true },
     });
+  }
+
+  /** The qualifications of one project, and no other's: a module reads what
+   *  it needs and no more. */
+  list(projectId: string): Promise<QualificationWithAnswers[]> {
+    return this.db.qualification.findMany({
+      where: { projectId },
+      orderBy: { createdAt: "desc" },
+      include: WITH_ANSWERS,
+    });
+  }
+
+  /** Link one engine component to the card, or change the link's property and snapshot. */
+  linkComponent(qualificationId: string, link: ComponentLinkInput) {
+    const { componentPid, ...snapshot } = link;
+    return this.db.cardComponent.upsert({
+      where: { qualificationId_componentPid: { qualificationId, componentPid } },
+      create: { qualificationId, ...link },
+      update: snapshot,
+    });
+  }
+
+  /** Remove the card's link to one engine component. */
+  unlinkComponent(qualificationId: string, componentPid: string) {
+    return this.db.cardComponent.deleteMany({ where: { qualificationId, componentPid } });
   }
 
   /** Everything an AI card needs that is not in the graph: the facts the
    *  form collects, plus the generated prose if any exists. */
-  cardSummary(id: string): Promise<
+  cardSummary(
+    projectId: string,
+    id: string,
+  ): Promise<
     | (Pick<
         Qualification,
         | "id"
+        | "systemId"
         | "systemName"
         | "systemVersion"
         | "company"
@@ -83,10 +144,11 @@ export class QualificationRepository {
       })
     | null
   > {
-    return this.db.qualification.findUnique({
-      where: { id },
+    return this.db.qualification.findFirst({
+      where: { id, projectId },
       select: {
         id: true,
+        systemId: true,
         systemCardJson: true,
         systemName: true,
         systemVersion: true,
