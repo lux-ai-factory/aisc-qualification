@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { launcherUrl } from "@/lib/launcher";
+import NavMenu from "@/components/NavMenu";
 
 /**
  * The header.
@@ -9,6 +10,10 @@ import { launcherUrl } from "@/lib/launcher";
  * page on the launcher, where the other five steps are. Outside one there are
  * no qualifications to link to, only the methodology, which reads the same for
  * everyone.
+ *
+ * Inside a project the question sets, the questionnaires and the methodology
+ * share one "Framework" menu: what a qualification is measured by, as opposed
+ * to the system and its versions, which are what gets measured.
  */
 export default function SiteHeader({ project }: { project?: string }) {
   // Static files in public/ are not prefixed with the configured basePath the
@@ -36,11 +41,14 @@ export default function SiteHeader({ project }: { project?: string }) {
             <>
               <Link href={`/p/${project}/system`}>AI system</Link>
               <Link href={`/p/${project}/qualifications`}>Versions</Link>
-              <Link href={`/p/${project}/question-sets`}>Question sets</Link>
-              <Link href={`/p/${project}/questionnaires`}>Questionnaires</Link>
+              <NavMenu label="Framework">
+                <Link href={`/p/${project}/question-sets`}>Question sets</Link>
+                <Link href={`/p/${project}/questionnaires`}>Questionnaires</Link>
+                <Link href="/methodology">Methodology</Link>
+              </NavMenu>
             </>
           )}
-          <Link href="/methodology">Methodology</Link>
+          {!project && <Link href="/methodology">Methodology</Link>}
         </nav>
       </div>
     </header>

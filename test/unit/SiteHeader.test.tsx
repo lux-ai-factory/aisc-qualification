@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import SiteHeader from "@/components/SiteHeader";
 
 // Addendum 06, R49: a "Forms" link in the site header, inside a project only. Two-level
-// forms T60 (D24): "Question sets" and "Questionnaires" take its place.
+// forms T60 (D24): "Question sets" and "Questionnaires" take its place. 2026-09-28: those
+// two and "Methodology" sit in one "Framework" menu, what a qualification is measured by.
 
 let before: string | undefined;
 beforeEach(() => {
@@ -20,23 +21,57 @@ afterEach(() => {
 const navLinks = (container: HTMLElement) =>
   [...container.querySelectorAll("nav a")].map((a) => [a.textContent, a.getAttribute("href")]);
 
+// The links directly in the bar, and the menu's own label, in the order they read.
+const barItems = (container: HTMLElement) =>
+  [...container.querySelectorAll("nav > a, nav > details > summary")].map((el) => el.textContent);
+
+const menu = (container: HTMLElement) => container.querySelector("nav details") as HTMLDetailsElement;
+
 describe("the site header (R49, T60)", () => {
-  it('T60 inside a project the nav is "← Back", "AI system", "Versions", "Question sets", "Questionnaires", "Methodology"', () => {
+  it('inside a project the bar reads "← Back", "AI system", "Versions", "Framework"', () => {
     const { container } = render(<SiteHeader project="demo" />);
-    expect(navLinks(container).map(([text]) => text)).toEqual([
-      "← Back", "AI system", "Versions", "Question sets", "Questionnaires", "Methodology",
+    expect(barItems(container)).toEqual(["← Back", "AI system", "Versions", "Framework"]);
+  });
+
+  it("the Framework menu holds Question sets, Questionnaires and Methodology, inside the project", () => {
+    const { container } = render(<SiteHeader project="demo" />);
+    const items = [...menu(container).querySelectorAll("a")].map((a) => [a.textContent, a.getAttribute("href")]);
+    expect(items).toEqual([
+      ["Question sets", "/p/demo/question-sets"],
+      ["Questionnaires", "/p/demo/questionnaires"],
+      ["Methodology", "/methodology"],
     ]);
-    expect(navLinks(container).find(([text]) => text === "Question sets")![1]).toBe("/p/demo/question-sets");
-    expect(navLinks(container).find(([text]) => text === "Questionnaires")![1]).toBe("/p/demo/questionnaires");
     expect(navLinks(container).map(([text]) => text)).not.toContain("Forms");
   });
 
-  it("T60 without a project there is neither link", () => {
+  it("the menu starts closed, and picking an item closes it", () => {
+    const { container, getByText } = render(<SiteHeader project="demo" />);
+    expect(menu(container).open).toBe(false);
+    menu(container).open = true;
+    fireEvent.click(getByText("Questionnaires"));
+    expect(menu(container).open).toBe(false);
+  });
+
+  it("Escape and a click outside close the menu", () => {
+    const { container } = render(<SiteHeader project="demo" />);
+    menu(container).open = true;
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(menu(container).open).toBe(false);
+    menu(container).open = true;
+    fireEvent.mouseDown(document.body);
+    expect(menu(container).open).toBe(false);
+  });
+
+  it("a click inside the menu leaves it open", () => {
+    const { container } = render(<SiteHeader project="demo" />);
+    menu(container).open = true;
+    fireEvent.mouseDown(menu(container).querySelector("summary")!);
+    expect(menu(container).open).toBe(true);
+  });
+
+  it("T60 without a project there is no menu, only Methodology", () => {
     const { container } = render(<SiteHeader />);
-    const texts = navLinks(container).map(([text]) => text);
-    expect(texts).not.toContain("Question sets");
-    expect(texts).not.toContain("Questionnaires");
-    expect(texts).not.toContain("Forms");
-    expect(texts).toEqual(["Methodology"]);
+    expect(menu(container)).toBeNull();
+    expect(navLinks(container)).toEqual([["Methodology", "/methodology"]]);
   });
 });
