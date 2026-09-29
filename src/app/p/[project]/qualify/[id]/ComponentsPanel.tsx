@@ -19,6 +19,7 @@ export default function ComponentsPanel({
   engineError,
   linked,
   suggestions,
+  parts = [],
 }: {
   projectId: string;
   qualificationId: string;
@@ -26,9 +27,12 @@ export default function ComponentsPanel({
   engineError: string | null;
   linked: LinkedComponent[];
   suggestions: string[];
+  /** The card's own components (its Components block), which a linked item may be. */
+  parts?: { key: string; name: string }[];
 }) {
   const linkOf = new Map(linked.map((l) => [l.componentPid, l]));
   const [chosen, setChosen] = useState<Record<string, string>>({});
+  const [partOf, setPartOf] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -66,11 +70,31 @@ export default function ComponentsPanel({
                     </option>
                   ))}
                 </select>{" "}
+                {parts.length > 0 && property !== "hasTestingData" && (
+                  <select
+                    value={partOf[c.pid] ?? link?.componentKey ?? ""}
+                    disabled={pending}
+                    onChange={(e) => setPartOf({ ...partOf, [c.pid]: e.target.value })}
+                    aria-label={`Which component ${c.name} is`}
+                  >
+                    <option value="">not a component</option>
+                    {parts.map((p) => (
+                      <option key={p.key} value={p.key}>
+                        is: {p.name}
+                      </option>
+                    ))}
+                  </select>
+                )}{" "}
                 <button
                   type="button"
                   className="btn ghost"
                   disabled={pending}
-                  onClick={() => run(() => linkComponent(projectId, qualificationId, c.pid, property))}
+                  onClick={() =>
+                    run(() =>
+                      linkComponent(projectId, qualificationId, c.pid, property,
+                        property === "hasTestingData" ? null : (partOf[c.pid] ?? link?.componentKey ?? null) || null),
+                    )
+                  }
                 >
                   Link
                 </button>

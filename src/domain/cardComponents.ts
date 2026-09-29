@@ -35,6 +35,8 @@ export type LinkedComponent = {
   name: string;
   componentType: string;
   objectName: string;
+  /** Which of the card's components it is (targets plan v2); null or absent for none. */
+  componentKey?: string | null;
 };
 
 /** The property a component of this type is linked by, unless someone picks another. */
@@ -76,4 +78,22 @@ export function componentDrift(linked: LinkedComponent[], engine: EngineComponen
 
 export function hasDrift(drift: ComponentDrift): boolean {
   return drift.removed.length + drift.added.length + drift.changed.length > 0;
+}
+
+/**
+ * Which of the card's components a linked engine item is (targets plan v2): none, or one of the
+ * same card's component keys. Test material (hasTestingData) is what an assessment uses, never a
+ * part of the system.
+ */
+export function partOfLink(
+  airoProperty: string,
+  componentKey: string | null,
+  cardKeys: ReadonlySet<string>,
+): { ok: true; componentKey: string | null } | { ok: false; error: string } {
+  if (!componentKey) return { ok: true, componentKey: null };
+  if (airoProperty === "hasTestingData") {
+    return { ok: false, error: "Test material is what an assessment uses, not a part of the system." };
+  }
+  if (!cardKeys.has(componentKey)) return { ok: false, error: "That component is not on this card." };
+  return { ok: true, componentKey };
 }

@@ -93,6 +93,8 @@ describe.skipIf(!enabled)("the migration's schema (catalog)", () => {
     );
     expect(cols).toEqual([
       { column_name: "airo_property", is_nullable: "NO" },
+      // targets plan v2 (20260929000000_system_components): which part of the system the item is
+      { column_name: "component_key", is_nullable: "YES" },
       { column_name: "component_pid", is_nullable: "NO" },
       { column_name: "component_type", is_nullable: "NO" },
       { column_name: "id", is_nullable: "NO" },

@@ -9,6 +9,8 @@ import {
   isMarketForm,
 } from "@/data/airoVocab";
 import type { AnswerInput } from "@/server/repositories/QualificationRepository";
+import { COMPONENT_NAME_MAX, isComponentKind } from "@/data/componentFields";
+import type { ComponentInput } from "@/domain/systemComponents";
 
 // The identity: every form has it, whatever its blocks.
 const IDENTITY_REQUIRED: Array<["systemName" | "systemVersion" | "company", string]> = [
@@ -62,6 +64,8 @@ export type ParsedQualification = {
   localityTags: string[];
   answers: AnswerInput[];
   risks: RiskInput[];
+  /** The Components block: on every card, whatever its questionnaire; keys are checked later. */
+  systemComponents: ComponentInput[];
   /** The form version the submission was parsed against. */
   formVersionId: string;
 };
@@ -192,8 +196,54 @@ export class QualificationFormParser {
       localityTags,
       answers,
       risks,
+      systemComponents: this.parseComponents(formData),
       formVersionId: form.versionId,
     };
+  }
+
+  /**
+   * Component rows arrive as `component:<i>:<field>`, with `component:<i>:key` for a row carried
+   * from the card before. Like risk rows: indices may have gaps, rows are renumbered by position,
+   * and a row with every field blank is skipped.
+   */
+  private parseComponents(formData: FormData): ComponentInput[] {
+    const indices = new Set<number>();
+    for (const key of formData.keys()) {
+      const m = /^component:(\d+):/.exec(key);
+      if (m) indices.add(Number(m[1]));
+    }
+    const text = (i: number, f: string) => this.trimmed(formData, `component:${i}:${f}`);
+    const rows: ComponentInput[] = [];
+    const names = new Set<string>();
+    for (const i of [...indices].sort((a, b) => a - b)) {
+      if (["name", "role", "kind", "providerName"].every((f) => text(i, f) === "")) continue;
+      const n = rows.length + 1;
+      const name = text(i, "name");
+      if (name === "") throw new FormValidationError(`Component ${n}: its name is required.`);
+      if (name.length > COMPONENT_NAME_MAX) {
+        throw new FormValidationError(`Component ${n}: the name is at most ${COMPONENT_NAME_MAX} characters.`);
+      }
+      const folded = name.toLowerCase().replace(/\s+/g, " ");
+      if (names.has(folded)) throw new FormValidationError(`Component ${n}: ${name} is already on the card.`);
+      names.add(folded);
+      const kind = text(i, "kind");
+      if (!isComponentKind(kind)) throw new FormValidationError(`Component ${n}: pick what kind of part it is.`);
+      const provider = text(i, "provider") === "third_party" ? "third_party" : "in_house";
+      const providerName = text(i, "providerName");
+      if (provider === "third_party" && providerName === "") {
+        throw new FormValidationError(`Component ${n}: name the third party that provides it.`);
+      }
+      rows.push({
+        position: rows.length,
+        key: text(i, "key") || null,
+        name,
+        role: text(i, "role") || null,
+        kind,
+        provider,
+        providerName: provider === "third_party" ? providerName : null,
+      });
+    }
+    return rows;
   }
 
   /**

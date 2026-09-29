@@ -308,6 +308,8 @@ describe("the identity block is always required (R10)", () => {
       localityTags: [],
       answers: [],
       risks: [],
+      // the Components block is on every card, whatever its form (targets plan v2): none posted, none parsed
+      systemComponents: [],
       formVersionId: "bare-v1",
     });
   });

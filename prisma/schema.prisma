@@ -44,6 +44,8 @@ model Qualification {
   knowledgeGraph    KnowledgeGraph?
   risks             QualificationRisk[]
   components        CardComponent[]
+  /// The Components block: the parts of the system, each with its stable key.
+  systemComponents  QualificationComponent[]
   /// The questionnaire version this card was filled with. NULL means "Annex IV default" v1
   /// (annex-iv-default-v1): every card saved before forms existed.
   questionnaireVersionId String?               @map("questionnaire_version_id")
@@ -65,11 +67,34 @@ model CardComponent {
   componentType   String        @map("component_type")
   objectName      String        @default("") @map("object_name")
   linkedAt        DateTime      @default(now()) @map("linked_at") @db.Timestamptz(3)
+  /// Which part of the system (a QualificationComponent key of the same card) this engine item is,
+  /// e.g. the training file is "Training data". Never on test material (hasTestingData).
+  componentKey    String?       @map("component_key") @db.Uuid
   qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
 
   @@unique([qualificationId, componentPid])
   @@index([componentPid])
   @@map("card_component")
+}
+
+// One row of the Components block (targets plan v2, 2026-09-29): a part of the system. `key` is
+// its identity across card versions: the next card carries the row and its key, so assessments of
+// the part, and their results, stay with it through renames.
+model QualificationComponent {
+  id              String        @id @default(cuid())
+  qualificationId String        @map("qualification_id")
+  position        Int
+  key             String        @db.Uuid
+  name            String
+  role            String?
+  kind            String
+  provider        String        @default("in_house")
+  providerName    String?       @map("provider_name")
+  qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
+
+  @@unique([qualificationId, key])
+  @@index([key])
+  @@map("qualification_component")
 }
 
 // One row of the risk block (question 15): one full AIRO risk chain.

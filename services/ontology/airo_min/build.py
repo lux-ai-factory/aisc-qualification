@@ -166,6 +166,22 @@ COMPONENT_RANGE = {
 }
 
 
+#: A row of the card's Components block, by its kind: the AIRO class of its node and the property
+#: the system has it by (targets plan v2). Data the system is built on is a component (it can be
+#: what an assessment is about); a test set is not a kind: it is what an assessment uses.
+COMPONENT_KINDS = {
+    "model": ("AIModel", "hasModel"),
+    "llm": ("AIModel", "hasModel"),
+    "rule_engine": ("AIComponent", "hasComponent"),
+    "training_data": ("Data", "hasTrainingData"),
+    "validation_data": ("Data", "hasValidationData"),
+    "other_data": ("Data", "hasComponent"),
+    "pipeline": ("AIComponent", "hasComponent"),
+    "interface": ("AIComponent", "hasComponent"),
+    "other": ("AIComponent", "hasComponent"),
+}
+
+
 def build_graph(
     qualification: dict[str, Any],
     extracted: dict[str, Iterable[str]] | None = None,
@@ -273,11 +289,33 @@ def build_graph(
             named(g, ex.users, "AIUser", qualification["targetUsers"], names.get("users")),
         )
 
+    # ── the Components block: one node per row, named by its stable key ──────
+    # A card with rows says what its parts are; the extraction's guesses then give way to them.
+    rows = qualification.get("systemComponents") or []
+    component_nodes: dict[str, URIRef] = {}
+    for row in rows:
+        if row["kind"] not in COMPONENT_KINDS:
+            raise ValueError(f"{row['kind']!r} is not a component kind; expected one of {', '.join(COMPONENT_KINDS)}")
+        cls, prop = COMPONENT_KINDS[row["kind"]]
+        node = named(g, ex["component-" + row["key"]], cls, row["name"])
+        g.add((node, QUAL.componentKey, Literal(row["key"])))
+        g.add((node, QUAL.kind, Literal(row["kind"])))
+        if row.get("role"):
+            g.add((node, QUAL.role, Literal(row["role"])))
+        g.add((node, QUAL.provider, Literal(row.get("provider") or "in_house")))
+        if row.get("providerName"):
+            g.add((node, QUAL.providerName, Literal(row["providerName"])))
+        _provenance(g, node, "form")
+        link(g, system, prop, node)
+        component_nodes[row["key"]] = node
+
     # ── prose-derived, supplied by an agent ──────────────────────────────────
     for prop, key, cls, prefix, citation in (
         ("usesTechnique", "techniques", "AITechnique", "technique", "Annex IV(2)(a)"),
         ("hasComponent", "components", "AIComponent", "component", "Annex IV(2)(c)"),
     ):
+        if key == "components" and rows:
+            continue
         for i, entry in enumerate(extracted.get(key, [])):
             # The drafting prompt asks for {"label": ..., "vair": ...}; a plain string is
             # accepted so earlier extractions keep working.
@@ -304,6 +342,11 @@ def build_graph(
         )
         g.add((node, QUAL.objectName, Literal(entry.get("objectName", ""))))
         link(g, system, prop, node)
+        if entry.get("componentKey"):
+            if entry["componentKey"] not in component_nodes:
+                raise ValueError(f"engine component {entry['pid']} names component {entry['componentKey']!r},"
+                                 " which is not on this card")
+            g.add((node, QUAL.implements, component_nodes[entry["componentKey"]]))
 
     # ── risk rows: one full chain each ───────────────────────────────────────
     # AreaOfImpact nodes are shared across risks, exactly as the stakeholder

@@ -128,6 +128,7 @@ export default async function QualificationDetailPage({
           engineError={engineError}
           linked={q.components}
           suggestions={suggestions}
+          parts={(q.systemComponents ?? []).map((c) => ({ key: c.key, name: c.name }))}
         />
       )}
 
@@ -153,6 +154,14 @@ export default async function QualificationDetailPage({
               toolId: a.toolId,
               questionId: a.questionId,
               answer: a.answer,
+            }))}
+            systemComponents={(q.systemComponents ?? []).map((c) => ({
+              id: c.id,
+              name: c.name,
+              role: c.role,
+              kind: c.kind,
+              provider: c.provider,
+              providerName: c.providerName,
             }))}
             risks={q.risks.map((r) => ({
               id: r.id,

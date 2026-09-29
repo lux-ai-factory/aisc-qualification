@@ -88,6 +88,12 @@ export class PlatformClient {
     return this.call("GET", this.versions(project));
   }
 
+  /** The card's components may have changed: the platform brings the project's assessment
+   *  targets up to date (targets plan v2, O4). The caller treats a failure as best-effort. */
+  async syncTargets(project: string): Promise<void> {
+    await this.call("POST", `/projects/${encodeURIComponent(project)}/targets/sync`, {});
+  }
+
   /** Save the next card version, with the system's identity as the form gives it. */
   createVersion(project: string, identity: SystemIdentity): Promise<CardVersion> {
     return this.call("POST", this.versions(project), {

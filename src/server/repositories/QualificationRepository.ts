@@ -5,9 +5,11 @@ import type {
   CardComponent,
   QualificationAnswer,
   QualificationRisk,
+  QualificationComponent,
 } from "@prisma/client";
 import { projectDbPastDoor } from "@/lib/projectDb";
 import type { RiskInput } from "@/server/forms/QualificationFormParser";
+import type { KeyedComponent } from "@/domain/systemComponents";
 
 export type AnswerInput = {
   toolId: string;
@@ -33,6 +35,8 @@ export type CreateQualificationInput = {
   localityTags: string[];
   answers: AnswerInput[];
   risks: RiskInput[];
+  /** The Components block's rows, keys assigned (targets plan v2). */
+  systemComponents?: KeyedComponent[];
   /** The questionnaire version the card was filled with. */
   questionnaireVersionId: string;
 };
@@ -42,6 +46,8 @@ export type QualificationWithAnswers = Qualification & {
   risks: QualificationRisk[];
   /** The engine components the card links, oldest link first. */
   components: CardComponent[];
+  /** The Components block's rows, in order. */
+  systemComponents: QualificationComponent[];
 };
 
 /** A link from a card to one engine component, with its snapshot. */
@@ -51,6 +57,8 @@ export type ComponentLinkInput = {
   name: string;
   componentType: string;
   objectName: string;
+  /** Which of the card's components the item is; null for none. */
+  componentKey?: string | null;
 };
 
 /** What a qualification is read with: its answers, and its risks and links in order. */
@@ -58,6 +66,7 @@ const WITH_ANSWERS = {
   answers: true,
   risks: { orderBy: { position: "asc" } },
   components: { orderBy: { linkedAt: "asc" } },
+  systemComponents: { orderBy: { position: "asc" } },
 } as const satisfies Prisma.QualificationInclude;
 
 /**
@@ -69,12 +78,13 @@ export class QualificationRepository {
   constructor(private readonly db: PrismaClient) {}
 
   create(input: CreateQualificationInput): Promise<{ id: string }> {
-    const { answers, risks, ...rest } = input;
+    const { answers, risks, systemComponents, ...rest } = input;
     return this.db.qualification.create({
       data: {
         ...rest,
         answers: { create: answers },
         risks: { create: risks },
+        systemComponents: { create: systemComponents ?? [] },
       },
       select: { id: true },
     });
@@ -120,6 +130,12 @@ export class QualificationRepository {
       create: { qualificationId, ...link },
       update: snapshot,
     });
+  }
+
+  /** The keys of the card's components (its Components block). */
+  async componentKeys(qualificationId: string): Promise<string[]> {
+    const rows = await this.db.qualificationComponent.findMany({ where: { qualificationId }, select: { key: true } });
+    return rows.map((r) => r.key);
   }
 
   /** Remove the card's link to one engine component. */

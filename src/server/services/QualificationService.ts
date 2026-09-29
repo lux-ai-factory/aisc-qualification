@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { assignComponentKeys } from "@/domain/systemComponents";
 import {
   QualificationRepository,
   repositoryFor,
@@ -68,8 +70,19 @@ export class QualificationService {
       throw new FormValidationError("The questionnaire this was filled with no longer exists. Reload the page.");
     }
     // The parser names the version it read `formVersionId`; the card stores it as questionnaireVersionId.
-    const { formVersionId: _parsedVersion, ...parsed } = this.parser.parse(formData, form);
+    const { formVersionId: _parsedVersion, systemComponents: posted, ...parsed } = this.parser.parse(formData, form);
     void _parsedVersion;
+    // Component keys come from the card this save starts from, never from the browser: a row
+    // carried from it keeps its key, a new row gets a fresh one, anything else is refused before
+    // anything is written (targets plan v2, QL2).
+    // (the card before is looked up only when a row claims one of its keys)
+    let allowed = new Set<string>();
+    if ((posted ?? []).some((row) => row.key !== null)) {
+      const { versions, cards } = await this.versionsAndCards(project);
+      const from = cards.find((c) => c.id === nextCard(versions, cards).fromCardId);
+      allowed = new Set((from?.systemComponents ?? []).map((c) => c.key));
+    }
+    const systemComponents = assignComponentKeys(posted ?? [], allowed, () => randomUUID());
     const version = await this.platform.createVersion(project, {
       name: parsed.systemName,
       version: parsed.systemVersion,
@@ -79,9 +92,16 @@ export class QualificationService {
     const repo = await this.repos(project);
     const made = await repo.create({
       ...parsed,
+      systemComponents,
       questionnaireVersionId: form.versionId,
       systemId: version.pid,
     });
+    // the assessment targets follow the card's components; never a reason to fail the save
+    await Promise.resolve()
+      .then(() => this.platform.syncTargets(project))
+      .catch((err: unknown) => {
+        console.warn(`targets of project ${project} not synced after a card save: ${String(err)}`);
+      });
     // The platform pid travels on to the filler, which uses the project's model.
     return { id: made.id, projectId: version.project_id };
   }

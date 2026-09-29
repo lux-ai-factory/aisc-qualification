@@ -34,4 +34,18 @@ export type FormExample = {
   /** Keyed by the form field name, `q:<group>:<id>`. */
   answers: Record<string, string>;
   risks: RiskExample[];
+  /** The Components block's rows; absent on examples made before it. */
+  components?: ComponentExample[];
+};
+
+/** A component row as the form starts from it. `key` is "" for a new row or a suggestion; a
+ *  suggestion (from the filler's extraction) is shown as such until the author keeps it. */
+export type ComponentExample = {
+  key: string;
+  name: string;
+  role: string;
+  kind: string;
+  provider: "in_house" | "third_party";
+  providerName: string;
+  suggested?: boolean;
 };

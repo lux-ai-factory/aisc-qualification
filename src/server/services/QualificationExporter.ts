@@ -52,6 +52,18 @@ export type QualificationExport = {
     componentType: string;
     objectName: string;
     property: string;
+    /** Which of the card's components this item is; absent when the link names none. */
+    componentKey?: string;
+  }>;
+  /** The Components block's rows, in order; absent on a card without rows, so it exports as it
+   *  always did (targets plan v2). */
+  systemComponents?: Array<{
+    key: string;
+    name: string;
+    role: string | null;
+    kind: string;
+    provider: string;
+    providerName: string | null;
   }>;
   /** The questionnaire version the card was filled with; absent without one. */
   form?: {
@@ -123,6 +135,7 @@ export function toExport(
   form?: ResolvedQuestionnaireVersion,
 ): QualificationExport {
   const links = q.components ?? [];
+  const parts = [...(q.systemComponents ?? [])].sort((a, b) => a.position - b.position);
   return {
     id: q.id,
     systemName: q.systemName,
@@ -180,6 +193,19 @@ export function toExport(
             componentType: c.componentType,
             objectName: c.objectName,
             property: c.airoProperty,
+            ...(c.componentKey ? { componentKey: c.componentKey } : {}),
+          })),
+        }
+      : {}),
+    ...(parts.length
+      ? {
+          systemComponents: parts.map((c) => ({
+            key: c.key,
+            name: c.name,
+            role: c.role,
+            kind: c.kind,
+            provider: c.provider,
+            providerName: c.providerName,
           })),
         }
       : {}),

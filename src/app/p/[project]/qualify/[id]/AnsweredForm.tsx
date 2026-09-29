@@ -9,6 +9,7 @@ import {
 } from "@/data/airoVocab";
 import { METADATA_FIELDS, type MetadataFieldId } from "@/data/formFields";
 import { RISK_BLOCK, RISK_FIELDS } from "@/data/riskFields";
+import { COMPONENT_BLOCK, COMPONENT_KINDS } from "@/data/componentFields";
 import { findSector, parseTargetSystemTag } from "@/data";
 import { annexDefaultVersion } from "@/domain/forms/legacy";
 import type { FormBlock } from "@/domain/forms/blocks";
@@ -51,6 +52,15 @@ export type AnsweredFormProps = {
     impactAreas: string[];
     control: string;
     followUpControl: string | null;
+  }[];
+  /** The Components block's rows, in order (targets plan v2); absent or empty on older cards. */
+  systemComponents?: {
+    id: string;
+    name: string;
+    role: string | null;
+    kind: string;
+    provider: string;
+    providerName: string | null;
   }[];
   /** The version the card was filled with. Absent is the default version. */
   form?: ResolvedQuestionnaireVersion;
@@ -113,6 +123,7 @@ export default function AnsweredForm({
   metadata,
   answers,
   risks,
+  systemComponents = [],
   form = annexDefaultVersion(),
 }: AnsweredFormProps) {
   const has = (block: FormBlock) => form.blocks.includes(block);
@@ -206,6 +217,24 @@ export default function AnsweredForm({
           </dl>
         </section>
       ))}
+
+      {systemComponents.length > 0 && (
+        <section className="qf-section">
+          <h2>
+            {COMPONENT_BLOCK.title} ({systemComponents.length})
+            <span className="qf-citation">{COMPONENT_BLOCK.citation}</span>
+          </h2>
+          <dl className="qf-read-list">
+            {systemComponents.map((c) => (
+              <Row key={c.id} label={c.name} citation={COMPONENT_KINDS.find((k) => k.id === c.kind)?.label ?? c.kind}>
+                {[c.role, c.provider === "third_party" ? `Provided by ${c.providerName}` : "In-house"]
+                  .filter(Boolean)
+                  .join(". ")}
+              </Row>
+            ))}
+          </dl>
+        </section>
+      )}
 
       {has("risks") && (
         <section className="qf-section">

@@ -190,6 +190,11 @@ async function shape(c: PrismaClient, live: boolean): Promise<string[]> {
   // The forms migration also replaces the answers' unique index (qualificationId, questionId)
   // by (qualificationId, toolId, questionId): both sides of that swap are the forms work's.
   const formsIndex = /qualification_answer_qualification_id_tool_id_question_id_key|"QualificationAnswer_qualificationId_questionId_key"/;
+  // The Components block (20260929000000_system_components, targets plan v2) came after the live
+  // shape: its table, triggers, functions and card_component's component_key are pinned by
+  // systemComponents.db.test.ts, not here.
+  const componentsLine = /qualification_component|system_component_only_latest_changes|card_component_part_is_on_the_card|card_component_test_material_is_no_part|\bcomponent_key\b/;
+  lines = lines.filter((l) => !componentsLine.test(l));
   if (!formsOnBranch) lines = lines.filter((l) => !formsLine.test(l) && !formsIndex.test(l));
   else lines = lines.filter((l) => !formsLine.test(l) && !twoLevelLine.test(l));
   if (live) {

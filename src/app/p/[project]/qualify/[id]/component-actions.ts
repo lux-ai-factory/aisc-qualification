@@ -6,7 +6,7 @@ import { assertLatestCard } from "@/server/services/cardLatest";
 import { projectDbForAction } from "@/lib/projectDb";
 import { REFUSED } from "@/server/access/projectAccess";
 import { engineClient } from "@/server/services/EngineClient";
-import { propertyOptions } from "@/domain/cardComponents";
+import { partOfLink, propertyOptions } from "@/domain/cardComponents";
 
 export type ComponentActionState = { ok: true } | { ok: false; error: string };
 
@@ -45,6 +45,8 @@ export async function linkComponent(
   qualificationId: string,
   componentPid: string,
   airoProperty: string,
+  /** Which of the card's components the item is (targets plan v2); none when absent. */
+  componentKey: string | null = null,
 ): Promise<ComponentActionState> {
   try {
     const card = await latestCard(project, qualificationId);
@@ -55,9 +57,16 @@ export async function linkComponent(
     if (!propertyOptions(component.component_type).includes(airoProperty as never)) {
       return { ok: false, error: `A ${component.component_type} cannot be linked as ${airoProperty}.` };
     }
+    const part = partOfLink(
+      airoProperty,
+      componentKey,
+      new Set(componentKey ? await repo.componentKeys(qualificationId) : []),
+    );
+    if (!part.ok) return { ok: false, error: part.error };
     await repo.linkComponent(qualificationId, {
       componentPid,
       airoProperty,
+      componentKey: part.componentKey,
       name: component.name,
       componentType: component.component_type,
       objectName: component.data ?? "",

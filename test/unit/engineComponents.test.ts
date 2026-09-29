@@ -169,3 +169,23 @@ describe("the export shape carries the linked components (6b)", () => {
     ]);
   });
 });
+
+// targets plan v2 (QL7): a linked engine item may say which of the card's components it is;
+// test material never is one.
+import { partOfLink } from "@/domain/cardComponents";
+
+describe("QL7 which part of the system a linked engine item is", () => {
+  const keys = new Set(["k-train", "k-model"]);
+  it("none is always fine", () => {
+    expect(partOfLink("hasTestingData", null, keys)).toEqual({ ok: true, componentKey: null });
+  });
+  it("a component of this card", () => {
+    expect(partOfLink("hasTrainingData", "k-train", keys)).toEqual({ ok: true, componentKey: "k-train" });
+  });
+  it("not a component of this card", () => {
+    expect(partOfLink("hasModel", "k-other", keys)).toEqual({ ok: false, error: expect.stringMatching(/not on this card/) });
+  });
+  it("test material is not a part of the system", () => {
+    expect(partOfLink("hasTestingData", "k-train", keys)).toEqual({ ok: false, error: expect.stringMatching(/test/i) });
+  });
+});

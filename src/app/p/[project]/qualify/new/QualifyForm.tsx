@@ -8,6 +8,7 @@ import { LOCALITIES, MARKET_FORMS } from "@/data/airoVocab";
 import { METADATA_FIELDS, type MetadataFieldId } from "@/data/formFields";
 import ChipPicker from "./ChipPicker";
 import RiskRows from "./RiskRows";
+import ComponentRows from "./ComponentRows";
 import { submitQualification, type SubmitState } from "./actions";
 import SubmitOverlay from "./SubmitOverlay";
 import DocumentUpload from "./DocumentUpload";
@@ -308,6 +309,9 @@ export default function QualifyForm({
             })}
           </section>
         )}
+
+        {/* on every card, whatever its questionnaire: the parts of the system (targets plan v2) */}
+        <ComponentRows initial={initial?.components} />
 
         {has("risks") && <RiskRows key={riskRows.version} initial={riskRows.rows} />}
 
