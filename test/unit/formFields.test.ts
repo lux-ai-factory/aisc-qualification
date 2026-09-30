@@ -28,13 +28,14 @@ describe("form citations", () => {
     }
   });
 
-  it("the risk block and each of its eight fields carry citations", () => {
+  it("the risk block and each of its nine fields carry citations", () => {
     expect(RISK_BLOCK.citation).toMatch(CITATION);
     expect(RISK_FIELDS.map((f) => f.id)).toEqual([
       "risk",
       "source",
       "vulnerability",
       "consequence",
+      "impact",
       "affected",
       "area",
       "control",
@@ -47,6 +48,15 @@ describe("form citations", () => {
     ]);
     expect(RISK_FIELDS.find((f) => f.id === "affected")?.kind).toBe("affected");
     expect(RISK_FIELDS.find((f) => f.id === "area")?.kind).toBe("areas");
+    // VAIR (2026-09-30): the harm is a VAIR select alone; four text fields have one beside them
+    expect(RISK_FIELDS.find((f) => f.id === "impact")?.kind).toBe("term");
+    expect(RISK_FIELDS.filter((f) => f.vair).map((f) => [f.id, f.vair])).toEqual([
+      ["source", "RiskSource"],
+      ["consequence", "Consequence"],
+      ["impact", "Impact"],
+      ["control", "RiskControl"],
+      ["followUpControl", "RiskControl"],
+    ]);
   });
 
   it("uses plain professional wording, no cross-references inside labels", () => {

@@ -56,7 +56,9 @@ def test_the_rebuilt_graph_keeps_every_airo_relation(source):
         for p in set(rebuilt.predicates())
         if str(p).startswith(AIRO)
     }
-    assert used == set(PROPERTIES)
+    # MCAS links no test set from the engine, and a test set is not a component: hasTestingData is the
+    # one property only such a link gives (test_build.py exercises it).
+    assert used == set(PROPERTIES) - {"hasTestingData"}
 
 
 def test_the_rebuilt_graph_keeps_the_vair_types(source):

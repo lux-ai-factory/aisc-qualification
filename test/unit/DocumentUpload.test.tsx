@@ -90,4 +90,17 @@ describe("the document upload on the new form", () => {
     expect(screen.getByText(/left 1/i)).toBeTruthy();
     expect(screen.queryByRole("button")).toBeNull();
   });
+
+  it("counts the components too, when the document has them", () => {
+    mount({ status: { kind: "choose", answered: 2, proposed: 5, risksAnswered: 0, risksProposed: 3, componentsAnswered: 0, componentsProposed: 9 } });
+    expect(screen.getByText(/9 components/i)).toBeTruthy();
+  });
+
+  it("says how many components it filled, and when it left somebody's", () => {
+    mount({ status: { kind: "applied", filled: [], kept: [], risks: 0, risksKept: false, components: 9, componentsKept: false } });
+    expect(screen.getByText(/9 components/i)).toBeTruthy();
+    cleanup();
+    mount({ status: { kind: "applied", filled: ["systemName"], kept: [], risks: 0, risksKept: false, components: 0, componentsKept: true } });
+    expect(screen.getByText(/components as they were/i)).toBeTruthy();
+  });
 });

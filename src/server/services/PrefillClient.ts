@@ -8,7 +8,7 @@
  * It never throws. A service that is down, or not deployed at all, means the
  * form opens empty and the person types.
  */
-import type { RiskExample } from "@/data/examples";
+import type { ComponentExample, RiskExample } from "@/data/examples";
 import { serviceTokenHeaders, serviceUrl } from "@/server/services/http";
 import type { PrefillFormSpec } from "@/lib/prefillChoice";
 
@@ -20,6 +20,19 @@ export type PrefillValues = Record<string, string>;
 
 /** One risk row, as the form's rows hold it (question 15). */
 export type PrefillRisk = RiskExample;
+
+/** One row of the Components block, as the form holds it (targets plan v2). */
+export type PrefillComponent = ComponentExample;
+
+/** The VAIR picks a document names (2026-09-30), as VAIR ids; a field it names none for is absent. */
+export type PrefillPicks = {
+  systemType?: string;
+  purpose?: string;
+  targetSystemTags?: string[];
+  sectorTags?: string[];
+  marketFormTags?: string[];
+  localityTags?: string[];
+};
 
 export type PrefillResult =
   | {
@@ -38,6 +51,13 @@ export type PrefillResult =
       risksKept: boolean;
       /** how many risks the document has, used or not */
       risksProposed: number;
+      /** the Components block's rows to show, or null to leave them alone */
+      components?: PrefillComponent[] | null;
+      componentsKept?: boolean;
+      componentsProposed?: number;
+      /** the VAIR picks the document names; the form applies them by the mode's rule */
+      picks?: PrefillPicks;
+      picksProposed?: number;
     }
   | { ok: false; error: string };
 
@@ -55,6 +75,7 @@ export class PrefillClient {
     current: PrefillValues = {},
     currentRisks: PrefillRisk[] = [],
     formSpec?: PrefillFormSpec,
+    currentComponents: PrefillComponent[] = [],
   ): Promise<PrefillResult> {
     if (!this.baseUrl) {
       return { ok: false, error: "Reading documents is not available on this install." };
@@ -64,6 +85,7 @@ export class PrefillClient {
     body.set("mode", mode);
     body.set("current", JSON.stringify(current));
     body.set("current_risks", JSON.stringify(currentRisks));
+    body.set("current_components", JSON.stringify(currentComponents));
     // Without a form the request is exactly what it was before forms existed,
     // so the service reads the default form the way it always has.
     if (formSpec) {
@@ -97,6 +119,11 @@ export class PrefillClient {
       risks?: PrefillRisk[] | null;
       risksKept?: boolean;
       risksProposed?: number;
+      components?: PrefillComponent[] | null;
+      componentsKept?: boolean;
+      componentsProposed?: number;
+      picks?: PrefillPicks;
+      picksProposed?: number;
     };
     return {
       ok: true,
@@ -108,6 +135,13 @@ export class PrefillClient {
       risks: body_.risks ?? null,
       risksKept: body_.risksKept ?? false,
       risksProposed: body_.risksProposed ?? 0,
+      // An older service omits the component fields too.
+      components: body_.components ?? null,
+      componentsKept: body_.componentsKept ?? false,
+      componentsProposed: body_.componentsProposed ?? 0,
+      // and the picks
+      picks: body_.picks ?? {},
+      picksProposed: body_.picksProposed ?? 0,
     };
   }
 }

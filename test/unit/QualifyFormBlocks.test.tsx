@@ -7,7 +7,6 @@ vi.mock("@/app/p/[project]/qualify/new/actions", () => ({ submitQualification: v
 
 import QualifyForm from "@/app/p/[project]/qualify/new/QualifyForm";
 import { findExample } from "@/data/examples";
-import { sectors, targetSystems } from "@/data";
 import { KEY_QUESTIONS, keyQuestionField } from "@/data/keyQuestions";
 import { METADATA_FIELDS } from "@/data/formFields";
 import {
@@ -30,8 +29,6 @@ const mount = (form: unknown, initial?: unknown) =>
     <QualifyForm
       project="mcas"
       {...({ form } as object)}
-      targetSystems={targetSystems}
-      sectors={sectors}
       initial={initial as never}
     />,
   );

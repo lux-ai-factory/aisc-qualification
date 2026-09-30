@@ -210,7 +210,9 @@ describe("the Prisma schema has the two levels (T1)", () => {
       env: { ...process.env, DATABASE_URL: "postgresql://x:x@127.0.0.1:1/x?schema=qualification" },
     });
     expect(r.status, `${r.stdout}\n${r.stderr}`).toBe(0);
-  });
+    // A child process: npx starting the Prisma CLI takes seconds, and under a full parallel run it
+    // crossed vitest's 5 s default (2026-09-30), which failed a schema that validates.
+  }, 60_000);
 
   it("T1 the timestamps of the seven models are timestamptz(3)", () => {
     for (const name of Object.keys(MODELS)) {

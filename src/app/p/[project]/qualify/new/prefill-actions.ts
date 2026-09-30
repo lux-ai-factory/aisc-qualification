@@ -5,6 +5,7 @@ import {
   type PrefillFormSpec,
   type PrefillMode,
   type PrefillResult,
+  type PrefillComponent,
   type PrefillRisk,
   type PrefillValues,
 } from "@/server/services/PrefillClient";
@@ -32,11 +33,13 @@ export async function readDocument(
   }
   let current: PrefillValues = {};
   let currentRisks: PrefillRisk[] = [];
+  let currentComponents: PrefillComponent[] = [];
   // Sent only for a form other than the default: which fields it has, and its questions.
   let formSpec: PrefillFormSpec | undefined;
   try {
     current = JSON.parse((formData.get("current") as string) || "{}");
     currentRisks = JSON.parse((formData.get("current_risks") as string) || "[]");
+    currentComponents = JSON.parse((formData.get("current_components") as string) || "[]");
     const fields = formData.get("fields");
     const questions = formData.get("questions");
     if (typeof fields === "string" || typeof questions === "string") {
@@ -48,5 +51,5 @@ export async function readDocument(
   } catch {
     return { ok: false, error: "The form's answers could not be read." };
   }
-  return prefillClient.read(file, mode, current, currentRisks, formSpec);
+  return prefillClient.read(file, mode, current, currentRisks, formSpec, currentComponents);
 }

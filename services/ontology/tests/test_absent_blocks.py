@@ -42,7 +42,9 @@ def test_r33_an_empty_description_adds_no_description_triple(mcas):
 
 
 def test_r33_an_empty_use_case_adds_no_purpose(mcas):
+    # Without the use-case block and without a VAIR purpose (a fixed field, 2026-09-30).
     mcas["targetUseCase"] = ""
+    mcas["purpose"] = None
     g = build_graph(mcas)
     assert list(g.objects(system_of(g), _a("hasPurpose"))) == []
     assert list(g.subjects(RDF.type, _a("Purpose"))) == []
@@ -92,8 +94,8 @@ def policy_only() -> dict:
         "targetUseCase": "",
         "targetUsers": "",
         "intendedDeployers": None,
-        "targetSystems": [],
-        "sectors": [],
+        "targetSystemTags": [],
+        "sectorTags": [],
         "marketFormTags": [],
         "localityTags": [],
         "answers": [

@@ -3,20 +3,10 @@ import {
   QualificationFormParser,
   FormValidationError,
 } from "@/server/forms/QualificationFormParser";
-import type { TaxonomyService } from "@/domain/Taxonomy";
 import { KEY_QUESTIONS, keyQuestionField } from "@/data/keyQuestions";
 
-// Minimal taxonomy stub — only the methods the parser touches.
-function fakeTaxonomy(
-  overrides: Partial<TaxonomyService> = {},
-): TaxonomyService {
-  return {
-    isValidTargetSystemTag: () => true,
-    isValidSectorTag: () => true,
-    validQuestionIds: () => new Set<string>(),
-    ...overrides,
-  } as unknown as TaxonomyService;
-}
+// The form speaks VAIR (2026-09-30): the tags are checked against VAIR's terms, not an injected
+// taxonomy, so the parser takes no arguments.
 
 function validMetadata(): FormData {
   const fd = new FormData();
@@ -42,19 +32,23 @@ function addRisk(
     consequence: "Staff sent to a full shelf",
     affected: "user",
     control: "Confidence threshold and human confirmation",
+    // the VAIR selects that are required (2026-09-30)
+    sourceTerm: "ErroneousInputData",
+    impactTerm: "Harm",
+    controlTerm: "HumanOversightMeasure",
     ...over,
   };
   for (const [k, val] of Object.entries(v)) fd.set(`risk:${i}:${k}`, val);
-  fd.append(`risk:${i}:area`, "safety");
+  fd.append(`risk:${i}:area`, "Safety");
 }
 
 /** Metadata + tags + AIRO pickers + every required Annex IV answer + one risk. */
 function fullySubmittable(): FormData {
   const fd = validMetadata();
-  fd.append("targetSystemTags", "computer-vision:object-detection");
-  fd.append("sectorTags", "health");
-  fd.append("marketFormTags", "software");
-  fd.append("localityTags", "workplace");
+  fd.append("targetSystemTags", "ObjectRecognition");
+  fd.append("sectorTags", "Employment");
+  fd.append("marketFormTags", "Software");
+  fd.append("localityTags", "Workplace");
   for (const q of KEY_QUESTIONS) {
     if (q.optional) continue;
     fd.set(keyQuestionField(q), `Answer for ${q.id}.`);
@@ -67,37 +61,31 @@ describe("QualificationFormParser", () => {
   it("rejects blank metadata with its field message", () => {
     const fd = validMetadata();
     fd.set("systemName", "");
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     expect(() => parser.parse(fd)).toThrow(FormValidationError);
     expect(() => parser.parse(fd)).toThrow(/System name is required/);
   });
 
-  it("requires at least one target-system tag", () => {
-    const fd = validMetadata();
-    fd.append("sectorTags", "retail");
-    const parser = new QualificationFormParser(fakeTaxonomy());
-    expect(() => parser.parse(fd)).toThrow(/at least one target-system/);
+  it("lets capabilities and sectors be left empty: VAIR's lists do not cover every system", () => {
+    const fd = fullySubmittable();
+    fd.delete("targetSystemTags");
+    fd.delete("sectorTags");
+    const parsed = new QualificationFormParser().parse(fd);
+    expect([parsed.targetSystemTags, parsed.sectorTags]).toEqual([[], []]);
   });
 
-  it("requires at least one sector tag", () => {
-    const fd = validMetadata();
-    fd.append("targetSystemTags", "vision:detection");
-    const parser = new QualificationFormParser(fakeTaxonomy());
-    expect(() => parser.parse(fd)).toThrow(/at least one sector/i);
-  });
-
-  it("rejects an unknown target-system tag", () => {
-    const fd = validMetadata();
-    fd.append("targetSystemTags", "bogus");
-    fd.append("sectorTags", "retail");
-    const parser = new QualificationFormParser(
-      fakeTaxonomy({ isValidTargetSystemTag: () => false }),
-    );
-    expect(() => parser.parse(fd)).toThrow(/Unknown target system tag: bogus/);
+  it("rejects a capability or a sector that is not a VAIR term of its class", () => {
+    const parser = new QualificationFormParser();
+    const cap = fullySubmittable();
+    cap.append("targetSystemTags", "bogus");
+    expect(() => parser.parse(cap)).toThrow(/Unknown capability: bogus/);
+    const sector = fullySubmittable();
+    sector.append("sectorTags", "retail");
+    expect(() => parser.parse(sector)).toThrow(/Unknown sector: retail/);
   });
 
   it("accepts a submission that leaves every 'where applicable' question blank", () => {
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const parsed = parser.parse(fullySubmittable());
     const answered = parsed.answers.map((a) => `${a.toolId}:${a.questionId}`);
     expect(answered).toHaveLength(10);
@@ -109,7 +97,7 @@ describe("QualificationFormParser", () => {
   it("stores an optional answer when the deployer does provide one", () => {
     const fd = fullySubmittable();
     fd.set("q:annex-2:2d", "Two labelled sets, both scraped in-house.");
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const parsed = parser.parse(fd);
     expect(parsed.answers).toHaveLength(11);
     expect(parsed.answers.find((a) => a.questionId === "2d")?.answer).toBe(
@@ -120,7 +108,7 @@ describe("QualificationFormParser", () => {
   it("rejects a submission missing a required Annex IV answer", () => {
     const fd = fullySubmittable();
     fd.set("q:annex-2:2g", "   ");
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     expect(() => parser.parse(fd)).toThrow(FormValidationError);
     expect(() => parser.parse(fd)).toThrow(/1 missing/);
   });
@@ -128,7 +116,7 @@ describe("QualificationFormParser", () => {
   it("ignores answers submitted under retired question ids", () => {
     const fd = fullySubmittable();
     fd.set("q:data:data-source", "Left over from the old form.");
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const parsed = parser.parse(fd);
     expect(parsed.answers).toHaveLength(10);
     expect(parsed.answers.some((a) => a.toolId === "data")).toBe(false);
@@ -139,35 +127,36 @@ describe("QualificationFormParser", () => {
   it("requires intended deployers", () => {
     const fd = fullySubmittable();
     fd.set("intendedDeployers", "  ");
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     expect(() => parser.parse(fd)).toThrow(/Intended deployers are required/);
   });
 
-  it("requires at least one market form and one locality", () => {
-    const parser = new QualificationFormParser(fakeTaxonomy());
+  it("requires at least one market form; the locality may be left empty", () => {
+    const parser = new QualificationFormParser();
     const noForm = fullySubmittable();
     noForm.delete("marketFormTags");
     expect(() => parser.parse(noForm)).toThrow(/at least one market form/i);
+    // VAIR has three localities and no "other": a system used elsewhere picks none
     const noLoc = fullySubmittable();
     noLoc.delete("localityTags");
-    expect(() => parser.parse(noLoc)).toThrow(/at least one locality/i);
+    expect(parser.parse(noLoc).localityTags).toEqual([]);
   });
 
   it("rejects ids outside the AIRO vocabularies", () => {
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const fd = fullySubmittable();
     fd.append("marketFormTags", "hologram");
     expect(() => parser.parse(fd)).toThrow(/Unknown market form: hologram/);
     const fd2 = fullySubmittable();
     fd2.append("localityTags", "moon");
-    expect(() => parser.parse(fd2)).toThrow(/Unknown locality: moon/);
+    expect(() => parser.parse(fd2)).toThrow(/Unknown locality of use: moon/);
   });
 
   it("returns the new metadata on the parsed result", () => {
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const parsed = parser.parse(fullySubmittable());
-    expect(parsed.marketFormTags).toEqual(["software"]);
-    expect(parsed.localityTags).toEqual(["workplace"]);
+    expect(parsed.marketFormTags).toEqual(["Software"]);
+    expect(parsed.localityTags).toEqual(["Workplace"]);
     expect(parsed.intendedDeployers).toBe(
       "Supermarket chains operating the cameras.",
     );
@@ -178,7 +167,7 @@ describe("QualificationFormParser", () => {
   it("requires at least one risk row", () => {
     const fd = fullySubmittable();
     for (const k of [...fd.keys()]) if (k.startsWith("risk:")) fd.delete(k);
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     expect(() => parser.parse(fd)).toThrow(/at least one risk/i);
   });
 
@@ -188,8 +177,9 @@ describe("QualificationFormParser", () => {
       risk: "Data poisoning",
       vulnerability: "Unsigned training pipeline",
       followUpControl: "Roll back to previous model",
+      followUpControlTerm: "Intervention",
     });
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const { risks } = parser.parse(fd);
     expect(risks).toHaveLength(2);
     expect(risks[0]).toMatchObject({
@@ -198,13 +188,14 @@ describe("QualificationFormParser", () => {
       vulnerability: null,
       followUpControl: null,
       affected: "user",
-      impactAreas: ["safety"],
+      impactAreas: ["Safety"],
     });
     expect(risks[1]).toMatchObject({
       position: 1,
       risk: "Data poisoning",
       vulnerability: "Unsigned training pipeline",
       followUpControl: "Roll back to previous model",
+      followUpControlTerm: "Intervention",
     });
   });
 
@@ -212,14 +203,14 @@ describe("QualificationFormParser", () => {
     const fd = fullySubmittable();
     for (const k of ["risk", "source", "consequence", "control"])
       fd.set(`risk:1:${k}`, "");
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     expect(parser.parse(fd).risks).toHaveLength(1);
   });
 
   it("rejects a row missing a required field, naming the row and field", () => {
     const fd = fullySubmittable();
     fd.set("risk:0:consequence", "  ");
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     expect(() => parser.parse(fd)).toThrow(
       /Risk 1: What happens as a result is required/,
     );
@@ -228,14 +219,14 @@ describe("QualificationFormParser", () => {
   it("rejects an affected value outside operator/user", () => {
     const fd = fullySubmittable();
     fd.set("risk:0:affected", "subject");
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     expect(() => parser.parse(fd)).toThrow(
       /Risk 1: who is affected must be operator or user/,
     );
   });
 
   it("requires at least one known area of impact per row", () => {
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const none = fullySubmittable();
     none.delete("risk:0:area");
     expect(() => parser.parse(none)).toThrow(
@@ -276,7 +267,7 @@ const bare = formVersion({ versionId: "bare-v1", blocks: [], questions: [] });
 
 describe("the identity block is always required (R10)", () => {
   it("R10 a form with no blocks and no questions still needs the three identity fields", () => {
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     for (const [field, message] of [
       ["systemName", /System name is required/],
       ["systemVersion", /Version is required/],
@@ -293,7 +284,7 @@ describe("the identity block is always required (R10)", () => {
   });
 
   it("R10 the identity alone is a complete submission of an empty form", () => {
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     expect(parser.parse(identity(), bare)).toEqual({
       systemName: "Acme Vision",
       systemVersion: "1.0",
@@ -302,6 +293,8 @@ describe("the identity block is always required (R10)", () => {
       targetUseCase: "",
       targetUsers: "",
       intendedDeployers: null,
+      systemType: null,
+      purpose: null,
       targetSystemTags: [],
       sectorTags: [],
       marketFormTags: [],
@@ -325,7 +318,7 @@ describe("metadata text fields follow the form's blocks (R11, A5)", () => {
 
   for (const [field, message] of cases) {
     it(`R11 ${field} in the blocks keeps today's rule: blank is refused`, () => {
-      const parser = new QualificationFormParser(fakeTaxonomy());
+      const parser = new QualificationFormParser();
       const fd = identity();
       fd.set(field, "  ");
       expect(() => parser.parse(fd, formVersion({ blocks: [field] as never }))).toThrow(message);
@@ -334,7 +327,7 @@ describe("metadata text fields follow the form's blocks (R11, A5)", () => {
 
   for (const [field, , absent] of cases) {
     it(`R11 ${field} not in the blocks is ignored even when posted`, () => {
-      const parser = new QualificationFormParser(fakeTaxonomy());
+      const parser = new QualificationFormParser();
       const fd = identity();
       fd.set(field, "Posted anyway.");
       expect(parser.parse(fd, bare)[field]).toBe(absent);
@@ -342,7 +335,7 @@ describe("metadata text fields follow the form's blocks (R11, A5)", () => {
   }
 
   it("R11 an included field is kept, trimmed as today", () => {
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const fd = identity();
     fd.set("description", "A vision system.");
     expect(parser.parse(fd, formVersion({ blocks: ["description"] as never })).description).toBe(
@@ -352,27 +345,28 @@ describe("metadata text fields follow the form's blocks (R11, A5)", () => {
 });
 
 describe("pickers follow the form's blocks (R12)", () => {
+  // VAIR terms (2026-09-30). Only market form needs a value: VAIR's four forms cover every system,
+  // while its capabilities, domains and localities do not.
   const pickers = [
-    ["targetSystemTags", /at least one target-system/, "computer-vision:object-detection"],
-    ["sectorTags", /at least one sector/i, "health"],
-    ["marketFormTags", /at least one market form/i, "software"],
-    ["localityTags", /at least one locality/i, "workplace"],
+    ["targetSystemTags", null, "ObjectRecognition"],
+    ["sectorTags", null, "Employment"],
+    ["marketFormTags", /at least one market form/i, "Software"],
+    ["localityTags", null, "Workplace"],
   ] as const;
 
   for (const [block, message, good] of pickers) {
-    it(`R12 ${block} in the blocks needs at least one valid value`, () => {
-      const parser = new QualificationFormParser(fakeTaxonomy());
+    it(`R12 ${block} in the blocks takes valid values${message ? ", at least one" : ", or none"}`, () => {
+      const parser = new QualificationFormParser();
       const form = formVersion({ blocks: [block] as never });
-      expect(() => parser.parse(identity(), form)).toThrow(message);
+      if (message) expect(() => parser.parse(identity(), form)).toThrow(message);
+      else expect(parser.parse(identity(), form)[block]).toEqual([]);
       const fd = identity();
       fd.append(block, good);
       expect(parser.parse(fd, form)[block]).toEqual([good]);
     });
 
     it(`R12 ${block} not in the blocks parses as [] and ignores posted values, even invalid ones`, () => {
-      const parser = new QualificationFormParser(
-        fakeTaxonomy({ isValidTargetSystemTag: () => false, isValidSectorTag: () => false }),
-      );
+      const parser = new QualificationFormParser();
       const fd = identity();
       fd.append(block, "not-a-real-id");
       expect(parser.parse(fd, bare)[block]).toEqual([]);
@@ -380,7 +374,7 @@ describe("pickers follow the form's blocks (R12)", () => {
   }
 
   it("R12 an included picker still refuses ids outside its vocabulary", () => {
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const fd = identity();
     fd.append("marketFormTags", "hologram");
     expect(() => parser.parse(fd, formVersion({ blocks: ["marketFormTags"] as never }))).toThrow(
@@ -391,7 +385,7 @@ describe("pickers follow the form's blocks (R12)", () => {
 
 describe("the risk block follows the form's blocks (R13)", () => {
   it('R13 with "risks" in the blocks, today\'s rules hold, including at least one risk', () => {
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const form = formVersion({ blocks: ["risks"] as never });
     expect(() => parser.parse(identity(), form)).toThrow(/Add at least one risk\./);
     const fd = identity();
@@ -403,7 +397,7 @@ describe("the risk block follows the form's blocks (R13)", () => {
   });
 
   it("R13 without it every risk field is ignored and there is no error", () => {
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const fd = identity();
     addRisk(fd, 0, { affected: "subject" });
     expect(parser.parse(fd, bare).risks).toEqual([]);
@@ -421,14 +415,14 @@ describe("questions come from the version (R14)", () => {
   });
 
   it("R14 counts the required questions left blank", () => {
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const fd = identity();
     fd.set("q:f-acme:q1", "  ");
     expect(() => parser.parse(fd, acme)).toThrow("Please answer all required questions (2 missing).");
   });
 
   it("R14 a blank optional question gives no answer; answers are {toolId: scope, questionId: localId}, trimmed", () => {
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const fd = identity();
     fd.set("q:f-acme:q1", "  First.  ");
     fd.set("q:f-acme:q2", "   ");
@@ -440,7 +434,7 @@ describe("questions come from the version (R14)", () => {
   });
 
   it("R14 a q: field that is not a question of this version is ignored", () => {
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const fd = identity();
     fd.set("q:f-acme:q1", "One.");
     fd.set("q:f-acme:q3", "Three.");
@@ -452,7 +446,7 @@ describe("questions come from the version (R14)", () => {
   });
 
   it("R14 a mixed version reads seeded and custom questions alike", () => {
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const mixed = formVersion({ questions: [seededQuestion("2a"), customQuestion("acme", "q1")] });
     const fd = identity();
     fd.set("q:annex-2:2a", "Built from a pre-trained model.");
@@ -467,7 +461,7 @@ describe("questions come from the version (R14)", () => {
     const { annexDefaultVersion } = await loadSrc("domain/forms/legacy.ts");
     const form = annexDefaultVersion();
     expect(form.blocks).toEqual([...ALL_BLOCKS]);
-    const parser = new QualificationFormParser(fakeTaxonomy());
+    const parser = new QualificationFormParser();
     const legacy = parser.parse(fullySubmittable());
     const withForm = parser.parse(fullySubmittable(), form);
     expect({ ...withForm, formVersionId: undefined }).toEqual({ ...legacy, formVersionId: undefined });

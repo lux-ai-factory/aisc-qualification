@@ -2,9 +2,10 @@
 @prefix ex: <https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#> .
 @prefix qual: <https://lux-ai-factory.github.io/qualification/ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 ex:risk0_control a airo:RiskControl,
-        <https://w3id.org/vair#ManualControl> ;
+        <https://w3id.org/vair#HumanOversightMeasure> ;
     rdfs:label "Officer review of every Reject" ;
     qual:fullLabel "Every Reject and every Review case goes to a trained loan officer before any decision reaches the applicant; bureau coverage below the configured threshold forces the case into Review" ;
     qual:provenance "form" ;
@@ -12,7 +13,7 @@ ex:risk0_control a airo:RiskControl,
     airo:modifiesRiskConcept ex:risk0 .
 
 ex:risk0_source a airo:RiskSource,
-        <https://w3id.org/vair#DataRiskSource> ;
+        <https://w3id.org/vair#ErroneousInputData> ;
     rdfs:label "Thin or stale bureau data" ;
     qual:fullLabel "Credit bureau coverage is incomplete or stale for that applicant, so the model scores them on thin data" ;
     qual:provenance "form" ;
@@ -20,7 +21,7 @@ ex:risk0_source a airo:RiskSource,
     airo:isRiskSourceFor ex:risk0 .
 
 ex:risk1_control a airo:RiskControl,
-        <https://w3id.org/vair#MonitoringMeasure> ;
+        <https://w3id.org/vair#BiasDetection> ;
     rdfs:label "Quarterly fairness audit, 5% band" ;
     qual:fullLabel "Quarterly fairness audit measuring demographic parity and equal-opportunity difference across age band, gender proxy and postal-code SES proxy, with a 5% acceptance band, plus override rates by stratum to catch bias entering through human review" ;
     qual:provenance "form" ;
@@ -28,7 +29,7 @@ ex:risk1_control a airo:RiskControl,
     airo:modifiesRiskConcept ex:risk1 .
 
 ex:risk1_source a airo:RiskSource,
-        <https://w3id.org/vair#DataRiskSource> ;
+        <https://w3id.org/vair#BiasedTrainingData> ;
     rdfs:label "Postal-code features as a proxy" ;
     qual:fullLabel "Postal-code and transaction features act as proxies for ethnicity and socio-economic status even though protected attributes are excluded as direct inputs" ;
     qual:provenance "form" ;
@@ -43,7 +44,7 @@ ex:risk2_control a airo:RiskControl,
     airo:modifiesRiskConcept ex:risk2 .
 
 ex:risk2_source a airo:RiskSource,
-        <https://w3id.org/vair#OrganisationalRiskSource> ;
+        <https://w3id.org/vair#InsufficientHumanOversightMeasure> ;
     rdfs:label "Automation bias under throughput targets" ;
     qual:fullLabel "Automation bias: agreeing with the model is faster than justifying a divergence, and the queue is measured on throughput" ;
     qual:provenance "form" ;
@@ -51,14 +52,14 @@ ex:risk2_source a airo:RiskSource,
     airo:isRiskSourceFor ex:risk2 .
 
 ex:risk3_control a airo:RiskControl,
-        <https://w3id.org/vair#OperationalMeasure> ;
+        <https://w3id.org/vair#LoggingMeasure> ;
     rdfs:label "Index refresh signed off by compliance" ;
     qual:fullLabel "Quarterly index refresh signed off by compliance, and every explanation records the index version it was generated from so any answer can be reproduced" ;
     qual:provenance "form" ;
     airo:modifiesRiskConcept ex:risk3 .
 
 ex:risk3_source a airo:RiskSource,
-        <https://w3id.org/vair#SystemRiskSource> ;
+        <https://w3id.org/vair#ErroneousInputData> ;
     rdfs:label "Retrieval index out of date" ;
     qual:fullLabel "The retrieval index over the bank's policy documentation falls out of date after a policy change" ;
     qual:provenance "form" ;
@@ -74,7 +75,7 @@ ex:risk4_control a airo:RiskControl,
     airo:modifiesRiskConcept ex:risk4 .
 
 ex:risk4_source a airo:RiskSource,
-        <https://w3id.org/vair#Attack> ;
+        <https://w3id.org/vair#DataPoisoning> ;
     rdfs:label "Attack on a bureau feed" ;
     qual:fullLabel "An attacker with access to a bureau feed injects records designed to shift the score distribution for a chosen segment" ;
     qual:provenance "form" ;
@@ -84,48 +85,48 @@ ex:risk4_source a airo:RiskSource,
 ex:system a airo:AISystem,
         <https://w3id.org/vair#NarrowAI> ;
     rdfs:label "MicroCredit Assist Score (MCAS) v1.2.0" ;
-    qual:answer [ qual:citation "Annex IV(1)(d)-(e)" ;
-            qual:questionId "annex-1:1de" ;
-            qual:text "MCAS is put into service as a proprietary on-premise deployment inside each deployer bank's own data centre, with contractual audit access for the provider and the bank's regulator; there is no public download and no multi-tenant hosted form. Validated on x86-64 servers with 16 vCPU and 64 GB RAM; the gradient-boosted model runs on CPU, while the retrieval index requires 100 GB of local SSD. The third-party LLM is reached as an external API, so no GPU is required on the bank's premises." ],
-        [ qual:citation "Annex IV(2)(h)" ;
-            qual:questionId "annex-2:2h" ;
-            qual:text "The deployment is on-premise with no inbound internet exposure; bureau, PSD2 and LLM calls leave through an egress proxy with an allow-list. Applicant data is encrypted at rest and in transit, and the payload sent to the external LLM is restricted to the derived explanation factors, never raw applicant identifiers or account data. Container images are signed and verified at deploy; secrets live in the bank's vault. The dashboard enforces SSO with role separation between loan officer, compliance and administrator, and every read of an applicant case is written to an append-only audit log. Dependencies are pinned and scanned on each build with a documented patch window for critical CVEs; model artefacts are checksummed at load; and the prompt and retrieval index are version-controlled so an explanation can always be reproduced from the release record." ],
-        [ qual:citation "Annex IV(1)(b)" ;
-            qual:questionId "annex-1:1b" ;
-            qual:text "MCAS is not used standalone. It ingests credit bureau records over the bureaux' own APIs, reads PSD2-authorised account data through the bank's aggregation layer, and returns scores and recommendations into the bank's core lending system over a documented REST interface. The LLM explanation module calls a hosted third-party model. The web portal, mobile app and staff dashboard that show the outputs belong to the deployer bank, not to the provider." ],
-        [ qual:citation "Annex IV(1)(a)" ;
-            qual:questionId "annex-1:1a" ;
-            qual:text "v1.2.0 follows v1.1.x. It recalibrates the scoring model on 2025 outcome data, adds the Dutch market, and moves the LLM explanation module from a single prompt to a retrieval-grounded one so explanations cite the applicable policy clause. The Approve/Review/Reject thresholds are unchanged from v1.1.3. v1.0.x is end-of-life; v1.1.3 remains supported until the next annual recalibration." ],
-        [ qual:citation "Annex IV(1)(g)-(h)" ;
+    qual:answer [ qual:citation "Annex IV(1)(g)-(h)" ;
             qual:questionId "annex-1:1gh" ;
             qual:text "Loan officers and compliance staff use a case dashboard showing the 0-1000 score, the risk category, the recommendation, the influential factors, the generated explanation with its cited policy clause, and the full decision audit trail; it is also where an override is entered. Instructions for use ship as a versioned PDF plus an in-product help centre keyed to the running version, covering intended purpose, the supported loan range and markets, accuracy bounds, known limitations, the mandatory human review of every rejection and Review-bucket case, the written-justification requirement for overrides, and the escalation path to the bank's risk committee." ],
-        [ qual:citation "Annex IV(2)(a)" ;
-            qual:questionId "annex-2:2a" ;
-            qual:text "The scoring model was built in-house: feature engineering on bureau, transaction and application data, then a gradient-boosted decision tree trained on the bank's historical loan outcomes. No pre-trained model is used for scoring. The explanation module wraps a hosted third-party LLM, used as-is with no fine-tuning, constrained by a retrieval index over the bank's own policy documentation and by a fixed system prompt held in version control. Policy rules (debt-to-income limits, age requirements, bankruptcy triggers) are hand-written and reviewed by compliance. Every stage has a named owner and a sign-off recorded in the design log." ],
         [ qual:citation "Annex IV(2)(g)" ;
             qual:questionId "annex-2:2g" ;
             qual:text "Validation uses a temporally held-out set of the most recent 90,000 applications, so the model is always tested on outcomes later than anything it trained on, plus a per-market split for DE, FR and NL. Reported metrics are AUC and KS for ranking quality, calibration error by score decile, approval and default rates per threshold band, and stability of the score distribution against the production baseline. Robustness is tested by withholding each data source in turn, since bureau or PSD2 outages happen in production. Potentially discriminatory impact is measured quarterly as demographic parity and equal-opportunity difference across age band, gender via bureau proxy, and postal-code SES proxy, together with override rates by stratum to catch bias entering through human review; the last two audits showed no disparity above the 5% acceptance threshold in any deployed market. Test logs, the fairness audit and the dated, signed validation report are retained for 10 years in the release record." ],
-        [ qual:citation "Annex IV(2)(d)" ;
-            qual:questionId "annex-2:2d" ;
-            qual:text "Training used about 620,000 loan outcomes from the bank's last seven years (default/no-default labels), credit bureau records ingested under DPA-compliant contracts, twelve-month aggregated transaction features from PSD2-authorised access, and coarse demographic fields (age band, postal-code area). Provenance, licensing and consent basis are recorded per source in the data registry. Selection is stratified across the three deployment markets and across age bands, income deciles and postal-code clusters, with oversampling of historically under-represented postal areas. Labels come from the bank's own repayment records rather than manual annotation; the definition of default follows the regulatory 90-days-past-due rule. Cleaning removes duplicate applications, drops records with incomplete bureau coverage, winsorises transaction features at the 1st and 99th percentiles, and excludes the 2020-2021 payment-holiday period from the default definition to avoid encoding a policy artefact as credit risk." ],
-        [ qual:citation "Annex IV(2)(c)" ;
-            qual:questionId "annex-2:2c" ;
-            qual:text "Five components: an ingest and feature service that pulls bureau, PSD2 and application data and computes features; the scoring model; a policy-rule engine applying the hard eligibility rules; a retrieval-grounded explanation service that calls the external LLM; and a case and audit service backing the staff dashboard. The rule engine can veto an Approve recommendation but never creates one, so policy rules are always the tighter constraint. Components run as separate on-premise containers over an internal queue. Training and quarterly recalibration use a 32-vCPU CPU cluster, roughly 40 core-hours per run; no GPU is used on-premise, and validation runs on the same hardware as production." ],
-        [ qual:citation "Annex IV(1)(f)" ;
-            qual:questionId "annex-1:1f" ;
-            qual:text "No physical product. MCAS is software: it runs as a set of containers on the deployer bank's own servers and reaches its users through the bank's web portal, mobile app and staff dashboard. There is nothing to photograph, no markings and no internal arrangement to describe, so no drawings are held." ],
+        [ qual:citation "Annex IV(2)(h)" ;
+            qual:questionId "annex-2:2h" ;
+            qual:text "The deployment is on-premise with no inbound internet exposure; bureau, PSD2 and LLM calls leave through an egress proxy with an allow-list. Applicant data is encrypted at rest and in transit, and the payload sent to the external LLM is restricted to the derived explanation factors, never raw applicant identifiers or account data. Container images are signed and verified at deploy; secrets live in the bank's vault. The dashboard enforces SSO with role separation between loan officer, compliance and administrator, and every read of an applicant case is written to an append-only audit log. Dependencies are pinned and scanned on each build with a documented patch window for critical CVEs; model artefacts are checksummed at load; and the prompt and retrieval index are version-controlled so an explanation can always be reproduced from the release record." ],
+        [ qual:citation "Annex IV(2)(e)" ;
+            qual:questionId "annex-2:2e" ;
+            qual:text "Article 14 oversight is structural: every rejection and every Review-bucket case goes to a trained loan officer before any binding decision reaches the applicant, and no adverse decision is ever issued on the model's output alone. Officers can approve, reject or override with a mandatory written justification recorded against the case, and can suspend automated scoring for a branch or market from the dashboard. The LLM chatbot is explicitly non-binding and refuses appeal advice; appeals are human-only. For Article 13(3), point (d), each case shows the score, the risk category, the influential factors with their direction and magnitude, the policy clause cited by the explanation, and a distribution plot placing the applicant against the recent population, so an officer can see how the recommendation arose and how confident it is. Because agreement with the model is the path of least resistance, the dashboard also tracks each officer's override rate against the branch median and flags officers who never diverge, and refresher training covers automation bias explicitly." ],
+        [ qual:citation "Annex IV(1)(d)-(e)" ;
+            qual:questionId "annex-1:1de" ;
+            qual:text "MCAS is put into service as a proprietary on-premise deployment inside each deployer bank's own data centre, with contractual audit access for the provider and the bank's regulator; there is no public download and no multi-tenant hosted form. Validated on x86-64 servers with 16 vCPU and 64 GB RAM; the gradient-boosted model runs on CPU, while the retrieval index requires 100 GB of local SSD. The third-party LLM is reached as an external API, so no GPU is required on the bank's premises." ],
+        [ qual:citation "Annex IV(1)(a)" ;
+            qual:questionId "annex-1:1a" ;
+            qual:text "v1.2.0 follows v1.1.x. It recalibrates the scoring model on 2025 outcome data, adds the Dutch market, and moves the LLM explanation module from a single prompt to a retrieval-grounded one so explanations cite the applicable policy clause. The Approve/Review/Reject thresholds are unchanged from v1.1.3. v1.0.x is end-of-life; v1.1.3 remains supported until the next annual recalibration." ],
         [ qual:citation "Annex IV(2)(b)" ;
             qual:questionId "annex-2:2b" ;
             qual:text "The model estimates probability of default over the loan term from bureau history, twelve months of aggregated transaction features, and application data; that probability is mapped to a 0-1000 score and then to Low/Medium/High and Approve/Review/Reject by fixed thresholds. It optimises for ranking quality (AUC) rather than raw accuracy, because the thresholds are set separately by the bank's risk appetite; the rationale is that a mis-ranked applicant is the real error, while the cut-off is a policy choice. Key assumptions: bureau coverage is complete for the deployment markets, twelve months of account history exist, and every rejection is reviewed by a human. The subjects are individual loan applicants, so protected attributes are excluded as direct features and monitored as fairness strata instead. Expected output is a score, a category, a recommendation, the influential factors, and a plain-language explanation citing a policy clause. The trade-off accepted for Chapter III Section 2 is the choice of a monotonic gradient-boosted tree over a higher-scoring unconstrained ensemble: it costs about 0.9 AUC points and buys per-factor explanations a loan officer can defend to an applicant." ],
-        [ qual:citation "Annex IV(1)(c)" ;
-            qual:questionId "annex-1:1c" ;
-            qual:text "Deployed as the 1.2.x scoring service (Python 3.11, on-premise container) alongside the 0.9.x retrieval index for policy documentation. It requires the bank's aggregation layer at API version 3 or later. Patch releases may be applied by the bank within its own change window. Any recalibration of the model, any change to a decision threshold, and any change of the underlying LLM require re-validation and a fresh compliance sign-off before they are enabled in production." ],
+        [ qual:citation "Annex IV(2)(c)" ;
+            qual:questionId "annex-2:2c" ;
+            qual:text "Five components: an ingest and feature service that pulls bureau, PSD2 and application data and computes features; the scoring model; a policy-rule engine applying the hard eligibility rules; a retrieval-grounded explanation service that calls the external LLM; and a case and audit service backing the staff dashboard. The rule engine can veto an Approve recommendation but never creates one, so policy rules are always the tighter constraint. Components run as separate on-premise containers over an internal queue. Training and quarterly recalibration use a 32-vCPU CPU cluster, roughly 40 core-hours per run; no GPU is used on-premise, and validation runs on the same hardware as production." ],
+        [ qual:citation "Annex IV(1)(b)" ;
+            qual:questionId "annex-1:1b" ;
+            qual:text "MCAS is not used standalone. It ingests credit bureau records over the bureaux' own APIs, reads PSD2-authorised account data through the bank's aggregation layer, and returns scores and recommendations into the bank's core lending system over a documented REST interface. The LLM explanation module calls a hosted third-party model. The web portal, mobile app and staff dashboard that show the outputs belong to the deployer bank, not to the provider." ],
+        [ qual:citation "Annex IV(2)(d)" ;
+            qual:questionId "annex-2:2d" ;
+            qual:text "Training used about 620,000 loan outcomes from the bank's last seven years (default/no-default labels), credit bureau records ingested under DPA-compliant contracts, twelve-month aggregated transaction features from PSD2-authorised access, and coarse demographic fields (age band, postal-code area). Provenance, licensing and consent basis are recorded per source in the data registry. Selection is stratified across the three deployment markets and across age bands, income deciles and postal-code clusters, with oversampling of historically under-represented postal areas. Labels come from the bank's own repayment records rather than manual annotation; the definition of default follows the regulatory 90-days-past-due rule. Cleaning removes duplicate applications, drops records with incomplete bureau coverage, winsorises transaction features at the 1st and 99th percentiles, and excludes the 2020-2021 payment-holiday period from the default definition to avoid encoding a policy artefact as credit risk." ],
+        [ qual:citation "Annex IV(1)(f)" ;
+            qual:questionId "annex-1:1f" ;
+            qual:text "No physical product. MCAS is software: it runs as a set of containers on the deployer bank's own servers and reaches its users through the bank's web portal, mobile app and staff dashboard. There is nothing to photograph, no markings and no internal arrangement to describe, so no drawings are held." ],
         [ qual:citation "Annex IV(2)(f)" ;
             qual:questionId "annex-2:2f" ;
             qual:text "Two pre-determined changes are in scope. First, an annual recalibration of the scoring model on the most recent outcome data, on a fixed schedule with unchanged features and unchanged thresholds. Second, a quarterly refresh of the retrieval index when the bank's policy documentation changes. Both are covered by a written change procedure: the recalibrated model must clear the same validation suite and the same fairness acceptance bands as the release it replaces, the comparison is signed off by compliance before deployment, and the previous version stays deployable for rollback for one quarter. Changes to features, thresholds or the underlying LLM are explicitly outside the pre-determined set and require a full re-qualification." ],
-        [ qual:citation "Annex IV(2)(e)" ;
-            qual:questionId "annex-2:2e" ;
-            qual:text "Article 14 oversight is structural: every rejection and every Review-bucket case goes to a trained loan officer before any binding decision reaches the applicant, and no adverse decision is ever issued on the model's output alone. Officers can approve, reject or override with a mandatory written justification recorded against the case, and can suspend automated scoring for a branch or market from the dashboard. The LLM chatbot is explicitly non-binding and refuses appeal advice; appeals are human-only. For Article 13(3), point (d), each case shows the score, the risk category, the influential factors with their direction and magnitude, the policy clause cited by the explanation, and a distribution plot placing the applicant against the recent population, so an officer can see how the recommendation arose and how confident it is. Because agreement with the model is the path of least resistance, the dashboard also tracks each officer's override rate against the branch median and flags officers who never diverge, and refresher training covers automation bias explicitly." ] ;
+        [ qual:citation "Annex IV(2)(a)" ;
+            qual:questionId "annex-2:2a" ;
+            qual:text "The scoring model was built in-house: feature engineering on bureau, transaction and application data, then a gradient-boosted decision tree trained on the bank's historical loan outcomes. No pre-trained model is used for scoring. The explanation module wraps a hosted third-party LLM, used as-is with no fine-tuning, constrained by a retrieval index over the bank's own policy documentation and by a fixed system prompt held in version control. Policy rules (debt-to-income limits, age requirements, bankruptcy triggers) are hand-written and reviewed by compliance. Every stage has a named owner and a sign-off recorded in the design log." ],
+        [ qual:citation "Annex IV(1)(c)" ;
+            qual:questionId "annex-1:1c" ;
+            qual:text "Deployed as the 1.2.x scoring service (Python 3.11, on-premise container) alongside the 0.9.x retrieval index for policy documentation. It requires the bank's aggregation layer at API version 3 or later. Patch releases may be applied by the bank within its own change window. Any recalibration of the model, any change to a decision threshold, and any change of the underlying LLM require re-validation and a fresh compliance sign-off before they are enabled in production." ] ;
     qual:builtWith "airo.ttl:sha256:6274d2d8711e046cf38f1b5b2980188094d4aa87b5af79804005a06468fd8469",
         "airo_min:1.0",
         "vair.ttl:sha256:6b42323726e7a82a5c4782a6d9398fc44db21bd4e0ca9fd4807558190c173605" ;
@@ -136,97 +137,143 @@ ex:system a airo:AISystem,
     airo:hasCapability ex:capability0,
         ex:capability1,
         ex:capability2,
-        ex:capability3,
-        ex:capability4,
-        ex:capability5 ;
-    airo:hasComponent ex:component0,
-        ex:component1,
-        ex:component2,
-        ex:component3 ;
+        ex:capability3 ;
+    airo:hasComponent ex:component-00000000-0000-4000-8000-000000000001,
+        ex:component-00000000-0000-4000-8000-000000000003,
+        ex:component-00000000-0000-4000-8000-000000000004,
+        ex:component-00000000-0000-4000-8000-000000000006,
+        ex:component-00000000-0000-4000-8000-000000000007 ;
     airo:hasModality ex:modality0,
         ex:modality1 ;
+    airo:hasModel ex:component-00000000-0000-4000-8000-000000000002,
+        ex:component-00000000-0000-4000-8000-000000000005 ;
     airo:hasPurpose ex:purpose ;
     airo:hasRisk ex:risk0,
         ex:risk1,
         ex:risk2,
         ex:risk3,
         ex:risk4 ;
+    airo:hasTrainingData ex:component-00000000-0000-4000-8000-000000000008 ;
+    airo:hasValidationData ex:component-00000000-0000-4000-8000-000000000009 ;
     airo:isAppliedWithinDomain ex:domain0 ;
     airo:isDeployedBy ex:deployer ;
     airo:isProvidedBy ex:provider ;
-    airo:isUsedWithinLocality ex:locality0,
-        ex:locality1 ;
+    airo:isUsedWithinLocality ex:locality0 ;
     airo:usesTechnique ex:technique0,
         ex:technique1,
         ex:technique2 .
 
-ex:area_safety a airo:AreaOfImpact,
+ex:area_Safety a airo:AreaOfImpact,
         <https://w3id.org/vair#Safety> ;
     rdfs:label "Safety" ;
-    qual:formTag "safety" ;
+    qual:formTag "Safety" ;
     qual:provenance "form" .
 
 ex:capability0 a airo:AICapability,
         <https://w3id.org/vair#Profiling> ;
-    rdfs:label "Tabular Classification & Regression" ;
-    qual:formTag "tabular-structured-data:tabular-classification-regression" ;
-    qual:fullLabel "Tabular & Structured Data / Tabular Classification & Regression" ;
+    rdfs:label "Profiling" ;
+    qual:formTag "Profiling" ;
     qual:provenance "form" .
 
 ex:capability1 a airo:AICapability,
-        <https://w3id.org/vair#Profiling> ;
-    rdfs:label "Predictive & Analytical AI / Risk Scoring & Assessment" ;
-    qual:formTag "predictive-analytical-ai:risk-scoring-assessment" ;
+        <https://w3id.org/vair#NaturalLanguageGeneration> ;
+    rdfs:label "Natural Language Generation" ;
+    qual:formTag "NaturalLanguageGeneration" ;
     qual:provenance "form" .
 
 ex:capability2 a airo:AICapability,
-        <https://w3id.org/vair#Profiling> ;
-    rdfs:label "Predictive & Analytical AI / Predictive Analytics" ;
-    qual:formTag "predictive-analytical-ai:predictive-analytics" ;
+        <https://w3id.org/vair#QuestionAnswering> ;
+    rdfs:label "Question Answering" ;
+    qual:formTag "QuestionAnswering" ;
     qual:provenance "form" .
 
 ex:capability3 a airo:AICapability,
-        <https://w3id.org/vair#NaturalLanguageGeneration> ;
-    rdfs:label "Text Generation & Summarization" ;
-    qual:formTag "natural-language-processing:text-generation-summarization" ;
-    qual:fullLabel "Natural Language Processing / Text Generation & Summarization" ;
-    qual:provenance "form" .
-
-ex:capability4 a airo:AICapability,
-        <https://w3id.org/vair#QuestionAnswering> ;
-    rdfs:label "Natural Language Processing / Question Answering" ;
-    qual:formTag "natural-language-processing:question-answering" ;
-    qual:provenance "form" .
-
-ex:capability5 a airo:AICapability,
         <https://w3id.org/vair#InformationRetrieval> ;
-    rdfs:label "Knowledge & Retrieval / Retrieval-Augmented Generation (RAG)" ;
-    qual:formTag "knowledge-retrieval:retrieval-augmented-generation-rag" ;
+    rdfs:label "Information Retrieval" ;
+    qual:formTag "InformationRetrieval" ;
     qual:provenance "form" .
 
-ex:component0 a airo:AIComponent,
-        <https://w3id.org/vair#Model> ;
-    rdfs:label "Scoring model" ;
-    qual:derivedFrom "Annex IV(2)(c)" ;
-    qual:provenance "extracted" .
+ex:component-00000000-0000-4000-8000-000000000001 a airo:AIComponent ;
+    rdfs:label "Ingest and feature service" ;
+    qual:componentKey "00000000-0000-4000-8000-000000000001" ;
+    qual:kind "pipeline" ;
+    qual:provenance "form" ;
+    qual:provider "in_house" ;
+    qual:role "Pulls credit bureau records, PSD2-authorised account data and application data, and computes the features the scoring model reads." ;
+    qual:termNotApplicable true .
 
-ex:component1 a airo:AIComponent,
-        <https://w3id.org/vair#Algorithm> ;
+ex:component-00000000-0000-4000-8000-000000000002 a airo:AIModel,
+        <https://w3id.org/vair#DecisionTree> ;
+    rdfs:label "Credit scoring model" ;
+    qual:componentKey "00000000-0000-4000-8000-000000000002" ;
+    qual:kind "model" ;
+    qual:provenance "form" ;
+    qual:provider "in_house" ;
+    qual:role "Monotonic gradient-boosted decision tree that estimates the probability of default over the loan term, mapped to a 0-1000 score and to Approve, Review or Reject by fixed thresholds." .
+
+ex:component-00000000-0000-4000-8000-000000000003 a airo:AIComponent ;
     rdfs:label "Policy-rule engine" ;
-    qual:derivedFrom "Annex IV(2)(c)" ;
-    qual:provenance "extracted" .
+    qual:componentKey "00000000-0000-4000-8000-000000000003" ;
+    qual:kind "rule_engine" ;
+    qual:provenance "form" ;
+    qual:provider "in_house" ;
+    qual:role "Applies the hand-written eligibility rules (debt-to-income limits, age requirements, bankruptcy triggers); it can veto an Approve recommendation but never creates one." ;
+    qual:termNotApplicable true .
 
-ex:component2 a airo:AIComponent,
-        <https://w3id.org/vair#Tool> ;
-    rdfs:label "Hosted explanation LLM" ;
-    qual:derivedFrom "Annex IV(2)(c)" ;
-    qual:provenance "extracted" .
+ex:component-00000000-0000-4000-8000-000000000004 a airo:AIComponent ;
+    rdfs:label "Explanation service" ;
+    qual:componentKey "00000000-0000-4000-8000-000000000004" ;
+    qual:kind "interface" ;
+    qual:provenance "form" ;
+    qual:provider "in_house" ;
+    qual:role "Retrieval-grounded service that writes the plain-language explanation citing the applicable policy clause, and answers customer questions from the policy documentation; it calls the hosted LLM." ;
+    qual:termNotApplicable true .
 
-ex:component3 a airo:AIComponent,
-        <https://w3id.org/vair#ApplicationPlatform> ;
-    rdfs:label "On-premise service tier" ;
-    qual:derivedFrom "Annex IV(2)(c)" ;
-    qual:provenance "extracted" .
+ex:component-00000000-0000-4000-8000-000000000005 a airo:AIModel ;
+    rdfs:label "Hosted LLM" ;
+    qual:componentKey "00000000-0000-4000-8000-000000000005" ;
+    qual:kind "llm" ;
+    qual:provenance "form" ;
+    qual:provider "third_party" ;
+    qual:providerName "Hosted third-party LLM provider (not named in the documentation)" ;
+    qual:role "Used as-is with no fine-tuning, behind a fixed system prompt held in version control; receives only the derived explanation factors, never raw applicant data." ;
+    qual:termNotApplicable true .
+
+ex:component-00000000-0000-4000-8000-000000000006 a airo:Data ;
+    rdfs:label "Policy documentation retrieval index" ;
+    qual:componentKey "00000000-0000-4000-8000-000000000006" ;
+    qual:kind "other_data" ;
+    qual:provenance "form" ;
+    qual:provider "in_house" ;
+    qual:role "Version-controlled index over the bank's own policy documentation that grounds the explanations; refreshed quarterly when the policies change." ;
+    qual:termNotApplicable true .
+
+ex:component-00000000-0000-4000-8000-000000000007 a airo:AIComponent ;
+    rdfs:label "Case and audit service" ;
+    qual:componentKey "00000000-0000-4000-8000-000000000007" ;
+    qual:kind "interface" ;
+    qual:provenance "form" ;
+    qual:provider "in_house" ;
+    qual:role "Backs the staff dashboard: the cases loan officers review, their overrides with written justification, and the append-only audit log of every read of an applicant case." ;
+    qual:termNotApplicable true .
+
+ex:component-00000000-0000-4000-8000-000000000008 a airo:Data ;
+    rdfs:label "Training data" ;
+    qual:componentKey "00000000-0000-4000-8000-000000000008" ;
+    qual:kind "training_data" ;
+    qual:provenance "form" ;
+    qual:provider "in_house" ;
+    qual:role "About 620,000 loan outcomes from the bank's last seven years, credit bureau records, twelve-month aggregated PSD2 transaction features and coarse demographic fields (age band, postal-code area)." ;
+    qual:termNotApplicable true .
+
+ex:component-00000000-0000-4000-8000-000000000009 a airo:Data ;
+    rdfs:label "Validation data" ;
+    qual:componentKey "00000000-0000-4000-8000-000000000009" ;
+    qual:kind "validation_data" ;
+    qual:provenance "form" ;
+    qual:provider "in_house" ;
+    qual:role "Temporally held-out set of the most recent 90,000 applications, plus a per-market split for DE, FR and NL." ;
+    qual:termNotApplicable true .
 
 ex:deployer a airo:AIOperator ;
     rdfs:label "Retail banks in DE, FR and NL" ;
@@ -235,49 +282,43 @@ ex:deployer a airo:AIOperator ;
 
 ex:domain0 a airo:Domain,
         <https://w3id.org/vair#PrivateService> ;
-    rdfs:label "Finance and insurance" ;
-    qual:formTag "finance-and-insurance" ;
+    rdfs:label "Private Service" ;
+    qual:formTag "PrivateService" ;
     qual:provenance "form" .
 
 ex:locality0 a airo:LocalityOfUse,
         <https://w3id.org/vair#Workplace> ;
     rdfs:label "Workplace" ;
-    qual:formTag "workplace" ;
-    qual:provenance "form" .
-
-ex:locality1 a airo:LocalityOfUse,
-        <https://w3id.org/vair#Workplace> ;
-    rdfs:label "Other setting" ;
-    qual:formTag "other" ;
+    qual:formTag "Workplace" ;
     qual:provenance "form" .
 
 ex:modality0 a airo:Modality,
         <https://w3id.org/vair#Software> ;
-    rdfs:label "Software (download or installed package)" ;
-    qual:formTag "software" ;
+    rdfs:label "Software" ;
+    qual:formTag "Software" ;
     qual:provenance "form" .
 
 ex:modality1 a airo:Modality,
         <https://w3id.org/vair#Service> ;
-    rdfs:label "Service (online service or API)" ;
-    qual:formTag "service" ;
+    rdfs:label "Service" ;
+    qual:formTag "Service" ;
     qual:provenance "form" .
 
 ex:purpose a airo:Purpose,
-        <https://w3id.org/vair#Assessment> ;
+        <https://w3id.org/vair#AssessingCreditworthiness> ;
     rdfs:label "Creditworthiness assessment for consumer loans" ;
     qual:fullLabel "Retail banking and consumer micro-finance in the EU (deployed in Germany, France, and the Netherlands). Evaluates creditworthiness for €100–€5,000 consumer loans, returns a 0–1000 credit score, a Low/Medium/High risk category, and an Approve/Review/Reject recommendation, alongside influential factors and a natural-language explanation surfaced via the bank's web portal, mobile app, and staff dashboard. The subjects of the system are individual loan applicants whose access to credit is affected by its outputs." ;
     qual:provenance "form" .
 
 ex:risk0_consequence a airo:Consequence,
-        <https://w3id.org/vair#DegradedAccuracy> ;
+        <https://w3id.org/vair#ImpairedDecisionMaking> ;
     rdfs:label "Creditworthy applicant refused" ;
     qual:fullLabel "A creditworthy applicant is refused a loan they would have repaid, and the recorded reason cites data that was never there" ;
     qual:provenance "form" ;
     airo:hasImpact ex:risk0_impact .
 
 ex:risk0_control_followup a airo:RiskControl,
-        <https://w3id.org/vair#OperationalMeasure> ;
+        <https://w3id.org/vair#OverridingOutcome> ;
     rdfs:label "Override with written justification" ;
     qual:fullLabel "The officer may override the recommendation with a mandatory written justification recorded against the case, and the applicant is told how to contest the outcome" ;
     qual:provenance "form" .
@@ -287,7 +328,7 @@ ex:risk0_impact a airo:Impact,
     rdfs:label "Applicant wrongly ranked high risk" ;
     qual:fullLabel "An applicant is wrongly ranked as high risk and routed to Reject" ;
     qual:provenance "form" ;
-    airo:hasImpactOnArea ex:area_right ;
+    airo:hasImpactOnArea ex:area_Right ;
     airo:hasImpactOnStakeholder ex:users .
 
 ex:risk0_vulnerability a airo:Vulnerability ;
@@ -303,7 +344,7 @@ ex:risk1_consequence a airo:Consequence,
     airo:hasImpact ex:risk1_impact .
 
 ex:risk1_control_followup a airo:RiskControl,
-        <https://w3id.org/vair#OperationalMeasure> ;
+        <https://w3id.org/vair#Interruption> ;
     rdfs:label "Suspend scoring for the market" ;
     qual:fullLabel "Suspend automated scoring for the affected market and fall back to manual underwriting until the next recalibration clears the band" ;
     qual:provenance "form" .
@@ -313,8 +354,8 @@ ex:risk1_impact a airo:Impact,
     rdfs:label "Approval rates diverge across groups" ;
     qual:fullLabel "Approval rates diverge across protected groups" ;
     qual:provenance "form" ;
-    airo:hasImpactOnArea ex:area_freedom,
-        ex:area_right ;
+    airo:hasImpactOnArea ex:area_Freedom,
+        ex:area_Right ;
     airo:hasImpactOnStakeholder ex:users .
 
 ex:risk2_consequence a airo:Consequence,
@@ -335,8 +376,8 @@ ex:risk2_impact a airo:Impact,
     rdfs:label "Officers rubber-stamp the recommendation" ;
     qual:fullLabel "Loan officers rubber-stamp the recommendation instead of reviewing it" ;
     qual:provenance "form" ;
-    airo:hasImpactOnArea ex:area_freedom,
-        ex:area_right ;
+    airo:hasImpactOnArea ex:area_Freedom,
+        ex:area_Right ;
     airo:hasImpactOnStakeholder ex:users .
 
 ex:risk2_vulnerability a airo:Vulnerability ;
@@ -352,11 +393,11 @@ ex:risk3_consequence a airo:Consequence,
     airo:hasImpact ex:risk3_impact .
 
 ex:risk3_impact a airo:Impact,
-        <https://w3id.org/vair#DetrimentalTreatment> ;
+        <https://w3id.org/vair#UnfavourableTreatment> ;
     rdfs:label "Explanation cites the wrong policy clause" ;
     qual:fullLabel "The explanation shown to an applicant cites the wrong policy clause" ;
     qual:provenance "form" ;
-    airo:hasImpactOnArea ex:area_right ;
+    airo:hasImpactOnArea ex:area_Right ;
     airo:hasImpactOnStakeholder ex:users .
 
 ex:risk3_vulnerability a airo:Vulnerability ;
@@ -365,25 +406,25 @@ ex:risk3_vulnerability a airo:Vulnerability ;
     qual:provenance "form" .
 
 ex:risk4_consequence a airo:Consequence,
-        <https://w3id.org/vair#DecreasedSecurity> ;
+        <https://w3id.org/vair#DegradedAccuracy> ;
     rdfs:label "Recalibrated model misranks a segment" ;
     qual:fullLabel "The recalibrated model systematically misranks a segment of applicants, and the drift is inside the normal seasonal range so monitoring does not catch it" ;
     qual:provenance "form" ;
     airo:hasImpact ex:risk4_impact .
 
 ex:risk4_control_followup a airo:RiskControl,
-        <https://w3id.org/vair#MitigationMeasure> ;
+        <https://w3id.org/vair#Intervention> ;
     rdfs:label "Roll back and notify the authority" ;
     qual:fullLabel "Roll back to the previous signed model, which stays deployable for one quarter, and notify the deployer banks and the market surveillance authority" ;
     qual:provenance "form" .
 
 ex:risk4_impact a airo:Impact,
-        <https://w3id.org/vair#Harm> ;
+        <https://w3id.org/vair#DetrimentalTreatment> ;
     rdfs:label "Training data poisoned via the bureau feed" ;
     qual:fullLabel "Training data is poisoned through the bureau ingestion path" ;
     qual:provenance "form" ;
-    airo:hasImpactOnArea ex:area_right,
-        ex:area_safety ;
+    airo:hasImpactOnArea ex:area_Right,
+        ex:area_Safety ;
     airo:hasImpactOnStakeholder ex:provider .
 
 ex:risk4_vulnerability a airo:Vulnerability ;
@@ -409,10 +450,10 @@ ex:technique2 a airo:AITechnique,
     qual:derivedFrom "Annex IV(2)(a)" ;
     qual:provenance "extracted" .
 
-ex:area_freedom a airo:AreaOfImpact,
+ex:area_Freedom a airo:AreaOfImpact,
         <https://w3id.org/vair#Freedom> ;
     rdfs:label "Freedom" ;
-    qual:formTag "freedom" ;
+    qual:formTag "Freedom" ;
     qual:provenance "form" .
 
 ex:provider a airo:AIOperator ;
@@ -450,10 +491,10 @@ ex:risk4 a airo:Risk ;
     qual:provenance "form" ;
     airo:hasConsequence ex:risk4_consequence .
 
-ex:area_right a airo:AreaOfImpact,
+ex:area_Right a airo:AreaOfImpact,
         <https://w3id.org/vair#Right> ;
-    rdfs:label "Fundamental rights" ;
-    qual:formTag "right" ;
+    rdfs:label "Right" ;
+    qual:formTag "Right" ;
     qual:provenance "form" .
 
 ex:users a airo:AIUser ;

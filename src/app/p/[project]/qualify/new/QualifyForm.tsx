@@ -1,10 +1,19 @@
 "use client";
 
 import { startTransition, useActionState, useMemo, useState } from "react";
-import type { Sector, TargetSystemCategory } from "@/data";
 import type { FormExample } from "@/data/examples";
 import type { KeyQuestion } from "@/data/keyQuestions";
-import { LOCALITIES, MARKET_FORMS } from "@/data/airoVocab";
+import {
+  CAPABILITIES,
+  DOMAINS,
+  LOCALITIES,
+  MODALITIES,
+  PURPOSES,
+  SYSTEM_TYPES,
+  isVairTerm,
+  type VairClass,
+  type VairTerm,
+} from "@/data/vairVocab";
 import { METADATA_FIELDS, type MetadataFieldId } from "@/data/formFields";
 import ChipPicker from "./ChipPicker";
 import RiskRows from "./RiskRows";
@@ -12,7 +21,7 @@ import ComponentRows from "./ComponentRows";
 import { submitQualification, type SubmitState } from "./actions";
 import SubmitOverlay from "./SubmitOverlay";
 import DocumentUpload from "./DocumentUpload";
-import { useDocumentPrefill } from "./useDocumentPrefill";
+import { useDocumentPrefill, type PicksApplier } from "./useDocumentPrefill";
 import { annexDefaultVersion } from "@/domain/forms/legacy";
 import type { FormBlock } from "@/domain/forms/blocks";
 import { moveNotice, rewordedSince } from "@/domain/forms/moveCard";
@@ -32,8 +41,6 @@ type Props = {
   /** No longer read: the questions come from `form`. Kept so older mounts
    *  still type-check. */
   keyQuestions?: KeyQuestion[];
-  targetSystems: TargetSystemCategory[];
-  sectors: Sector[];
   /** A worked example to open the form on, for reading and correcting rather
    *  than typing from scratch. Every field stays editable. */
   initial?: FormExample;
@@ -54,8 +61,6 @@ export default function QualifyForm({
   form,
   previous,
   cardNumber,
-  targetSystems,
-  sectors,
   initial,
 }: Props) {
   const v = useMemo(() => form ?? annexDefaultVersion(), [form]);
@@ -72,6 +77,7 @@ export default function QualifyForm({
   );
   const has = (block: FormBlock) => v.blocks.includes(block);
   const meta = initial?.metadata;
+  // The tag sets are VAIR terms (2026-09-30), held here because they are chips, not fields.
   const [targetTags, setTargetTags] = useState<Set<string>>(
     new Set(meta?.targetSystemTags ?? []),
   );
@@ -105,9 +111,42 @@ export default function QualifyForm({
     undefined,
   );
 
-  const { formRef, upload, riskRows, pickDocument, chooseMode } = useDocumentPrefill(
+  // A document's VAIR picks (2026-09-30), by the rule the text fields follow: "only the empty ones"
+  // fills a pick the author has not made, "replace" puts the document's in place of theirs. A tag set
+  // the form does not have takes nothing.
+  const applyPicks: PicksApplier = (picks, mode, formEl) => {
+    let landed = 0;
+    for (const [name, cls] of [["systemType", "AISystem"], ["purpose", "Purpose"]] as const) {
+      const value = picks[name];
+      const el = formEl?.elements.namedItem(name);
+      if (!value || !isVairTerm(cls, value) || !(el instanceof HTMLSelectElement)) continue;
+      if (mode === "replace" || el.value === "") {
+        el.value = value;
+        landed += 1;
+      }
+    }
+    const sets: Array<[FormBlock, VairClass, Set<string>, React.Dispatch<React.SetStateAction<Set<string>>>]> = [
+      ["targetSystemTags", "AICapability", targetTags, setTargetTags],
+      ["sectorTags", "Domain", sectorTagSet, setSectorTagSet],
+      ["marketFormTags", "Modality", marketForms, setMarketForms],
+      ["localityTags", "LocalityOfUse", localities, setLocalities],
+    ];
+    for (const [block, cls, now, set] of sets) {
+      const values = (picks[block as keyof typeof picks] as string[] | undefined)?.filter((t) => isVairTerm(cls, t));
+      if (!has(block) || !values?.length) continue;
+      if (mode === "replace" || now.size === 0) {
+        set(new Set(values));
+        landed += 1;
+      }
+    }
+    return landed;
+  };
+
+  const { formRef, upload, riskRows, componentRows, pickDocument, chooseMode } = useDocumentPrefill(
     initial?.risks,
     v,
+    initial?.components,
+    applyPicks,
   );
 
   return (
@@ -172,6 +211,22 @@ export default function QualifyForm({
               />
             </div>
           </div>
+          {/* VAIR's AISystem and Purpose terms, on every form. Optional: VAIR's lists do not
+              describe every system, and an open field is better than a false term. */}
+          <div className="qf-row">
+            <VairSelect
+              name="systemType"
+              id="systemType"
+              terms={SYSTEM_TYPES}
+              initial={meta?.systemType ?? ""}
+            />
+            <VairSelect
+              name="purpose"
+              id="purpose"
+              terms={PURPOSES}
+              initial={meta?.purpose ?? ""}
+            />
+          </div>
           {has("description") && (
             <div className="field">
               <FieldLabel htmlFor="description" id="description" />
@@ -226,16 +281,16 @@ export default function QualifyForm({
           )}
 
           {has("targetSystemTags") && (
-            <TargetSystemPicker
-              targetSystems={targetSystems}
-              selected={targetTags}
-              onToggle={toggleTarget}
-            />
+            <CapabilityPicker selected={targetTags} onToggle={toggleTarget} />
           )}
 
           {has("sectorTags") && (
-            <SectorPicker
-              sectors={sectors}
+            <ChipPicker
+              name="sectorTags"
+              label={METADATA_FIELDS.sectorTags.label}
+              citation={METADATA_FIELDS.sectorTags.citation}
+              help="VAIR's domains are the Annex III areas. Leave it empty when none applies."
+              options={DOMAINS}
               selected={sectorTagSet}
               onToggle={toggleSector}
             />
@@ -247,7 +302,7 @@ export default function QualifyForm({
               label={METADATA_FIELDS.marketFormTags.label}
               citation={METADATA_FIELDS.marketFormTags.citation}
               help="Pick every form that applies."
-              options={MARKET_FORMS}
+              options={MODALITIES}
               selected={marketForms}
               onToggle={toggleMarketForm}
             />
@@ -258,7 +313,7 @@ export default function QualifyForm({
               name="localityTags"
               label={METADATA_FIELDS.localityTags.label}
               citation={METADATA_FIELDS.localityTags.citation}
-              help="The kind of setting it operates in."
+              help="The kind of setting it operates in. Leave it empty when none applies."
               options={LOCALITIES}
               selected={localities}
               onToggle={toggleLocality}
@@ -311,9 +366,11 @@ export default function QualifyForm({
         )}
 
         {/* on every card, whatever its questionnaire: the parts of the system (targets plan v2) */}
-        <ComponentRows initial={initial?.components} />
+        {/* The keys restart each block from an upload's rows. They are siblings, so each needs its own
+            prefix: two children keyed "1" is what showed the Components block three times. */}
+        <ComponentRows key={`components-${componentRows.version}`} initial={componentRows.rows} />
 
-        {has("risks") && <RiskRows key={riskRows.version} initial={riskRows.rows} />}
+        {has("risks") && <RiskRows key={`risks-${riskRows.version}`} initial={riskRows.rows} />}
 
         <input type="hidden" name="questionnaireVersionId" value={v.versionId} />
 
@@ -328,147 +385,72 @@ export default function QualifyForm({
   );
 }
 
-function TargetSystemPicker({
-  targetSystems,
+/** One optional VAIR select with its label and citation: "" is "not chosen". */
+function VairSelect({
+  name,
+  id,
+  terms,
+  initial,
+}: {
+  name: "systemType" | "purpose";
+  id: string;
+  terms: VairTerm[];
+  initial: string;
+}) {
+  return (
+    <div className="field">
+      <FieldLabel htmlFor={id} id={name} />
+      <select id={id} name={name} defaultValue={initial}>
+        <option value="">Not chosen</option>
+        {terms.map((t) => (
+          <option key={t.id} value={t.id} title={t.definition || undefined}>
+            {t.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/** VAIR's 35 capabilities: too many for chips, so a list to add from and the chosen ones below. */
+function CapabilityPicker({
   selected,
   onToggle,
 }: {
-  targetSystems: TargetSystemCategory[];
   selected: Set<string>;
-  onToggle: (tag: string) => void;
+  onToggle: (id: string) => void;
 }) {
-  const [activeCategory, setActiveCategory] = useState("");
-  const cat = targetSystems.find((c) => c.id === activeCategory);
-
-  // Build a quick lookup so we can show selected chips with their full label,
-  // even after the user moves to a different category.
-  const labelFor = (tag: string): string => {
-    const [catId, subId] = tag.split(":");
-    const category = targetSystems.find((c) => c.id === catId);
-    if (!category) return tag;
-    const sub = category.items.find((s) => s.id === subId);
-    if (!sub) return category.name;
-    return `${category.name} / ${sub.name}`;
-  };
+  const labelFor = (id: string) => CAPABILITIES.find((t) => t.id === id)?.label ?? id;
 
   return (
     <div className="field">
-      <label className="qf-field-label" htmlFor="targetSystemCategory">
+      <label className="qf-field-label" htmlFor="targetSystemPick">
         {METADATA_FIELDS.targetSystemTags.label}{" "}
         <span className="qf-citation">
           {METADATA_FIELDS.targetSystemTags.citation}
         </span>
       </label>
       <p className="qf-help">
-        Choose a category, then click the capabilities that apply.{" "}
-        {selected.size} selected.
+        Add every capability that applies. {selected.size} selected.
       </p>
       <div className="qf-picker-row">
         <select
-          id="targetSystemCategory"
+          id="targetSystemPick"
+          name="targetSystemPick"
           className="qf-picker-select"
-          value={activeCategory}
-          onChange={(e) => setActiveCategory(e.target.value)}
-        >
-          <option value="">Choose a category…</option>
-          {targetSystems.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <div className="qf-picker-options">
-          {cat ? (
-            cat.items.map((sub) => {
-              const tag = `${cat.id}:${sub.id}`;
-              const active = selected.has(tag);
-              return (
-                <button
-                  type="button"
-                  key={tag}
-                  className={`qf-chip${active ? " active" : ""}`}
-                  onClick={() => onToggle(tag)}
-                  aria-pressed={active}
-                >
-                  {sub.name}
-                </button>
-              );
-            })
-          ) : (
-            <span className="qf-picker-placeholder">
-              Pick a category to see its capabilities.
-            </span>
-          )}
-        </div>
-      </div>
-      {selected.size > 0 && (
-        <div className="qf-picker-selected">
-          {Array.from(selected).map((tag) => (
-            <button
-              type="button"
-              key={tag}
-              className="qf-selected-chip"
-              onClick={() => onToggle(tag)}
-              aria-label={`Remove ${labelFor(tag)}`}
-            >
-              {labelFor(tag)} <span className="qf-selected-x">×</span>
-            </button>
-          ))}
-        </div>
-      )}
-      {Array.from(selected).map((t) => (
-        <input key={t} type="hidden" name="targetSystemTags" value={t} />
-      ))}
-    </div>
-  );
-}
-
-function SectorPicker({
-  sectors,
-  selected,
-  onToggle,
-}: {
-  sectors: Sector[];
-  selected: Set<string>;
-  onToggle: (tag: string) => void;
-}) {
-  const [pending, setPending] = useState("");
-  const labelFor = (id: string) => sectors.find((s) => s.id === id)?.name ?? id;
-
-  return (
-    <div className="field">
-      <label className="qf-field-label" htmlFor="sectorPicker">
-        {METADATA_FIELDS.sectorTags.label}{" "}
-        <span className="qf-citation">
-          {METADATA_FIELDS.sectorTags.citation}
-        </span>
-      </label>
-      <p className="qf-help">
-        Add a sector from the list. {selected.size} selected.
-      </p>
-      <div className="qf-picker-row">
-        <select
-          id="sectorPicker"
-          className="qf-picker-select"
-          value={pending}
+          value=""
           onChange={(e) => {
             const v = e.target.value;
             if (v && !selected.has(v)) onToggle(v);
-            setPending("");
           }}
         >
-          <option value="">Add a sector…</option>
-          {sectors
-            .filter((s) => !selected.has(s.id))
-            .map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
+          <option value="">Add a capability…</option>
+          {CAPABILITIES.filter((t) => !selected.has(t.id)).map((t) => (
+            <option key={t.id} value={t.id} title={t.definition || undefined}>
+              {t.label}
+            </option>
+          ))}
         </select>
-        <span className="qf-picker-placeholder">
-          Selecting a sector adds it to the chips below.
-        </span>
       </div>
       {selected.size > 0 && (
         <div className="qf-picker-selected">
@@ -476,7 +458,7 @@ function SectorPicker({
             <button
               type="button"
               key={id}
-              className="qf-selected-chip qf-selected-chip--sector"
+              className="qf-selected-chip"
               onClick={() => onToggle(id)}
               aria-label={`Remove ${labelFor(id)}`}
             >
@@ -486,7 +468,7 @@ function SectorPicker({
         </div>
       )}
       {Array.from(selected).map((t) => (
-        <input key={t} type="hidden" name="sectorTags" value={t} />
+        <input key={t} type="hidden" name="targetSystemTags" value={t} />
       ))}
     </div>
   );

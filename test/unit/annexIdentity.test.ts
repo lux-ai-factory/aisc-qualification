@@ -19,7 +19,40 @@ const FIXTURE = "test/fixtures/mcas-export-before.json";
 type Q = Record<string, unknown>;
 const before = () => JSON.parse(readFileSync(FIXTURE, "utf8"));
 
-/** The fixture as the new code must write it: only the owner keys of each question change. */
+// The form speaks VAIR (2026-09-30, docs/superpowers/vair-form-2026-09-30/01-plan.md): the export
+// carries the VAIR terms the author chose instead of our resolved tags. That is the one other change
+// to these bytes, and its values come from the ontology's own MCAS fixture, not from the exporter.
+const VAIR_EXAMPLE = JSON.parse(readFileSync("services/ontology/examples/mcas.qualification.json", "utf8"));
+const RISK_TERMS = ["sourceTerm", "consequenceTerm", "impactTerm", "controlTerm", "followUpControlTerm"];
+
+function inVair(x: Q): Q {
+  const { targetSystems: _t, sectors: _s, marketFormTags: _m, localityTags: _l, answers, risks, ...rest } = x;
+  void _t; void _s; void _m; void _l;
+  const head = Object.fromEntries(Object.entries(rest).filter(([k]) => k !== "form"));
+  return {
+    ...head,
+    systemType: VAIR_EXAMPLE.systemType,
+    purpose: VAIR_EXAMPLE.purpose,
+    targetSystemTags: VAIR_EXAMPLE.targetSystemTags,
+    sectorTags: VAIR_EXAMPLE.sectorTags,
+    marketFormTags: VAIR_EXAMPLE.marketFormTags,
+    localityTags: VAIR_EXAMPLE.localityTags,
+    answers,
+    risks: (risks as Q[]).map((r, i) => {
+      const terms = VAIR_EXAMPLE.risks[i];
+      return {
+        position: r.position, risk: r.risk, source: r.source, sourceTerm: terms.sourceTerm,
+        vulnerability: r.vulnerability, consequence: r.consequence, consequenceTerm: terms.consequenceTerm,
+        impactTerm: terms.impactTerm, affected: r.affected, impactAreas: terms.impactAreas, control: r.control,
+        controlTerm: terms.controlTerm, followUpControl: r.followUpControl, followUpControlTerm: terms.followUpControlTerm,
+      };
+    }),
+    form: x.form,
+  };
+}
+
+/** The fixture as the new code must write it: the owner keys of each question change (T43), and the
+ *  tags are VAIR terms (2026-09-30). */
 function expectedAfter() {
   const x = before();
   x.form.questions = x.form.questions.map((q: Q) => ({
@@ -32,7 +65,7 @@ function expectedAfter() {
     ownerSetId: "annex-iv",
     ownerBuiltin: q.ownerBuiltin,
   }));
-  return x;
+  return inVair(x);
 }
 
 async function exportNow() {
@@ -66,11 +99,12 @@ describe("an Annex IV card exports as before (T10)", () => {
 
   it("T10 answers, their order, form.name, form.version, metadata and risks are the fixture's", async () => {
     const now = await exportNow();
-    const was = before();
+    const was = inVair(before()) as ReturnType<typeof before>;
     expect(now.answers).toEqual(was.answers);
     expect(now.form.name).toBe("Annex IV default");
     expect(now.form.version).toBe(1);
     expect(now.risks).toEqual(was.risks);
+    for (const f of RISK_TERMS) expect(now.risks.map((r: Q) => r[f]), f).toEqual(VAIR_EXAMPLE.risks.map((r: Q) => r[f]));
     const { form: _a, ...restNow } = now;
     const { form: _b, ...restWas } = was;
     void _a;

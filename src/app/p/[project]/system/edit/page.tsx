@@ -1,4 +1,3 @@
-import { sectors, targetSystems } from "@/data";
 import { findExample } from "@/data/examples";
 import { qualificationService } from "@/server/services/QualificationService";
 import { projectDbPastDoor } from "@/lib/projectDb";
@@ -128,8 +127,6 @@ export default async function EditSystemPage({
         form={version}
         previous={moving}
         cardNumber={moving ? (start?.next.fromVersionNumber ?? undefined) : undefined}
-        targetSystems={targetSystems}
-        sectors={sectors}
         initial={initial ?? undefined}
       />
     </main>

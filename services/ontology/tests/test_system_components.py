@@ -21,7 +21,7 @@ def card(**over):
 
 ROWS = [
     {"key": K1, "name": "Scoring model", "role": "Scores each application", "kind": "model",
-     "provider": "in_house", "providerName": None},
+     "vairType": "DecisionTree", "provider": "in_house", "providerName": None},
     {"key": K2, "name": "Training data", "role": "Past applications and outcomes", "kind": "training_data",
      "provider": "in_house", "providerName": None},
     {"key": K3, "name": "Hosted explanation LLM", "role": "Explains a decision", "kind": "llm",

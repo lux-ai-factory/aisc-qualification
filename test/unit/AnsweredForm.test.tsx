@@ -16,10 +16,10 @@ const props = (over: Partial<AnsweredFormProps> = {}): AnsweredFormProps => ({
     targetUseCase: "Pre-screening consumer loan applications.",
     targetUsers: "Loan officers; applicants.",
     intendedDeployers: "Retail banks in the EU.",
-    targetSystemTags: ["predictive-analytical-ai:risk-scoring-assessment"],
-    sectorTags: ["economy"],
-    marketFormTags: ["service"],
-    localityTags: ["workplace"],
+    targetSystemTags: ["Profiling"],
+    sectorTags: ["PrivateService"],
+    marketFormTags: ["Service"],
+    localityTags: ["Workplace"],
   },
   answers: [
     {
@@ -43,7 +43,7 @@ const props = (over: Partial<AnsweredFormProps> = {}): AnsweredFormProps => ({
       vulnerability: null,
       consequence: "The applicant loses access to credit.",
       affected: "user",
-      impactAreas: ["right"],
+      impactAreas: ["Right"],
       control: "A loan officer reviews every rejection.",
       followUpControl: null,
     },
@@ -62,9 +62,10 @@ describe("the answered form, read back", () => {
 
   it("renders the pickers as their labels, not their codes", () => {
     render(<AnsweredForm {...props()} />);
-    expect(screen.queryByText("service")).toBeNull();
-    expect(screen.getByText(/Service \(online service or API\)/)).toBeTruthy();
-    expect(screen.getByText(/Economy/)).toBeTruthy();
+    // VAIR terms (2026-09-30), shown by VAIR's labels
+    expect(screen.queryByText("PrivateService")).toBeNull();
+    expect(screen.getByText("Private Service")).toBeTruthy();
+    expect(screen.getByText("Service")).toBeTruthy();
   });
 
   it("lays every section out the way the metadata is laid out", () => {

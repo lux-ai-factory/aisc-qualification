@@ -93,14 +93,14 @@ describe("QL5 the graph builder gets the rows and which part each linked item is
       ...base,
       systemComponents: [
         { id: "c2", qualificationId: "q1", position: 1, key: "k-2", name: "Training data", role: null, kind: "training_data", provider: "in_house", providerName: null },
-        { id: "c1", qualificationId: "q1", position: 0, key: "k-1", name: "Scoring model", role: "Scores", kind: "model", provider: "in_house", providerName: null },
+        { id: "c1", qualificationId: "q1", position: 0, key: "k-1", name: "Scoring model", role: "Scores", kind: "model", vairType: "DecisionTree", provider: "in_house", providerName: null },
       ],
       components: [{ id: "l1", qualificationId: "q1", componentPid: "p-1", airoProperty: "hasTrainingData", name: "train.parquet",
                      componentType: "dataset", objectName: "train.parquet", linkedAt: new Date(), componentKey: "k-2" }],
     } as never);
     expect(out.systemComponents).toEqual([
-      { key: "k-1", name: "Scoring model", role: "Scores", kind: "model", provider: "in_house", providerName: null },
-      { key: "k-2", name: "Training data", role: null, kind: "training_data", provider: "in_house", providerName: null },
+      { key: "k-1", name: "Scoring model", role: "Scores", kind: "model", vairType: "DecisionTree", provider: "in_house", providerName: null },
+      { key: "k-2", name: "Training data", role: null, kind: "training_data", vairType: null, provider: "in_house", providerName: null },
     ]);
     expect(out.engineComponents?.[0]).toEqual(expect.objectContaining({ pid: "p-1", componentKey: "k-2" }));
   });

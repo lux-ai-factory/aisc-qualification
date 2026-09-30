@@ -28,6 +28,10 @@ model Qualification {
   marketFormTags    String[]              @default([])
   localityTags      String[]              @default([])
   intendedDeployers String?
+  /// VAIR terms (2026-09-30): the system's AISystem type and its Purpose; NULL when left open.
+  /// The tag columns above hold VAIR local names too (src/data/vair_vocab.json).
+  systemType        String?               @map("system_type")
+  purpose           String?
   systemCard        String?
   systemCardJson    Json?
   // The filled AIRO graph is the system card. `ontologyExtracted` holds the
@@ -88,6 +92,8 @@ model QualificationComponent {
   name            String
   role            String?
   kind            String
+  /// The VAIR AIComponent term the type was chosen as; NULL for one of our own types.
+  vairType        String?       @map("vair_type")
   provider        String        @default("in_house")
   providerName    String?       @map("provider_name")
   qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
@@ -98,19 +104,25 @@ model QualificationComponent {
 }
 
 // One row of the risk block (question 15): one full AIRO risk chain.
-// Ids in `affected` and `impactAreas` come from src/data/airo_vocab.json.
+// `affected` ids come from src/data/airo_vocab.json; `impactAreas` and every `...Term` are VAIR
+// local names (src/data/vair_vocab.json). Each term types the node its text names.
 model QualificationRisk {
   id              String        @id @default(cuid())
   qualificationId String
   position        Int
   risk            String
   source          String
+  sourceTerm      String?       @map("source_term")
   vulnerability   String?
   consequence     String
+  consequenceTerm String?       @map("consequence_term")
+  impactTerm      String?       @map("impact_term")
   affected        String
   impactAreas     String[]      @default([])
   control         String
+  controlTerm     String?       @map("control_term")
   followUpControl String?
+  followUpControlTerm String?   @map("follow_up_control_term")
   qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
 
   @@index([qualificationId])

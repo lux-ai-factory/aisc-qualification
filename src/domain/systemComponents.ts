@@ -16,6 +16,8 @@ export type ComponentInput = {
   name: string;
   role: string | null;
   kind: ComponentKindId;
+  /** The VAIR AIComponent term; null for one of our own types. */
+  vairType: string | null;
   provider: "in_house" | "third_party";
   providerName: string | null;
 };

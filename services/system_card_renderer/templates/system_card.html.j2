@@ -31,16 +31,16 @@
       <td>{{ card.system_version }}</td>
     </tr>
     <tr>
-      <th>Target systems</th>
+      <th>Capabilities</th>
       <td>
         {% for t in card.classification.target_systems %}
-          <span class="chip">{{ t.category }} / {{ t.subcategory }}</span>
+          <span class="chip">{% if t.category %}{{ t.category }} / {% endif %}{{ t.subcategory }}</span>
         {% endfor %}
         {% if not card.classification.target_systems %}—{% endif %}
       </td>
     </tr>
     <tr>
-      <th>Sectors</th>
+      <th>Application domains</th>
       <td>
         {% for s in card.classification.sectors %}
           <span class="chip chip--sector">{{ s }}</span>

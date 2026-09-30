@@ -8,8 +8,7 @@ import pytest
 
 baf = pytest.importorskip("baf", reason="BAF is not installed in this environment")
 
-from fill.workflow import STATE_NAMES, build_agent, run_fill
-from fill.models import PROPERTIES
+from fill.workflow import DRAFTED, STATE_NAMES, build_agent, run_fill
 
 
 QUALIFICATION = {
@@ -106,7 +105,8 @@ class TestARunEndToEnd:
             "Gradient-boosted decision tree",
             "Policy eligibility rules",
         ]
-        assert len(payload["components"]) == 3
+        # only what the answers say and no form field does (2026-09-30): the Components block states the parts
+        assert "components" not in payload
         assert result.stop_reasons["techniques"] == "clean"
 
     def test_a_clean_run_publishes_no_flags(self):
@@ -141,7 +141,7 @@ class TestARunEndToEnd:
         result = run_fill(
             QUALIFICATION, terms=TERMS, complete=FakeCompleter(), publish=lambda q, p: None
         )
-        assert set(result.stop_reasons) == set(PROPERTIES) - {"risk_types"}
+        assert set(result.stop_reasons) == set(DRAFTED)
         assert result.calls > 0
         assert result.rounds >= len(result.stop_reasons)
 
@@ -160,7 +160,7 @@ class TestARunEndToEnd:
         assert published["q1"]["flags"] == {}
         unattached = published["q1"]["record"]["unattached"]
         assert {u["flag"] for u in unattached} == {"uncovered"}
-        assert {u["property"] for u in unattached} == {"techniques", "components"}
+        assert {u["property"] for u in unattached} == set(DRAFTED)
 
 
 class TestNothingIsLostOnPublish:
@@ -239,7 +239,7 @@ class TestTheStatesDoTheWork:
     def test_loading_plans_the_properties_to_fill(self):
         run = self.session()
         run.load()
-        assert run.queue == ["techniques", "components"]
+        assert run.queue == list(DRAFTED) == ["techniques"]
         assert run.current is None
 
     def test_drafting_produces_nodes_for_the_property_in_hand(self):
@@ -284,14 +284,14 @@ class TestTheStatesDoTheWork:
         assert run.rounds_done == 2
         assert len(run.draft_in_hand.nodes) == len(before)
 
-    def test_a_property_is_finished_and_the_next_one_begins(self):
+    def test_a_property_is_finished_and_the_queue_moves_on(self):
         run = self.session()
         run.load()
         run.draft()
         run.review()
         run.finish_property()
         assert "techniques" in run.outcomes
-        assert run.queue == ["components"]
+        assert run.queue == list(DRAFTED)[1:]
         assert run.current is None
 
     def test_publishing_writes_once_when_everything_is_done(self):

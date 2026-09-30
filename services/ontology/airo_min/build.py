@@ -3,7 +3,9 @@
 Two kinds of input, kept apart on purpose:
 
   * Structured form fields (tags, pickers, risk rows) map deterministically onto
-    AIRO properties. No judgment, no model.
+    AIRO properties. No judgment, no model. Wherever VAIR has a vocabulary for a field the
+    form offers only VAIR's terms (2026-09-30), so the node is typed with the term the author
+    chose and, where the field has no text of its own, named with VAIR's label.
   * Two properties live inside prose: `usesTechnique` in answer 2(a) and
     `hasComponent` in 2(c). They come from the `extracted` argument, which is the
     slot an agent's output fills. Without it they are absent rather than invented.
@@ -19,9 +21,8 @@ from rdflib import BNode, Graph, Literal, Namespace, RDF, RDFS, URIRef
 
 from .graph import add_individual, link, new_graph
 from .schema import AIRO, SCHEMA_VERSION
-from .vair_map import VAIR, vair_capability, vair_sector
-from .vair_terms import every_vair_term, is_term_for
-from .pickers import PICKERS
+from .vair_terms import VAIR, every_vair_term, is_term_for
+from .vair_vocab import MODEL_TERMS, label_of
 from .annex_points import annex_citation
 
 #: The seeded questions' scopes. Their answers get no triple beyond today's, so a
@@ -45,17 +46,19 @@ LABEL_MAX = 60
 VAIR_TERMS = every_vair_term()
 
 
-def _typed(g: Graph, node: URIRef, term: str | None) -> None:
+def _typed(g: Graph, node: URIRef, term: str | None, as_class: str | None = None) -> None:
     """Add a VAIR type, refusing anything that is not a term for this node's class.
 
     Membership of the VAIR namespace is not enough. vair:Police is a real term
     and a nonsense type for a Purpose node, and 101 of VAIR's names hang off no
     class at all, so nothing should ever be typed with them. The class comes from
-    the node itself, which already carries its airo:* type by this point.
+    the node itself, which already carries its airo:* type by this point, unless
+    `as_class` names the class whose terms apply: VAIR subdivides AIComponent, not
+    its subclass AIModel, so a model's type is one of AIComponent's terms.
     """
     if not term:
         return
-    cls = _airo_class(g, node)
+    cls = as_class or _airo_class(g, node)
     if not is_term_for(cls, term):
         if term in VAIR_TERMS:
             raise ValueError(
@@ -129,13 +132,6 @@ def _provenance(g: Graph, node: URIRef, source: str) -> None:
     g.add((node, QUAL.provenance, Literal(source)))
 
 
-def _vocab_entry(group: str, id_: str) -> dict | None:
-    for entry in PICKERS[group]:
-        if entry["id"] == id_:
-            return entry
-    return None
-
-
 def _build_stamp() -> list[str]:
     """What produced this graph: the vendored ontologies, and this package.
 
@@ -189,9 +185,9 @@ def build_graph(
 ) -> Graph:
     """Build the AIRO graph for one qualification.
 
-    `qualification` is the export shape produced by scripts/export_qualification.mjs:
-    metadata, resolved `targetSystems` / `sectors` labels, picker ids, `answers`
-    and `risks`.
+    `qualification` is the export shape produced by QualificationExporter.toExport:
+    metadata, the VAIR terms the author chose (`systemType`, `purpose`, the four tag
+    sets, each component's `vairType`, each risk field's `...Term`), `answers` and `risks`.
     `extracted` may carry {"techniques": [...], "components": [...]}.
     """
     extracted = extracted or {}
@@ -213,55 +209,36 @@ def build_graph(
     if qualification.get("description", ""):
         g.add((system, QUAL.description, Literal(qualification["description"])))
 
-    # ── capabilities: our tag, plus its VAIR type where one exists ───────────
-    for i, ts in enumerate(qualification.get("targetSystems", [])):
-        pair = f"{ts['category']} / {ts['subcategory']}"
-        # The subcategory is the name; the pair is context, kept as fullLabel.
-        node = named(
-            g,
-            ex[f"capability{i}"],
-            "AICapability",
-            pair,
-            ts["subcategory"] if len(pair) > LABEL_MAX else None,
-        )
-        g.add((node, QUAL.formTag, Literal(ts["tag"])))
-        vair = vair_capability(ts["tag"])
-        if vair:
-            g.add((node, RDF.type, URIRef(vair)))
-        link(g, system, "hasCapability", node)
+    # The system's own type, when the author chose one.
+    _typed(g, system, qualification.get("systemType"))
 
-    # ── domains ──────────────────────────────────────────────────────────────
-    for i, sector in enumerate(qualification.get("sectors", [])):
-        node = named(g, ex[f"domain{i}"], "Domain", sector["name"])
-        g.add((node, QUAL.formTag, Literal(sector["id"])))
-        vair = vair_sector(sector["id"])
-        if vair:
-            g.add((node, RDF.type, URIRef(vair)))
-        link(g, system, "isAppliedWithinDomain", node)
-
-    # ── pickers whose ids are already VAIR terms ─────────────────────────────
-    for group, prop, cls, prefix in (
-        ("marketForm", "hasModality", "Modality", "modality"),
-        ("locality", "isUsedWithinLocality", "LocalityOfUse", "locality"),
+    # ── the four tag sets: one node per VAIR term, named by VAIR ─────────────
+    for field, prop, cls, prefix in (
+        ("targetSystemTags", "hasCapability", "AICapability", "capability"),
+        ("sectorTags", "isAppliedWithinDomain", "Domain", "domain"),
+        ("marketFormTags", "hasModality", "Modality", "modality"),
+        ("localityTags", "isUsedWithinLocality", "LocalityOfUse", "locality"),
     ):
-        for i, id_ in enumerate(qualification.get(f"{group}Tags", [])):
-            entry = _vocab_entry(group, id_)
-            if entry is None:
-                raise ValueError(f"unknown {group} id: {id_}")
-            node = named(g, ex[f"{prefix}{i}"], cls, entry["label"])
-            g.add((node, QUAL.formTag, Literal(id_)))
-            if entry.get("vair"):
-                g.add((node, RDF.type, URIRef(f"https://w3id.org/vair#{entry['vair']}")))
+        for i, term in enumerate(qualification.get(field) or []):
+            node = named(g, ex[f"{prefix}{i}"], cls, label_of(term))
+            _typed(g, node, term)
+            g.add((node, QUAL.formTag, Literal(term)))
             link(g, system, prop, node)
 
     # ── purpose, operators, users ────────────────────────────────────────────
-    if qualification.get("targetUseCase", ""):
-        link(
+    # One Purpose node: named by the use case the author wrote, typed with the VAIR purpose they
+    # chose. A form without the use-case block still has the purpose, named by VAIR.
+    purpose_term = qualification.get("purpose")
+    if qualification.get("targetUseCase", "") or purpose_term:
+        purpose = named(
             g,
-            system,
-            "hasPurpose",
-            named(g, ex.purpose, "Purpose", qualification["targetUseCase"], names.get("purpose")),
+            ex.purpose,
+            "Purpose",
+            qualification.get("targetUseCase") or label_of(purpose_term),
+            names.get("purpose"),
         )
+        _typed(g, purpose, purpose_term)
+        link(g, system, "hasPurpose", purpose)
     link(
         g,
         system,
@@ -297,7 +274,13 @@ def build_graph(
         if row["kind"] not in COMPONENT_KINDS:
             raise ValueError(f"{row['kind']!r} is not a component kind; expected one of {', '.join(COMPONENT_KINDS)}")
         cls, prop = COMPONENT_KINDS[row["kind"]]
+        vair_type = _component_vair_type(row)
         node = named(g, ex["component-" + row["key"]], cls, row["name"])
+        _typed(g, node, vair_type, as_class="AIComponent")
+        if vair_type is None:
+            # One of our own types: the author chose it because VAIR has no term for the part,
+            # which is what a reviewer's "no term applies" records too.
+            g.add((node, QUAL.termNotApplicable, Literal(True)))
         g.add((node, QUAL.componentKey, Literal(row["key"])))
         g.add((node, QUAL.kind, Literal(row["kind"])))
         if row.get("role"):
@@ -415,6 +398,31 @@ def build_graph(
     return g
 
 
+#: The kinds a component of one of our own types has: the types VAIR has no term for.
+OWN_COMPONENT_KINDS = frozenset(COMPONENT_KINDS) - {"model"}
+
+
+def _component_vair_type(row: dict[str, Any]) -> str | None:
+    """A row's VAIR type, checked against its kind.
+
+    The form has one Type list: VAIR's AIComponent terms, plus our own only where VAIR has none.
+    A VAIR term decides the kind (a term under vair:Model makes a model, any other term makes
+    `other`); one of our own types is its kind and has no term. A row where the two disagree was
+    not written by the form, and the graph would say two things about the same part.
+    """
+    kind, term = row["kind"], row.get("vairType")
+    if term:
+        if not is_term_for("AIComponent", term):
+            raise ValueError(f"{term!r} is not a term VAIR defines for AIComponent")
+        expected = "model" if term in MODEL_TERMS else "other"
+        if kind != expected:
+            raise ValueError(f"component {row.get('name')!r}: a {term} is of kind {expected}, not {kind}")
+        return term
+    if kind not in OWN_COMPONENT_KINDS:
+        raise ValueError(f"component {row.get('name')!r}: a {kind} needs its VAIR type")
+    return None
+
+
 def _annex_citation(answer: dict[str, Any]) -> str:
     """Citation for a stored answer. Uses the one exported with it when present,
     otherwise rebuilds it from the id (`2d` -> Annex IV(2)(d), `1de` -> (1)(d)-(e))."""
@@ -446,6 +454,7 @@ def _add_risk(
     source = named(
         g, ex[f"risk{i}_source"], "RiskSource", row["source"], names.get(f"risk{i}_source")
     )
+    _typed(g, source, row.get("sourceTerm"))
     link(g, source, "isRiskSourceFor", risk)
     if row.get("vulnerability"):
         link(
@@ -468,6 +477,7 @@ def _add_risk(
         row["consequence"],
         names.get(f"risk{i}_consequence"),
     )
+    _typed(g, consequence, row.get("consequenceTerm"))
     link(g, risk, "hasConsequence", consequence)
 
     # The Impact node has no field of its own: name it after the risk it realises.
@@ -478,6 +488,7 @@ def _add_risk(
         row["risk"],
         names.get(f"risk{i}_impact") or names.get(f"risk{i}"),
     )
+    _typed(g, impact, row.get("impactTerm"))
     link(g, consequence, "hasImpact", impact)
     # The affected stakeholder is the system's own operator or user node, so the
     # graph has one node per stakeholder rather than one per risk.
@@ -488,17 +499,13 @@ def _add_risk(
     if stakeholder is not None:
         link(g, impact, "hasImpactOnStakeholder", stakeholder)
 
-    for area_id in row.get("impactAreas", []):
-        node = areas.get(area_id)
+    for term in row.get("impactAreas", []):
+        node = areas.get(term)
         if node is None:
-            entry = _vocab_entry("impactArea", area_id)
-            if entry is None:
-                raise ValueError(f"unknown impactArea id: {area_id}")
-            node = named(g, ex[f"area_{area_id}"], "AreaOfImpact", entry["label"])
-            g.add((node, QUAL.formTag, Literal(area_id)))
-            if entry.get("vair"):
-                g.add((node, RDF.type, URIRef(f"https://w3id.org/vair#{entry['vair']}")))
-            areas[area_id] = node
+            node = named(g, ex[f"area_{term}"], "AreaOfImpact", label_of(term))
+            _typed(g, node, term)
+            g.add((node, QUAL.formTag, Literal(term)))
+            areas[term] = node
         link(g, impact, "hasImpactOnArea", node)
 
     control = named(
@@ -508,6 +515,7 @@ def _add_risk(
         row["control"],
         names.get(f"risk{i}_control"),
     )
+    _typed(g, control, row.get("controlTerm"))
     link(g, control, "modifiesRiskConcept", risk)
     if row.get("followUpControl"):
         follow_up = named(
@@ -517,6 +525,7 @@ def _add_risk(
             row["followUpControl"],
             names.get(f"risk{i}_control_followup"),
         )
+        _typed(g, follow_up, row.get("followUpControlTerm"))
         link(g, control, "isFollowedByControl", follow_up)
 
 

@@ -1,9 +1,10 @@
 // Export one saved qualification as JSON for the ontology builder.
 //
-// Node owns the database (Prisma) and the form taxonomies; Python owns the
-// ontology. This script is the seam: it resolves the taxonomy tags to their
-// display labels and writes the shape airo_min.build.build_graph expects, so the
-// Python side never parses the Prisma schema or the taxonomy files.
+// Node owns the database (Prisma); Python owns the ontology. This script is the
+// seam: it writes the shape airo_min.build.build_graph expects, so the Python side
+// never parses the Prisma schema. The structured fields are VAIR terms
+// (2026-09-30), which the builder names and types itself; a value that is not a
+// term of its class is dropped with a warning, as QualificationExporter drops it.
 //
 // A card lives in its project's own database, so the project is named by its pid and the
 // database is opened from PROJECT_DATABASE_URL.
@@ -14,25 +15,19 @@ import { writeFileSync } from "node:fs";
 import { PrismaClient } from "@prisma/client";
 
 import { PROJECT_ID, projectDatabaseUrl } from "./projectDb.mjs";
-import targetSystems from "../src/data/target_systems.json" with { type: "json" };
-import sectors from "../src/data/sectors.json" with { type: "json" };
+import vair from "../src/data/vair_vocab.json" with { type: "json" };
 
 function arg(flag) {
   const i = process.argv.indexOf(flag);
   return i === -1 ? null : process.argv[i + 1];
 }
 
-function resolveTargetSystem(tag) {
-  const [categoryId, subId] = tag.split(":");
-  const category = targetSystems.find((c) => c.id === categoryId);
-  const sub = category?.items.find((s) => s.id === subId);
-  if (!category || !sub) return null;
-  return { tag, category: category.name, subcategory: sub.name };
-}
-
-function resolveSector(id) {
-  const s = sectors.find((x) => x.id === id);
-  return s ? { id: s.id, name: s.name } : null;
+let dropped = 0;
+function terms(cls, ids) {
+  const known = new Set(vair.classes[cls].map((t) => t.id));
+  const kept = ids.filter((id) => known.has(id));
+  dropped += ids.length - kept.length;
+  return kept;
 }
 
 const project = arg("--project") ?? "";
@@ -55,7 +50,11 @@ async function main() {
 
   const q = await prisma.qualification.findFirst({
     where: id ? { id } : { systemName: { contains: name } },
-    include: { answers: true, risks: { orderBy: { position: "asc" } } },
+    include: {
+      answers: true,
+      risks: { orderBy: { position: "asc" } },
+      systemComponents: { orderBy: { position: "asc" } },
+    },
     orderBy: { createdAt: "desc" },
   });
   if (!q) throw new Error(`no qualification matched ${id ?? name}`);
@@ -69,10 +68,12 @@ async function main() {
     targetUseCase: q.targetUseCase,
     targetUsers: q.targetUsers,
     intendedDeployers: q.intendedDeployers,
-    targetSystems: q.targetSystemTags.map(resolveTargetSystem).filter(Boolean),
-    sectors: q.sectorTags.map(resolveSector).filter(Boolean),
-    marketFormTags: q.marketFormTags,
-    localityTags: q.localityTags,
+    systemType: q.systemType,
+    purpose: q.purpose,
+    targetSystemTags: terms("AICapability", q.targetSystemTags),
+    sectorTags: terms("Domain", q.sectorTags),
+    marketFormTags: terms("Modality", q.marketFormTags),
+    localityTags: terms("LocalityOfUse", q.localityTags),
     answers: q.answers
       .map((a) => ({
         toolId: a.toolId,
@@ -84,23 +85,35 @@ async function main() {
       position: r.position,
       risk: r.risk,
       source: r.source,
+      sourceTerm: r.sourceTerm,
       vulnerability: r.vulnerability,
       consequence: r.consequence,
+      consequenceTerm: r.consequenceTerm,
+      impactTerm: r.impactTerm,
       affected: r.affected,
       impactAreas: r.impactAreas,
       control: r.control,
+      controlTerm: r.controlTerm,
       followUpControl: r.followUpControl,
+      followUpControlTerm: r.followUpControlTerm,
     })),
+    ...(q.systemComponents.length
+      ? {
+          systemComponents: q.systemComponents.map((c) => ({
+            key: c.key,
+            name: c.name,
+            role: c.role,
+            kind: c.kind,
+            vairType: c.vairType,
+            provider: c.provider,
+            providerName: c.providerName,
+          })),
+        }
+      : {}),
   };
 
-  const dropped =
-    q.targetSystemTags.length -
-    out.targetSystems.length +
-    (q.sectorTags.length - out.sectors.length);
   if (dropped > 0) {
-    console.error(
-      `warning: ${dropped} tag(s) did not resolve against the taxonomy`,
-    );
+    console.error(`warning: ${dropped} tag(s) are not VAIR terms of their class and were dropped`);
   }
 
   const json = JSON.stringify(out, null, 2);

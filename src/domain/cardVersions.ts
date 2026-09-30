@@ -8,6 +8,7 @@
  * card before it, loaded into the form to be reviewed, not typed again.
  */
 import type { ComponentExample, FormExample, RiskExample } from "@/data/examples/types";
+import { componentType } from "@/data/componentFields";
 
 export type VersionRef = { pid: string; number: number };
 export type CardRef = { id: string; systemId: string };
@@ -47,12 +48,17 @@ type CardRisk = {
   position: number;
   risk: string;
   source: string;
+  sourceTerm?: string | null;
   vulnerability: string | null;
   consequence: string;
+  consequenceTerm?: string | null;
+  impactTerm?: string | null;
   affected: string;
   impactAreas: string[];
   control: string;
+  controlTerm?: string | null;
   followUpControl: string | null;
+  followUpControlTerm?: string | null;
 };
 
 type CardComponentRow = {
@@ -61,6 +67,7 @@ type CardComponentRow = {
   name: string;
   role: string | null;
   kind: string;
+  vairType?: string | null;
   provider: string;
   providerName: string | null;
 };
@@ -74,7 +81,7 @@ function startingComponents(card: CardContent): ComponentExample[] {
       key: r.key,
       name: r.name,
       role: r.role ?? "",
-      kind: r.kind,
+      type: componentType(r.kind, r.vairType),
       provider: r.provider === "third_party" ? "third_party" : "in_house",
       providerName: r.providerName ?? "",
     }));
@@ -83,7 +90,7 @@ function startingComponents(card: CardContent): ComponentExample[] {
   return extracted
     .map((e) => (typeof e === "string" ? e : typeof (e as { label?: unknown })?.label === "string" ? (e as { label: string }).label : ""))
     .filter((label) => label.trim() !== "")
-    .map((label) => ({ key: "", name: label.trim(), role: "", kind: "", provider: "in_house" as const, providerName: "", suggested: true }));
+    .map((label) => ({ key: "", name: label.trim(), role: "", type: "", provider: "in_house" as const, providerName: "", suggested: true }));
 }
 
 export type CardContent = {
@@ -94,6 +101,8 @@ export type CardContent = {
   targetUseCase: string;
   targetUsers: string;
   intendedDeployers: string | null;
+  systemType?: string | null;
+  purpose?: string | null;
   targetSystemTags: string[];
   sectorTags: string[];
   marketFormTags: string[];
@@ -121,6 +130,11 @@ export function cardAsFormStart(card: CardContent): FormExample {
       areas: r.impactAreas,
       control: r.control,
       followUpControl: r.followUpControl ?? "",
+      sourceTerm: r.sourceTerm ?? "",
+      consequenceTerm: r.consequenceTerm ?? "",
+      impactTerm: r.impactTerm ?? "",
+      controlTerm: r.controlTerm ?? "",
+      followUpControlTerm: r.followUpControlTerm ?? "",
     }));
   return {
     metadata: {
@@ -131,6 +145,8 @@ export function cardAsFormStart(card: CardContent): FormExample {
       targetUseCase: card.targetUseCase,
       targetUsers: card.targetUsers,
       intendedDeployers: card.intendedDeployers ?? "",
+      systemType: card.systemType ?? "",
+      purpose: card.purpose ?? "",
       targetSystemTags: card.targetSystemTags,
       sectorTags: card.sectorTags,
       marketFormTags: card.marketFormTags,

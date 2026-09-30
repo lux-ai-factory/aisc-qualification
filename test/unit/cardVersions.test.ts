@@ -85,7 +85,7 @@ describe("cardAsFormStart", () => {
     expect(start.metadata).toEqual({
       systemName: "MCAS", systemVersion: "1.2.0", company: "LIST",
       description: "Scores microcredit loans", targetUseCase: "Credit decisions",
-      targetUsers: "Loan officers", intendedDeployers: "",
+      targetUsers: "Loan officers", intendedDeployers: "", systemType: "", purpose: "",
       targetSystemTags: ["classification"], sectorTags: ["finance"],
       marketFormTags: [], localityTags: ["eu"],
     });
@@ -98,6 +98,8 @@ describe("cardAsFormStart", () => {
       risk: "Wrong rank", source: "Stale bureau data", vulnerability: "",
       consequence: "Refused credit", affected: "user", areas: ["right"],
       control: "Officer review", followUpControl: "",
+      // a card saved before the form spoke VAIR has no terms: the selects start empty
+      sourceTerm: "", consequenceTerm: "", impactTerm: "", controlTerm: "", followUpControlTerm: "",
     });
   });
 });

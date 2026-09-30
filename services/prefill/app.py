@@ -13,6 +13,8 @@ from typing import Optional
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
+from prefill.components import components_from_text, merge_components
+from prefill.picks import picks_from_text
 from prefill.documents import DocumentUnreadable, read_document
 from prefill.fields import (
     ANNEX_POINT_IDS,
@@ -64,6 +66,8 @@ async def prefill(
     current: str = Form("{}"),
     #: the risk rows the form holds now, as a JSON list
     current_risks: str = Form("[]"),
+    #: the Components block's rows the form holds now, as a JSON list
+    current_components: str = Form("[]"),
     #: the field names the form has (identity, its blocks, "risks" when it has
     #: the risk block, its question fields), as a JSON list. Absent: the default form.
     fields: str | None = Form(None),
@@ -77,6 +81,9 @@ async def prefill(
     # "fill the empty ones" into "fill all of them".
     answers = _form_json("current", current or "{}", dict, "the form's current answers are not an object")
     rows_now = _form_json("current_risks", current_risks or "[]", list, "the form's current risks are not a list")
+    parts_now = _form_json(
+        "current_components", current_components or "[]", list, "the form's current components are not a list"
+    )
     wanted = (
         _form_json("fields", fields, list, "the form's fields are not a list")
         if fields is not None
@@ -124,6 +131,13 @@ async def prefill(
         found_risks = risks_from_text(text)
         risks, risks_kept = merge_risks(rows_now, found_risks, mode)
 
+    # The Components block is on every card, whatever its form, so it is always read.
+    found_parts = components_from_text(text)
+    parts, parts_kept = merge_components(parts_now, found_parts, mode)
+
+    # The VAIR picks (2026-09-30): what the document names; the form applies them by the same rule.
+    picks = picks_from_text(text)
+
     return {
         "read": True,
         "source": "document",
@@ -138,6 +152,13 @@ async def prefill(
         "risksKept": risks_kept,
         #: how many the document has, whether or not they were used
         "risksProposed": len(found_risks),
+        #: the same three for the Components block's rows
+        "components": parts,
+        "componentsKept": parts_kept,
+        "componentsProposed": len(found_parts),
+        #: the system type, purpose and tag sets the document names, as VAIR ids
+        "picks": picks,
+        "picksProposed": len(picks),
     }
 
 

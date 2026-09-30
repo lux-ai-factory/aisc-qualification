@@ -46,8 +46,11 @@ class Qualification(BaseModel):
     targetUseCase: str = ""
     targetUsers: str = ""
     intendedDeployers: str | None = None
-    targetSystems: list[dict[str, Any]] = Field(default_factory=list)
-    sectors: list[dict[str, Any]] = Field(default_factory=list)
+    # The VAIR terms the author chose (2026-09-30): the builder types each node with its term.
+    systemType: str | None = None
+    purpose: str | None = None
+    targetSystemTags: list[str] = Field(default_factory=list)
+    sectorTags: list[str] = Field(default_factory=list)
     marketFormTags: list[str] = Field(default_factory=list)
     localityTags: list[str] = Field(default_factory=list)
     answers: list[dict[str, Any]] = Field(default_factory=list)

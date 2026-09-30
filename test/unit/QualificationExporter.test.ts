@@ -12,13 +12,13 @@ function row(over: Partial<QualificationWithAnswers> = {}) {
     targetUseCase: "Creditworthiness.",
     targetUsers: "Officers.",
     intendedDeployers: "Banks.",
-    targetSystemTags: [
-      "natural-language-processing:question-answering",
-      "bogus:tag",
-    ],
-    sectorTags: ["finance-and-insurance", "not-a-sector"],
-    marketFormTags: ["software"],
-    localityTags: ["workplace"],
+    // VAIR terms (2026-09-30), each list with one value that is not a term of its class
+    systemType: "NarrowAI",
+    purpose: null,
+    targetSystemTags: ["QuestionAnswering", "bogus:tag"],
+    sectorTags: ["PrivateService", "finance-and-insurance"],
+    marketFormTags: ["Software"],
+    localityTags: ["Workplace"],
     systemCard: null,
     systemCardJson: null,
     ontologyExtracted: null,
@@ -54,7 +54,7 @@ function row(over: Partial<QualificationWithAnswers> = {}) {
         vulnerability: null,
         consequence: "C",
         affected: "user",
-        impactAreas: ["right"],
+        impactAreas: ["Right"],
         control: "K",
         followUpControl: null,
       },
@@ -64,27 +64,16 @@ function row(over: Partial<QualificationWithAnswers> = {}) {
 }
 
 describe("toExport", () => {
-  it("resolves capability tags to their category and subcategory names", () => {
+  it("passes the capabilities and sectors as VAIR terms: the builder names them", () => {
     const out = toExport(row());
-    expect(out.targetSystems).toEqual([
-      {
-        tag: "natural-language-processing:question-answering",
-        category: "Natural Language Processing",
-        subcategory: "Question Answering",
-      },
-    ]);
+    expect(out.targetSystemTags).toEqual(["QuestionAnswering"]);
+    expect(out.sectorTags).toEqual(["PrivateService"]);
   });
 
-  it("resolves sector ids to their names", () => {
-    expect(toExport(row()).sectors).toEqual([
-      { id: "finance-and-insurance", name: "Finance and insurance" },
-    ]);
-  });
-
-  it("drops tags that do not resolve rather than passing them through", () => {
+  it("drops a value that is not a VAIR term of its class rather than passing it through", () => {
     const out = toExport(row());
-    expect(out.targetSystems).toHaveLength(1);
-    expect(out.sectors).toHaveLength(1);
+    expect(out.targetSystemTags).toHaveLength(1);
+    expect(out.sectorTags).toHaveLength(1);
   });
 
   it("orders answers by question id so the graph is stable", () => {
@@ -96,13 +85,13 @@ describe("toExport", () => {
 
   it("carries the pickers, the deployers and the risk rows through", () => {
     const out = toExport(row());
-    expect(out.marketFormTags).toEqual(["software"]);
-    expect(out.localityTags).toEqual(["workplace"]);
+    expect(out.marketFormTags).toEqual(["Software"]);
+    expect(out.localityTags).toEqual(["Workplace"]);
     expect(out.intendedDeployers).toBe("Banks.");
     expect(out.risks[0]).toMatchObject({
       position: 0,
       affected: "user",
-      impactAreas: ["right"],
+      impactAreas: ["Right"],
     });
   });
 
@@ -117,11 +106,13 @@ describe("toExport", () => {
         "intendedDeployers",
         "localityTags",
         "marketFormTags",
+        "purpose",
         "risks",
-        "sectors",
+        "sectorTags",
         "systemName",
+        "systemType",
         "systemVersion",
-        "targetSystems",
+        "targetSystemTags",
         "targetUseCase",
         "targetUsers",
       ].sort(),

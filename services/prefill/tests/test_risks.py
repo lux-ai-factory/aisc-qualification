@@ -49,9 +49,15 @@ class TestReadingRisks:
             "vulnerability": "Features assume complete history.",
             "consequence": "A creditworthy applicant is refused.",
             "affected": "user",
-            "areas": ["right"],
+            "areas": ["Right"],
             "control": "A loan officer reviews every Reject.",
             "followUpControl": "The officer may override.",
+            # the VAIR selects: the document names no term, so each is left open
+            "sourceTerm": "",
+            "consequenceTerm": "",
+            "impactTerm": "",
+            "controlTerm": "",
+            "followUpControlTerm": "",
         }
 
     def test_a_missing_optional_field_is_empty_not_absent(self):
@@ -60,7 +66,8 @@ class TestReadingRisks:
         assert second["followUpControl"] == ""
 
     def test_areas_are_matched_to_the_vocabulary(self):
-        assert risks_from_text(TWO_RISKS)[1]["areas"] == ["right", "safety"]
+        # VAIR's areas (2026-09-30); "Fundamental rights" is our old word for vair:Right
+        assert risks_from_text(TWO_RISKS)[1]["areas"] == ["Right", "Safety"]
 
     def test_the_follow_up_is_not_read_as_the_control(self):
         first = risks_from_text(TWO_RISKS)[0]
@@ -116,6 +123,11 @@ class TestReadingRisks:
                 "areas": [],
                 "control": "",
                 "followUpControl": "",
+                "sourceTerm": "",
+                "consequenceTerm": "",
+                "impactTerm": "",
+                "controlTerm": "",
+                "followUpControlTerm": "",
             }
         ]
 

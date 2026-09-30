@@ -29,6 +29,10 @@ export type CreateQualificationInput = {
   targetUsers: string;
   /** null when the card's form does not include the deployers block. */
   intendedDeployers: string | null;
+  /** VAIR AISystem and Purpose terms; null when left open. */
+  systemType: string | null;
+  purpose: string | null;
+  /** VAIR terms: AICapability, Domain, Modality, LocalityOfUse. */
   targetSystemTags: string[];
   sectorTags: string[];
   marketFormTags: string[];

@@ -1,50 +1,22 @@
 import { describe, it, expect } from "vitest";
-import {
-  MARKET_FORMS,
-  LOCALITIES,
-  IMPACT_AREAS,
-  AFFECTED,
-  isMarketForm,
-  isLocality,
-  isImpactArea,
-  isAffected,
-  vocabLabel,
-} from "@/data/airoVocab";
+import * as airoVocab from "@/data/airoVocab";
+import { AFFECTED, isAffected, vocabLabel } from "@/data/airoVocab";
 
+// Our own picker lists hold only what VAIR has no vocabulary for (2026-09-30): who a risk affects.
+// Market form, locality and areas of impact are VAIR's (vairVocab.ts, test/unit/vairForm.test.ts).
 describe("airoVocab", () => {
-  it("exposes the four picker groups with the agreed ids", () => {
-    expect(MARKET_FORMS.map((e) => e.id)).toEqual([
-      "product",
-      "software",
-      "service",
-      "safety-component",
-    ]);
-    expect(LOCALITIES.map((e) => e.id)).toEqual([
-      "workplace",
-      "educational-setting",
-      "publicly-accessible-space",
-      "other",
-    ]);
-    expect(IMPACT_AREAS.map((e) => e.id)).toEqual([
-      "health",
-      "safety",
-      "right",
-      "freedom",
-    ]);
+  it("keeps only the list VAIR has no vocabulary for", () => {
     expect(AFFECTED.map((e) => e.id)).toEqual(["operator", "user"]);
+    expect(Object.keys(airoVocab).sort()).toEqual(["AFFECTED", "isAffected", "vocabLabel"]);
   });
 
-  it("validates ids per group", () => {
-    expect(isMarketForm("service")).toBe(true);
-    expect(isMarketForm("workplace")).toBe(false);
-    expect(isLocality("other")).toBe(true);
-    expect(isImpactArea("right")).toBe(true);
+  it("validates ids", () => {
     expect(isAffected("user")).toBe(true);
     expect(isAffected("subject")).toBe(false);
   });
 
   it("resolves a label and falls back to the id", () => {
-    expect(vocabLabel(IMPACT_AREAS, "right")).toBe("Fundamental rights");
-    expect(vocabLabel(IMPACT_AREAS, "bogus")).toBe("bogus");
+    expect(vocabLabel(AFFECTED, "user")).toMatch(/^User/);
+    expect(vocabLabel(AFFECTED, "bogus")).toBe("bogus");
   });
 });

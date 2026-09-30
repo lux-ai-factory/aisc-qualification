@@ -13,11 +13,11 @@ from .coverage import additional_documentation, coverage
 from .mapping import FORM_MAPPING
 from .schema import AIRO, CLASSES
 from .vair_terms import typeable_classes
-from .vair_map import VAIR
-from .pickers import PICKERS
+from .vair_terms import VAIR
+from .vair_vocab import form_vocab
 
-# Areas of impact display in the form's own order, not alphabetically.
-_AREA_ORDER = {e["id"]: i for i, e in enumerate(PICKERS["impactArea"])}
+# Areas of impact display in the order the form offers them.
+_AREA_ORDER = {e["id"]: i for i, e in enumerate(form_vocab()["classes"]["AreaOfImpact"])}
 
 
 #: The classes VAIR subdivides, from the module that owns that question.
@@ -163,11 +163,15 @@ def build_view(
                 and g.value(n, QUAL.termNotApplicable) is None
             ),
             # nothing to act on: either VAIR does not subdivide this class, or
-            # its terms name a population this node does not belong to
+            # its terms name a population this node does not belong to, or
+            # someone settled that no term applies (a reviewer, or the author
+            # picking one of our own types). With needsTerm, it is every untyped node.
             "unclassifiable": sum(
                 1
                 for n in named
-                if _untyped(g, n) and not _expects_a_term(_airo_class(g, n))
+                if _untyped(g, n)
+                and (not _expects_a_term(_airo_class(g, n))
+                     or g.value(n, QUAL.termNotApplicable) is not None)
             ),
         },
     }

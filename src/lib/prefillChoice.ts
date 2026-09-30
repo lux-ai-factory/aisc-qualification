@@ -6,7 +6,7 @@
  * are decided here so the component only renders the choice.
  */
 import { KEY_QUESTIONS, keyQuestionField } from "@/data/keyQuestions";
-import type { RiskExample } from "@/data/examples";
+import type { ComponentExample, RiskExample } from "@/data/examples";
 import { IDENTITY_FIELDS } from "@/domain/forms/blocks";
 import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
 
@@ -96,6 +96,12 @@ function emptyRisk(): RiskExample {
     areas: [],
     control: "",
     followUpControl: "",
+    // the VAIR selects beside the fields (2026-09-30)
+    sourceTerm: "",
+    consequenceTerm: "",
+    impactTerm: "",
+    controlTerm: "",
+    followUpControlTerm: "",
   };
 }
 
@@ -121,4 +127,29 @@ export function currentRisks(form: FormData): RiskExample[] {
 /** Whether a row has anything written or chosen in it. */
 export function riskWritten(row: RiskExample): boolean {
   return Object.values(row).some((v) => (Array.isArray(v) ? v.length > 0 : String(v).trim() !== ""));
+}
+
+/** The Components block's rows as the form holds them now, by index (`component:<i>:<field>`). */
+export function currentComponents(form: FormData): ComponentExample[] {
+  const rows = new Map<number, ComponentExample>();
+  for (const [name, value] of form.entries()) {
+    const m = /^component:(\d+):(\w+)$/.exec(name);
+    if (!m || typeof value !== "string") continue;
+    const index = Number(m[1]);
+    let row = rows.get(index);
+    if (!row) {
+      row = { key: "", name: "", role: "", type: "", provider: "in_house", providerName: "" };
+      rows.set(index, row);
+    }
+    if (m[2] === "provider") row.provider = value === "third_party" ? "third_party" : "in_house";
+    else if (m[2] === "key" || m[2] === "name" || m[2] === "role" || m[2] === "type" || m[2] === "providerName") {
+      row[m[2]] = value;
+    }
+  }
+  return [...rows.entries()].sort(([a], [b]) => a - b).map(([, row]) => row);
+}
+
+/** Whether a component row has anything written or chosen in it; the provider has a default, so it does not count. */
+export function componentWritten(row: ComponentExample): boolean {
+  return [row.name, row.role, row.type, row.providerName].some((v) => v.trim() !== "");
 }

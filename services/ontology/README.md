@@ -12,8 +12,8 @@ with stakeholders simplified to Operator and User: 19 classes, 19 object propert
 - `airo_min/mapping.py`  form field to AIRO property; its test proves the form can
                          fill every property
 
-- `airo_min/vair_map.py`  our form taxonomies to VAIR's controlled terms, where the
-                         mapping is unambiguous
+- `airo_min/vair_vocab.py` the VAIR lists the form offers, written to
+                         src/data/vair_vocab.json (`python -m airo_min.vair_vocab --write`)
 - `airo_min/build.py`    a saved qualification to a filled graph, plus a CLI
 
 Test:

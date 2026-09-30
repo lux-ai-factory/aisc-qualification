@@ -1,4 +1,4 @@
-import { findSector, parseTargetSystemTag } from "@/data";
+import { isVairTerm, vairLabel } from "@/data/vairVocab";
 
 /** Slug for a filename. */
 function fileSlug(systemName: string): string {
@@ -35,10 +35,6 @@ export function systemCardPayload(
   ontology: unknown | null,
   now: Date = new Date(),
 ): Record<string, unknown> {
-  const targetSystems = facts.targetSystemTags
-    .map(parseTargetSystemTag)
-    .filter((t): t is NonNullable<typeof t> => t !== null);
-
   return {
     ...(generated ?? {}),
     system_name: facts.systemName,
@@ -47,14 +43,15 @@ export function systemCardPayload(
     description: facts.description,
     target_use_case: facts.targetUseCase,
     target_users: facts.targetUsers,
+    // VAIR terms (2026-09-30): a capability is a flat term, so it has no category; the renderer
+    // then shows its label alone. A value that is not a VAIR term of its class is left out.
     classification: {
-      target_systems: targetSystems.map((t) => ({
-        category: t.category.name,
-        subcategory: t.sub.name,
-      })),
+      target_systems: facts.targetSystemTags
+        .filter((t) => isVairTerm("AICapability", t))
+        .map((t) => ({ subcategory: vairLabel("AICapability", t) })),
       sectors: facts.sectorTags
-        .map((id) => findSector(id)?.name)
-        .filter((name): name is string => Boolean(name)),
+        .filter((t) => isVairTerm("Domain", t))
+        .map((t) => vairLabel("Domain", t)),
     },
     generated_at: now.toISOString().slice(0, 16).replace("T", " ") + " UTC",
     qualification_id: facts.id,

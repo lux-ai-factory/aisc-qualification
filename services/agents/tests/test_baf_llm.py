@@ -203,6 +203,22 @@ def test_s3_3_the_completer_passes_system_and_user(m):
     assert fake.calls == [("usr", "sys", {"temperature": 0.0})]
 
 
+def test_the_completer_leaves_temperature_to_the_model_unless_asked(m):
+    # Some models (OpenAI's reasoning ones) refuse any temperature but their
+    # default, so a fixed 0.0 fails every call on them. With none asked for,
+    # nothing is sent and BAF falls back to the LLM's own parameters.
+    class Fake:
+        calls = []
+
+        def predict(self, message, parameters=None, session=None, system_message=None):
+            self.calls.append((message, system_message, parameters))
+            return "ok"
+
+    fake = Fake()
+    assert m.completer(fake)("sys", "usr") == "ok"
+    assert fake.calls == [("usr", "sys", None)]
+
+
 # ── S3.4 resolve ─────────────────────────────────────────────────────────────
 
 

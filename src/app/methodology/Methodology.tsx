@@ -117,21 +117,24 @@ export default function Methodology({ facts }: { facts: MethodologyFacts }) {
           />
           <Step
             title="Tag what the system is and where it runs"
-            what="Closed pickers rather than free text, so these answers can type nodes directly."
+            what="VAIR's own lists rather than free text, so each answer types its node directly. Our own list only where VAIR has none."
             input={
               <>
-                Capabilities and sectors from the taxonomies; how it reaches the
-                market ({facts.pickers.marketForm} options), where it is used (
+                From VAIR: the type of system ({facts.pickers.systemType}{" "}
+                options), its purpose ({facts.pickers.purpose}), capabilities (
+                {facts.pickers.capability}), application domains (
+                {facts.pickers.domain}), how it reaches the market (
+                {facts.pickers.marketForm}) and where it is used (
                 {facts.pickers.locality}).
               </>
             }
             authority="Art 3(1) and 3(12) for purpose and capability, Art 6(1) and Annex IV 1(d) for market form, Art 3(44) and Art 5(1)(f) for locality."
-            output="Tag ids, each mapped to one AIRO class."
+            output="VAIR terms, each typing one node of its AIRO class."
           />
           <Step
             title="Describe each risk as a chain"
-            what={`One row per risk, ${facts.riskFields} fields: what could go wrong, what causes it, which weakness it exploits, what follows, who and what it affects, the control, and the control that follows if it is not enough.`}
-            input="One row per risk, written by the provider."
+            what={`One row per risk, ${facts.riskFields} fields: what could go wrong, what causes it, which weakness it exploits, what follows, the kind of harm, who and what it affects, the control, and the control that follows if it is not enough.`}
+            input={`One row per risk, written by the provider. The cause, the result, the control and the follow-up each have their text and one VAIR term; the harm is a VAIR term; the areas affected come from VAIR (${facts.pickers.impactArea}); who is affected is ours (${facts.pickers.affected}), since VAIR has no list for it.`}
             authority="Art 9(2) for the risk, its cause and its control; Art 15(5) for the weakness exploited; Art 9(5) and Art 14(4)(e) for the follow-up control; Art 9(9) for who is affected."
             output="A risk row, in the order AIRO's risk chain expects."
           />

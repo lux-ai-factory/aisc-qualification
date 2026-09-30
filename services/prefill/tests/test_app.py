@@ -85,7 +85,7 @@ RISKY = b"System name: MCAS\n\nRisks\nRisk: wrongly refused\nAffected: user\nImp
 def test_the_document_s_risks_come_back_as_rows():
     body = upload(text=RISKY).json()
     assert [r["risk"] for r in body["risks"]] == ["wrongly refused"]
-    assert body["risks"][0]["areas"] == ["right"]
+    assert body["risks"][0]["areas"] == ["Right"]
     assert body["risksKept"] is False
 
 
@@ -560,3 +560,33 @@ class TestQuestionnaireEndpoints:
         assert r.status_code == 200
         assert r.json().get("model") is None
         assert list(tmp_path.iterdir()) == []
+
+
+PARTS = b"System name: MCAS\n\nComponents\n\nComponent 1\nName: Scoring model\nKind: Predictive model\n"
+
+
+def test_the_document_s_components_come_back_as_rows():
+    body = upload(text=PARTS).json()
+    assert [(r["name"], r["type"]) for r in body["components"]] == [("Scoring model", "Model")]
+    assert body["componentsKept"] is False
+    assert body["componentsProposed"] == 1
+    assert "components" not in body["values"]
+
+
+def test_component_rows_somebody_wrote_are_kept_unless_they_asked_to_replace():
+    mine = json.dumps([{"name": "typed"}])
+    kept = upload(text=PARTS, current_components=mine, mode="empty").json()
+    replaced = upload(text=PARTS, current_components=mine, mode="replace").json()
+    assert kept["components"] is None and kept["componentsKept"] is True
+    assert kept["componentsProposed"] == 1
+    assert replaced["components"][0]["name"] == "Scoring model"
+
+
+def test_a_document_without_components_leaves_the_rows_alone():
+    body = upload().json()
+    assert body["components"] is None
+    assert body["componentsProposed"] == 0
+
+
+def test_current_components_that_are_not_a_list_are_refused():
+    assert upload(text=PARTS, current_components='{"name": "x"}').status_code == 422

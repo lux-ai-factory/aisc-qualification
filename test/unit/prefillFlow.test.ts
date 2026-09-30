@@ -65,7 +65,7 @@ describe("checking a document as soon as it is chosen", () => {
   it("reads with the careful choice, so a check can never be what overwrites", async () => {
     const read = ok({ company: "Creditum" }, ["company"]);
     await checkDocument(file, { systemName: "typed" }, [row("mine")], read);
-    expect(read).toHaveBeenCalledWith(file, "empty", { systemName: "typed" }, [row("mine")]);
+    expect(read).toHaveBeenCalledWith(file, "empty", { systemName: "typed" }, [row("mine")], []);
   });
 
   it("applies straight away on an empty form, where both choices are the same", async () => {
@@ -77,6 +77,9 @@ describe("checking a document as soon as it is chosen", () => {
       kept: [],
       risks: [row("doc")],
       risksKept: false,
+      components: null,
+      componentsKept: false,
+      picks: {},
     });
   });
 
@@ -101,7 +104,7 @@ describe("applying the choice", () => {
   it("sends the choice the person pressed, with the rows the form holds", async () => {
     const read = ok({ systemName: "MCAS" }, ["systemName"]);
     await applyDocument(file, "replace", { systemName: "typed" }, [row("mine")], read);
-    expect(read).toHaveBeenCalledWith(file, "replace", { systemName: "typed" }, [row("mine")]);
+    expect(read).toHaveBeenCalledWith(file, "replace", { systemName: "typed" }, [row("mine")], []);
   });
 
   it("hands back what to write onto the form, risks included", async () => {
@@ -115,6 +118,9 @@ describe("applying the choice", () => {
       kept: ["systemName"],
       risks: [row("doc")],
       risksKept: false,
+      components: null,
+      componentsKept: false,
+      picks: {},
     });
   });
 
@@ -124,5 +130,37 @@ describe("applying the choice", () => {
       kind: "error",
       error: "The document reader could not be reached.",
     });
+  });
+});
+
+describe("component rows in the upload", () => {
+  const part = (name: string) => ({ key: "", name, role: "", type: "DecisionTree", provider: "in_house" as const, providerName: "" });
+  const withParts = (parts: { components?: ReturnType<typeof part>[] | null; componentsKept?: boolean; componentsProposed?: number }) =>
+    vi.fn<Reader>().mockResolvedValue({
+      ok: true, values: {}, filled: [], kept: [], model: null,
+      risks: null, risksKept: false, risksProposed: 0,
+      components: parts.components ?? null,
+      componentsKept: parts.componentsKept ?? false,
+      componentsProposed: parts.componentsProposed ?? parts.components?.length ?? 0,
+    });
+
+  it("counts a document with only components as something to use", async () => {
+    expect((await checkDocument(file, {}, [], withParts({ components: [part("doc")] }))).kind).toBe("apply");
+  });
+
+  it("asks when the only thing on the form is a component somebody wrote", async () => {
+    const read = withParts({ componentsKept: true, componentsProposed: 9 });
+    expect(await checkDocument(file, {}, [], read, [part("mine")])).toMatchObject({
+      kind: "choose",
+      componentsAnswered: 1,
+      componentsProposed: 9,
+    });
+  });
+
+  it("sends the rows the form holds and hands back the document's", async () => {
+    const read = withParts({ components: [part("doc")] });
+    const applied = await applyDocument(file, "replace", {}, [], read, [part("mine")]);
+    expect(read).toHaveBeenCalledWith(file, "replace", {}, [], [part("mine")]);
+    expect(applied).toMatchObject({ kind: "apply", components: [part("doc")], componentsKept: false });
   });
 });

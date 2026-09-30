@@ -93,6 +93,47 @@ describe.skipIf(!enabled)("QL7 a linked engine item may say which part it is", (
   });
 });
 
+// The form speaks VAIR (2026-09-30, migration 20260930000000_vair_terms): the terms the author
+// chose are kept beside the text, in nullable columns, and read back through the Prisma names.
+describe.skipIf(!enabled)("the VAIR terms a card is saved with", () => {
+  it("are stored and read back through Prisma", async () => {
+    await su.$executeRawUnsafe(`UPDATE qualification.qualification
+      SET system_type = 'NarrowAI', purpose = 'AssessingCreditworthiness' WHERE id = 'comp-card-1'`);
+    expect(await fails(`${part("pv", "comp-card-1", "c0c0c0c0-1111-4000-8000-0000000000a1", "Scoring tree", "vair_type='DecisionTree'")}`)).toBe("");
+    expect(await fails(`INSERT INTO qualification.qualification_risk (id, "qualificationId", position, risk, source,
+        source_term, consequence, consequence_term, impact_term, affected, "impactAreas", control, control_term,
+        "followUpControl", follow_up_control_term)
+      VALUES ('rv', 'comp-card-1', 0, 'r', 's', 'ErroneousInputData', 'c', NULL, 'UnfavourableTreatment', 'user',
+        ARRAY['Right'], 'k', 'HumanOversightMeasure', 'f', 'OverridingOutcome')`)).toBe("");
+
+    const app = new PrismaClient({ datasourceUrl: at(TEMPLATE, dbName(E)) });
+    try {
+      const card = await app.qualification.findUniqueOrThrow({
+        where: { id: "comp-card-1" },
+        include: { risks: true, systemComponents: true },
+      });
+      expect([card.systemType, card.purpose]).toEqual(["NarrowAI", "AssessingCreditworthiness"]);
+      expect(card.systemComponents.find((c) => c.id === "pv")?.vairType).toBe("DecisionTree");
+      expect(card.risks.find((r) => r.id === "rv")).toMatchObject({
+        sourceTerm: "ErroneousInputData",
+        consequenceTerm: null,
+        impactTerm: "UnfavourableTreatment",
+        controlTerm: "HumanOversightMeasure",
+        followUpControlTerm: "OverridingOutcome",
+      });
+    } finally {
+      await app.$disconnect();
+    }
+  });
+
+  it("an older row without them still reads, with nulls", async () => {
+    expect(await fails(part("pn", "comp-card-1", "c0c0c0c0-1111-4000-8000-0000000000a2", "Pipeline"))).toBe("");
+    const rows = await su.$queryRawUnsafe<{ vair_type: string | null }[]>(
+      `SELECT vair_type FROM qualification.qualification_component WHERE id = 'pn'`);
+    expect(rows[0].vair_type).toBeNull();
+  });
+});
+
 describe.skipIf(!enabled)("QL3 only the latest card version's components change", () => {
   it("once a newer version exists, the older card's components are kept as they were", async () => {
     await su.$executeRawUnsafe(`INSERT INTO project.system (pid, number, name) VALUES ('${V2}', 2, 'MCAS') ON CONFLICT DO NOTHING`);

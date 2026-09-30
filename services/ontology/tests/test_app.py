@@ -139,7 +139,7 @@ def test_r33_description_use_case_and_users_are_optional_now(client, payload):
     q = {
         k: v
         for k, v in payload["qualification"].items()
-        if k not in ("description", "targetUseCase", "targetUsers")
+        if k not in ("description", "targetUseCase", "targetUsers", "purpose")
     }
     q["risks"] = [r for r in q["risks"] if r["affected"] == "operator"]
     r = client.post("/build", json={"qualification": q})

@@ -1,6 +1,12 @@
 // Question 15: the risk block. One row per risk; each field maps to one step of
 // the AIRO risk chain (see services/ontology/airo_min/mapping.py).
-export type RiskFieldKind = "text" | "affected" | "areas";
+//
+// VAIR has precedence (2026-09-30): a text field whose node VAIR can type has ONE VAIR select
+// beside it (`<id>Term`), and the harm, which has no text of its own, is a VAIR select alone.
+// A term is required where VAIR always has one that fits; the consequence's is optional.
+import type { VairClass } from "./vairVocab";
+
+export type RiskFieldKind = "text" | "affected" | "areas" | "term";
 
 export type RiskField = {
   id:
@@ -8,6 +14,7 @@ export type RiskField = {
     | "source"
     | "vulnerability"
     | "consequence"
+    | "impact"
     | "affected"
     | "area"
     | "control"
@@ -17,6 +24,11 @@ export type RiskField = {
   kind: RiskFieldKind;
   optional?: boolean;
   placeholder?: string;
+  /** The VAIR class of the field's node: a text field then has one VAIR select beside it, named
+   *  `<id>Term` (the harm, kind "term", is only that select, named `impactTerm`). */
+  vair?: VairClass;
+  /** The VAIR select may be left open: VAIR's list does not cover every case. */
+  termOptional?: boolean;
 };
 
 export const RISK_BLOCK = {
@@ -39,6 +51,7 @@ export const RISK_FIELDS: RiskField[] = [
     citation: "Art 9(2)(a)-(b)",
     kind: "text",
     placeholder: "e.g. poor lighting, occlusion, a moved camera",
+    vair: "RiskSource",
   },
   {
     id: "vulnerability",
@@ -54,6 +67,15 @@ export const RISK_FIELDS: RiskField[] = [
     citation: "Art 9(2)(a); Art 15(1)",
     kind: "text",
     placeholder: "e.g. staff are sent to check a shelf that is fine",
+    vair: "Consequence",
+    termOptional: true,
+  },
+  {
+    id: "impact",
+    label: "Kind of harm",
+    citation: "Art 9(2)(a)",
+    kind: "term",
+    vair: "Impact",
   },
   {
     id: "affected",
@@ -74,6 +96,7 @@ export const RISK_FIELDS: RiskField[] = [
     kind: "text",
     placeholder:
       "e.g. confidence threshold plus human confirmation before action",
+    vair: "RiskControl",
   },
   {
     id: "followUpControl",
@@ -82,5 +105,6 @@ export const RISK_FIELDS: RiskField[] = [
     kind: "text",
     optional: true,
     placeholder: "e.g. mute the camera and fall back to manual checks",
+    vair: "RiskControl",
   },
 ];

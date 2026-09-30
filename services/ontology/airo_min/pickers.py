@@ -1,9 +1,9 @@
 """The form's picker lists, shared with the TypeScript app.
 
 Not to be confused with airo_min/vair_terms.py, which holds the VAIR terms a
-node may be typed with. These four lists are the closed choices the form itself
-offers: how a system reaches the market, where it is used, what an impact
-touches, and who is affected.
+node may be typed with. The form offers VAIR wherever VAIR has a vocabulary for a
+field (2026-09-30, airo_min/vair_vocab.py); this file holds our own lists, only for
+what VAIR has none for: who a risk affects.
 
 The file lives under the app's src/data so the form imports it directly and the ids
 stay in lockstep. This module looks for it in three places, in order, so the same
@@ -68,9 +68,6 @@ PICKERS: dict[str, list[dict]] = load_vocab()
 
 # picker group -> the AIRO class its terms specialise
 VOCAB_CLASS: dict[str, str] = {
-    "marketForm": "Modality",
-    "locality": "LocalityOfUse",
-    "impactArea": "AreaOfImpact",
     "affected": "Stakeholder",
 }
 

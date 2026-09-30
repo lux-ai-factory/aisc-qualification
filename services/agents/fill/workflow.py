@@ -36,9 +36,10 @@ STATE_NAMES = ("load", "draft", "review", "revise", "publish", "done")
 
 MAX_ROUNDS = 3
 
-#: The properties this workflow drafts today. `risk_types` needs the risk rows
-#: and a per-node class, which is the next increment.
-DRAFTED: tuple[Property, ...] = ("techniques", "components")
+#: The properties this workflow drafts: only what the answers to the questions say and no form field
+#: does (2026-09-30). The form speaks VAIR, so the Components block and every risk field are typed by
+#: their author; what is left is the techniques of Annex IV 2(a).
+DRAFTED: tuple[Property, ...] = ("techniques",)
 
 
 @dataclass
@@ -83,7 +84,21 @@ def answer_for(qualification: dict, citation: str) -> str:
     return ""
 
 
-def payload_of(outcomes: dict[str, Outcome]) -> dict:
+def known_parts(qualification: dict) -> dict[str, list[str]]:
+    """What the card already holds, per drafted property: its Components rows.
+
+    Refine with AI works on top of the card, so these are never proposed again.
+    Techniques have no rows of their own yet.
+    """
+    names = [c["name"] for c in qualification.get("systemComponents") or [] if c.get("name")]
+    return {"components": names} if names else {}
+
+
+def _fold(label: str) -> str:
+    return " ".join(label.split()).casefold()
+
+
+def payload_of(outcomes: dict[str, Outcome], known: dict[str, list[str]] | None = None) -> dict:
     """The `extracted` document the builder reads: the draft, its flags, its record.
 
     Node ids are positional and assigned by the parser, so they match the ids the
@@ -92,6 +107,9 @@ def payload_of(outcomes: dict[str, Outcome]) -> dict:
     answers with the flag where the node should be. The builder skips a flag
     whose node does not exist, so publishing those as flags dropped them in
     silence. They go in the record instead, where the card can show them.
+
+    A node that repeats one of the card's own rows (`known`) is left out, and the
+    ids after it move up so they still match the builder's; a flag follows its node.
     """
     payload: dict = {"flags": {}, "record": {}}
     unattached: list[dict] = []
@@ -99,15 +117,22 @@ def payload_of(outcomes: dict[str, Outcome]) -> dict:
 
     for prop in DRAFTED:
         outcome = outcomes.get(prop)
-        nodes = outcome.draft.nodes if outcome else ()
+        drafted = outcome.draft.nodes if outcome else ()
+        on_card = {_fold(k) for k in (known or {}).get(prop, [])}
+        nodes = tuple(n for n in drafted if _fold(n.label) not in on_card)
+        prefix = drafted[0].id.rstrip("0123456789") if drafted else prop
+        new_id = {n.id: f"{prefix}{i}" for i, n in enumerate(nodes)}
+        dropped = {n.id for n in drafted} - set(new_id)
         payload[prop] = [{"label": n.label, "vair": n.vair} for n in nodes]
         if not outcome:
             continue
 
-        ids = {n.id for n in nodes}
+        ids = set(new_id)
         for finding in outcome.open_findings:
+            if finding.node_id in dropped:
+                continue  # its node is the card's own row, not the draft's
             if finding.node_id in ids:
-                payload["flags"].setdefault(finding.node_id, []).append(finding.flag)
+                payload["flags"].setdefault(new_id[finding.node_id], []).append(finding.flag)
             else:
                 unattached.append(
                     {
@@ -173,7 +198,7 @@ class FillRun:
         """Take the next property and propose nodes for it."""
         self.current = self.queue.pop(0)
         self.draft_in_hand = self._writer().draft(
-            self.current, self._source(), self._terms()
+            self.current, self._source(), self._terms(), known=self._known()
         )
         self.findings = []
         self.rounds = []
@@ -185,7 +210,7 @@ class FillRun:
         self.findings = run_controls(draft, self._source(), self._terms())
         calls = 1
         if not self.findings:
-            self.findings = list(self._critic().review(draft, self._source()))
+            self.findings = list(self._critic().review(draft, self._source(), known=self._known()))
             calls = 2
         self.rounds.append(
             Round(
@@ -200,7 +225,7 @@ class FillRun:
         """Ask again about the nodes a finding named, keeping the rest."""
         assert self.draft_in_hand is not None, "revise before draft"
         fresh = self._writer().draft(
-            self.current, self._source(), self._terms(), self.findings
+            self.current, self._source(), self._terms(), self.findings, known=self._known()
         )
         self.draft_in_hand = self.draft_in_hand.merge(fresh.nodes)
         self.review()
@@ -219,7 +244,7 @@ class FillRun:
 
     def publish_all(self) -> None:
         """Write the drafts and their flags where the card reads them."""
-        self.payload = payload_of(self.outcomes)
+        self.payload = payload_of(self.outcomes, known_parts(self.qualification))
         self.publish(self.qualification["id"], self.payload)
 
     # ── the conditions the state machine branches on ─────────────────────────
@@ -248,6 +273,9 @@ class FillRun:
             return False
         signature = lambda r: frozenset((f.node_id, f.flag) for f in r.findings)
         return signature(self.rounds[-1]) == signature(self.rounds[-2])
+
+    def _known(self) -> list[str]:
+        return known_parts(self.qualification).get(self.current, [])
 
     def _source(self) -> str:
         return answer_for(self.qualification, CITATION_OF[self.current])

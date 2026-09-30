@@ -1,16 +1,10 @@
 import type { ReactNode } from "react";
 
-import {
-  AFFECTED,
-  IMPACT_AREAS,
-  LOCALITIES,
-  MARKET_FORMS,
-  vocabLabel,
-} from "@/data/airoVocab";
+import { AFFECTED, vocabLabel } from "@/data/airoVocab";
+import { vairLabel, type VairClass } from "@/data/vairVocab";
 import { METADATA_FIELDS, type MetadataFieldId } from "@/data/formFields";
 import { RISK_BLOCK, RISK_FIELDS } from "@/data/riskFields";
-import { COMPONENT_BLOCK, COMPONENT_KINDS } from "@/data/componentFields";
-import { findSector, parseTargetSystemTag } from "@/data";
+import { COMPONENT_BLOCK, componentTypeLabel } from "@/data/componentFields";
 import { annexDefaultVersion } from "@/domain/forms/legacy";
 import type { FormBlock } from "@/domain/forms/blocks";
 import type { ResolvedQuestionnaireVersion, ResolvedQuestion } from "@/domain/forms/types";
@@ -31,6 +25,9 @@ export type AnsweredFormProps = {
     targetUseCase: string;
     targetUsers: string;
     intendedDeployers: string | null;
+    /** VAIR terms (2026-09-30); absent or null when left open. */
+    systemType?: string | null;
+    purpose?: string | null;
     targetSystemTags: string[];
     sectorTags: string[];
     marketFormTags: string[];
@@ -46,12 +43,17 @@ export type AnsweredFormProps = {
     id: string;
     risk: string;
     source: string;
+    sourceTerm?: string | null;
     vulnerability: string | null;
     consequence: string;
+    consequenceTerm?: string | null;
+    impactTerm?: string | null;
     affected: string;
     impactAreas: string[];
     control: string;
+    controlTerm?: string | null;
     followUpControl: string | null;
+    followUpControlTerm?: string | null;
   }[];
   /** The Components block's rows, in order (targets plan v2); absent or empty on older cards. */
   systemComponents?: {
@@ -59,6 +61,7 @@ export type AnsweredFormProps = {
     name: string;
     role: string | null;
     kind: string;
+    vairType?: string | null;
     provider: string;
     providerName: string | null;
   }[];
@@ -153,6 +156,12 @@ export default function AnsweredForm({
           <Field id="systemName">{metadata.systemName}</Field>
           <Field id="systemVersion">{metadata.systemVersion}</Field>
           <Field id="company">{metadata.company}</Field>
+          <Field id="systemType">
+            {metadata.systemType ? vairLabel("AISystem", metadata.systemType) : BLANK}
+          </Field>
+          <Field id="purpose">
+            {metadata.purpose ? vairLabel("Purpose", metadata.purpose) : BLANK}
+          </Field>
           {has("description") && (
             <Field id="description">{metadata.description}</Field>
           )}
@@ -169,25 +178,22 @@ export default function AnsweredForm({
           )}
           {has("targetSystemTags") && (
             <Field id="targetSystemTags">
-              {tags(metadata.targetSystemTags, (t) => {
-                const parsed = parseTargetSystemTag(t);
-                return parsed ? `${parsed.category.name}: ${parsed.sub.name}` : t;
-              })}
+              {tags(metadata.targetSystemTags, (t) => vairLabel("AICapability", t))}
             </Field>
           )}
           {has("sectorTags") && (
             <Field id="sectorTags">
-              {tags(metadata.sectorTags, (t) => findSector(t)?.name ?? t)}
+              {tags(metadata.sectorTags, (t) => vairLabel("Domain", t))}
             </Field>
           )}
           {has("marketFormTags") && (
             <Field id="marketFormTags">
-              {tags(metadata.marketFormTags, (t) => vocabLabel(MARKET_FORMS, t))}
+              {tags(metadata.marketFormTags, (t) => vairLabel("Modality", t))}
             </Field>
           )}
           {has("localityTags") && (
             <Field id="localityTags">
-              {tags(metadata.localityTags, (t) => vocabLabel(LOCALITIES, t))}
+              {tags(metadata.localityTags, (t) => vairLabel("LocalityOfUse", t))}
             </Field>
           )}
         </dl>
@@ -226,7 +232,7 @@ export default function AnsweredForm({
           </h2>
           <dl className="qf-read-list">
             {systemComponents.map((c) => (
-              <Row key={c.id} label={c.name} citation={COMPONENT_KINDS.find((k) => k.id === c.kind)?.label ?? c.kind}>
+              <Row key={c.id} label={c.name} citation={componentTypeLabel(c.kind, c.vairType)}>
                 {[c.role, c.provider === "third_party" ? `Provided by ${c.providerName}` : "In-house"]
                   .filter(Boolean)
                   .join(". ")}
@@ -270,23 +276,36 @@ export default function AnsweredForm({
   );
 }
 
-/** The stored value for one risk field, or null when it was left blank. */
-function riskValue(
-  row: AnsweredFormProps["risks"][number],
-  id: (typeof RISK_FIELDS)[number]["id"],
-): string | null {
+type AnsweredRisk = AnsweredFormProps["risks"][number];
+
+/** The stored value for one risk field, or null when it was left blank. A field VAIR types shows
+ *  its text, then its term by VAIR's label; the harm has only its term. */
+function riskValue(row: AnsweredRisk, id: (typeof RISK_FIELDS)[number]["id"]): string | null {
+  const field = RISK_FIELDS.find((f) => f.id === id);
+  const term = field?.vair ? termOf(row, id, field.vair) : null;
   switch (id) {
     case "affected":
       return vocabLabel(AFFECTED, row.affected);
     case "area":
       return row.impactAreas.length === 0
         ? null
-        : row.impactAreas.map((a) => vocabLabel(IMPACT_AREAS, a)).join(", ");
+        : row.impactAreas.map((a) => vairLabel("AreaOfImpact", a)).join(", ");
+    case "impact":
+      return term;
     case "vulnerability":
       return row.vulnerability || null;
     case "followUpControl":
-      return row.followUpControl || null;
+      return row.followUpControl ? withTerm(row.followUpControl, term) : null;
     default:
-      return row[id];
+      return withTerm(row[id], term);
   }
+}
+
+function termOf(row: AnsweredRisk, id: string, cls: VairClass): string | null {
+  const value = row[`${id}Term` as keyof AnsweredRisk];
+  return typeof value === "string" && value !== "" ? vairLabel(cls, value) : null;
+}
+
+function withTerm(text: string, term: string | null): string {
+  return term ? `${text} (VAIR: ${term})` : text;
 }

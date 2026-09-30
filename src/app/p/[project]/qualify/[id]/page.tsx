@@ -8,10 +8,6 @@ import AnsweredForm from "./AnsweredForm";
 import FillStatus from "./FillStatus";
 import OntologyView from "./OntologyView";
 import QualificationTabs from "./QualificationTabs";
-import ComponentsPanel from "./ComponentsPanel";
-import { engineClient } from "@/server/services/EngineClient";
-import type { EngineComponent } from "@/domain/cardComponents";
-import type { OntologyExtracted } from "@/domain/OntologyView";
 import { questionnairesFor } from "@/server/services/QuestionnaireService";
 import { newerVersion } from "@/domain/forms/moveCard";
 import { annexDefaultVersion } from "@/domain/forms/legacy";
@@ -41,10 +37,6 @@ export default async function QualificationDetailPage({
     .catch(() => null);
   const readOnly = !standing?.current;
 
-  const { engineComponents, engineError } = readOnly
-    ? { engineComponents: [], engineError: null }
-    : await loadEngineComponents(project);
-  const suggestions = componentSuggestions(q.ontologyExtracted as OntologyExtracted | null);
 
   // The ontology IS the card: built on read from the form, the agent's
   // extraction and the reviewer's patch. A sidecar that is down must not take
@@ -111,27 +103,6 @@ export default async function QualificationDetailPage({
         </p>
       )}
 
-      {/* The filler starts when the qualification is saved, so arriving here
-          usually means arriving before its draft exists. */}
-      {!readOnly && (
-        <FillStatus
-          qualificationId={q.id}
-          statusUrl={`${basePath}/p/${project}/api/qualifications/${q.id}/fill`}
-        />
-      )}
-
-      {!readOnly && (
-        <ComponentsPanel
-          projectId={project}
-          qualificationId={q.id}
-          engine={engineComponents}
-          engineError={engineError}
-          linked={q.components}
-          suggestions={suggestions}
-          parts={(q.systemComponents ?? []).map((c) => ({ key: c.key, name: c.name }))}
-        />
-      )}
-
       <QualificationTabs
         form={
           <AnsweredForm
@@ -144,6 +115,8 @@ export default async function QualificationDetailPage({
               targetUseCase: q.targetUseCase,
               targetUsers: q.targetUsers,
               intendedDeployers: q.intendedDeployers,
+              systemType: q.systemType,
+              purpose: q.purpose,
               targetSystemTags: q.targetSystemTags,
               sectorTags: q.sectorTags,
               marketFormTags: q.marketFormTags,
@@ -160,6 +133,7 @@ export default async function QualificationDetailPage({
               name: c.name,
               role: c.role,
               kind: c.kind,
+              vairType: c.vairType,
               provider: c.provider,
               providerName: c.providerName,
             }))}
@@ -167,61 +141,56 @@ export default async function QualificationDetailPage({
               id: r.id,
               risk: r.risk,
               source: r.source,
+              sourceTerm: r.sourceTerm,
               vulnerability: r.vulnerability,
               consequence: r.consequence,
+              consequenceTerm: r.consequenceTerm,
+              impactTerm: r.impactTerm,
               affected: r.affected,
               impactAreas: r.impactAreas,
               control: r.control,
+              controlTerm: r.controlTerm,
               followUpControl: r.followUpControl,
+              followUpControlTerm: r.followUpControlTerm,
             }))}
           />
         }
         card={
-          ontology ? (
-            <OntologyView
-              projectId={project}
-              qualificationId={q.id}
-              initialView={ontology.view}
-              initialProblems={ontology.problems}
-              vocabularies={vocabularies}
-              readOnly={readOnly}
-              downloads={{
-                pdf: `${basePath}/p/${project}/api/qualifications/${q.id}/ai-card.pdf`,
-                json: `${basePath}/p/${project}/api/qualifications/${q.id}/ai-card.json`,
-                jsonld: `${basePath}/p/${project}/api/qualifications/${q.id}/ontology.jsonld`,
-              }}
-            />
-          ) : (
-            <section className="qf-section">
-              <p className="qf-help">
-                This system&rsquo;s knowledge graph could not be built: {ontologyError} The
-                answered form is unaffected.
-              </p>
-            </section>
-          )
+          <>
+            {/* Refine with AI, in the AI card tab only: the card is built from the
+                form alone, and the filler runs on top of it when a person asks. */}
+            {!readOnly && (
+              <FillStatus
+                project={project}
+                qualificationId={q.id}
+                statusUrl={`${basePath}/p/${project}/api/qualifications/${q.id}/fill`}
+              />
+            )}
+            {ontology ? (
+              <OntologyView
+                projectId={project}
+                qualificationId={q.id}
+                initialView={ontology.view}
+                initialProblems={ontology.problems}
+                vocabularies={vocabularies}
+                readOnly={readOnly}
+                downloads={{
+                  pdf: `${basePath}/p/${project}/api/qualifications/${q.id}/ai-card.pdf`,
+                  json: `${basePath}/p/${project}/api/qualifications/${q.id}/ai-card.json`,
+                  jsonld: `${basePath}/p/${project}/api/qualifications/${q.id}/ontology.jsonld`,
+                }}
+              />
+            ) : (
+              <section className="qf-section">
+                <p className="qf-help">
+                  This system&rsquo;s knowledge graph could not be built: {ontologyError} The
+                  answered form is unaffected.
+                </p>
+              </section>
+            )}
+          </>
         }
       />
     </main>
   );
-}
-
-/** The engine's components, for linking to the latest card. An engine that is
- *  down leaves the card as it is and says so in the panel. */
-async function loadEngineComponents(
-  projectId: string,
-): Promise<{ engineComponents: EngineComponent[]; engineError: string | null }> {
-  try {
-    return { engineComponents: await engineClient.components(projectId), engineError: null };
-  } catch (err) {
-    return {
-      engineComponents: [],
-      engineError: err instanceof Error ? err.message : "The engine did not answer",
-    };
-  }
-}
-
-/** The components the card agent named, as labels: suggestions, never links. */
-function componentSuggestions(extracted: OntologyExtracted | null): string[] {
-  const named = (extracted?.components ?? []) as Array<string | { label: string }>;
-  return named.map((c) => (typeof c === "string" ? c : c.label));
 }

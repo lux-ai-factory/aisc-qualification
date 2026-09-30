@@ -50,6 +50,32 @@ describe("PrefillClient", () => {
     expect(result).toMatchObject({ ok: true, risks: [row], risksKept: false, risksProposed: 1 });
   });
 
+  it("sends the component rows the form holds, and brings the document's back", async () => {
+    const row = { key: "", name: "Scoring model", role: "", type: "DecisionTree", provider: "in_house" as const, providerName: "" };
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        values: {}, filled: [], kept: [], model: null,
+        components: [row], componentsKept: false, componentsProposed: 1,
+      }),
+    });
+    const client = new PrefillClient("http://prefill", fetchImpl as unknown as typeof fetch);
+    const result = await client.read(new File(["x"], "d.md"), "empty", {}, [], undefined, [{ ...row, name: "mine" }]);
+    const sent = fetchImpl.mock.calls[0][1].body as FormData;
+    expect(JSON.parse(sent.get("current_components") as string)[0].name).toBe("mine");
+    expect(result.ok && result.components?.[0].name).toBe("Scoring model");
+    expect(result.ok && result.componentsProposed).toBe(1);
+  });
+
+  it("reads a service that knows nothing about components as having none", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ values: {}, filled: [], kept: [], model: null }),
+    });
+    const result = await new PrefillClient("http://prefill", fetchImpl as unknown as typeof fetch).read(new File(["x"], "d.md"));
+    expect(result.ok && [result.components, result.componentsKept, result.componentsProposed]).toEqual([null, false, 0]);
+  });
+
   it("reads a service that knows nothing about risks as having none", async () => {
     const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ok });
     const result = await new PrefillClient("http://x", fetchImpl).read(fileNamed());
@@ -132,6 +158,8 @@ describe("PrefillClient with a form (R38, R40)", () => {
     const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ok });
     await new PrefillClient("http://x", fetchImpl).read(file(), "empty", {}, []);
     const sent = fetchImpl.mock.calls[0][1].body as FormData;
-    expect([...sent.keys()].sort()).toEqual(["current", "current_risks", "file", "mode"]);
+    // No fields or questions without a form. The component rows are always sent:
+    // the Components block is on every card, whatever its form.
+    expect([...sent.keys()].sort()).toEqual(["current", "current_components", "current_risks", "file", "mode"]);
   });
 });

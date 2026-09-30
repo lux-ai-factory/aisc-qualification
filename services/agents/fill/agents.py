@@ -114,8 +114,9 @@ class LlmWriter:
         source: str,
         terms: list[str],
         findings: Sequence[Finding] = (),
+        known: Sequence[str] = (),
     ) -> Draft:
-        system, user = writer_prompt(prop, source, terms, findings)
+        system, user = writer_prompt(prop, source, terms, findings, known=known)
         return Draft(prop=prop, nodes=tuple(parse_nodes(self._complete(system, user), prop)))
 
 
@@ -125,6 +126,6 @@ class LlmCritic:
     def __init__(self, complete: Completer):
         self._complete = complete
 
-    def review(self, draft: Draft, source: str) -> list[Finding]:
-        system, user = critic_prompt(draft, source)
+    def review(self, draft: Draft, source: str, known: Sequence[str] = ()) -> list[Finding]:
+        system, user = critic_prompt(draft, source, known=known)
         return parse_findings(self._complete(system, user))

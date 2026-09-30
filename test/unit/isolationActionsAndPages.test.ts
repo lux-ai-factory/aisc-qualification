@@ -280,9 +280,12 @@ describe("I16.5 the card page and the list page read the database of the page's 
 // ── static: the save action, the seed, the environment ─────────────────────
 
 describe("I3.4 I3.6 I3.8 wiring that is only visible in the source", () => {
-  it("I3.4 the save action asks the agent to fill with the project and the card: requestFill(project, id)", () => {
-    const text = read(join(SRC, "app", "p", "[project]", "qualify", "new", "actions.ts"));
-    expect(text).toMatch(/requestFill\(\s*project\s*,\s*id\s*\)/);
+  it("I3.4 saving builds the card from the form alone; only Refine with AI asks the agent, with the project and the card", () => {
+    // 2026-09-30: the card is deterministic; the filler runs when a person asks.
+    const save = read(join(SRC, "app", "p", "[project]", "qualify", "new", "actions.ts"));
+    expect(save).not.toMatch(/requestFill/);
+    const refine = read(join(SRC, "app", "p", "[project]", "qualify", "[id]", "fill-actions.ts"));
+    expect(refine).toMatch(/requestFill\(\s*project\s*,\s*qualificationId\s*\)/);
   });
 
   it("I3.6 scripts/migrate-projects.mjs exists and names only ^project_[0-9a-f]{32}$ databases", () => {

@@ -195,6 +195,10 @@ async function shape(c: PrismaClient, live: boolean): Promise<string[]> {
   // systemComponents.db.test.ts, not here.
   const componentsLine = /qualification_component|system_component_only_latest_changes|card_component_part_is_on_the_card|card_component_test_material_is_no_part|\bcomponent_key\b/;
   lines = lines.filter((l) => !componentsLine.test(l));
+  // The VAIR terms (20260930000000_vair_terms) came after it too: nullable columns only, pinned
+  // by the VAIR block of systemComponents.db.test.ts.
+  const vairLine = /^column qualification\.(system_type|purpose) |^column qualification_risk\.(source_term|consequence_term|impact_term|control_term|follow_up_control_term) /;
+  lines = lines.filter((l) => !vairLine.test(l));
   if (!formsOnBranch) lines = lines.filter((l) => !formsLine.test(l) && !formsIndex.test(l));
   else lines = lines.filter((l) => !formsLine.test(l) && !twoLevelLine.test(l));
   if (live) {

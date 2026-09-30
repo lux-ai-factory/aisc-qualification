@@ -190,3 +190,28 @@ describe("the prefill spec of a questionnaire version (T58)", () => {
     expect(src).toMatch(/prefillFormSpec\(/);
   });
 });
+
+describe("the component rows the form holds now", () => {
+  it("reads each row by its index, with its provider", async () => {
+    const { currentComponents } = await import("@/lib/prefillChoice");
+    const form = new FormData();
+    form.set("component:0:key", "k1");
+    form.set("component:0:name", "Scoring model");
+    form.set("component:0:type", "DecisionTree");
+    form.set("component:0:provider", "in_house");
+    form.set("component:3:name", "Hosted LLM");
+    form.set("component:3:provider", "third_party");
+    form.set("component:3:providerName", "Vendor");
+    expect(currentComponents(form)).toEqual([
+      { key: "k1", name: "Scoring model", role: "", type: "DecisionTree", provider: "in_house", providerName: "" },
+      { key: "", name: "Hosted LLM", role: "", type: "", provider: "third_party", providerName: "Vendor" },
+    ]);
+  });
+
+  it("counts a row as written when it has a name, a role, a type or a provider's name", async () => {
+    const { componentWritten } = await import("@/lib/prefillChoice");
+    const blank = { key: "", name: "", role: "", type: "", provider: "in_house" as const, providerName: "" };
+    expect(componentWritten(blank)).toBe(false);
+    expect(componentWritten({ ...blank, type: "DecisionTree" })).toBe(true);
+  });
+});

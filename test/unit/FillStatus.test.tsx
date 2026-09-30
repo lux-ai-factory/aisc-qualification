@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import FillStatus from "@/app/p/[project]/qualify/[id]/FillStatus";
 
 // isolation Q1: the page passes the fill route under its project
@@ -8,12 +8,18 @@ const STATUS_URL = "/p/a1b2c3d4-0000-4000-8000-000000000002/api/qualifications/q
 
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+const rerunFill = vi.fn(async (_p: string, _id: string) => ({ ok: true }) as { ok: boolean; error?: string });
+vi.mock("@/app/p/[project]/qualify/[id]/fill-actions", () => ({
+  rerunFill: (p: string, id: string) => rerunFill(p, id),
+}));
+const PROJECT = "a1b2c3d4-0000-4000-8000-000000000002";
 
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
   vi.unstubAllGlobals();
   refresh.mockClear();
+  rerunFill.mockClear();
 });
 
 function withStates(...states: string[]) {
@@ -30,16 +36,16 @@ describe("the card telling you the filler is working", () => {
   it("reports a run in flight", async () => {
     withStates("running");
     await act(async () => {
-      render(<FillStatus qualificationId="q1" statusUrl={STATUS_URL} />);
+      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
     });
-    expect(screen.getByRole("status").textContent).toMatch(/drafting/i);
+    expect(screen.getByRole("status").textContent).toMatch(/refining/i);
   });
 
   it("keeps asking while it runs", async () => {
     vi.useFakeTimers();
     const fetchMock = withStates("running", "running", "done");
     await act(async () => {
-      render(<FillStatus qualificationId="q1" statusUrl={STATUS_URL} />);
+      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     await act(async () => {
@@ -52,7 +58,7 @@ describe("the card telling you the filler is working", () => {
     vi.useFakeTimers();
     withStates("running", "done");
     await act(async () => {
-      render(<FillStatus qualificationId="q1" statusUrl={STATUS_URL} />);
+      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
     });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2500);
@@ -64,7 +70,7 @@ describe("the card telling you the filler is working", () => {
     vi.useFakeTimers();
     const fetchMock = withStates("done");
     await act(async () => {
-      render(<FillStatus qualificationId="q1" statusUrl={STATUS_URL} />);
+      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
     });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10000);
@@ -72,17 +78,17 @@ describe("the card telling you the filler is working", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("shows nothing at all when no run exists for this card", async () => {
+  it("shows no status line when no run exists for this card", async () => {
     withStates("idle");
-    const { container } = render(<FillStatus qualificationId="q1" statusUrl={STATUS_URL} />);
+    render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
     await act(async () => {});
-    expect(container.textContent).toBe("");
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("reports a failed run", async () => {
     withStates("failed");
     await act(async () => {
-      render(<FillStatus qualificationId="q1" statusUrl={STATUS_URL} />);
+      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
     });
     expect(screen.getByRole("status").textContent).toMatch(/could not|failed/i);
   });
@@ -94,9 +100,61 @@ describe("the card telling you the filler is working", () => {
         throw new Error("connection refused");
       }),
     );
-    const { container } = render(<FillStatus qualificationId="q1" statusUrl={STATUS_URL} />);
+    render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
     await act(async () => {});
-    expect(container.textContent).toBe("");
+    expect(screen.queryByRole("status")).toBeNull();
     expect(refresh).not.toHaveBeenCalled();
+  });
+});
+
+describe("refining the card with AI from its page", () => {
+  const button = () => screen.queryByRole("button", { name: /refine with ai/i });
+
+  it.each(["idle", "done", "failed"])("offers to refine with AI when the run is %s", async (state) => {
+    withStates(state);
+    await act(async () => {
+      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+    });
+    expect(button()).not.toBeNull();
+  });
+
+  it.each(["queued", "running"])("does not offer it while a run is %s", async (state) => {
+    withStates(state);
+    await act(async () => {
+      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+    });
+    expect(button()).toBeNull();
+  });
+
+  it("starts a run, shows it in flight, and refreshes the page again when it lands", async () => {
+    vi.useFakeTimers();
+    // first look: an earlier run is done (and refreshes once); after the click: running, then done
+    withStates("done", "running", "done");
+    await act(async () => {
+      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+    });
+    expect(refresh).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      fireEvent.click(button()!);
+    });
+    expect(rerunFill).toHaveBeenCalledWith(PROJECT, "q1");
+    expect(screen.getByRole("status").textContent).toMatch(/refining/i);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2500);
+    });
+    expect(refresh).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows why when the run could not be started", async () => {
+    withStates("idle");
+    rerunFill.mockResolvedValueOnce({ ok: false, error: "The card agent did not take the run." });
+    await act(async () => {
+      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+    });
+    await act(async () => {
+      fireEvent.click(button()!);
+    });
+    expect(screen.getByRole("alert").textContent).toMatch(/card agent/i);
+    expect(button()).not.toBeNull();
   });
 });

@@ -64,19 +64,17 @@ def test_the_generated_label_is_never_lost(graph):
     assert str(graph.value(purpose, QUAL.generatedLabel)) == before
 
 
-def test_a_patch_can_assign_the_vair_type_the_mapping_would_not(graph):
-    scoring = [
-        s
-        for s in graph.subjects(RDF.type, URIRef(AIRO + "AICapability"))
-        if "Risk Scoring" in str(graph.value(s, RDFS.label))
-    ][0]
-    node_id = str(scoring).rsplit("#", 1)[1]
+def test_a_patch_can_assign_a_vair_type_the_form_left_open(graph):
+    # The provider is a company; the form offers no type for it, a reviewer may still give one.
+    provider = next(graph.objects(next(graph.subjects(RDF.type, URIRef(AIRO + "AISystem"))),
+                                  URIRef(AIRO + "isProvidedBy")))
+    node_id = str(provider).rsplit("#", 1)[1]
     apply_patch(
         graph,
-        {node_id: {"vair": "Profiling", "note": "profiling per Art 3(4), not social scoring"}},
+        {node_id: {"vair": "PublicAuthority", "note": "the deployer here is a public body"}},
     )
-    assert (scoring, RDF.type, URIRef(VAIR + "Profiling")) in graph
-    assert "Art 3(4)" in str(graph.value(scoring, QUAL.reviewNote))
+    assert (provider, RDF.type, URIRef(VAIR + "PublicAuthority")) in graph
+    assert "public body" in str(graph.value(provider, QUAL.reviewNote))
     assert validate(graph) == []
 
 
@@ -140,7 +138,7 @@ def test_a_chain_is_the_whole_risk_path_in_order(graph):
     assert chain["vulnerability"] is None
     assert chain["consequence"]["label"] == "Discriminatory treatment by area"
     assert chain["stakeholder"]["cls"] == "AIUser"
-    assert [a["label"] for a in chain["areas"]] == ["Fundamental rights", "Freedom"]
+    assert [a["label"] for a in chain["areas"]] == ["Freedom", "Right"]  # VAIR's label order
     assert chain["control"]["label"] == "Quarterly fairness audit, 5% band"
     assert chain["followUp"]["label"] == "Suspend scoring for the market"
 
@@ -153,17 +151,18 @@ def test_the_only_untyped_nodes_left_are_ones_vair_cannot_type(graph):
         n["cls"]
         for r in view["rows"]
         for n in r["nodes"]
-        if n["vair"] is None
+        if n["vair"] is None and not n.get("termNotApplicable")
     }
     for c in view["chains"]:
         for key in ("risk", "source", "vulnerability", "consequence", "impact",
                     "stakeholder", "control", "followUp"):
             n = c[key]
-            if n and n["vair"] is None:
+            if n and n["vair"] is None and not n.get("termNotApplicable"):
                 untyped_classes.add(n["cls"])
-    # Risk, Vulnerability and AIUser have zero VAIR specialisations; AIOperator's
-    # 17 terms are Annex III public bodies, none of which is a commercial bank.
-    assert untyped_classes <= {"Risk", "Vulnerability", "AIUser", "AIOperator"}, (
+    # Risk, Vulnerability, AIUser and Data have zero VAIR specialisations; AIOperator's
+    # 17 terms are Annex III public bodies, none of which is a commercial bank. A part of
+    # one of our own types says itself that no VAIR term applies (2026-09-30).
+    assert untyped_classes <= {"Risk", "Vulnerability", "AIUser", "AIOperator", "Data"}, (
         untyped_classes
     )
 
@@ -180,7 +179,7 @@ def test_a_reviewed_node_shows_as_reviewed_in_the_view(graph):
 
 def test_the_view_reports_the_counts_the_card_header_shows(graph):
     view = build_view(graph)
-    assert view["counts"]["nodes"] == 59
+    assert view["counts"]["nodes"] == 61
     assert view["counts"]["triples"] == len(graph)
     assert view["counts"]["risks"] == 5
 
@@ -193,11 +192,12 @@ def test_the_counts_separate_a_missing_term_from_an_impossible_one(graph):
     """"12 nodes have no term" would be misleading when none of them can be
     typed. The card needs the number a reviewer can act on."""
     counts = build_view(graph)["counts"]
-    # Nothing here is a gap: Risk, Vulnerability and AIUser have no VAIR terms
-    # at all, and the two operators are a commercial provider and retail banks,
-    # which VAIR's public-body operator terms do not cover.
+    # Nothing here is a gap: Risk, Vulnerability, AIUser and Data have no VAIR
+    # terms at all, the two operators are a commercial provider and retail
+    # banks, which VAIR's public-body operator terms do not cover, and four
+    # parts are of our own types, for which VAIR has no term.
     assert counts["needsTerm"] == 0
-    assert counts["unclassifiable"] == 12
+    assert counts["unclassifiable"] == 20
     assert counts["needsTerm"] + counts["unclassifiable"] == counts["untyped"]
 
 
@@ -350,15 +350,15 @@ class TestReviewFlags:
     def test_several_flags_on_one_node_keep_their_order(self, parts):
         q, e = parts
         graph = build_graph(
-            q, dict(e, flags={"component0": ["inflated", "sentence"]})
+            q, dict(e, flags={"technique1": ["inflated", "sentence"]})
         )
         view = build_view(graph)
         node = next(
             n
             for r in view["rows"]
-            if r["property"] == "hasComponent"
+            if r["property"] == "usesTechnique"
             for n in r["nodes"]
-            if n["id"] == "component0"
+            if n["id"] == "technique1"
         )
         assert node["flags"] == ["inflated", "sentence"]
 
@@ -373,7 +373,7 @@ class TestReviewFlags:
     def test_the_counts_say_how_many_nodes_are_flagged(self, parts):
         q, e = parts
         graph = build_graph(
-            q, dict(e, flags={"technique0": ["ungrounded"], "component1": ["inflated"]})
+            q, dict(e, flags={"technique0": ["ungrounded"], "technique1": ["inflated"]})
         )
         assert build_view(graph)["counts"]["flagged"] == 2
 

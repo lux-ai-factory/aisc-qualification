@@ -2,27 +2,35 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { rerunFill } from "./fill-actions";
 
-// While the filler is drafting this card, say so, and bring in the result when
-// it lands.
+// Refine with AI, and its progress.
 //
-// The run starts when the qualification is saved and takes seconds to a minute,
-// so arriving on the card usually means arriving before the draft exists. With
-// nothing here, the card looks like it simply has no techniques or components,
-// which is exactly how a working pipeline looks broken.
+// The card is built from the form alone (2026-09-30). The filler runs only when
+// a person presses Refine with AI, and reads only the answers to the questions:
+// the form's structured fields are VAIR terms their author chose, so what is left
+// is the techniques answer 2(a) describes. A run takes a minute or several on a reasoning
+// model, so while it is in flight this says so, and brings the result in when it
+// lands.
 const POLL_MS = 2000;
 
 type State = "idle" | "queued" | "running" | "done" | "failed";
 
 export default function FillStatus({
+  project,
   qualificationId,
   statusUrl,
 }: {
+  project: string;
   qualificationId: string;
   /** Where this card's run state is read: the fill route under its project. */
   statusUrl: string;
 }) {
   const [state, setState] = useState<State>("idle");
+  // Bumped by each regenerate, which starts the poll over for the new run.
+  const [run, setRun] = useState(0);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const refreshed = useRef(false);
   // Held in a ref and kept out of the effect's dependencies: the effect starts a
@@ -57,26 +65,52 @@ export default function FillStatus({
       }
     };
 
+    refreshed.current = false;
     ask();
     return () => {
       live = false;
       if (timer) clearTimeout(timer);
     };
-  }, [qualificationId, statusUrl]);
+  }, [qualificationId, statusUrl, run]);
 
-  if (state === "idle" || state === "done") return null;
+  const regenerate = async () => {
+    setStarting(true);
+    setError(null);
+    const result = await rerunFill(project, qualificationId);
+    setStarting(false);
+    if (!result.ok) {
+      setError(result.error ?? "Could not start the card agent.");
+      return;
+    }
+    setState("queued");
+    setRun((n) => n + 1);
+  };
+
+  if (state !== "queued" && state !== "running") {
+    return (
+      <div className="fill-rerun">
+        {state === "failed" && (
+          <p className="fill-status" role="status" aria-live="polite">
+            The AI refinement could not finish. The card below is built from your answers.
+          </p>
+        )}
+        <button type="button" className="btn ghost qf-header-btn" onClick={regenerate} disabled={starting}>
+          {starting ? "Starting..." : "Refine with AI"}
+        </button>
+        {error && (
+          <span className="fill-rerun-error" role="alert">
+            {error}
+          </span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="fill-status" role="status" aria-live="polite">
-      {state === "failed" ? (
-        <>The filler could not finish. The card below is built from your answers.</>
-      ) : (
-        <>
-          <span className="fill-status-spinner" aria-hidden="true" />
-          Drafting the nodes your prose answers support, and reviewing them. This
-          card will fill in by itself.
-        </>
-      )}
+      <span className="fill-status-spinner" aria-hidden="true" />
+      Refining the card with AI: proposing what your answers support beyond what the
+      card already lists, and reviewing it. This card will fill in by itself.
     </div>
   );
 }

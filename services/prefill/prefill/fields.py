@@ -19,6 +19,8 @@ import pathlib
 import re
 import unicodedata
 
+from prefill.components import section_lines as component_lines
+from prefill.headings import COMPONENTS_HEADING
 from prefill.risks import RISKS_HEADING
 
 #: The seven metadata fields on the form, and the labels people write for them.
@@ -127,7 +129,11 @@ def metadata_from_text(text: str) -> dict[str, str]:
     """The labelled fields, whether the value is on the line or under it."""
     found: dict[str, str] = {}
     lines = text.splitlines()
+    # A part's "Name:" and "Provider:" are the part's, not the system's.
+    parts = component_lines(lines)
     for index, line in enumerate(lines):
+        if index in parts:
+            continue
         labelled = _label_of(line)
         if not labelled:
             continue
@@ -157,7 +163,7 @@ def annex_sections(text: str) -> dict[str, str]:
     sections: dict[str, list[str]] = {}
     current: str | None = None
     for line in text.splitlines():
-        if RISKS_HEADING.match(line):
+        if RISKS_HEADING.match(line) or COMPONENTS_HEADING.match(line):
             # The risk register is its own section, not the end of 2(h).
             current = None
             continue
@@ -241,7 +247,7 @@ def annex_sections_by_point(text: str) -> dict[str, tuple[str, int]]:
     first_line: dict[str, int] = {}
     current: str | None = None
     for index, line in enumerate(text.splitlines()):
-        if RISKS_HEADING.match(line):
+        if RISKS_HEADING.match(line) or COMPONENTS_HEADING.match(line):
             current = None
             continue
         heading = _ANNEX_HEADING.match(line)
@@ -316,6 +322,7 @@ def proposals_for_questions(text: str, questions: list[dict]) -> dict[str, str]:
             or _ANNEX_HEADING.match(line)
             or _MARKDOWN_HEADING.match(line)
             or RISKS_HEADING.match(line)
+            or COMPONENTS_HEADING.match(line)
         )
 
     for index, line in enumerate(lines):

@@ -2153,6 +2153,11 @@ a:hover {
   }
 }
 
+/* Regenerating the card: the filler's run again, when none is in flight. */
+.fill-rerun { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 20px; }
+.fill-rerun .fill-status { flex: 1 1 100%; margin: 0; }
+.fill-rerun-error { font-size: 13px; color: var(--error); }
+
 /* The card page's header buttons: editing the system, beside its versions. */
 .qf-header-actions { display: flex; gap: 0.5rem; align-items: center; }
 

@@ -8,10 +8,18 @@ neither is left for the person to choose rather than guessed.
 
 Only the Risks section is read: "Control:" in the middle of an Annex answer is
 prose, not a row.
+
+The form speaks VAIR (2026-09-30): the cause, the result, the control and the
+follow-up each have one VAIR term beside their text ("Source term:"), the harm is
+a VAIR term alone ("Kind of harm:"), and the areas are VAIR's. A term is matched
+by its VAIR id or label (prefill.vair); a word that names none is left open.
 """
 from __future__ import annotations
 
 import re
+
+from prefill.headings import COMPONENTS_HEADING
+from prefill.vair import match_term
 
 #: The heading that opens the section. Annex IV point 5 is where the risk
 #: management system is described, so that heading counts too.
@@ -29,8 +37,17 @@ _OTHER_HEADING = re.compile(r"^\s*#+\s+\S")
 
 TEXT_FIELDS = ("risk", "source", "vulnerability", "consequence", "control", "followUpControl")
 
+#: Each VAIR select of a row, and the class its terms come from.
+TERM_FIELDS: dict[str, str] = {
+    "sourceTerm": "RiskSource",
+    "consequenceTerm": "Consequence",
+    "impactTerm": "Impact",
+    "controlTerm": "RiskControl",
+    "followUpControlTerm": "RiskControl",
+}
+
 #: A row's keys in the order the form lists its columns.
-_ROW_ORDER = (*TEXT_FIELDS[:4], "affected", "areas", *TEXT_FIELDS[4:])
+_ROW_ORDER = (*TEXT_FIELDS[:4], "affected", "areas", *TEXT_FIELDS[4:], *TERM_FIELDS)
 
 #: Labels for each field. Matched longest first, so "follow-up control" is
 #: never read as "control".
@@ -50,6 +67,13 @@ _LABELS: dict[str, tuple[str, ...]] = {
         "if that is not enough, what follows",
         "if that is not enough",
     ),
+    # the VAIR selects: matched longest first, so "control term" is never read as "control"
+    "sourceTerm": ("source term", "cause term", "risk source term"),
+    "consequenceTerm": ("consequence term",),
+    "impactTerm": ("impact term", "kind of harm", "harm"),
+    "controlTerm": ("control term", "measure term"),
+    "followUpControlTerm": ("follow-up control term", "follow up control term", "followup control term",
+                            "follow-up term"),
 }
 _BY_LABEL = sorted(
     ((label, field) for field, labels in _LABELS.items() for label in labels),
@@ -61,12 +85,8 @@ _AFFECTED = (
     ("operator", ("operator", "provider", "deployer", "company", "bank", "organisation", "organization")),
     ("user", ("user", "applicant", "customer", "people", "person", "citizen", "resident", "consumer")),
 )
-_AREAS = (
-    ("health", ("health",)),
-    ("safety", ("safety",)),
-    ("right", ("right",)),  # "rights", "fundamental rights"
-    ("freedom", ("freedom",)),
-)
+#: Our old words for VAIR's areas, so a document written for the earlier form still reads.
+_AREA_WORDS = {"fundamental rights": "Right", "rights": "Right", "non-discrimination": "RightToNondiscrimination"}
 
 
 def _labelled(line: str) -> tuple[str, str] | None:
@@ -92,14 +112,15 @@ def _affected(value: str) -> str:
 
 
 def _areas(value: str) -> list[str]:
-    """In the order the document names them."""
-    words = value.lower()
-    at = {
-        aid: min(words.find(n) for n in names if n in words)
-        for aid, names in _AREAS
-        if any(n in words for n in names)
-    }
-    return sorted(at, key=at.get)
+    """VAIR's areas, in the order the document names them. The value is a list ("Right, Safety");
+    each item is a VAIR id or label, or one of our old words for one."""
+    found: list[str] = []
+    for item in re.split(r"\s*(?:,|;|\band\b)\s*", value):
+        item = item.strip().rstrip(".")
+        term = match_term("AreaOfImpact", item) or _AREA_WORDS.get(item.lower(), "")
+        if term and term not in found:
+            found.append(term)
+    return found
 
 
 def _empty_row() -> dict[str, list[str] | str]:
@@ -114,6 +135,8 @@ def _finish(raw: dict[str, list[str]]) -> dict | None:
             row["affected"] = _affected(value)
         elif field == "areas":
             row["areas"] = _areas(value)
+        elif field in TERM_FIELDS:
+            row[field] = match_term(TERM_FIELDS[field], value)
         else:
             row[field] = value
     said_something = any(row[f] for f in TEXT_FIELDS) or row["affected"] or row["areas"]
@@ -143,7 +166,7 @@ def risks_from_text(text: str) -> list[dict]:
         if _ROW_HEADING.match(line):
             close()
             continue
-        if _OTHER_HEADING.match(line):
+        if _OTHER_HEADING.match(line) or COMPONENTS_HEADING.match(line):
             close()
             inside = False
             continue

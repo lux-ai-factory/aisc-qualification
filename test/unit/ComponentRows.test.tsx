@@ -8,8 +8,7 @@ vi.mock("@/app/p/[project]/qualify/new/actions", () => ({ submitQualification: v
 import { vi } from "vitest";
 import ComponentRows from "@/app/p/[project]/qualify/new/ComponentRows";
 import QualifyForm from "@/app/p/[project]/qualify/new/QualifyForm";
-import { COMPONENT_KINDS } from "@/data/componentFields";
-import { sectors, targetSystems } from "@/data";
+import { COMPONENT_TYPES } from "@/data/componentFields";
 import { formVersion } from "../support/forms";
 
 // The Components block on the form (targets plan v2, QL1, QL2, QL4): rows with their keys in
@@ -18,17 +17,17 @@ import { formVersion } from "../support/forms";
 afterEach(cleanup);
 
 const carried = { key: "11111111-1111-4111-8111-111111111111", name: "Scoring model", role: "Scores",
-                  kind: "model", provider: "in_house" as const, providerName: "" };
+                  type: "DecisionTree", provider: "in_house" as const, providerName: "" };
 
 const value = (name: string) => (document.querySelector(`[name="${name}"]`) as HTMLInputElement | null)?.value;
 
 describe("ComponentRows", () => {
-  it("a carried row posts its key; the kinds are the block's", () => {
+  it("a carried row posts its key; the types are the block's one list", () => {
     render(<ComponentRows initial={[carried]} />);
     expect(value("component:0:key")).toBe(carried.key);
     expect(value("component:0:name")).toBe("Scoring model");
-    const kinds = [...document.querySelectorAll('[name="component:0:kind"] option')].map((o) => (o as HTMLOptionElement).value);
-    expect(kinds.filter(Boolean)).toEqual(COMPONENT_KINDS.map((k) => k.id));
+    const types = [...document.querySelectorAll('[name="component:0:type"] option')].map((o) => (o as HTMLOptionElement).value);
+    expect(types.filter(Boolean)).toEqual(COMPONENT_TYPES.map((k) => k.id));
   });
 
   it("a card without components starts with no row and a way to add one", () => {
@@ -40,7 +39,7 @@ describe("ComponentRows", () => {
   });
 
   it("a suggestion from the extraction is marked, keyless, and can be removed", () => {
-    render(<ComponentRows initial={[{ ...carried, key: "", kind: "", suggested: true }]} />);
+    render(<ComponentRows initial={[{ ...carried, key: "", type: "", suggested: true }]} />);
     expect(screen.getByText(/suggested from your answer to 2\(c\)/i)).toBeTruthy();
     expect(value("component:0:key")).toBe("");
     fireEvent.click(screen.getByRole("button", { name: /remove/i }));
@@ -63,7 +62,7 @@ describe("ComponentRows", () => {
 describe("the block is on every form, before the risks", () => {
   it("even a form with no blocks at all", () => {
     render(<QualifyForm project="mcas" {...({ form: formVersion({ blocks: [], questions: [] }) } as object)}
-      targetSystems={targetSystems} sectors={sectors} initial={{ metadata: {} as never, answers: {}, risks: [], components: [carried] } as never} />);
+      initial={{ metadata: {} as never, answers: {}, risks: [], components: [carried] } as never} />);
     expect(screen.getByRole("heading", { name: /components/i })).toBeTruthy();
     expect(value("component:0:key")).toBe(carried.key);
   });

@@ -68,3 +68,42 @@ describe("the MCAS example agrees everywhere (R72)", () => {
     expect(readme).not.toContain("295 triples");
   });
 });
+
+// 2026-09-30: the form speaks VAIR, and the three copies carry the same terms.
+async function seedData(): Promise<Record<string, unknown> & { risks: { create: Record<string, unknown>[] } }> {
+  const create = vi.fn(async (args: { data: unknown }) => ({ id: "x", systemName: "MCAS", args }));
+  const prisma = { qualification: { findUnique: vi.fn(async () => null), create, delete: vi.fn() } };
+  const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  try {
+    await seedMcas(prisma as never, { platform: { projectId: "p", systemId: "s" } } as never);
+  } finally {
+    log.mockRestore();
+  }
+  return (create.mock.calls[0][0] as { data: never }).data;
+}
+
+describe("the MCAS example's VAIR terms agree everywhere", () => {
+  const json = () => JSON.parse(readFileSync(JSON_FILE, "utf8"));
+  const TAGS = ["systemType", "purpose", "targetSystemTags", "sectorTags", "marketFormTags", "localityTags"] as const;
+  const TERMS = ["sourceTerm", "consequenceTerm", "impactTerm", "controlTerm", "followUpControlTerm"] as const;
+
+  it("the metadata terms and tags", async () => {
+    const seed = await seedData();
+    for (const f of TAGS) {
+      expect(MCAS.metadata[f], f).toEqual(json()[f]);
+      expect(seed[f], f).toEqual(json()[f]);
+    }
+  });
+
+  it("each risk's areas and terms", async () => {
+    const seed = await seedData();
+    json().risks.forEach((r: Record<string, unknown>, i: number) => {
+      expect(MCAS.risks[i].areas, `risk ${i}`).toEqual(r.impactAreas);
+      expect(seed.risks.create[i].impactAreas, `risk ${i}`).toEqual(r.impactAreas);
+      for (const f of TERMS) {
+        expect(MCAS.risks[i][f] || null, `risk ${i} ${f}`).toEqual(r[f]);
+        expect(seed.risks.create[i][f], `risk ${i} ${f}`).toEqual(r[f]);
+      }
+    });
+  });
+});

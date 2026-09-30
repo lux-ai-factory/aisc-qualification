@@ -7,7 +7,6 @@ vi.mock("@/app/p/[project]/qualify/new/prefill-actions", () => ({ readDocument: 
 vi.mock("@/app/p/[project]/qualify/new/actions", () => ({ submitQualification }));
 
 import QualifyForm from "@/app/p/[project]/qualify/new/QualifyForm";
-import { sectors, targetSystems } from "@/data";
 
 // Reported on the clean stack (2026-09-27): a save the server refuses ("Pick at least one
 // target-system capability.") showed the message and then the form was blank again. A
@@ -24,7 +23,7 @@ describe("a refused save keeps what was filled in", () => {
   it("shows the server's message and every typed value is still there", async () => {
     submitQualification.mockResolvedValue({ error: "Pick at least one target-system capability." });
     const { container } = render(
-      <QualifyForm project="mcas" targetSystems={targetSystems} sectors={sectors} />,
+      <QualifyForm project="mcas" />,
     );
     const form = container.querySelector("form.qualify-form:not(.qualify-prefill)") as HTMLFormElement;
     const name = form.elements.namedItem("systemName") as HTMLInputElement;

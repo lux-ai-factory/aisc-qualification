@@ -51,6 +51,7 @@ def writer_prompt(
     source: str,
     terms: list[str],
     findings: Sequence[Finding] = (),
+    known: Sequence[str] = (),
 ) -> tuple[str, str]:
     system = prompt_text("filling-the-airo-ontology")
     parts = [
@@ -61,6 +62,7 @@ def writer_prompt(
         f"The {len(terms)} terms available for this property, and no others:",
         ", ".join(terms),
     ]
+    parts += _already_on_the_card(known, "Do not propose them again; propose only what the answer adds.")
     if findings:
         parts += [
             "",
@@ -77,7 +79,14 @@ def writer_prompt(
     return system, "\n".join(parts)
 
 
-def critic_prompt(draft: Draft, source: str) -> tuple[str, str]:
+def _already_on_the_card(known: Sequence[str], instruction: str) -> list[str]:
+    """The card's own rows for this property, which a person wrote (Refine with AI)."""
+    if not known:
+        return []
+    return ["", f"These are already on the card, written by a person. {instruction}", *(f"- {k}" for k in known)]
+
+
+def critic_prompt(draft: Draft, source: str, known: Sequence[str] = ()) -> tuple[str, str]:
     system = prompt_text("reviewing-an-ontology-draft")
     nodes = "\n".join(
         f'- {n.id}: label={n.label!r} vair={n.vair!r}' for n in draft.nodes
@@ -90,6 +99,7 @@ def critic_prompt(draft: Draft, source: str) -> tuple[str, str]:
             "",
             "The draft:",
             nodes or "(no nodes proposed)",
+            *_already_on_the_card(known, "Do not report them as missing from the draft."),
         ]
     )
     return system, user

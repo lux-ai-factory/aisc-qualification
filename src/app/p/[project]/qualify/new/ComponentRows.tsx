@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { COMPONENT_BLOCK, COMPONENT_KINDS, COMPONENT_NAME_MAX, COMPONENT_PROVIDERS } from "@/data/componentFields";
+import { COMPONENT_BLOCK, COMPONENT_NAME_MAX, COMPONENT_PROVIDERS, COMPONENT_TYPES } from "@/data/componentFields";
 import type { ComponentExample } from "@/data/examples";
 
 // The Components block (targets plan v2): one row per part of the system. Field names are
@@ -11,7 +11,11 @@ import type { ComponentExample } from "@/data/examples";
 // give. Unlike risks a card may have no components at all, so the block may be empty.
 type Row = { id: number; provider: string; values: ComponentExample };
 
-const blank = (): ComponentExample => ({ key: "", name: "", role: "", kind: "", provider: "in_house", providerName: "" });
+const blank = (): ComponentExample => ({ key: "", name: "", role: "", type: "", provider: "in_house", providerName: "" });
+
+// One Type list (2026-09-30): VAIR's AIComponent terms, then ours only for what VAIR has no term for.
+const VAIR_TYPES = COMPONENT_TYPES.filter((t) => t.vair);
+const OWN_TYPES = COMPONENT_TYPES.filter((t) => !t.vair);
 
 export default function ComponentRows({ initial }: { initial?: ComponentExample[] }) {
   const [rows, setRows] = useState<Row[]>(() =>
@@ -56,18 +60,27 @@ export default function ComponentRows({ initial }: { initial?: ComponentExample[
                      maxLength={COMPONENT_NAME_MAX} required placeholder="e.g. Scoring model" />
             </div>
             <div className="field">
-              <label className="qf-question" htmlFor={field("kind")}>
-                <span className="qf-question-text">What kind of part it is</span>
+              <label className="qf-question" htmlFor={field("type")}>
+                <span className="qf-question-text">Type</span>
               </label>
-              <select id={field("kind")} name={field("kind")} required defaultValue={row.values.kind}>
+              <select id={field("type")} name={field("type")} required defaultValue={row.values.type}>
                 <option value="" disabled>
                   Choose…
                 </option>
-                {COMPONENT_KINDS.map((k) => (
-                  <option key={k.id} value={k.id}>
-                    {k.label}
-                  </option>
-                ))}
+                <optgroup label="VAIR">
+                  {VAIR_TYPES.map((t) => (
+                    <option key={t.id} value={t.id} title={t.definition || undefined}>
+                      {t.label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Not in VAIR">
+                  {OWN_TYPES.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </div>
             <div className="field">

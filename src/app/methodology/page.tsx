@@ -1,7 +1,8 @@
 import SiteHeader from "@/components/SiteHeader";
 import { KEY_QUESTIONS } from "@/data/keyQuestions";
 import { RISK_FIELDS } from "@/data/riskFields";
-import { AFFECTED, IMPACT_AREAS, LOCALITIES, MARKET_FORMS } from "@/data/airoVocab";
+import { AFFECTED } from "@/data/airoVocab";
+import { CAPABILITIES, DOMAINS, IMPACT_AREAS, LOCALITIES, MODALITIES, PURPOSES, SYSTEM_TYPES } from "@/data/vairVocab";
 import { OntologyClient } from "@/server/services/OntologyClient";
 import Methodology, { type MethodologyFacts } from "./Methodology";
 
@@ -33,7 +34,11 @@ export default async function MethodologyPage() {
     optionalQuestions: KEY_QUESTIONS.filter((q) => q.optional).length,
     riskFields: RISK_FIELDS.length,
     pickers: {
-      marketForm: MARKET_FORMS.length,
+      systemType: SYSTEM_TYPES.length,
+      purpose: PURPOSES.length,
+      capability: CAPABILITIES.length,
+      domain: DOMAINS.length,
+      marketForm: MODALITIES.length,
       locality: LOCALITIES.length,
       impactArea: IMPACT_AREAS.length,
       affected: AFFECTED.length,

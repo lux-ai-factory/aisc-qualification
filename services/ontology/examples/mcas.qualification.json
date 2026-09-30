@@ -7,51 +7,23 @@
   "targetUseCase": "Retail banking and consumer micro-finance in the EU (deployed in Germany, France, and the Netherlands). Evaluates creditworthiness for €100–€5,000 consumer loans, returns a 0–1000 credit score, a Low/Medium/High risk category, and an Approve/Review/Reject recommendation, alongside influential factors and a natural-language explanation surfaced via the bank's web portal, mobile app, and staff dashboard. The subjects of the system are individual loan applicants whose access to credit is affected by its outputs.",
   "targetUsers": "Primary: bank customers aged 18+ applying for consumer loans through the bank's web portal or mobile app. Secondary: bank loan officers and compliance staff who monitor decisions, conduct manual reviews of borderline cases, and can approve, reject, or override outcomes with mandatory written justification.",
   "intendedDeployers": "Retail banks and consumer micro-finance providers licensed in DE, FR and NL, who run MCAS inside their own data centre and inside their own lending workflow. Each deployer configures the Approve/Review/Reject thresholds to its own risk appetite, staffs the Review queue with its own trained loan officers, and remains the controller for applicant data. Creditum AI SARL never operates the system on a deployer's behalf and never sees applicant-level data.",
-  "targetSystems": [
-    {
-      "tag": "tabular-structured-data:tabular-classification-regression",
-      "category": "Tabular & Structured Data",
-      "subcategory": "Tabular Classification & Regression"
-    },
-    {
-      "tag": "predictive-analytical-ai:risk-scoring-assessment",
-      "category": "Predictive & Analytical AI",
-      "subcategory": "Risk Scoring & Assessment"
-    },
-    {
-      "tag": "predictive-analytical-ai:predictive-analytics",
-      "category": "Predictive & Analytical AI",
-      "subcategory": "Predictive Analytics"
-    },
-    {
-      "tag": "natural-language-processing:text-generation-summarization",
-      "category": "Natural Language Processing",
-      "subcategory": "Text Generation & Summarization"
-    },
-    {
-      "tag": "natural-language-processing:question-answering",
-      "category": "Natural Language Processing",
-      "subcategory": "Question Answering"
-    },
-    {
-      "tag": "knowledge-retrieval:retrieval-augmented-generation-rag",
-      "category": "Knowledge & Retrieval",
-      "subcategory": "Retrieval-Augmented Generation (RAG)"
-    }
+  "systemType": "NarrowAI",
+  "purpose": "AssessingCreditworthiness",
+  "targetSystemTags": [
+    "Profiling",
+    "NaturalLanguageGeneration",
+    "QuestionAnswering",
+    "InformationRetrieval"
   ],
-  "sectors": [
-    {
-      "id": "finance-and-insurance",
-      "name": "Finance and insurance"
-    }
+  "sectorTags": [
+    "PrivateService"
   ],
   "marketFormTags": [
-    "software",
-    "service"
+    "Software",
+    "Service"
   ],
   "localityTags": [
-    "workplace",
-    "other"
+    "Workplace"
   ],
   "answers": [
     {
@@ -130,69 +102,177 @@
       "position": 0,
       "risk": "An applicant is wrongly ranked as high risk and routed to Reject",
       "source": "Credit bureau coverage is incomplete or stale for that applicant, so the model scores them on thin data",
+      "sourceTerm": "ErroneousInputData",
       "vulnerability": "The features assume complete bureau history in every deployment market; there is no explicit low-coverage path",
       "consequence": "A creditworthy applicant is refused a loan they would have repaid, and the recorded reason cites data that was never there",
+      "consequenceTerm": "ImpairedDecisionMaking",
+      "impactTerm": "UnfavourableTreatment",
       "affected": "user",
       "impactAreas": [
-        "right"
+        "Right"
       ],
       "control": "Every Reject and every Review case goes to a trained loan officer before any decision reaches the applicant; bureau coverage below the configured threshold forces the case into Review",
-      "followUpControl": "The officer may override the recommendation with a mandatory written justification recorded against the case, and the applicant is told how to contest the outcome"
+      "controlTerm": "HumanOversightMeasure",
+      "followUpControl": "The officer may override the recommendation with a mandatory written justification recorded against the case, and the applicant is told how to contest the outcome",
+      "followUpControlTerm": "OverridingOutcome"
     },
     {
       "position": 1,
       "risk": "Approval rates diverge across protected groups",
       "source": "Postal-code and transaction features act as proxies for ethnicity and socio-economic status even though protected attributes are excluded as direct inputs",
+      "sourceTerm": "BiasedTrainingData",
       "vulnerability": null,
       "consequence": "Applicants from some neighbourhoods are systematically scored lower than equally creditworthy applicants elsewhere, which is discriminatory treatment",
+      "consequenceTerm": "Bias",
+      "impactTerm": "DiscriminatoryTreatment",
       "affected": "user",
       "impactAreas": [
-        "right",
-        "freedom"
+        "Right",
+        "Freedom"
       ],
       "control": "Quarterly fairness audit measuring demographic parity and equal-opportunity difference across age band, gender proxy and postal-code SES proxy, with a 5% acceptance band, plus override rates by stratum to catch bias entering through human review",
-      "followUpControl": "Suspend automated scoring for the affected market and fall back to manual underwriting until the next recalibration clears the band"
+      "controlTerm": "BiasDetection",
+      "followUpControl": "Suspend automated scoring for the affected market and fall back to manual underwriting until the next recalibration clears the band",
+      "followUpControlTerm": "Interruption"
     },
     {
       "position": 2,
       "risk": "Loan officers rubber-stamp the recommendation instead of reviewing it",
       "source": "Automation bias: agreeing with the model is faster than justifying a divergence, and the queue is measured on throughput",
+      "sourceTerm": "InsufficientHumanOversightMeasure",
       "vulnerability": "The dashboard presents the recommendation before the underlying factors, which anchors the officer on the model's answer",
       "consequence": "The mandatory human review becomes a formality, so an incorrect score is issued as a binding decision with no effective safeguard",
+      "consequenceTerm": "ImpairedDecisionMaking",
+      "impactTerm": "Overreliance",
       "affected": "user",
       "impactAreas": [
-        "right",
-        "freedom"
+        "Right",
+        "Freedom"
       ],
       "control": "Officer override rates are tracked against the branch median, officers who never diverge are flagged for review, and refresher training covers automation bias explicitly",
-      "followUpControl": "Withdraw the officer's approval rights pending retraining and route their queue to a second reviewer"
+      "controlTerm": "MonitoringMeasure",
+      "followUpControl": "Withdraw the officer's approval rights pending retraining and route their queue to a second reviewer",
+      "followUpControlTerm": "OrganisationalMeasure"
     },
     {
       "position": 3,
       "risk": "The explanation shown to an applicant cites the wrong policy clause",
       "source": "The retrieval index over the bank's policy documentation falls out of date after a policy change",
+      "sourceTerm": "ErroneousInputData",
       "vulnerability": "The index refresh is a manual quarterly step with no staleness check at query time",
       "consequence": "The applicant is given an inaccurate reason for the outcome, which undermines any attempt to contest it",
+      "consequenceTerm": "DegradedAccuracy",
+      "impactTerm": "UnfavourableTreatment",
       "affected": "user",
       "impactAreas": [
-        "right"
+        "Right"
       ],
       "control": "Quarterly index refresh signed off by compliance, and every explanation records the index version it was generated from so any answer can be reproduced",
-      "followUpControl": null
+      "controlTerm": "LoggingMeasure",
+      "followUpControl": null,
+      "followUpControlTerm": null
     },
     {
       "position": 4,
       "risk": "Training data is poisoned through the bureau ingestion path",
       "source": "An attacker with access to a bureau feed injects records designed to shift the score distribution for a chosen segment",
+      "sourceTerm": "DataPoisoning",
       "vulnerability": "Recalibration ingests bureau records without provenance signing, so a tampered batch is indistinguishable from a genuine one",
       "consequence": "The recalibrated model systematically misranks a segment of applicants, and the drift is inside the normal seasonal range so monitoring does not catch it",
+      "consequenceTerm": "DegradedAccuracy",
+      "impactTerm": "DetrimentalTreatment",
       "affected": "operator",
       "impactAreas": [
-        "safety",
-        "right"
+        "Safety",
+        "Right"
       ],
       "control": "Egress allow-list and mutually authenticated bureau connections, checksummed model artefacts verified at load, and recalibration gated on the same validation and fairness suites as a full release",
-      "followUpControl": "Roll back to the previous signed model, which stays deployable for one quarter, and notify the deployer banks and the market surveillance authority"
+      "controlTerm": "SecurityMeasure",
+      "followUpControl": "Roll back to the previous signed model, which stays deployable for one quarter, and notify the deployer banks and the market surveillance authority",
+      "followUpControlTerm": "Intervention"
+    }
+  ],
+  "systemComponents": [
+    {
+      "key": "00000000-0000-4000-8000-000000000001",
+      "name": "Ingest and feature service",
+      "role": "Pulls credit bureau records, PSD2-authorised account data and application data, and computes the features the scoring model reads.",
+      "kind": "pipeline",
+      "vairType": null,
+      "provider": "in_house",
+      "providerName": null
+    },
+    {
+      "key": "00000000-0000-4000-8000-000000000002",
+      "name": "Credit scoring model",
+      "role": "Monotonic gradient-boosted decision tree that estimates the probability of default over the loan term, mapped to a 0-1000 score and to Approve, Review or Reject by fixed thresholds.",
+      "kind": "model",
+      "vairType": "DecisionTree",
+      "provider": "in_house",
+      "providerName": null
+    },
+    {
+      "key": "00000000-0000-4000-8000-000000000003",
+      "name": "Policy-rule engine",
+      "role": "Applies the hand-written eligibility rules (debt-to-income limits, age requirements, bankruptcy triggers); it can veto an Approve recommendation but never creates one.",
+      "kind": "rule_engine",
+      "vairType": null,
+      "provider": "in_house",
+      "providerName": null
+    },
+    {
+      "key": "00000000-0000-4000-8000-000000000004",
+      "name": "Explanation service",
+      "role": "Retrieval-grounded service that writes the plain-language explanation citing the applicable policy clause, and answers customer questions from the policy documentation; it calls the hosted LLM.",
+      "kind": "interface",
+      "vairType": null,
+      "provider": "in_house",
+      "providerName": null
+    },
+    {
+      "key": "00000000-0000-4000-8000-000000000005",
+      "name": "Hosted LLM",
+      "role": "Used as-is with no fine-tuning, behind a fixed system prompt held in version control; receives only the derived explanation factors, never raw applicant data.",
+      "kind": "llm",
+      "vairType": null,
+      "provider": "third_party",
+      "providerName": "Hosted third-party LLM provider (not named in the documentation)"
+    },
+    {
+      "key": "00000000-0000-4000-8000-000000000006",
+      "name": "Policy documentation retrieval index",
+      "role": "Version-controlled index over the bank's own policy documentation that grounds the explanations; refreshed quarterly when the policies change.",
+      "kind": "other_data",
+      "vairType": null,
+      "provider": "in_house",
+      "providerName": null
+    },
+    {
+      "key": "00000000-0000-4000-8000-000000000007",
+      "name": "Case and audit service",
+      "role": "Backs the staff dashboard: the cases loan officers review, their overrides with written justification, and the append-only audit log of every read of an applicant case.",
+      "kind": "interface",
+      "vairType": null,
+      "provider": "in_house",
+      "providerName": null
+    },
+    {
+      "key": "00000000-0000-4000-8000-000000000008",
+      "name": "Training data",
+      "role": "About 620,000 loan outcomes from the bank's last seven years, credit bureau records, twelve-month aggregated PSD2 transaction features and coarse demographic fields (age band, postal-code area).",
+      "kind": "training_data",
+      "vairType": null,
+      "provider": "in_house",
+      "providerName": null
+    },
+    {
+      "key": "00000000-0000-4000-8000-000000000009",
+      "name": "Validation data",
+      "role": "Temporally held-out set of the most recent 90,000 applications, plus a per-market split for DE, FR and NL.",
+      "kind": "validation_data",
+      "vairType": null,
+      "provider": "in_house",
+      "providerName": null
     }
   ]
 }

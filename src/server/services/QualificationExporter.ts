@@ -1,12 +1,13 @@
-import { parseTargetSystemTag, findSector } from "@/data";
+import { isVairTerm, type VairClass } from "@/data/vairVocab";
 import type { QualificationWithAnswers } from "@/server/repositories/QualificationRepository";
 import type { AnnexPointId } from "@/domain/forms/annexPoints";
 import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
 
 /**
- * The shape the ontology service consumes. This app owns the database and the
- * taxonomies, so it resolves the tags to their display names here; the service
- * never parses the Prisma schema or the taxonomy files.
+ * The shape the ontology service consumes. This app owns the database, so the
+ * service never parses the Prisma schema. The structured fields are VAIR terms
+ * (2026-09-30): the service names each node with VAIR's label and types it with
+ * the term, so nothing is resolved here.
  *
  * Mirrors scripts/export_qualification.mjs, which does the same for the CLI.
  */
@@ -19,8 +20,12 @@ export type QualificationExport = {
   targetUseCase: string;
   targetUsers: string;
   intendedDeployers: string | null;
-  targetSystems: Array<{ tag: string; category: string; subcategory: string }>;
-  sectors: Array<{ id: string; name: string }>;
+  /** VAIR AISystem and Purpose terms; null when left open. */
+  systemType: string | null;
+  purpose: string | null;
+  /** VAIR AICapability, Domain, Modality and LocalityOfUse terms. */
+  targetSystemTags: string[];
+  sectorTags: string[];
   marketFormTags: string[];
   localityTags: string[];
   /** With a form version, an answer to one of its questions also carries the
@@ -37,12 +42,17 @@ export type QualificationExport = {
     position: number;
     risk: string;
     source: string;
+    sourceTerm: string | null;
     vulnerability: string | null;
     consequence: string;
+    consequenceTerm: string | null;
+    impactTerm: string | null;
     affected: string;
     impactAreas: string[];
     control: string;
+    controlTerm: string | null;
     followUpControl: string | null;
+    followUpControlTerm: string | null;
   }>;
   /** The engine components the card links, each by its AIRO property; absent
    *  when it links none, so a card without links exports as it always did. */
@@ -62,6 +72,8 @@ export type QualificationExport = {
     name: string;
     role: string | null;
     kind: string;
+    /** The VAIR AIComponent term; null for one of our own types. */
+    vairType: string | null;
     provider: string;
     providerName: string | null;
   }>;
@@ -128,6 +140,8 @@ function answersInForm(
   return [...inForm, ...stray];
 }
 
+const terms = (cls: VairClass, ids: readonly string[]) => ids.filter((id) => isVairTerm(cls, id));
+
 /** The card as the ontology service reads it. Without a form version it is the
  *  export as it always was. */
 export function toExport(
@@ -145,26 +159,15 @@ export function toExport(
     targetUseCase: q.targetUseCase,
     targetUsers: q.targetUsers,
     intendedDeployers: q.intendedDeployers,
-    // A tag that no longer resolves is dropped, not passed through: a Domain or
-    // AICapability node with an unknown id would be a claim we cannot support.
-    targetSystems: q.targetSystemTags.flatMap((tag) => {
-      const resolved = parseTargetSystemTag(tag);
-      return resolved
-        ? [
-            {
-              tag,
-              category: resolved.category.name,
-              subcategory: resolved.sub.name,
-            },
-          ]
-        : [];
-    }),
-    sectors: q.sectorTags.flatMap((id) => {
-      const sector = findSector(id);
-      return sector ? [{ id: sector.id, name: sector.name }] : [];
-    }),
-    marketFormTags: q.marketFormTags,
-    localityTags: q.localityTags,
+    systemType: q.systemType ?? null,
+    purpose: q.purpose ?? null,
+    // A tag that is not a VAIR term of its class is dropped, not passed through: a
+    // Domain or AICapability node with an unknown term would be a claim we cannot
+    // support, and the builder refuses one.
+    targetSystemTags: terms("AICapability", q.targetSystemTags),
+    sectorTags: terms("Domain", q.sectorTags),
+    marketFormTags: terms("Modality", q.marketFormTags),
+    localityTags: terms("LocalityOfUse", q.localityTags),
     answers: form
       ? answersInForm(q, form)
       : q.answers
@@ -178,12 +181,17 @@ export function toExport(
       position: r.position,
       risk: r.risk,
       source: r.source,
+      sourceTerm: r.sourceTerm ?? null,
       vulnerability: r.vulnerability,
       consequence: r.consequence,
+      consequenceTerm: r.consequenceTerm ?? null,
+      impactTerm: r.impactTerm ?? null,
       affected: r.affected,
       impactAreas: r.impactAreas,
       control: r.control,
+      controlTerm: r.controlTerm ?? null,
       followUpControl: r.followUpControl,
+      followUpControlTerm: r.followUpControlTerm ?? null,
     })),
     ...(links.length
       ? {
@@ -204,6 +212,7 @@ export function toExport(
             name: c.name,
             role: c.role,
             kind: c.kind,
+            vairType: c.vairType ?? null,
             provider: c.provider,
             providerName: c.providerName,
           })),

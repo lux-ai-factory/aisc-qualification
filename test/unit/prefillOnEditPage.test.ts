@@ -71,8 +71,8 @@ describe("saving an upload with no market form (S5.2)", () => {
     form.append("targetUseCase", "u");
     form.append("targetUsers", "t");
     form.append("intendedDeployers", "Banks");
-    form.append("targetSystemTags", "natural-language-processing:question-answering");
-    form.append("sectorTags", "finance-and-insurance");
+    form.append("targetSystemTags", "QuestionAnswering");
+    form.append("sectorTags", "PrivateService");
     let error: unknown;
     try {
       new QualificationFormParser().parse(form);

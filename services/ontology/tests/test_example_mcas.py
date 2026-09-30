@@ -64,13 +64,15 @@ def test_the_graph_is_valid_airo(graph):
     assert validate(graph) == []
 
 
-def test_it_exercises_all_nineteen_properties(graph):
+def test_it_exercises_every_property_but_the_engine_test_link(graph):
     used = {
         str(p).replace(AIRO, "")
         for p in set(graph.predicates())
         if str(p).startswith(AIRO)
     }
-    assert used == set(PROPERTIES), set(PROPERTIES) - used
+    # MCAS links no test set from the engine, and a test set is not a component: hasTestingData is the
+    # one property only such a link gives (test_build.py exercises it).
+    assert used == set(PROPERTIES) - {"hasTestingData"}, set(PROPERTIES) - used
 
 
 def test_the_airo_namespace_carries_nothing_outside_the_minimal_schema(graph):
@@ -114,22 +116,14 @@ def test_the_mapped_tags_carry_their_vair_types(graph):
     assert list(graph.subjects(RDF.type, URIRef(VAIR + "Workplace")))
 
 
-def test_the_credit_scoring_capability_is_typed_by_a_human_not_the_mapping(graph):
+def test_the_credit_scoring_capability_is_the_one_the_author_chose(graph):
     """vair:Profiling is a compliance judgment (Art 5(1)(c) prohibits social
-    scoring), so the mechanical map must not assert it. It reaches the graph
-    through the curated `types` map instead: a decision someone owns."""
-    from airo_min.vair_map import CAPABILITY_TO_VAIR
-
-    assert (
-        "predictive-analytical-ai:risk-scoring-assessment" not in CAPABILITY_TO_VAIR
-    )
-    scoring = [
-        s
-        for s in graph.subjects(RDF.type, _a("AICapability"))
-        if "Risk Scoring" in str(graph.value(s, RDFS.label))
-    ]
+    scoring), so no mapping asserts it: the author picks it from VAIR's list on the
+    form, a decision someone owns."""
+    scoring = list(graph.subjects(RDF.type, URIRef(VAIR + "Profiling")))
     assert len(scoring) == 1
-    assert (scoring[0], RDF.type, URIRef(VAIR + "Profiling")) in graph
+    assert (scoring[0], RDF.type, _a("AICapability")) in graph
+    assert str(graph.value(scoring[0], RDFS.label)) == "Profiling"
 
 
 def test_nothing_is_left_untyped_that_could_have_been_typed(graph, extracted):
@@ -141,7 +135,8 @@ def test_nothing_is_left_untyped_that_could_have_been_typed(graph, extracted):
     untyped_but_typeable = []
     for node in {s for s in graph.subjects() if isinstance(s, URIRef)}:
         has_vair = any(str(o).startswith(VAIR) for o in graph.objects(node, RDF.type))
-        if has_vair:
+        # a part of one of our own types says itself that VAIR has no term for it (2026-09-30)
+        if has_vair or graph.value(node, QUAL.termNotApplicable) is not None:
             continue
         cls = next(
             (
@@ -233,11 +228,17 @@ def test_the_committed_jsonld_is_the_same_graph():
 # ── Addendum 06, R72: the example answers 1(f) ─────────────────────────────
 
 
-def test_r72_the_graph_is_413_triples_and_the_view_still_59_nodes(graph):
+def test_the_graph_is_451_triples_and_the_view_61_nodes(graph):
+    """2026-09-30: the form speaks VAIR. Four VAIR capabilities where six of our tags were, and no
+    "Other" locality (VAIR has none), so three nodes fewer than R72's 59; the example's nine
+    Components rows add five in the view (the data and model rows hang off their own properties);
+    and nothing the form fills is left for an agent to type."""
     from airo_min.view import build_view
 
-    assert len(graph) == 413
-    assert build_view(graph)["counts"]["nodes"] == 59
+    assert len(graph) == 451
+    view = build_view(graph)
+    assert view["counts"]["nodes"] == 61
+    assert view["counts"]["needsTerm"] == 0
 
 
 def test_r72_the_1f_answer_sits_right_after_1de(qualification):

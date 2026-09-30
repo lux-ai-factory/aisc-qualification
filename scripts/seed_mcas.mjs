@@ -7,6 +7,9 @@ import { PROJECT_ID, projectDatabaseUrl } from "./projectDb.mjs";
 // that need judgment rather than a form field. See
 // services/ontology/skills/filling-the-airo-ontology/SKILL.md.
 import ontologyExtracted from "../services/ontology/examples/mcas.extracted.json" with { type: "json" };
+// The VAIR terms of the worked example (2026-09-30) come from the ontology's committed fixture, so
+// the seed, the fixture and the graph built from it agree term for term.
+import example from "../services/ontology/examples/mcas.qualification.json" with { type: "json" };
 
 const QUALIFICATION = {
   systemName: "MicroCredit Assist Score (MCAS)",
@@ -18,23 +21,19 @@ const QUALIFICATION = {
     "Retail banking and consumer micro-finance in the EU (deployed in Germany, France, and the Netherlands). Evaluates creditworthiness for €100–€5,000 consumer loans, returns a 0–1000 credit score, a Low/Medium/High risk category, and an Approve/Review/Reject recommendation, alongside influential factors and a natural-language explanation surfaced via the bank's web portal, mobile app, and staff dashboard. The subjects of the system are individual loan applicants whose access to credit is affected by its outputs.",
   targetUsers:
     "Primary: bank customers aged 18+ applying for consumer loans through the bank's web portal or mobile app. Secondary: bank loan officers and compliance staff who monitor decisions, conduct manual reviews of borderline cases, and can approve, reject, or override outcomes with mandatory written justification.",
-  targetSystemTags: [
-    "tabular-structured-data:tabular-classification-regression",
-    "predictive-analytical-ai:risk-scoring-assessment",
-    "predictive-analytical-ai:predictive-analytics",
-    "natural-language-processing:text-generation-summarization",
-    "natural-language-processing:question-answering",
-    "knowledge-retrieval:retrieval-augmented-generation-rag",
-  ],
-  sectorTags: ["finance-and-insurance"],
+  systemType: example.systemType,
+  purpose: example.purpose,
+  targetSystemTags: example.targetSystemTags,
+  sectorTags: example.sectorTags,
   intendedDeployers:
     "Retail banks and consumer micro-finance providers licensed in DE, FR and NL, who run MCAS inside their own data centre and inside their own lending workflow. Each deployer configures the Approve/Review/Reject thresholds to its own risk appetite, staffs the Review queue with its own trained loan officers, and remains the controller for applicant data. Creditum AI SARL never operates the system on a deployer's behalf and never sees applicant-level data.",
-  marketFormTags: ["software", "service"],
-  localityTags: ["workplace", "other"],
+  marketFormTags: example.marketFormTags,
+  localityTags: example.localityTags,
 };
 
-// Question 15 rows: one full AIRO risk chain each.
-const RISKS = [
+// Question 15 rows: one full AIRO risk chain each. The areas and the VAIR terms are the fixture's.
+const TERM_FIELDS = ["sourceTerm", "consequenceTerm", "impactTerm", "controlTerm", "followUpControlTerm"];
+const RISK_TEXT = [
   {
     position: 0,
     risk: "An applicant is wrongly ranked as high risk and routed to Reject",
@@ -114,6 +113,11 @@ const RISKS = [
       "Roll back to the previous signed model, which stays deployable for one quarter, and notify the deployer banks and the market surveillance authority",
   },
 ];
+const RISKS = RISK_TEXT.map((r, i) => ({
+  ...r,
+  impactAreas: example.risks[i].impactAreas,
+  ...Object.fromEntries(TERM_FIELDS.map((f) => [f, example.risks[i][f] ?? null])),
+}));
 
 // Answers keyed by Annex IV point (toolId) and sub-item id (questionId), matching
 // src/data/keyQuestions.ts. Every sub-item is answered, the four optional ones
@@ -265,6 +269,8 @@ export async function seedMcas(prisma, { force = false, project, platform } = {}
       targetUseCase: QUALIFICATION.targetUseCase,
       targetUsers: QUALIFICATION.targetUsers,
       intendedDeployers: QUALIFICATION.intendedDeployers,
+      systemType: QUALIFICATION.systemType,
+      purpose: QUALIFICATION.purpose,
       targetSystemTags: QUALIFICATION.targetSystemTags,
       sectorTags: QUALIFICATION.sectorTags,
       marketFormTags: QUALIFICATION.marketFormTags,

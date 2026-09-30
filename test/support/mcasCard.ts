@@ -29,6 +29,12 @@ export function mcasCard(): QualificationWithAnswers {
     impactAreas: [...r.areas],
     control: r.control,
     followUpControl: r.followUpControl === "" ? null : r.followUpControl,
+    // the VAIR terms (2026-09-30)
+    sourceTerm: r.sourceTerm || null,
+    consequenceTerm: r.consequenceTerm || null,
+    impactTerm: r.impactTerm || null,
+    controlTerm: r.controlTerm || null,
+    followUpControlTerm: r.followUpControlTerm || null,
   }));
   return {
     id: "mcas-card",
@@ -40,6 +46,8 @@ export function mcasCard(): QualificationWithAnswers {
     description: m.description,
     targetUseCase: m.targetUseCase,
     targetUsers: m.targetUsers,
+    systemType: m.systemType || null,
+    purpose: m.purpose || null,
     targetSystemTags: [...m.targetSystemTags],
     sectorTags: [...m.sectorTags],
     marketFormTags: [...m.marketFormTags],

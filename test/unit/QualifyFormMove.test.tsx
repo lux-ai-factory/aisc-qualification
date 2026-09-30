@@ -7,7 +7,6 @@ vi.mock("@/app/p/[project]/qualify/new/actions", () => ({ submitQualification: v
 
 import QualifyForm from "@/app/p/[project]/qualify/new/QualifyForm";
 import { findExample } from "@/data/examples";
-import { sectors, targetSystems } from "@/data";
 import { customQuestion, formVersion, seededQuestion, setQuestion } from "../support/forms";
 
 // Two-level forms T40 and T41 (docs/superpowers/two-level-forms-2026-09-25/01-spec.md):
@@ -27,8 +26,6 @@ const mount = (props: Record<string, unknown>) =>
   render(
     <QualifyForm
       project="mcas"
-      targetSystems={targetSystems}
-      sectors={sectors}
       {...(props as object)}
     />,
   );

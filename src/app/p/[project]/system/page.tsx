@@ -5,8 +5,9 @@ import { engineClient } from "@/server/services/EngineClient";
 import { componentDrift, hasDrift } from "@/domain/cardComponents";
 
 // The project's one AI system is described by its latest AI card version.
-// With no version yet, or a latest version whose card was never stored (a save
-// that failed after naming it), the page says so and offers the edit.
+// With no card to show (no version yet, or a latest version without a card) it
+// opens the empty form: there is nothing else to do here. Only a platform that
+// does not answer gets a page of its own.
 export default async function SystemPage({
   params,
 }: {
@@ -54,15 +55,13 @@ export default async function SystemPage({
     );
   }
 
+  if (versions !== null) redirect(`/p/${project}/system/edit`);
+
   return (
     <main className="qualify-page">
       <header className="qualify-header">
-        <h1>{latest ? `v${latest.number} has no card yet` : "No AI card yet"}</h1>
-        <p>
-          {versions === null
-            ? "The platform did not answer, so the AI card versions cannot be shown."
-            : "Describe the project's one AI system: saving makes its next AI card version."}
-        </p>
+        <h1>No AI card yet</h1>
+        <p>The platform did not answer, so the AI card versions cannot be shown.</p>
       </header>
       <div className="qf-list-actions">
         <Link className="btn" href={`/p/${project}/system/edit`}>

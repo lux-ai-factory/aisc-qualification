@@ -1,15 +1,11 @@
-import { TaxonomyService, taxonomyService } from "@/domain/Taxonomy";
 import type { FormBlock } from "@/domain/forms/blocks";
 import { annexDefaultVersion } from "@/domain/forms/legacy";
 import type { ResolvedQuestionnaireVersion, ResolvedQuestion } from "@/domain/forms/types";
-import {
-  isAffected,
-  isImpactArea,
-  isLocality,
-  isMarketForm,
-} from "@/data/airoVocab";
+import { isAffected } from "@/data/airoVocab";
+import { isVairTerm, type VairClass } from "@/data/vairVocab";
+import { RISK_FIELDS } from "@/data/riskFields";
 import type { AnswerInput } from "@/server/repositories/QualificationRepository";
-import { COMPONENT_NAME_MAX, isComponentKind } from "@/data/componentFields";
+import { COMPONENT_NAME_MAX, typeToKind } from "@/data/componentFields";
 import type { ComponentInput } from "@/domain/systemComponents";
 
 // The identity: every form has it, whatever its blocks.
@@ -27,18 +23,37 @@ const TEXT_BLOCKS: Array<["description" | "targetUseCase" | "targetUsers", strin
   ["targetUsers", "Target users are required"],
 ];
 
-/** One row of the risk block (question 15): one full AIRO risk chain. */
+/** One row of the risk block (question 15): one full AIRO risk chain. Each `...Term` is the VAIR
+ *  term that types the field's node; the text beside it names the node. */
 export type RiskInput = {
   position: number;
   risk: string;
   source: string;
+  sourceTerm: string | null;
   vulnerability: string | null;
   consequence: string;
+  consequenceTerm: string | null;
+  impactTerm: string | null;
   affected: "operator" | "user";
   impactAreas: string[];
   control: string;
+  controlTerm: string | null;
   followUpControl: string | null;
+  followUpControlTerm: string | null;
 };
+
+/** A risk row's VAIR selects: the form field, its class, and whether VAIR can always answer it
+ *  (then it is required; the follow-up's only when there is a follow-up). */
+const RISK_TERMS: Array<{ field: "sourceTerm" | "consequenceTerm" | "impactTerm" | "controlTerm" | "followUpControlTerm";
+                          of: string; cls: VairClass; required: boolean }> = [
+  { field: "sourceTerm", of: "source", cls: "RiskSource", required: true },
+  { field: "consequenceTerm", of: "consequence", cls: "Consequence", required: false },
+  { field: "impactTerm", of: "impact", cls: "Impact", required: true },
+  { field: "controlTerm", of: "control", cls: "RiskControl", required: true },
+  { field: "followUpControlTerm", of: "followUpControl", cls: "RiskControl", required: true },
+];
+
+const riskLabel = (id: string) => RISK_FIELDS.find((f) => f.id === id)?.label ?? id;
 
 // Required text fields of a risk row, with the label used in error messages.
 const RISK_REQUIRED: Array<[keyof RiskInput, string]> = [
@@ -58,6 +73,10 @@ export type ParsedQualification = {
   targetUsers: string;
   /** null when the form does not include the block. */
   intendedDeployers: string | null;
+  /** VAIR AISystem and Purpose terms, on every form; null when left open. */
+  systemType: string | null;
+  purpose: string | null;
+  /** VAIR terms: AICapability, Domain, Modality, LocalityOfUse. */
   targetSystemTags: string[];
   sectorTags: string[];
   marketFormTags: string[];
@@ -78,8 +97,6 @@ export class FormValidationError extends Error {
 }
 
 export class QualificationFormParser {
-  constructor(private readonly taxonomy: TaxonomyService = taxonomyService) {}
-
   /**
    * The submission, read against the form version it was filled with. Only
    * that version's blocks and questions are read; anything else posted is
@@ -113,49 +130,30 @@ export class QualificationFormParser {
       }
     }
 
+    // On every form, like the identity, and optional: VAIR's lists do not describe every system.
+    const systemType = this.term(formData, "systemType", "AISystem", "system type");
+    const purpose = this.term(formData, "purpose", "Purpose", "purpose");
+
+    // The four tag sets are VAIR terms. Only market form is required: VAIR's four forms cover every
+    // system, while its capabilities, domains and localities do not.
     const picked = (block: FormBlock) =>
       has(block) ? this.collectStrings(formData, block) : [];
-
-    const targetSystemTags = picked("targetSystemTags");
-    const sectorTags = picked("sectorTags");
-    if (has("targetSystemTags") && targetSystemTags.length === 0) {
-      throw new FormValidationError(
-        "Pick at least one target-system capability.",
-      );
-    }
-    if (has("sectorTags") && sectorTags.length === 0) {
-      throw new FormValidationError("Pick at least one sector.");
-    }
-    for (const t of targetSystemTags) {
-      if (!this.taxonomy.isValidTargetSystemTag(t)) {
-        throw new FormValidationError(`Unknown target system tag: ${t}`);
+    const tagSets: Array<[FormBlock, VairClass, string]> = [
+      ["targetSystemTags", "AICapability", "capability"],
+      ["sectorTags", "Domain", "sector"],
+      ["marketFormTags", "Modality", "market form"],
+      ["localityTags", "LocalityOfUse", "locality of use"],
+    ];
+    const tags = Object.fromEntries(tagSets.map(([block]) => [block, picked(block)])) as Record<string, string[]>;
+    for (const [block, cls, name] of tagSets) {
+      for (const t of tags[block]) {
+        if (!isVairTerm(cls, t)) throw new FormValidationError(`Unknown ${name}: ${t}`);
       }
     }
-    for (const s of sectorTags) {
-      if (!this.taxonomy.isValidSectorTag(s)) {
-        throw new FormValidationError(`Unknown sector: ${s}`);
-      }
-    }
-
-    // AIRO-aligned pickers: controlled ids from src/data/airo_vocab.json.
-    const marketFormTags = picked("marketFormTags");
-    const localityTags = picked("localityTags");
-    if (has("marketFormTags") && marketFormTags.length === 0) {
+    if (has("marketFormTags") && tags.marketFormTags.length === 0) {
       throw new FormValidationError("Pick at least one market form.");
     }
-    if (has("localityTags") && localityTags.length === 0) {
-      throw new FormValidationError("Pick at least one locality of use.");
-    }
-    for (const m of marketFormTags) {
-      if (!isMarketForm(m)) {
-        throw new FormValidationError(`Unknown market form: ${m}`);
-      }
-    }
-    for (const l of localityTags) {
-      if (!isLocality(l)) {
-        throw new FormValidationError(`Unknown locality: ${l}`);
-      }
-    }
+    const { targetSystemTags, sectorTags, marketFormTags, localityTags } = tags;
 
     // A question marked optional ("where applicable" in Annex IV, or by the
     // form's author) may be left blank; the rest must be answered.
@@ -190,6 +188,8 @@ export class QualificationFormParser {
       ...identity,
       ...text,
       intendedDeployers,
+      systemType,
+      purpose,
       targetSystemTags,
       sectorTags,
       marketFormTags,
@@ -216,7 +216,7 @@ export class QualificationFormParser {
     const rows: ComponentInput[] = [];
     const names = new Set<string>();
     for (const i of [...indices].sort((a, b) => a - b)) {
-      if (["name", "role", "kind", "providerName"].every((f) => text(i, f) === "")) continue;
+      if (["name", "role", "type", "providerName"].every((f) => text(i, f) === "")) continue;
       const n = rows.length + 1;
       const name = text(i, "name");
       if (name === "") throw new FormValidationError(`Component ${n}: its name is required.`);
@@ -226,8 +226,8 @@ export class QualificationFormParser {
       const folded = name.toLowerCase().replace(/\s+/g, " ");
       if (names.has(folded)) throw new FormValidationError(`Component ${n}: ${name} is already on the card.`);
       names.add(folded);
-      const kind = text(i, "kind");
-      if (!isComponentKind(kind)) throw new FormValidationError(`Component ${n}: pick what kind of part it is.`);
+      const typed = typeToKind(text(i, "type"));
+      if (typed === null) throw new FormValidationError(`Component ${n}: pick its type.`);
       const provider = text(i, "provider") === "third_party" ? "third_party" : "in_house";
       const providerName = text(i, "providerName");
       if (provider === "third_party" && providerName === "") {
@@ -238,7 +238,8 @@ export class QualificationFormParser {
         key: text(i, "key") || null,
         name,
         role: text(i, "role") || null,
-        kind,
+        kind: typed.kind,
+        vairType: typed.vairType,
         provider,
         providerName: provider === "third_party" ? providerName : null,
       });
@@ -268,6 +269,7 @@ export class QualificationFormParser {
         RISK_REQUIRED.every(([f]) => text(i, f) === "") &&
         text(i, "vulnerability") === "" &&
         text(i, "followUpControl") === "" &&
+        RISK_TERMS.every(({ field }) => text(i, field) === "") &&
         areas.length === 0;
       if (allBlank) continue;
 
@@ -289,28 +291,57 @@ export class QualificationFormParser {
         );
       }
       for (const a of areas) {
-        if (!isImpactArea(a)) {
+        if (!isVairTerm("AreaOfImpact", a)) {
           throw new FormValidationError(
             `Risk ${n}: unknown area of impact: ${a}`,
           );
         }
       }
+      const terms: Record<string, string | null> = {};
+      for (const { field, of, cls, required } of RISK_TERMS) {
+        const value = text(i, field);
+        const asked = of !== "followUpControl" || text(i, of) !== "";
+        if (value === "") {
+          if (required && asked) {
+            throw new FormValidationError(`Risk ${n}: ${riskLabel(of)}: pick its VAIR term.`);
+          }
+          terms[field] = null;
+          continue;
+        }
+        if (!asked || !isVairTerm(cls, value)) {
+          throw new FormValidationError(`Risk ${n}: ${riskLabel(of)}: ${value} is not one of VAIR's terms for it.`);
+        }
+        terms[field] = value;
+      }
       rows.push({
         position: rows.length,
         risk: text(i, "risk"),
         source: text(i, "source"),
+        sourceTerm: terms.sourceTerm,
         vulnerability: text(i, "vulnerability") || null,
         consequence: text(i, "consequence"),
+        consequenceTerm: terms.consequenceTerm,
+        impactTerm: terms.impactTerm,
         affected: affected as "operator" | "user",
         impactAreas: areas,
         control: text(i, "control"),
+        controlTerm: terms.controlTerm,
         followUpControl: text(i, "followUpControl") || null,
+        followUpControlTerm: terms.followUpControlTerm,
       });
     }
     if (rows.length === 0) {
       throw new FormValidationError("Add at least one risk.");
     }
     return rows;
+  }
+
+  /** An optional single VAIR select: null when left open, refused when not a term of its class. */
+  private term(formData: FormData, name: string, cls: VairClass, what: string): string | null {
+    const value = this.trimmed(formData, name);
+    if (value === "") return null;
+    if (!isVairTerm(cls, value)) throw new FormValidationError(`Unknown ${what}: ${value}`);
+    return value;
   }
 
   private trimmed(formData: FormData, name: string): string {

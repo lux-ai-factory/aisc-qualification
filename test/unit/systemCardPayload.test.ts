@@ -13,8 +13,8 @@ const facts: CardFacts = {
   description: "Scores consumer loan applications.",
   targetUseCase: "Pre-screening consumer loans.",
   targetUsers: "Loan officers; applicants.",
-  targetSystemTags: ["predictive-analytical-ai:risk-scoring-assessment"],
-  sectorTags: ["economy"],
+  targetSystemTags: ["Profiling"],
+  sectorTags: ["PrivateService"],
 };
 
 const ontology = { system: { id: "system", label: "MCAS" }, rows: [], chains: [] };
@@ -34,14 +34,10 @@ describe("the payload the renderer is sent", () => {
 
   it("resolves the tags to names, since a PDF reader cannot read ids", () => {
     const payload = systemCardPayload(facts, null, null);
+    // VAIR terms (2026-09-30): a capability is flat, so it has no category
     expect(payload.classification).toEqual({
-      target_systems: [
-        {
-          category: "Predictive & Analytical AI",
-          subcategory: "Risk Scoring & Assessment",
-        },
-      ],
-      sectors: ["Economy"],
+      target_systems: [{ subcategory: "Profiling" }],
+      sectors: ["Private Service"],
     });
   });
 

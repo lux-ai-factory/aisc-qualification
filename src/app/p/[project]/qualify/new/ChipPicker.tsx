@@ -1,6 +1,7 @@
 "use client";
 
-import type { VocabEntry } from "@/data/airoVocab";
+/** A choice the picker offers: an id, its label, and VAIR's definition when it has one. */
+export type ChipOption = { id: string; label: string; definition?: string };
 
 /** Flat multi-select chips backed by one hidden input per selected id. */
 export default function ChipPicker({
@@ -16,12 +17,12 @@ export default function ChipPicker({
   label: string;
   citation: string;
   help: string;
-  options: VocabEntry[];
+  options: ChipOption[];
   selected: Set<string>;
   onToggle: (id: string) => void;
 }) {
   return (
-    <div className="field">
+    <div className="field" data-field={name}>
       <label className="qf-field-label">
         {label} <span className="qf-citation">{citation}</span>
       </label>
@@ -38,6 +39,7 @@ export default function ChipPicker({
               className={`qf-chip${active ? " active" : ""}`}
               onClick={() => onToggle(o.id)}
               aria-pressed={active}
+              title={o.definition || undefined}
             >
               {o.label}
             </button>

@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { qualificationService } from "@/server/services/QualificationService";
-import { requestFill } from "@/server/services/FillerClient";
 import { FormValidationError } from "@/server/forms/QualificationFormParser";
 import { projectDbForAction } from "@/lib/projectDb";
 
@@ -38,11 +37,7 @@ export async function submitQualification(
     throw err;
   }
 
-  // Ask the filler to draft the two properties that come from prose (Annex IV
-  // 2(a) and 2(c)). It runs in its own service over seconds to a minute, so this
-  // only starts it: the qualification is already stored, and a filler that is
-  // down or absent costs nothing but an emptier first draft.
-  await requestFill(project, id);
-
+  // The card is built from the form alone (2026-09-30). The filler runs only
+  // when a person asks for it on the card: Refine with AI, fill-actions.ts.
   redirect(`/p/${project}/qualify/${id}`);
 }

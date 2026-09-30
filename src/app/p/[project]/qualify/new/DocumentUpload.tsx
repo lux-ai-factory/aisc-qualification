@@ -59,8 +59,9 @@ export default function DocumentUpload({ status, onPick, onChoose }: DocumentUpl
       {status.kind === "choose" && (
         <div className="qf-prefill-mode">
           <p>
-            The document has {counted(status.proposed, status.risksProposed)} for this form, and
-            the form already has {counted(status.answered, status.risksAnswered)} in it. What
+            The document has {counted(status.proposed, status.risksProposed, status.componentsProposed)} for this form,
+            and the form already has{" "}
+            {counted(status.answered, status.risksAnswered, status.componentsAnswered)} in it. What
             should the document do with them?
           </p>
           <div className="qf-actions">
@@ -76,13 +77,14 @@ export default function DocumentUpload({ status, onPick, onChoose }: DocumentUpl
 
       {status.kind === "applied" && (
         <p className="qf-note">
-          Filled {counted(status.filled.length, status.risks)} from the document
+          Filled {counted(status.filled.length, status.risks, status.components, status.picks)} from the document
           {status.kept.length > 0 && (
             <>
               , left {status.kept.length} as {status.kept.length === 1 ? "it was" : "they were"}
             </>
           )}
           {status.risksKept && <>, and left your risks as they were</>}
+          {status.componentsKept && <>, and left your components as they were</>}
           . Read them before saving.
         </p>
       )}
@@ -92,8 +94,11 @@ export default function DocumentUpload({ status, onPick, onChoose }: DocumentUpl
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-/** "21 answers and 5 risks", leaving out the risks when there are none. */
-function counted(answers: number, risks: number): string {
-  const said = plural(answers, "answer", "answers");
-  return risks > 0 ? `${said} and ${plural(risks, "risk", "risks")}` : said;
+/** "21 answers, 5 risks and 9 components", leaving out the rows there are none of. */
+function counted(answers: number, risks: number, components = 0, picks = 0): string {
+  const parts = [plural(answers, "answer", "answers")];
+  if (risks > 0) parts.push(plural(risks, "risk", "risks"));
+  if (components > 0) parts.push(plural(components, "component", "components"));
+  if (picks > 0) parts.push(plural(picks, "VAIR choice", "VAIR choices"));
+  return parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 }

@@ -8,7 +8,8 @@ from pydantic import BaseModel, Field
 
 
 class TargetSystem(BaseModel):
-    category: str
+    # A VAIR capability (2026-09-30) is a flat term: no category, its label in `subcategory`.
+    category: str = ""
     subcategory: str
 
 

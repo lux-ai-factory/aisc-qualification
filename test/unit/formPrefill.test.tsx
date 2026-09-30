@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, render } from "@testing-library/react";
+import { IMPACT_AREAS } from "@/data/vairVocab";
 import QualifyForm from "@/app/p/[project]/qualify/new/QualifyForm";
 import { findExample } from "@/data/examples";
-import { sectors, targetSystems } from "@/data";
 import { KEY_QUESTIONS } from "@/data/keyQuestions";
 
 afterEach(cleanup);
@@ -15,8 +15,6 @@ const mount = (initial = example) =>
     <QualifyForm
       project="p"
       keyQuestions={KEY_QUESTIONS}
-      targetSystems={targetSystems}
-      sectors={sectors}
       initial={initial}
     />,
   );
@@ -38,12 +36,11 @@ describe("opening the form on a worked example", () => {
       [...container.querySelectorAll(`input[type="hidden"][name="${name}"]`)].map(
         (i) => (i as HTMLInputElement).value,
       );
-    expect(hidden("targetSystemTags")).toContain(
-      "predictive-analytical-ai:risk-scoring-assessment",
-    );
-    expect(hidden("sectorTags")).toEqual(["finance-and-insurance"]);
-    expect(hidden("marketFormTags")).toEqual(["software", "service"]);
-    expect(hidden("localityTags")).toContain("workplace");
+    // VAIR terms (2026-09-30)
+    expect(hidden("targetSystemTags")).toContain("Profiling");
+    expect(hidden("sectorTags")).toEqual(["PrivateService"]);
+    expect(hidden("marketFormTags")).toEqual(["Software", "Service"]);
+    expect(hidden("localityTags")).toContain("Workplace");
   });
 
   it("fills every Annex IV answer it has one for", () => {
@@ -72,7 +69,7 @@ describe("opening the form on a worked example", () => {
     const areas = [
       ...first.querySelectorAll('input[type="hidden"][name$=":area"]'),
     ].map((i) => (i as HTMLInputElement).value);
-    expect(areas).toContain("right");
+    expect(areas).toContain("Right");
   });
 
   it("stays empty when no example is asked for", () => {
@@ -80,8 +77,6 @@ describe("opening the form on a worked example", () => {
       <QualifyForm
         project="p"
         keyQuestions={KEY_QUESTIONS}
-        targetSystems={targetSystems}
-        sectors={sectors}
       />,
     );
     expect(
@@ -130,7 +125,7 @@ describe("the worked example itself", () => {
   });
 
   it("uses only vocabulary ids the pickers offer", () => {
-    const areaIds = new Set(["health", "safety", "right", "freedom"]);
+    const areaIds = new Set(IMPACT_AREAS.map((a) => a.id));
     for (const row of example.risks) {
       expect(["operator", "user"]).toContain(row.affected);
       for (const area of row.areas) expect(areaIds.has(area)).toBe(true);

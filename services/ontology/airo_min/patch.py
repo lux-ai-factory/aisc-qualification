@@ -19,7 +19,7 @@ from typing import Any
 from rdflib import Graph, Literal, RDF, RDFS, URIRef
 
 from .build import QUAL, VAIR_TERMS
-from .vair_map import VAIR
+from .vair_terms import VAIR
 from .vair_terms import is_term_for
 
 from .schema import AIRO as AIRO_NS
