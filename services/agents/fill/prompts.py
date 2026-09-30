@@ -116,3 +116,16 @@ def naming_prompt(texts: dict[str, str], findings: Sequence[Finding] = ()) -> tu
             *(f"- {f}" for f in findings),
         ]
     return system, "\n".join(parts)
+
+
+def consistency_prompt(nodes: Sequence[dict], answers: Sequence[dict]) -> tuple[str, str]:
+    """The prompt that checks the author's choices against their answers: nodes as lines, answers by annex point."""
+    system = prompt_text("checking-consistency")
+    parts = ["The choices:"]
+    for n in nodes:
+        parts.append(
+            f"{n['id']} | {n['cls']} | {n['label']} | {n.get('vair') or '-'} | {' '.join((n.get('fullText') or '-').split())}"
+        )
+    parts += ["", "The answers:"]
+    parts += [f"[{a.get('annexPoint', '')}] {' '.join(a['answer'].split())}" for a in answers if isinstance(a.get("answer"), str) and a["answer"].strip()]
+    return system, "\n".join(parts)

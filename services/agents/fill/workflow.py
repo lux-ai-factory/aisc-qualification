@@ -20,6 +20,7 @@ from typing import Callable
 from . import clients
 from .agents import LlmCritic, LlmWriter
 from .controls import run_controls
+from .consistency import check
 from .names import draft_names, nameable
 from .models import (
     CITATION_OF,
@@ -250,6 +251,7 @@ class FillRun:
         """Write the drafts and their flags where the card reads them."""
         self.payload = payload_of(self.outcomes, known_parts(self.qualification))
         self._name_long_answers()
+        self._check_consistency()
         self.publish(self.qualification["id"], self.payload)
 
     def _name_long_answers(self) -> None:
@@ -277,6 +279,25 @@ class FillRun:
         self.payload["names"] = names
         if gave_up:
             self.payload["record"]["names_left"] = gave_up
+
+    def _check_consistency(self) -> None:
+        """Point at card choices the author's own answers contradict; it only points.
+
+        Optional like the names: whatever goes wrong here, the run publishes what it has.
+        """
+        self.payload["notes"] = {}
+        record = self.payload["record"]
+        record["notes"] = 0
+        try:
+            view = (self.build or clients.build)(self.qualification, {"names": self.payload.get("names", {})})["view"]
+            notes, dropped = check(view, self.qualification.get("answers", []), self.complete)
+        except Exception as error:
+            record["notes_failed"] = str(error) or type(error).__name__
+            return
+        self.payload["notes"] = notes
+        record["notes"] = sum(len(v) for v in notes.values())
+        if dropped:
+            record["notes_dropped"] = dropped
 
     # ── the conditions the state machine branches on ─────────────────────────
 
