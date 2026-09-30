@@ -4,10 +4,12 @@ import json
 from fill.consistency import check
 from fill.workflow import run_fill
 from tests.test_workflow import QUALIFICATION, TERMS, FakeCompleter
+from tests.views import MCAS_VIEW, in_a_row
 
 ANSWERS = [{"annexPoint": "2a", "answer": "The explanation module wraps a hosted third-party LLM, used as-is."}]
-VIEW = {"nodes": [{"id": "component-abc", "cls": "AIComponent", "label": "Explanation service",
-                   "vair": "ApplicationPlatform", "provenance": "form", "fullText": None}]}
+COMPONENT = {"id": "component-abc", "cls": "AIComponent", "label": "Explanation service",
+             "vair": "ApplicationPlatform", "provenance": "form", "fullText": None}
+VIEW = in_a_row(COMPONENT)
 
 
 def reply(obj):
@@ -44,7 +46,7 @@ def test_at_most_eight_and_one_per_node():
 
 
 def test_a_node_the_author_did_not_write_is_not_listed():
-    view = {"nodes": [{**VIEW["nodes"][0], "provenance": "agent"}]}
+    view = in_a_row({**COMPONENT, "provenance": "agent"})
     notes, dropped = check(view, ANSWERS, reply({"findings": [
         {"node": "component-abc", "why": "w", "quote": "hosted third-party LLM"}]}))
     assert notes == {} and dropped == []
@@ -52,18 +54,24 @@ def test_a_node_the_author_did_not_write_is_not_listed():
 
 def test_a_long_answer_node_is_noted_against_its_full_text():
     full = "Assess the creditworthiness of consumer loan applicants for retail banks"
-    view = {"nodes": [{"id": "purpose", "cls": "Purpose", "label": "Consumer loan creditworthiness",
-                       "vair": None, "provenance": "form", "fullText": full}]}
+    view = in_a_row({"id": "purpose", "cls": "Purpose", "label": "Consumer loan creditworthiness",
+                     "vair": None, "provenance": "form", "fullText": full}, prop="hasPurpose")
     notes, _ = check(view, ANSWERS, reply({"findings": [{"node": "purpose", "why": "w", "quote": "hosted   third-party LLM"}]}))
     assert notes["purpose"][0]["of"] == full and notes["purpose"][0]["quote"] == "hosted third-party LLM"
 
 
 def test_no_listed_node_asks_nothing():
     calls = []
-    assert check({"nodes": []}, ANSWERS, lambda *a, **k: calls.append(1)) == ({}, []) and not calls
+    assert check(in_a_row(), ANSWERS, lambda *a, **k: calls.append(1)) == ({}, []) and not calls
 
 
-CVIEW = {"view": {"nodes": [VIEW["nodes"][0]]}}
+def test_the_real_card_view_lists_its_nodes_to_the_model():
+    users = []
+    check(MCAS_VIEW, ANSWERS, lambda s, u, **k: users.append(u) or "{}")
+    assert users and "deployer | AIOperator |" in users[0] and "risk0_source | RiskSource |" in users[0]
+
+
+CVIEW = {"view": VIEW}
 QUOTE = "hosted third-party LLM"
 
 

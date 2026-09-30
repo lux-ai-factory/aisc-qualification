@@ -1,24 +1,42 @@
 """Refine with AI names the long answers: the names it drafts, and the ones it will not keep."""
-from fill.names import draft_names, nameable
+import pytest
 
-VIEW = {"view": {"nodes": [
+from fill.names import draft_names, nameable
+from fill.view_nodes import nodes_of
+from tests.views import MCAS_VIEW
+
+NODES = [
     {"id": "purpose", "cls": "Purpose", "label": "Assess the...", "fullText": "Assess the creditworthiness of consumer loan applicants for retail banks", "provenance": "form"},
     {"id": "system", "cls": "AISystem", "label": "MCAS 1", "fullText": None, "provenance": "form"},
     {"id": "technique0", "cls": "AITechnique", "label": "x", "fullText": "long long", "provenance": "extracted"},
-]}}
+]
+
+
+def _row(prop):
+    return next(r for r in MCAS_VIEW["rows"] if r["property"] == prop)["nodes"][0]
+
+
+def test_the_long_answers_of_the_real_card_view_are_named():
+    texts = nameable(nodes_of(MCAS_VIEW))
+    for node_id, prop in (("purpose", "hasPurpose"), ("provider", "isProvidedBy"),
+                          ("deployer", "isDeployedBy"), ("users", "hasAIUser")):
+        assert texts[node_id] == _row(prop)["fullText"]
+    chain = MCAS_VIEW["chains"][0]
+    assert texts["risk0"] == chain["risk"]["fullText"] and texts["risk0_source"] == chain["source"]["fullText"]
 
 
 def test_only_long_form_texts_are_named():
-    assert nameable(VIEW["view"]) == {"purpose": VIEW["view"]["nodes"][0]["fullText"]}
+    assert nameable(NODES) == {"purpose": NODES[0]["fullText"]}
 
 
-def test_a_technique_typed_on_the_form_is_not_named():
-    node = {"id": "t", "cls": "AITechnique", "label": "x", "fullText": "long text here", "provenance": "form"}
-    assert nameable({"nodes": [node]}) == {}
+@pytest.mark.parametrize("cls", ["AITechnique", "AIComponent"])
+def test_a_node_the_builder_takes_no_name_for_is_not_named(cls):
+    node = {"id": "t", "cls": cls, "label": "x", "fullText": "long text here", "provenance": "form"}
+    assert nameable([node]) == {}
 
 
 def test_a_good_name_is_kept_with_its_text():
-    text = VIEW["view"]["nodes"][0]["fullText"]
+    text = NODES[0]["fullText"]
     names, gave_up = draft_names({"purpose": text}, lambda *a, **k: '{"purpose": "Consumer loan creditworthiness"}')
     assert names == {"purpose": {"name": "Consumer loan creditworthiness", "of": text}}
     assert gave_up == []

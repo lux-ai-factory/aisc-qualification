@@ -9,6 +9,7 @@ import pytest
 baf = pytest.importorskip("baf", reason="BAF is not installed in this environment")
 
 from fill.workflow import DRAFTED, STATE_NAMES, build_agent, run_fill
+from tests.views import MCAS_VIEW, in_a_row
 
 
 QUALIFICATION = {
@@ -403,9 +404,10 @@ def test_r32_without_any_annex_point_key_the_suffix_rule_is_as_today():
 
 
 PURPOSE = "Assess the creditworthiness of consumer loan applicants for retail banks"
-VIEW = {"view": {"nodes": [
+VIEW = {"view": in_a_row(
     {"id": "purpose", "cls": "Purpose", "label": "Assess the...", "fullText": PURPOSE, "provenance": "form"},
-]}}
+    prop="hasPurpose",
+)}
 
 
 class TestNamingTheLongAnswers:
@@ -445,6 +447,20 @@ class TestNamingTheLongAnswers:
         )
         assert published["q1"]["names"] == {}
         assert published["q1"]["record"]["names_left"][0]["node"] == "purpose"
+
+    def test_the_real_card_view_asks_names_for_its_long_answers(self):
+        fake = FakeCompleter()
+        asked = []
+
+        def complete(system, user, temperature=0.0):
+            if "Naming long answers" in system:
+                asked.append(user)
+                return "{}"
+            return fake(system, user, temperature)
+
+        run_fill(QUALIFICATION, terms=TERMS, complete=complete,
+                 publish=lambda qid, payload: None, build=lambda q, e: {"view": MCAS_VIEW})
+        assert asked and all(f"{i}:" in asked[0] for i in ("purpose", "deployer", "users", "risk0_source"))
 
     def test_an_unreachable_ontology_service_publishes_the_run_without_names(self):
         from fill.clients import ServiceError

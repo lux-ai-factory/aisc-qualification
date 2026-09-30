@@ -18,11 +18,14 @@ from .prompts import naming_prompt
 _DRAFTED_CLASSES = {"AITechnique", "AIComponent"}
 
 
-def nameable(view: dict) -> dict[str, str]:
-    """Node id to the full text of every node the author wrote whose label had to be cut."""
+def nameable(nodes: list[dict]) -> dict[str, str]:
+    """Node id to the full text of every node the author wrote whose label had to be cut.
+
+    `nodes` are a card view's, as `view_nodes.nodes_of` lists them.
+    """
     return {
         node["id"]: node["fullText"]
-        for node in view.get("nodes", [])
+        for node in nodes
         if node.get("fullText")
         and node.get("provenance") == "form"
         and node.get("cls") not in _DRAFTED_CLASSES

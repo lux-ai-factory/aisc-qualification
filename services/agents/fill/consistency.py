@@ -10,6 +10,7 @@ from typing import Callable
 
 from .agents import _json_object
 from .prompts import consistency_prompt
+from .view_nodes import nodes_of
 
 MAX_NOTES = 8
 
@@ -28,7 +29,7 @@ def check(view: dict, answers: list[dict], complete: Callable[..., str]) -> tupl
     """Notes as `{node id: [{"why", "quote", "of"}]}`, and the findings that were dropped with a reason."""
     nodes = {
         n["id"]: n
-        for n in view.get("nodes", [])
+        for n in nodes_of(view)
         if n.get("provenance") == "form" and n.get("cls") in CHECKED
     }
     texts = [_squash(a["answer"]) for a in answers if isinstance(a.get("answer"), str) and a["answer"].strip()]

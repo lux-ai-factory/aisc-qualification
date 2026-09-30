@@ -22,6 +22,7 @@ from .agents import LlmCritic, LlmWriter
 from .controls import run_controls
 from .consistency import check
 from .names import draft_names, nameable
+from .view_nodes import nodes_of
 from .models import (
     CITATION_OF,
     CLASS_OF,
@@ -272,7 +273,7 @@ class FillRun:
             self.payload["record"]["names"] = "naming failed"
             return
         try:
-            names, gave_up = draft_names(nameable(view), self.complete)
+            names, gave_up = draft_names(nameable(nodes_of(view)), self.complete)
         except Exception:
             self.payload["record"]["names"] = "naming failed"
             return
