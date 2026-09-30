@@ -15,6 +15,7 @@ const REVIEW_FLAGS = [
   "sentence",
   "unsupported-term",
   "uncovered",
+  "inconsistent",
 ] as const;
 
 // Prisma's InputJsonValue will not take `unknown`, and the record is opaque to
@@ -53,6 +54,9 @@ const node = z
 const name = z.string().trim().min(1).max(LABEL_MAX);
 const draftedName = z.object({ name, of: z.string().min(1) }).strict();
 
+// A consistency finding: why, the quoted words, and the text of the node it was written for.
+const note = z.object({ why: z.string(), quote: z.string(), of: z.string() }).strict();
+
 const extracted = z
   .object({
     techniques: z.array(node).optional(),
@@ -60,6 +64,7 @@ const extracted = z
     names: z.record(z.string(), z.union([name, draftedName])).optional(),
     types: z.record(z.string(), z.string().min(1)).optional(),
     flags: z.record(z.string(), z.array(z.enum(REVIEW_FLAGS)).min(1)).optional(),
+    notes: z.record(z.string(), z.array(note)).optional(),
     /** The agent's own record of the run: rounds, findings, calls. */
     record: z.record(z.string(), jsonValue).optional(),
   })

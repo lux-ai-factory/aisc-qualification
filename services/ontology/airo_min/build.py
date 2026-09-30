@@ -136,8 +136,9 @@ def named(
 #:   sentence         the label is a clause, not a name
 #:   unsupported-term the term was chosen where the answer says nothing about it
 #:   uncovered        the answer supports this property but nothing was proposed
+#:   inconsistent     the card's own answers say otherwise, quoted
 REVIEW_FLAGS = frozenset(
-    {"ungrounded", "inflated", "sentence", "unsupported-term", "uncovered"}
+    {"ungrounded", "inflated", "sentence", "unsupported-term", "uncovered", "inconsistent"}
 )
 
 
@@ -372,6 +373,23 @@ def build_graph(
                     f"{', '.join(sorted(REVIEW_FLAGS))}"
                 )
             g.add((node, QUAL.reviewFlag, Literal(flag)))
+
+    # A consistency finding carries its reason and the words it rests on. It is
+    # written for one text, so it is kept only while the node still shows that text.
+    for node_id, notes in (extracted.get("notes") or {}).items():
+        node = ex[node_id]
+        if (node, RDF.type, None) not in g:
+            continue  # a stale entry, e.g. after the form changed
+        shown = {
+            " ".join(str(v).split())
+            for v in (g.value(node, RDFS.label), g.value(node, QUAL.fullLabel))
+            if v
+        }
+        for note in notes:
+            if " ".join(str(note.get("of", "")).split()) not in shown:
+                continue  # written for another text, or another row now at this position
+            g.add((node, QUAL.reviewFlag, Literal("inconsistent")))
+            g.add((node, QUAL.flagNote, Literal(f"{note['why']} | {note['quote']}")))
 
     # ── what built this graph, so an exported file can be checked ────────────
     for stamp in _build_stamp():

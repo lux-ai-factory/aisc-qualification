@@ -507,3 +507,39 @@ def test_an_old_string_name_still_applies_and_is_not_marked_as_drafted():
     assert str(g.value(EX.purpose, RDFS.label)) == "Consumer credit assessment"
     assert str(g.value(EX.purpose, QUAL.provenance)) == "form"
     assert g.value(EX.purpose, QUAL.nameDrafted) is None
+
+
+def _note(q, **over):
+    return {"why": "the answer names a hosted LLM", "quote": "a hosted third-party LLM",
+            "of": q["risks"][0]["control"], **over}
+
+
+def test_a_note_rides_on_its_node():
+    from rdflib import Literal
+    q = _qualification()
+    note = _note(q)
+    g = build_graph(q, {"notes": {"risk0_control": [note]}})
+    assert (EX.risk0_control, QUAL.reviewFlag, Literal("inconsistent")) in g
+    assert node_view(g, EX.risk0_control)["flagNotes"] == [{"why": note["why"], "quote": note["quote"]}]
+
+
+def test_a_note_for_other_text_is_ignored():
+    q = _qualification()
+    g = build_graph(q, {"notes": {"risk0_control": [_note(q, of="a control that is no longer there")]}})
+    assert (EX.risk0_control, QUAL.reviewFlag, None) not in g
+    assert (EX.risk0_control, QUAL.flagNote, None) not in g
+
+
+def test_a_note_for_a_node_that_is_gone_is_ignored():
+    q = _qualification()
+    g = build_graph(q, {"notes": {"risk9_control": [_note(q)]}})
+    assert (EX.risk9_control, None, None) not in g
+
+
+def test_a_reviewer_edit_clears_the_notes_with_the_flag():
+    q = _qualification()
+    g = build_graph(q, {"notes": {"risk0_control": [_note(q)]}})
+    apply_patch(g, {"risk0_control": {"label": "Manual review"}})
+    assert (EX.risk0_control, QUAL.reviewFlag, None) not in g
+    assert (EX.risk0_control, QUAL.flagNote, None) not in g
+    assert "flagNotes" not in node_view(g, EX.risk0_control)

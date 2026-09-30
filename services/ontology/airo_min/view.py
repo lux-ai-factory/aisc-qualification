@@ -81,6 +81,12 @@ def node_view(g: Graph, node: URIRef) -> dict[str, Any]:
         # Sorted for a stable card, and because the order a set yields is not an
         # order. The builder writes them from a list; RDF does not keep it.
         out["flags"] = sorted(flags)
+    notes = sorted(str(o) for o in g.objects(node, QUAL.flagNote))
+    if notes:
+        # "<why> | <quote>": the reason first, then the words it rests on.
+        out["flagNotes"] = [
+            dict(zip(("why", "quote"), n.split(" | ", 1))) for n in notes
+        ]
     if not _expects_a_term(airo_cls):
         # No term can describe this node: either VAIR does not subdivide the
         # class, or its terms name a population the node is not part of. Said

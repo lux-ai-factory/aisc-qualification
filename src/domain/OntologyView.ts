@@ -28,6 +28,8 @@ export type OntologyNode = {
   /** Findings the filler's own review could not settle, from the closed set in
    *  airo_min/build.py. A reviewer's edit clears them. */
   flags?: string[];
+  /** Consistency findings: the reason and the words it rests on. */
+  flagNotes?: Array<{ why: string; quote: string }>;
   /** False when the class has VAIR terms but they name a population this node
    *  does not belong to: VAIR's 17 AIOperator terms are all Annex III public
    *  bodies, so a commercial provider is complete without one. Absent means a
@@ -134,4 +136,6 @@ export type OntologyExtracted = {
   names?: Record<string, string | { name: string; of: string }>;
   /** node id -> VAIR term, for nodes no mechanical mapping can reach. */
   types?: Record<string, string>;
+  /** node id -> consistency findings, each with the text it was written for. */
+  notes?: Record<string, Array<{ why: string; quote: string; of: string }>>;
 };

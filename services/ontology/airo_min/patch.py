@@ -91,6 +91,7 @@ def apply_patch(g: Graph, patch: dict[str, dict[str, Any]] | None) -> None:
 
         # A person has looked at this node, so its flags are settled.
         g.remove((node, QUAL.reviewFlag, None))
+        g.remove((node, QUAL.flagNote, None))
 
         g.remove((node, QUAL.provenance, None))
         g.add((node, QUAL.provenance, Literal("reviewed")))

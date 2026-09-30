@@ -294,8 +294,8 @@ export default function Methodology({ facts }: { facts: MethodologyFacts }) {
                   <code>provenance: &ldquo;extracted&rdquo;</code>, and whatever
                   the loop could not settle rides along as a flag on the node:{" "}
                   <code>ungrounded</code>, <code>inflated</code>,{" "}
-                  <code>sentence</code>, <code>unsupported-term</code> or{" "}
-                  <code>uncovered</code>.
+                  <code>sentence</code>, <code>unsupported-term</code>,{" "}
+                  <code>uncovered</code> or <code>inconsistent</code>.
                 </p>
               </li>
             </ol>

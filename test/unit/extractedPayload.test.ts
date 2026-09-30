@@ -35,6 +35,19 @@ describe("the payload a filler agent publishes", () => {
     expect(parseExtracted({ names: { purpose: { name: "Scoring", of: "t", extra: 1 } } }).ok).toBe(false);
   });
 
+  it("accepts a note with its reason, its quote and the text it was written for", () => {
+    const notes = { risk0_control: [{ why: "the answer names a hosted LLM", quote: "a hosted third-party LLM", of: "Manual review" }] };
+    const result = parseExtracted({ ...valid, notes, flags: { risk0_control: ["inconsistent"] } });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.notes).toEqual(notes);
+  });
+
+  it("refuses a note without its text or with anything extra", () => {
+    expect(parseExtracted({ notes: { a: [{ why: "w", quote: "q" }] } }).ok).toBe(false);
+    expect(parseExtracted({ notes: { a: [{ why: "w", quote: "q", of: "t", extra: 1 }] } }).ok).toBe(false);
+  });
+
   it("accepts an empty draft", () => {
     expect(parseExtracted({ techniques: [], components: [] }).ok).toBe(true);
   });
