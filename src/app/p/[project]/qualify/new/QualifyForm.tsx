@@ -117,7 +117,12 @@ export default function QualifyForm({
   // the form does not have takes nothing.
   const applyPicks: PicksApplier = (picks, mode, formEl) => {
     let landed = 0;
-    for (const [name, cls] of [["systemType", "AISystem"], ["purpose", "Purpose"]] as const) {
+    for (const [name, cls] of [
+      ["systemType", "AISystem"],
+      ["purpose", "Purpose"],
+      ["providerTerm", "AIOperator"],
+      ["deployerTerm", "AIOperator"],
+    ] as const) {
       const value = picks[name];
       const el = formEl?.elements.namedItem(name);
       if (!value || !isVairTerm(cls, value) || !(el instanceof HTMLSelectElement)) continue;

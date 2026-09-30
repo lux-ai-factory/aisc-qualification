@@ -55,3 +55,15 @@ def test_the_upload_returns_them():
     body = upload(text=HEADER.encode()).json()
     assert body["picks"]["sectorTags"] == ["PrivateService"]
     assert body["picksProposed"] == 6
+
+
+def test_a_document_names_the_deployer_kind():
+    assert picks_from_text("Kind of deployer: Educational Institution\n")["deployerTerm"] == "EducationalInstitution"
+
+
+def test_a_document_names_the_provider_kind():
+    assert picks_from_text("Provider term: Public Authority\n")["providerTerm"] == "PublicAuthority"
+
+
+def test_an_unknown_deployer_kind_is_left_open():
+    assert "deployerTerm" not in picks_from_text("Kind of deployer: Retail bank\n")

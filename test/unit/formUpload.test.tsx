@@ -263,6 +263,39 @@ describe("uploading the VAIR picks", () => {
     await waitFor(() => expect(hidden(container, "sectorTags")).toEqual(["PrivateService"]));
   });
 
+  it("puts the kind of provider and deployer on their selects, by the same rule", async () => {
+    readDocument.mockResolvedValue(withPicks({ providerTerm: "PublicAuthority", deployerTerm: "EducationalInstitution" }));
+    const { container } = mount();
+    fireEvent.change(container.querySelector('select[name="providerTerm"]')!, { target: { value: "Police" } });
+    fireEvent.change(container.querySelector('[name="systemName"]')!, { target: { value: "typed" } });
+    pick();
+    fireEvent.click(await screen.findByText(/only the empty/i, { selector: "button" }));
+    await waitFor(() => expect(select(container, "deployerTerm")).toBe("EducationalInstitution"));
+    expect(select(container, "providerTerm")).toBe("Police");
+  });
+
+  it("replacing puts the document's kind of deployer in place of the author's", async () => {
+    readDocument.mockResolvedValue(withPicks({ deployerTerm: "EducationalInstitution" }));
+    const { container } = mount();
+    fireEvent.change(container.querySelector('select[name="deployerTerm"]')!, { target: { value: "Police" } });
+    fireEvent.change(container.querySelector('[name="systemName"]')!, { target: { value: "typed" } });
+    pick();
+    fireEvent.click(await screen.findByText(/replace/i, { selector: "button" }));
+    await waitFor(() => expect(select(container, "deployerTerm")).toBe("EducationalInstitution"));
+  });
+
+  it("a VAIR group from the document lands on a risk's affected select", async () => {
+    readDocument.mockResolvedValue({
+      ok: true, values: {}, filled: [], kept: [], model: null,
+      risks: [{ ...docRisk("first"), affected: "JobApplicant" }], risksKept: false, risksProposed: 1,
+    });
+    const { container } = mount();
+    pick();
+    await waitFor(() =>
+      expect((container.querySelector('[name$=":affected"]') as HTMLSelectElement).value).toBe("JobApplicant"),
+    );
+  });
+
   it("a document with only picks is something to use", async () => {
     readDocument.mockResolvedValue(withPicks({ localityTags: ["Workplace"] }));
     const { container } = mount();

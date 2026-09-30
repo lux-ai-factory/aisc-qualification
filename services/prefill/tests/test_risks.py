@@ -4,6 +4,8 @@ A document lists its risks under a Risks heading, one block per risk, each
 field on a labelled line. The words for who and what is affected are matched
 to the form's vocabulary; anything else is left for the person to choose.
 """
+import pytest
+
 from prefill.fields import annex_sections
 from prefill.risks import merge_risks, risks_from_text
 
@@ -83,6 +85,14 @@ class TestReadingRisks:
         """A guess here would be an answer nobody gave."""
         text = "Risks\nRisk: x\nAffected: society at large\n"
         assert risks_from_text(text)[0]["affected"] == ""
+
+    @pytest.mark.parametrize("said, expected", [
+        ("job applicants", "JobApplicant"), ("Job Applicant", "JobApplicant"),
+        ("Asylum seekers.", "AsylumSeeker"), ("user", "user"), ("the operator", "operator"),
+        ("shareholders", "")])
+    def test_who_is_affected_can_be_one_of_vair_s_groups(self, said, expected):
+        text = f"Risks\nRisk: x\nAffected: {said}\n"
+        assert risks_from_text(text)[0]["affected"] == expected
 
     def test_the_form_s_own_question_labels_work_too(self):
         text = (

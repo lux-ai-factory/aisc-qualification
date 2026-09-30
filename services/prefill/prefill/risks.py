@@ -104,7 +104,18 @@ def _labelled(line: str) -> tuple[str, str] | None:
     return None
 
 
+def _subject(value: str) -> str:
+    """The AISubject id `value` names in full by id or label, plural or not; "" when it names none."""
+    said = value.strip().rstrip(".")
+    return match_term("AISubject", said) or match_term("AISubject", said[:-1] if said.lower().endswith("s") else said)
+
+
 def _affected(value: str) -> str:
+    # VAIR's group first, and only for the whole value: "job applicants" is a JobApplicant, where the
+    # word list below would read "applicants" as our plain "user".
+    subject = _subject(value)
+    if subject:
+        return subject
     words = value.lower()
     found = [vid for vid, names in _AFFECTED if any(n in words for n in names)]
     # Both named is not one answer, and a guess would be one nobody gave.

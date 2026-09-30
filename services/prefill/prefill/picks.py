@@ -1,10 +1,12 @@
-"""The VAIR picks a document names (2026-09-30): the system's type and purpose, and the four tag sets.
+"""The VAIR picks a document names (2026-09-30): the system's type and purpose, the kind of provider and deployer, and the four tag sets.
 
 The form offers VAIR's own lists for these (src/data/vair_vocab.json), so a document names them on a
 labelled line, each value a VAIR id or label, several separated by commas:
 
     System type: Narrow AI
     VAIR purpose: Assessing Creditworthiness
+    Kind of provider: Public Authority
+    Kind of deployer: Educational Institution
     Capabilities: Profiling, Natural Language Generation
     Application domains: Private Service
     Market form: Software, Service
@@ -27,6 +29,8 @@ from prefill.vair import match_term
 PICKS: dict[str, tuple[str, bool, tuple[str, ...]]] = {
     "systemType": ("AISystem", False, ("system type", "type of ai system", "vair system type")),
     "purpose": ("Purpose", False, ("vair purpose", "purpose term", "intended purpose term")),
+    "providerTerm": ("AIOperator", False, ("provider term", "kind of provider")),
+    "deployerTerm": ("AIOperator", False, ("deployer term", "kind of deployer")),
     "targetSystemTags": ("AICapability", True, ("capabilities", "capability", "ai capabilities")),
     "sectorTags": ("Domain", True, ("application domains", "application domain", "domains", "domain",
                                     "sectors", "sector")),

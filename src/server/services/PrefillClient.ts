@@ -28,6 +28,8 @@ export type PrefillComponent = ComponentExample;
 export type PrefillPicks = {
   systemType?: string;
   purpose?: string;
+  providerTerm?: string;
+  deployerTerm?: string;
   targetSystemTags?: string[];
   sectorTags?: string[];
   marketFormTags?: string[];
