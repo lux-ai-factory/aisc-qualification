@@ -15,6 +15,8 @@ function row(over: Partial<QualificationWithAnswers> = {}) {
     // VAIR terms (2026-09-30), each list with one value that is not a term of its class
     systemType: "NarrowAI",
     purpose: null,
+    providerTerm: "EducationalInstitution",
+    deployerTerm: "bogus:operator",
     targetSystemTags: ["QuestionAnswering", "bogus:tag"],
     sectorTags: ["PrivateService", "finance-and-insurance"],
     marketFormTags: ["Software"],
@@ -95,17 +97,26 @@ describe("toExport", () => {
     });
   });
 
+  it("carries the provider's and the deployer's terms, dropping one that is not an operator term", () => {
+    const out = toExport(row({ providerTerm: "EducationalInstitution", deployerTerm: "bogus:operator" }));
+    expect(out.providerTerm).toBe("EducationalInstitution");
+    expect(out.deployerTerm).toBeNull();
+    expect(toExport(row({ providerTerm: null, deployerTerm: null })).providerTerm).toBeNull();
+  });
+
   it("produces only the fields the service needs, and no Date objects", () => {
     const out = toExport(row());
     expect(Object.keys(out).sort()).toEqual(
       [
         "answers",
         "company",
+        "deployerTerm",
         "description",
         "id",
         "intendedDeployers",
         "localityTags",
         "marketFormTags",
+        "providerTerm",
         "purpose",
         "risks",
         "sectorTags",

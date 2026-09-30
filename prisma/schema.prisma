@@ -31,6 +31,8 @@ model Qualification {
   /// VAIR terms (2026-09-30): the system's AISystem type and its Purpose; NULL when left open.
   /// The tag columns above hold VAIR local names too (src/data/vair_vocab.json).
   systemType        String?               @map("system_type")
+  providerTerm      String?               @map("provider_term")
+  deployerTerm      String?               @map("deployer_term")
   purpose           String?
   systemCard        String?
   systemCardJson    Json?
@@ -104,8 +106,9 @@ model QualificationComponent {
 }
 
 // One row of the risk block (question 15): one full AIRO risk chain.
-// `affected` ids come from src/data/airo_vocab.json; `impactAreas` and every `...Term` are VAIR
-// local names (src/data/vair_vocab.json). Each term types the node its text names.
+// `affected` is one of our two ids in airo_vocab.json or a VAIR AISubject local name.
+// `impactAreas` and every `...Term` are VAIR local names (src/data/vair_vocab.json). Each term
+// types the node its text names.
 model QualificationRisk {
   id              String        @id @default(cuid())
   qualificationId String

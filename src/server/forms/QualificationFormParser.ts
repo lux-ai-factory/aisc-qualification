@@ -34,7 +34,7 @@ export type RiskInput = {
   consequence: string;
   consequenceTerm: string | null;
   impactTerm: string | null;
-  affected: "operator" | "user";
+  affected: string;
   impactAreas: string[];
   control: string;
   controlTerm: string | null;
@@ -76,6 +76,9 @@ export type ParsedQualification = {
   /** VAIR AISystem and Purpose terms, on every form; null when left open. */
   systemType: string | null;
   purpose: string | null;
+  /** VAIR AIOperator terms for the provider and the deployer; null when left open. */
+  providerTerm: string | null;
+  deployerTerm: string | null;
   /** VAIR terms: AICapability, Domain, Modality, LocalityOfUse. */
   targetSystemTags: string[];
   sectorTags: string[];
@@ -133,6 +136,8 @@ export class QualificationFormParser {
     // On every form, like the identity, and optional: VAIR's lists do not describe every system.
     const systemType = this.term(formData, "systemType", "AISystem", "system type");
     const purpose = this.term(formData, "purpose", "Purpose", "purpose");
+    const providerTerm = this.term(formData, "providerTerm", "AIOperator", "provider's term");
+    const deployerTerm = this.term(formData, "deployerTerm", "AIOperator", "deployer's term");
 
     // The four tag sets are VAIR terms. Only market form is required: VAIR's four forms cover every
     // system, while its capabilities, domains and localities do not.
@@ -190,6 +195,8 @@ export class QualificationFormParser {
       intendedDeployers,
       systemType,
       purpose,
+      providerTerm,
+      deployerTerm,
       targetSystemTags,
       sectorTags,
       marketFormTags,
@@ -282,7 +289,7 @@ export class QualificationFormParser {
       const affected = text(i, "affected");
       if (!isAffected(affected)) {
         throw new FormValidationError(
-          `Risk ${n}: who is affected must be operator or user.`,
+          `Risk ${n}: who is affected is not one of the listed groups.`,
         );
       }
       if (areas.length === 0) {
@@ -322,7 +329,7 @@ export class QualificationFormParser {
         consequence: text(i, "consequence"),
         consequenceTerm: terms.consequenceTerm,
         impactTerm: terms.impactTerm,
-        affected: affected as "operator" | "user",
+        affected,
         impactAreas: areas,
         control: text(i, "control"),
         controlTerm: terms.controlTerm,

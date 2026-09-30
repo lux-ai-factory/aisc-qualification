@@ -2,6 +2,7 @@
 // Everything VAIR covers is in vairVocab.ts. The JSON is shared with services/ontology (Python
 // reads the same file), so ids stay in lockstep.
 import vocab from "./airo_vocab.json";
+import { SUBJECTS } from "./vairVocab";
 
 export type VocabEntry = { id: string; label: string };
 
@@ -13,7 +14,7 @@ function strip(e: Raw): VocabEntry {
   return { id: e.id, label: e.label };
 }
 
-export const isAffected = (id: string) => AFFECTED.some((e) => e.id === id);
+export const isAffected = (id: string) => AFFECTED.some((e) => e.id === id) || SUBJECTS.some((t) => t.id === id);
 
 export function vocabLabel(list: VocabEntry[], id: string): string {
   return list.find((e) => e.id === id)?.label ?? id;

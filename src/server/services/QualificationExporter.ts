@@ -23,6 +23,9 @@ export type QualificationExport = {
   /** VAIR AISystem and Purpose terms; null when left open. */
   systemType: string | null;
   purpose: string | null;
+  /** VAIR AIOperator terms; null when left open. */
+  providerTerm: string | null;
+  deployerTerm: string | null;
   /** VAIR AICapability, Domain, Modality and LocalityOfUse terms. */
   targetSystemTags: string[];
   sectorTags: string[];
@@ -140,6 +143,8 @@ function answersInForm(
   return [...inForm, ...stray];
 }
 
+const operatorTerm = (id: string | null | undefined) =>
+  id && isVairTerm("AIOperator", id) ? id : null;
 const terms = (cls: VairClass, ids: readonly string[]) => ids.filter((id) => isVairTerm(cls, id));
 
 /** The card as the ontology service reads it. Without a form version it is the
@@ -161,6 +166,8 @@ export function toExport(
     intendedDeployers: q.intendedDeployers,
     systemType: q.systemType ?? null,
     purpose: q.purpose ?? null,
+    providerTerm: operatorTerm(q.providerTerm),
+    deployerTerm: operatorTerm(q.deployerTerm),
     // A tag that is not a VAIR term of its class is dropped, not passed through: a
     // Domain or AICapability node with an unknown term would be a claim we cannot
     // support, and the builder refuses one.

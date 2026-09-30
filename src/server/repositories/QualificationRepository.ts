@@ -32,6 +32,9 @@ export type CreateQualificationInput = {
   /** VAIR AISystem and Purpose terms; null when left open. */
   systemType: string | null;
   purpose: string | null;
+  /** VAIR AIOperator terms; null when left open. */
+  providerTerm: string | null;
+  deployerTerm: string | null;
   /** VAIR terms: AICapability, Domain, Modality, LocalityOfUse. */
   targetSystemTags: string[];
   sectorTags: string[];

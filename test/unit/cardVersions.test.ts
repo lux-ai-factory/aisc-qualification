@@ -85,7 +85,7 @@ describe("cardAsFormStart", () => {
     expect(start.metadata).toEqual({
       systemName: "MCAS", systemVersion: "1.2.0", company: "LIST",
       description: "Scores microcredit loans", targetUseCase: "Credit decisions",
-      targetUsers: "Loan officers", intendedDeployers: "", systemType: "", purpose: "",
+      targetUsers: "Loan officers", intendedDeployers: "", systemType: "", purpose: "", providerTerm: "", deployerTerm: "",
       targetSystemTags: ["classification"], sectorTags: ["finance"],
       marketFormTags: [], localityTags: ["eu"],
     });

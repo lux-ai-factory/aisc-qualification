@@ -36,6 +36,9 @@ export type FormExample = {
     /** VAIR AISystem and Purpose terms, "" when open; absent on an older example. */
     systemType?: string;
     purpose?: string;
+    /** VAIR AIOperator terms for the provider and the deployer, "" when open. */
+    providerTerm?: string;
+    deployerTerm?: string;
     /** VAIR terms: AICapability, Domain, Modality, LocalityOfUse. */
     targetSystemTags: string[];
     sectorTags: string[];

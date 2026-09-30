@@ -221,7 +221,7 @@ describe("QualificationFormParser", () => {
     fd.set("risk:0:affected", "subject");
     const parser = new QualificationFormParser();
     expect(() => parser.parse(fd)).toThrow(
-      /Risk 1: who is affected must be operator or user/,
+      /Risk 1: who is affected is not one of the listed groups/,
     );
   });
 
@@ -295,6 +295,8 @@ describe("the identity block is always required (R10)", () => {
       intendedDeployers: null,
       systemType: null,
       purpose: null,
+      providerTerm: null,
+      deployerTerm: null,
       targetSystemTags: [],
       sectorTags: [],
       marketFormTags: [],
@@ -393,7 +395,7 @@ describe("the risk block follows the form's blocks (R13)", () => {
     expect(parser.parse(fd, form).risks).toHaveLength(1);
     const bad = identity();
     addRisk(bad, 0, { affected: "subject" });
-    expect(() => parser.parse(bad, form)).toThrow(/Risk 1: who is affected must be operator or user/);
+    expect(() => parser.parse(bad, form)).toThrow(/Risk 1: who is affected is not one of the listed groups/);
   });
 
   it("R13 without it every risk field is ignored and there is no error", () => {

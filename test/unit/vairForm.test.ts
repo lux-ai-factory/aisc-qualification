@@ -133,6 +133,33 @@ function submittable(): FormData {
 const parse = (fd: FormData) => new QualificationFormParser().parse(fd);
 
 describe("the parser takes VAIR terms and nothing else where VAIR has the concept", () => {
+  it("reads the provider's and the deployer's terms, both optional", () => {
+    const fd = submittable();
+    fd.set("providerTerm", "");
+    fd.set("deployerTerm", "EducationalInstitution");
+    const p = parse(fd);
+    expect(p.providerTerm).toBeNull();
+    expect(p.deployerTerm).toBe("EducationalInstitution");
+  });
+
+  it("refuses an operator term that is not an operator", () => {
+    const fd = submittable();
+    fd.set("deployerTerm", "JobApplicant");
+    expect(() => parse(fd)).toThrow(/deployer/i);
+  });
+
+  it.each(["operator", "user", "JobApplicant"])("takes %s as who is affected", (value) => {
+    const fd = submittable();
+    fd.set("risk:0:affected", value);
+    expect(parse(fd).risks[0].affected).toBe(value);
+  });
+
+  it("refuses an affected value that is neither ours nor a subject", () => {
+    const fd = submittable();
+    fd.set("risk:0:affected", "Police");
+    expect(() => parse(fd)).toThrow(/who is affected/);
+  });
+
   it("reads a whole VAIR form", () => {
     const p = parse(submittable());
     expect(p.systemType).toBe("NarrowAI");
@@ -319,6 +346,11 @@ describe("the next card starts from the terms this one was saved with", () => {
       purpose: "AssessingCreditworthiness",
       targetSystemTags: ["Profiling", "bogus"],
     });
+  });
+
+  it("carries the provider's and the deployer's terms, empty where the card had none", () => {
+    const start = cardAsFormStart({ ...card, providerTerm: null, deployerTerm: "EducationalInstitution" } as CardContent);
+    expect(start.metadata).toMatchObject({ providerTerm: "", deployerTerm: "EducationalInstitution" });
   });
 
   it("carries each risk field's term, empty where the card had none", () => {

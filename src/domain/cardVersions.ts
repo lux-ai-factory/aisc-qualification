@@ -103,6 +103,8 @@ export type CardContent = {
   intendedDeployers: string | null;
   systemType?: string | null;
   purpose?: string | null;
+  providerTerm?: string | null;
+  deployerTerm?: string | null;
   targetSystemTags: string[];
   sectorTags: string[];
   marketFormTags: string[];
@@ -147,6 +149,8 @@ export function cardAsFormStart(card: CardContent): FormExample {
       intendedDeployers: card.intendedDeployers ?? "",
       systemType: card.systemType ?? "",
       purpose: card.purpose ?? "",
+      providerTerm: card.providerTerm ?? "",
+      deployerTerm: card.deployerTerm ?? "",
       targetSystemTags: card.targetSystemTags,
       sectorTags: card.sectorTags,
       marketFormTags: card.marketFormTags,

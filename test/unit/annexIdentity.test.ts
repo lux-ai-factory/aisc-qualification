@@ -33,6 +33,8 @@ function inVair(x: Q): Q {
     ...head,
     systemType: VAIR_EXAMPLE.systemType,
     purpose: VAIR_EXAMPLE.purpose,
+    providerTerm: null,
+    deployerTerm: null,
     targetSystemTags: VAIR_EXAMPLE.targetSystemTags,
     sectorTags: VAIR_EXAMPLE.sectorTags,
     marketFormTags: VAIR_EXAMPLE.marketFormTags,
