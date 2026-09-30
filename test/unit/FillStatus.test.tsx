@@ -158,3 +158,30 @@ describe("refining the card with AI from its page", () => {
     expect(button()).not.toBeNull();
   });
 });
+
+describe("the card counting the places to check", () => {
+  async function doneWith(result: unknown) {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, json: async () => ({ state: "done", result }) })),
+    );
+    await act(async () => {
+      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+    });
+  }
+
+  it("says how many places to check", async () => {
+    await doneWith({ notes: 2 });
+    expect(screen.getByText("2 places to check")).toBeTruthy();
+  });
+
+  it("says place, not places, for one", async () => {
+    await doneWith({ notes: 1 });
+    expect(screen.getByText("1 place to check")).toBeTruthy();
+  });
+
+  it.each([{ notes: 0 }, {}, undefined])("says nothing for %j", async (result) => {
+    await doneWith(result);
+    expect(screen.queryByText(/to check/)).toBeNull();
+  });
+});

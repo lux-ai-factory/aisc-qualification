@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { OntologyNode } from "@/domain/OntologyView";
-import type { NodeChange } from "./NodeChip";
+import { FLAG_LABEL, type NodeChange } from "./NodeChip";
 
 // One editor for the whole card, shown as a pop-up so it is never clipped by a
 // node or short of room for the full source text.
@@ -76,11 +76,25 @@ export default function NodeEditor({
             <ul>
               {(node.flags ?? []).map((flag) => (
                 <li key={flag}>
-                  <span className="onto-flag">{flag}</span>
+                  <span className="onto-flag">{FLAG_LABEL[flag] ?? flag}</span>
                 </li>
               ))}
             </ul>
             <p>Saving any change here records that you looked, and clears them.</p>
+          </section>
+        )}
+
+        {(node.flagNotes ?? []).length > 0 && (
+          <section className="onto-popover-flagnotes">
+            <h4>Why the AI points here</h4>
+            <ul>
+              {(node.flagNotes ?? []).map((note, i) => (
+                <li key={i}>
+                  {note.why}
+                  {note.quote && <blockquote>&ldquo;{note.quote}&rdquo;</blockquote>}
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 

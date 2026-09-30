@@ -8,6 +8,10 @@ export type NodeChange = {
   note?: string;
 };
 
+// What a flag is called on the card: the finding's name says what to do, which
+// is look. A flag with no entry here is shown as it is.
+export const FLAG_LABEL: Record<string, string> = { inconsistent: "check" };
+
 // One AIRO individual, as a chip. Clicking it asks the page to open NodeEditor,
 // which is a pop-up: the editor used to expand in place here, which grew the
 // node, clipped against its neighbours and could paint behind them.
@@ -55,7 +59,7 @@ export default function NodeChip({
         )}
         {flags.map((flag) => (
           <span className="onto-flag" key={flag}>
-            {flag}
+            {FLAG_LABEL[flag] ?? flag}
           </span>
         ))}
         {node.provenance === "reviewed" && (

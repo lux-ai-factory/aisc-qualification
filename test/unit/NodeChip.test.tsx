@@ -216,3 +216,20 @@ describe("NodeChip drafted name", () => {
     expect(screen.queryByText("AI name")).toBeNull();
   });
 });
+
+describe("NodeChip consistency finding", () => {
+  it("says check for an inconsistent flag, not the raw flag", () => {
+    const { container } = render(
+      <NodeChip
+        node={node({
+          flags: ["inconsistent"],
+          flagNotes: [{ why: "the answer says it wraps an LLM", quote: "wraps a hosted third-party LLM" }],
+        })}
+        vocabularies={{}}
+        onEdit={() => {}}
+      />,
+    );
+    expect(container.querySelector(".onto-flag")!.textContent).toBe("check");
+    expect(screen.queryByText("inconsistent")).toBeNull();
+  });
+});

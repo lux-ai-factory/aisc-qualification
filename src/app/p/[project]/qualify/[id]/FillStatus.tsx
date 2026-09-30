@@ -29,6 +29,8 @@ export default function FillStatus({
   const [state, setState] = useState<State>("idle");
   // Bumped by each regenerate, which starts the poll over for the new run.
   const [run, setRun] = useState(0);
+  // How many places the run left for a person to check, from its record.
+  const [notes, setNotes] = useState(0);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -47,10 +49,11 @@ export default function FillStatus({
       try {
         const res = await fetch(statusUrl, { cache: "no-store" });
         if (!res.ok) return;
-        const body = (await res.json()) as { state?: State };
+        const body = (await res.json()) as { state?: State; result?: { notes?: number } };
         if (!live) return;
         const next = body.state ?? "idle";
         setState(next);
+        setNotes(next === "done" ? Number(body.result?.notes) || 0 : 0);
         if (next === "queued" || next === "running") {
           timer = setTimeout(ask, POLL_MS);
         } else if (next === "done" && !refreshed.current) {
@@ -92,6 +95,11 @@ export default function FillStatus({
         {state === "failed" && (
           <p className="fill-status" role="status" aria-live="polite">
             The AI refinement could not finish. The card below is built from your answers.
+          </p>
+        )}
+        {state === "done" && notes > 0 && (
+          <p className="fill-status" role="status" aria-live="polite">
+            {notes === 1 ? "1 place to check" : `${notes} places to check`}
           </p>
         )}
         <button type="button" className="btn ghost qf-header-btn" onClick={regenerate} disabled={starting}>

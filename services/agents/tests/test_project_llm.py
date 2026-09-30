@@ -126,6 +126,7 @@ def test_s3_7_fill_one_uses_the_projects_resolved_model(platform, model_server, 
     result = agent.fill_one(PID, "q1")
     assert result["model"] == "compatible/project-model"
     assert result["project"] == PID
+    assert result["notes"] == 0
     (sent,) = model_server.seen("/v1/chat/completions")
     assert sent.header("Authorization") == f"Bearer {key}"
     assert json.loads(sent.body)["model"] == "project-model"
