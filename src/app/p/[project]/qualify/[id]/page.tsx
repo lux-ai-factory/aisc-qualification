@@ -115,6 +115,8 @@ export default async function QualificationDetailPage({
               targetUseCase: q.targetUseCase,
               targetUsers: q.targetUsers,
               intendedDeployers: q.intendedDeployers,
+              providerTerm: q.providerTerm,
+              deployerTerm: q.deployerTerm,
               systemType: q.systemType,
               purpose: q.purpose,
               targetSystemTags: q.targetSystemTags,

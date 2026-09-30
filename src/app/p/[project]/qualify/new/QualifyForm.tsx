@@ -8,6 +8,7 @@ import {
   DOMAINS,
   LOCALITIES,
   MODALITIES,
+  OPERATORS,
   PURPOSES,
   SYSTEM_TYPES,
   isVairTerm,
@@ -211,6 +212,13 @@ export default function QualifyForm({
               />
             </div>
           </div>
+          <VairSelect
+            name="providerTerm"
+            id="providerTerm"
+            terms={OPERATORS}
+            initial={meta?.providerTerm ?? ""}
+            label="Kind of provider"
+          />
           {/* VAIR's AISystem and Purpose terms, on every form. Optional: VAIR's lists do not
               describe every system, and an open field is better than a false term. */}
           <div className="qf-row">
@@ -278,6 +286,15 @@ export default function QualifyForm({
                 required
               />
             </div>
+          )}
+          {has("intendedDeployers") && (
+            <VairSelect
+              name="deployerTerm"
+              id="deployerTerm"
+              terms={OPERATORS}
+              initial={meta?.deployerTerm ?? ""}
+              label="Kind of deployer"
+            />
           )}
 
           {has("targetSystemTags") && (
@@ -391,15 +408,27 @@ function VairSelect({
   id,
   terms,
   initial,
+  label,
 }: {
-  name: "systemType" | "purpose";
+  name: "systemType" | "purpose" | "providerTerm" | "deployerTerm";
   id: string;
   terms: VairTerm[];
   initial: string;
+  /** For a select that is not a metadata field of its own: its name and a help line. */
+  label?: string;
 }) {
   return (
     <div className="field">
-      <FieldLabel htmlFor={id} id={name} />
+      {label === undefined ? (
+        <FieldLabel htmlFor={id} id={name as MetadataFieldId} />
+      ) : (
+        <>
+          <label className="qf-field-label" htmlFor={id}>
+            {label}
+          </label>
+          <p className="qf-help">Only public bodies have a term here. Leave it empty for a company.</p>
+        </>
+      )}
       <select id={id} name={name} defaultValue={initial}>
         <option value="">Not chosen</option>
         {terms.map((t) => (

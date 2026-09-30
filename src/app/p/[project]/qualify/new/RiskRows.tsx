@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AFFECTED } from "@/data/airoVocab";
-import { IMPACT_AREAS, vairTerms } from "@/data/vairVocab";
+import { IMPACT_AREAS, SUBJECTS, vairTerms } from "@/data/vairVocab";
 import { RISK_BLOCK, RISK_FIELDS, type RiskField } from "@/data/riskFields";
 import type { RiskExample } from "@/data/examples";
 
@@ -123,11 +123,20 @@ export default function RiskRows({ initial }: { initial?: RiskExample[] }) {
                     <option value="" disabled>
                       Choose…
                     </option>
-                    {AFFECTED.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.label}
-                      </option>
-                    ))}
+                    <optgroup label="Standard groups">
+                      {SUBJECTS.map((t) => (
+                        <option key={t.id} value={t.id} title={t.definition || undefined}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Other groups">
+                      {AFFECTED.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.label}
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
                 )}
                 {f.kind === "areas" && (

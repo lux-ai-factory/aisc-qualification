@@ -19,9 +19,11 @@ import {
   IMPACTS,
   LOCALITIES,
   MODALITIES,
+  OPERATORS,
   PURPOSES,
   RISK_CONTROLS,
   RISK_SOURCES,
+  SUBJECTS,
   SYSTEM_TYPES,
 } from "@/data/vairVocab";
 import { COMPONENT_TYPES } from "@/data/componentFields";
@@ -84,6 +86,25 @@ describe("the metadata", () => {
     expect(select("purpose")!.value).toBe("AssessingCreditworthiness");
     expect(hidden("targetSystemTags")).toEqual(["Profiling"]);
     expect(hidden("sectorTags")).toEqual(["PrivateService"]);
+  });
+});
+
+describe("the people", () => {
+  it("offers VAIR's operators for the provider and the deployer, both optional", () => {
+    render(<QualifyForm project="p" />);
+    for (const name of ["providerTerm", "deployerTerm"]) {
+      expect(options(name)).toEqual(OPERATORS.map((t) => t.id));
+      expect(select(name)!.required).toBe(false);
+    }
+  });
+
+  it("asks who is affected in one select: VAIR's groups, then ours", () => {
+    render(<RiskRows />);
+    const groups = [...select("risk:0:affected")!.querySelectorAll("optgroup")];
+    expect(groups.map((g) => g.label)).toEqual(["Standard groups", "Other groups"]);
+    const ids = (g: Element) => [...g.querySelectorAll("option")].map((o) => o.value);
+    expect(ids(groups[0])).toEqual(SUBJECTS.map((t) => t.id));
+    expect(ids(groups[1])).toEqual(["operator", "user"]);
   });
 });
 
@@ -151,11 +172,12 @@ describe("the answered form", () => {
       targetUsers: "t", intendedDeployers: "b", systemType: "NarrowAI", purpose: "AssessingCreditworthiness",
       targetSystemTags: ["NaturalLanguageGeneration"], sectorTags: ["PrivateService"],
       marketFormTags: ["SafetyComponent"], localityTags: ["PubliclyAccessibleSpace"],
+      providerTerm: null, deployerTerm: "EducationalInstitution",
     },
     answers: [],
     risks: [{
       id: "r1", risk: "r", source: "Thin bureau data", sourceTerm: "ErroneousInputData", vulnerability: null,
-      consequence: "Refused", consequenceTerm: null, impactTerm: "UnfavourableTreatment", affected: "user",
+      consequence: "Refused", consequenceTerm: null, impactTerm: "UnfavourableTreatment", affected: "JobApplicant",
       impactAreas: ["RightToNondiscrimination"], control: "Review", controlTerm: "HumanOversightMeasure",
       followUpControl: null, followUpControlTerm: null,
     }],
@@ -168,7 +190,7 @@ describe("the answered form", () => {
     const text = container.textContent ?? "";
     for (const label of ["Narrow AI", "Assessing Creditworthiness", "Natural Language Generation", "Private Service",
                          "Safety Component", "Publicly Accessible Space", "Right To Non-discrimination",
-                         "Unfavourable Treatment", "Decision Tree"]) {
+                         "Unfavourable Treatment", "Decision Tree", "Educational Institution", "Job Applicant"]) {
       expect(text, label).toContain(label);
     }
   });
@@ -205,7 +227,7 @@ describe("the word VAIR", () => {
                     targetSystemTags: [], sectorTags: [], marketFormTags: [], localityTags: [] }}
         answers={[]}
         risks={[{ id: "r1", risk: "r", source: "Thin data", sourceTerm: "ErroneousInputData", vulnerability: null,
-                  consequence: null, consequenceTerm: null, impactTerm: "Harm", affected: "user", impactAreas: [],
+                  consequence: "", consequenceTerm: null, impactTerm: "Harm", affected: "user", impactAreas: [],
                   control: "Review", controlTerm: "HumanOversightMeasure", followUpControl: null,
                   followUpControlTerm: null }]}
         systemComponents={[]}

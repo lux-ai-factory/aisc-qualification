@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { AFFECTED, vocabLabel } from "@/data/airoVocab";
-import { vairLabel, type VairClass } from "@/data/vairVocab";
+import { SUBJECTS, vairLabel, type VairClass } from "@/data/vairVocab";
 import { METADATA_FIELDS, type MetadataFieldId } from "@/data/formFields";
 import { RISK_BLOCK, RISK_FIELDS } from "@/data/riskFields";
 import { COMPONENT_BLOCK, componentTypeLabel } from "@/data/componentFields";
@@ -25,6 +25,9 @@ export type AnsweredFormProps = {
     targetUseCase: string;
     targetUsers: string;
     intendedDeployers: string | null;
+    /** VAIR operator terms for the provider and the deployer; absent or null when left open. */
+    providerTerm?: string | null;
+    deployerTerm?: string | null;
     /** VAIR terms (2026-09-30); absent or null when left open. */
     systemType?: string | null;
     purpose?: string | null;
@@ -156,6 +159,11 @@ export default function AnsweredForm({
           <Field id="systemName">{metadata.systemName}</Field>
           <Field id="systemVersion">{metadata.systemVersion}</Field>
           <Field id="company">{metadata.company}</Field>
+          {metadata.providerTerm && (
+            <Row label="Kind of provider" citation="">
+              {vairLabel("AIOperator", metadata.providerTerm)}
+            </Row>
+          )}
           <Field id="systemType">
             {metadata.systemType ? vairLabel("AISystem", metadata.systemType) : BLANK}
           </Field>
@@ -175,6 +183,11 @@ export default function AnsweredForm({
             <Field id="intendedDeployers">
               {metadata.intendedDeployers || BLANK}
             </Field>
+          )}
+          {has("intendedDeployers") && metadata.deployerTerm && (
+            <Row label="Kind of deployer" citation="">
+              {vairLabel("AIOperator", metadata.deployerTerm)}
+            </Row>
           )}
           {has("targetSystemTags") && (
             <Field id="targetSystemTags">
@@ -285,7 +298,9 @@ function riskValue(row: AnsweredRisk, id: (typeof RISK_FIELDS)[number]["id"]): s
   const term = field?.vair ? termOf(row, id, field.vair) : null;
   switch (id) {
     case "affected":
-      return vocabLabel(AFFECTED, row.affected);
+      return SUBJECTS.some((t) => t.id === row.affected)
+        ? vairLabel("AISubject", row.affected)
+        : vocabLabel(AFFECTED, row.affected);
     case "area":
       return row.impactAreas.length === 0
         ? null
