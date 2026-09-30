@@ -189,3 +189,30 @@ describe("a node the filler agent flagged", () => {
     );
   });
 });
+
+describe("NodeChip drafted name", () => {
+  it("marks a drafted name, and shows the author's text on hover", () => {
+    render(
+      <NodeChip
+        node={node({
+          id: "purpose",
+          label: "Consumer credit",
+          cls: "Purpose",
+          nameDrafted: true,
+          fullText: "Assess the creditworthiness...",
+        })}
+        vocabularies={{}}
+        onEdit={() => {}}
+      />,
+    );
+    expect(screen.getByText("AI name")).toBeTruthy();
+    expect(screen.getByRole("button").getAttribute("title")).toBe(
+      "Assess the creditworthiness...",
+    );
+  });
+
+  it("shows no mark on a name a person wrote or kept", () => {
+    render(<NodeChip node={node()} vocabularies={{}} onEdit={() => {}} />);
+    expect(screen.queryByText("AI name")).toBeNull();
+  });
+});

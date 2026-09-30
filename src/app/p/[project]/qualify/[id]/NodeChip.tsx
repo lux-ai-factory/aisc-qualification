@@ -61,6 +61,9 @@ export default function NodeChip({
         {node.provenance === "reviewed" && (
           <span className="onto-badge">reviewed</span>
         )}
+        {node.nameDrafted && (
+          <span className="onto-badge onto-badge--extracted">AI name</span>
+        )}
         {node.provenance === "extracted" && (
           <span className="onto-badge onto-badge--extracted">extracted</span>
         )}

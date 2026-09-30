@@ -244,4 +244,20 @@ describe("NodeEditor as a pop-up", () => {
       expect.objectContaining({ termNotApplicable: false }),
     );
   });
+
+  it("explains a drafted name, and saves its label unchanged so keeping it clears the mark", () => {
+    const { panel, props } = mount({ nameDrafted: true });
+    expect(panel.textContent).toContain(
+      "This name was proposed by the AI from the text below. Saving the label, even unchanged, makes it yours.",
+    );
+    (panel.querySelector('[data-testid="save"]') as HTMLElement).click();
+    expect(props.onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ label: "Officer review of every Reject" }),
+    );
+  });
+
+  it("says nothing about an AI name on a node that was not drafted", () => {
+    const { panel } = mount();
+    expect(panel.textContent).not.toContain("proposed by the AI");
+  });
 });

@@ -84,6 +84,13 @@ export default function NodeEditor({
           </section>
         )}
 
+        {node.nameDrafted && (
+          <p className="onto-nonterm">
+            This name was proposed by the AI from the text below. Saving the
+            label, even unchanged, makes it yours.
+          </p>
+        )}
+
         <label>
           Name
           <input

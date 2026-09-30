@@ -16,6 +16,9 @@ export type OntologyNode = {
   /** The full source text, when the label was shortened from it. */
   fullText: string | null;
   provenance: Provenance;
+  /** The label is a name the AI drafted from the author's text. Cleared once a
+   *  reviewer saves the label, edited or kept. */
+  nameDrafted?: boolean;
   /** Present once a reviewer has changed the label. */
   generatedLabel?: string;
   /** Present once a reviewer has justified a change. */
