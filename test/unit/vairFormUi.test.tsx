@@ -132,7 +132,7 @@ describe("a component row", () => {
   it("has one Type select: VAIR's terms, then ours only for what VAIR lacks", () => {
     render(<ComponentRows initial={[row]} />);
     const groups = [...select("component:0:type")!.querySelectorAll("optgroup")];
-    expect(groups.map((g) => g.label)).toEqual(["VAIR", "Not in VAIR"]);
+    expect(groups.map((g) => g.label)).toEqual(["Standard types", "Other types"]);
     const ids = (g: Element) => [...g.querySelectorAll("option")].map((o) => o.value);
     expect(ids(groups[0])).toEqual(COMPONENT_TERMS.map((t) => t.id));
     expect(ids(groups[1])).toEqual(COMPONENT_TYPES.filter((t) => !t.vair).map((t) => t.id));
@@ -179,5 +179,39 @@ describe("the answered form", () => {
     expect(text).toContain("Thin bureau data");
     expect(text).toContain("Erroneous Input Data");
     expect(text).toContain("Human Oversight Measure");
+  });
+});
+
+// ── the form never says "VAIR": the methodology page explains it, the form does not ────
+describe("the word VAIR", () => {
+  const named = (html: string) => html.match(/.{0,40}\bVAIR\b.{0,40}/g) ?? [];
+
+  it("appears nowhere on the form, its risk rows or its component rows", () => {
+    const { container } = render(
+      <>
+        <QualifyForm project="p" />
+        <RiskRows />
+        <ComponentRows initial={[{ key: "", name: "m", role: "", type: "DecisionTree", provider: "in_house", providerName: "" }]} />
+      </>,
+    );
+    expect(named(container.innerHTML)).toEqual([]);
+  });
+
+  it("appears nowhere on the answered form", () => {
+    const { container } = render(
+      <AnsweredForm
+        metadata={{ systemName: "S", systemVersion: "1", company: "C", description: "", targetUseCase: "",
+                    targetUsers: "", intendedDeployers: "", systemType: "NarrowAI", purpose: null,
+                    targetSystemTags: [], sectorTags: [], marketFormTags: [], localityTags: [] }}
+        answers={[]}
+        risks={[{ id: "r1", risk: "r", source: "Thin data", sourceTerm: "ErroneousInputData", vulnerability: null,
+                  consequence: null, consequenceTerm: null, impactTerm: "Harm", affected: "user", impactAreas: [],
+                  control: "Review", controlTerm: "HumanOversightMeasure", followUpControl: null,
+                  followUpControlTerm: null }]}
+        systemComponents={[]}
+      />,
+    );
+    expect(named(container.innerHTML)).toEqual([]);
+    expect(container.textContent).toContain("Thin data (Erroneous Input Data)");
   });
 });

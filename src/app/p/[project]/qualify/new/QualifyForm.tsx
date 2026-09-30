@@ -289,7 +289,7 @@ export default function QualifyForm({
               name="sectorTags"
               label={METADATA_FIELDS.sectorTags.label}
               citation={METADATA_FIELDS.sectorTags.citation}
-              help="VAIR's domains are the Annex III areas. Leave it empty when none applies."
+              help="These are the Annex III areas. Leave it empty when none applies."
               options={DOMAINS}
               selected={sectorTagSet}
               onToggle={toggleSector}

@@ -99,6 +99,6 @@ function counted(answers: number, risks: number, components = 0, picks = 0): str
   const parts = [plural(answers, "answer", "answers")];
   if (risks > 0) parts.push(plural(risks, "risk", "risks"));
   if (components > 0) parts.push(plural(components, "component", "components"));
-  if (picks > 0) parts.push(plural(picks, "VAIR choice", "VAIR choices"));
+  if (picks > 0) parts.push(plural(picks, "choice from the lists", "choices from the lists"));
   return parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 }

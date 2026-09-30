@@ -307,5 +307,5 @@ function termOf(row: AnsweredRisk, id: string, cls: VairClass): string | null {
 }
 
 function withTerm(text: string, term: string | null): string {
-  return term ? `${text} (VAIR: ${term})` : text;
+  return term ? `${text} (${term})` : text;
 }

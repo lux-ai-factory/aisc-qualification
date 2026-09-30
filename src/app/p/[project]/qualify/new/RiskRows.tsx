@@ -20,11 +20,11 @@ function TermSelect({ f, name, initial }: { f: RiskField; name: string; initial:
       id={name}
       name={name}
       className="qf-term"
-      aria-label={`${f.label}: VAIR term`}
+      aria-label={`${f.label}: term`}
       required={!f.termOptional && !f.optional}
       defaultValue={initial}
     >
-      <option value="">{f.termOptional || f.optional ? "VAIR term (none fits)" : "Choose the VAIR term…"}</option>
+      <option value="">{f.termOptional || f.optional ? "Matching term (none fits)" : "Choose the matching term…"}</option>
       {terms.map((t) => (
         <option key={t.id} value={t.id} title={t.definition || undefined}>
           {t.label}

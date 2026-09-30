@@ -67,14 +67,14 @@ export default function ComponentRows({ initial }: { initial?: ComponentExample[
                 <option value="" disabled>
                   Choose…
                 </option>
-                <optgroup label="VAIR">
+                <optgroup label="Standard types">
                   {VAIR_TYPES.map((t) => (
                     <option key={t.id} value={t.id} title={t.definition || undefined}>
                       {t.label}
                     </option>
                   ))}
                 </optgroup>
-                <optgroup label="Not in VAIR">
+                <optgroup label="Other types">
                   {OWN_TYPES.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.label}

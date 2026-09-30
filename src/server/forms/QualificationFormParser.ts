@@ -303,13 +303,13 @@ export class QualificationFormParser {
         const asked = of !== "followUpControl" || text(i, of) !== "";
         if (value === "") {
           if (required && asked) {
-            throw new FormValidationError(`Risk ${n}: ${riskLabel(of)}: pick its VAIR term.`);
+            throw new FormValidationError(`Risk ${n}: ${riskLabel(of)}: pick its term.`);
           }
           terms[field] = null;
           continue;
         }
         if (!asked || !isVairTerm(cls, value)) {
-          throw new FormValidationError(`Risk ${n}: ${riskLabel(of)}: ${value} is not one of VAIR's terms for it.`);
+          throw new FormValidationError(`Risk ${n}: ${riskLabel(of)}: ${value} is not one of the terms for it.`);
         }
         terms[field] = value;
       }

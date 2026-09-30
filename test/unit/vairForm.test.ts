@@ -197,9 +197,9 @@ describe("the parser takes VAIR terms and nothing else where VAIR has the concep
   });
 
   it.each([
-    ["sourceTerm", /What causes it: pick its VAIR term/],
-    ["impactTerm", /harm: pick its VAIR term/i],
-    ["controlTerm", /What you do about it: pick its VAIR term/],
+    ["sourceTerm", /What causes it: pick its term/],
+    ["impactTerm", /harm: pick its term/i],
+    ["controlTerm", /What you do about it: pick its term/],
   ])("requires %s, where VAIR always has a term", (field, message) => {
     const fd = submittable();
     fd.delete(`risk:0:${field}`);
@@ -215,7 +215,7 @@ describe("the parser takes VAIR terms and nothing else where VAIR has the concep
   it("asks for the follow-up's term exactly when there is a follow-up", () => {
     const fd = submittable();
     fd.set("risk:0:followUpControl", "Override with written justification");
-    expect(() => parse(fd)).toThrow(/If that is not enough, what follows: pick its VAIR term/);
+    expect(() => parse(fd)).toThrow(/If that is not enough, what follows: pick its term/);
     fd.set("risk:0:followUpControlTerm", "OverridingOutcome");
     expect(parse(fd).risks[0].followUpControlTerm).toBe("OverridingOutcome");
   });
@@ -229,6 +229,14 @@ describe("the parser takes VAIR terms and nothing else where VAIR has the concep
     const fd = submittable();
     fd.set(`risk:0:${field}`, value);
     expect(() => parse(fd)).toThrow(FormValidationError);
+  });
+
+  it("never names VAIR in an error: the user reads it in the methodology, not on the form", () => {
+    const fd = submittable();
+    fd.set("risk:0:sourceTerm", "Harm");
+    expect(() => parse(fd)).toThrow(/What causes it: Harm is not one of the terms for it/);
+    fd.delete("risk:0:sourceTerm");
+    expect(() => parse(fd)).not.toThrow(/VAIR/);
   });
 
   it("refuses an old area id", () => {

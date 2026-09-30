@@ -236,7 +236,7 @@ describe("uploading the VAIR picks", () => {
     expect(hidden(container, "targetSystemTags")).toEqual(["Profiling", "QuestionAnswering"]);
     expect(hidden(container, "marketFormTags")).toEqual(["Software", "Service"]);
     expect(hidden(container, "localityTags")).toEqual(["Workplace"]);
-    expect(screen.getByText(/6 VAIR choices/)).toBeTruthy();
+    expect(screen.getByText(/6 choices from the lists/)).toBeTruthy();
   });
 
   it("with only the empty ones, keeps what the author already chose", async () => {
