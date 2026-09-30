@@ -1,7 +1,10 @@
 """Refine with AI points at choices the card's own answers contradict, and changes nothing."""
 import json
 
+import pytest
+
 from fill.consistency import check
+from fill.prompts import consistency_prompt
 from fill.workflow import run_fill
 from tests.test_workflow import QUALIFICATION, TERMS, FakeCompleter
 from tests.views import MCAS_VIEW, in_a_row
@@ -71,6 +74,26 @@ def test_the_real_card_view_lists_its_nodes_to_the_model():
     assert users and "deployer | AIOperator |" in users[0] and "risk0_source | RiskSource |" in users[0]
 
 
+def test_more_than_eight_findings_keep_eight():
+    view = in_a_row(*({**COMPONENT, "id": f"component-{i}"} for i in range(10)))
+    many = [{"node": f"component-{i}", "why": "w", "quote": "hosted third-party LLM"} for i in range(10)]
+    notes, dropped = check(view, ANSWERS, reply({"findings": many}))
+    assert len(notes) == 8 and [d["reason"] for d in dropped] == ["at most eight"] * 2
+
+
+@pytest.mark.parametrize("odd", [["a"], {"id": "x"}, float("nan"), 3])
+def test_a_node_that_is_not_an_id_is_dropped_as_text(odd):
+    notes, dropped = check(VIEW, ANSWERS, reply({"findings": [{"node": odd, "why": "w", "quote": "hosted third-party LLM"}]}))
+    assert notes == {} and dropped == [{"node": str(odd)[:80], "reason": "no such node"}]
+
+
+def test_an_answer_without_an_annex_point_is_listed_without_a_bracket():
+    _, user = consistency_prompt([COMPONENT], [{"annexPoint": None, "answer": "one"}, {"answer": "two"},
+                                               {"annexPoint": "2a", "answer": "three"}])
+    assert "[None]" not in user and "[]" not in user
+    assert user.splitlines()[-3:] == ["one", "two", "[2a] three"]
+
+
 CVIEW = {"view": VIEW}
 QUOTE = "hosted third-party LLM"
 
@@ -95,9 +118,7 @@ def _completer(consistency):
     return complete
 
 
-
-def test_the_payload_carries_techniques_names_and_notes(monkeypatch):
-    payload = None
+def test_the_payload_carries_techniques_names_and_notes():
     q = dict(QUALIFICATION, answers=[*QUALIFICATION["answers"], {"annexPoint": "2a", "answer": f"It wraps a {QUOTE}."}])
     published = {}
     complete = _completer(lambda s, u: json.dumps({"findings": [{"node": "component-abc", "why": "w", "quote": QUOTE}]}))
@@ -132,3 +153,11 @@ def test_a_model_error_in_the_consistency_pass_still_publishes_techniques_and_na
 def test_bad_json_from_the_consistency_pass_is_no_notes():
     payload = _run(_completer(lambda s, u: "no json"), lambda q, e: CVIEW)
     assert payload["techniques"] and payload["notes"] == {} and payload["record"]["notes"] == 0
+
+
+@pytest.mark.parametrize("odd", [["a"], float("nan")])
+def test_a_model_reply_with_an_odd_node_still_publishes_valid_json(odd):
+    reply_ = lambda s, u: json.dumps({"findings": [{"node": odd, "why": "w", "quote": QUOTE}]})
+    payload = _run(_completer(reply_), lambda q, e: CVIEW)
+    json.dumps(payload, allow_nan=False)
+    assert payload["record"]["notes_dropped"] == [{"node": str(odd), "reason": "no such node"}]

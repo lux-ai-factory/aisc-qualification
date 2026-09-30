@@ -45,7 +45,10 @@ def check(view: dict, answers: list[dict], complete: Callable[..., str]) -> tupl
         node_id, why, quote = finding.get("node"), finding.get("why"), finding.get("quote")
         quote = _squash(quote) if isinstance(quote, str) else ""
         reason = None
-        if node_id not in nodes:
+        if not isinstance(node_id, str):
+            # a list is unhashable and a NaN is no JSON: the record keeps it as text
+            node_id, reason = str(node_id)[:80], "no such node"
+        elif node_id not in nodes:
             reason = "no such node"
         elif not (quote and isinstance(why, str) and why.strip() and any(quote in t for t in texts)):
             reason = "quote not in the answers"

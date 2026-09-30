@@ -6,6 +6,8 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+{# A label, and the web card's "AI name" badge while the AI drafted it (D4). #}
+{% macro named(n) %}{{ n.label }}{% if n.nameDrafted %} <span class="ai-name">(AI name)</span>{% endif %}{% endmacro %}
 
 <header class="cover">
   <div class="eyebrow">AI Card</div>
@@ -108,7 +110,7 @@
       <td>
         {% for n in row.nodes %}
           <div class="onto-pdf-node{% if n.provenance == 'reviewed' %} reviewed{% endif %}">
-            {{ n.label }}
+            {{ named(n) }}
             {% if n.vair %}<span class="term">vair:{{ n.vair }}</span>
             {% elif n.termExpected is false or n.termNotApplicable %}
               {# No term exists for this node, so naming the class says more
@@ -128,13 +130,13 @@
   {% for c in card.ontology.chains %}
   <table class="onto-pdf-chain">
     <caption>Risk {{ loop.index }} of {{ card.ontology.chains|length }}<span class="cite">{{ c.citation }}</span></caption>
-    <tr><th>The risk</th><td>{{ c.risk.label }}</td></tr>
-    {% if c.source %}<tr><th>Caused by</th><td>{{ c.source.label }}</td></tr>{% endif %}
-    {% if c.vulnerability %}<tr><th>Exploiting</th><td>{{ c.vulnerability.label }}</td></tr>{% endif %}
-    {% if c.consequence %}<tr><th>Leading to</th><td>{{ c.consequence.label }}</td></tr>{% endif %}
-    {% if c.stakeholder %}<tr><th>Affecting</th><td>{{ c.stakeholder.label }}{% if c.areas %} &mdash; {% for a in c.areas %}{{ a.label }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</td></tr>{% endif %}
-    {% if c.control %}<tr><th>Control</th><td>{{ c.control.label }}</td></tr>{% endif %}
-    {% if c.followUp %}<tr><th>If insufficient</th><td>{{ c.followUp.label }}</td></tr>{% endif %}
+    <tr><th>The risk</th><td>{{ named(c.risk) }}</td></tr>
+    {% if c.source %}<tr><th>Caused by</th><td>{{ named(c.source) }}</td></tr>{% endif %}
+    {% if c.vulnerability %}<tr><th>Exploiting</th><td>{{ named(c.vulnerability) }}</td></tr>{% endif %}
+    {% if c.consequence %}<tr><th>Leading to</th><td>{{ named(c.consequence) }}</td></tr>{% endif %}
+    {% if c.stakeholder %}<tr><th>Affecting</th><td>{{ named(c.stakeholder) }}{% if c.areas %} &mdash; {% for a in c.areas %}{{ named(a) }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</td></tr>{% endif %}
+    {% if c.control %}<tr><th>Control</th><td>{{ named(c.control) }}</td></tr>{% endif %}
+    {% if c.followUp %}<tr><th>If insufficient</th><td>{{ named(c.followUp) }}</td></tr>{% endif %}
   </table>
   {% endfor %}
 

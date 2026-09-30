@@ -38,6 +38,9 @@ class OntologyNode(BaseModel):
     # instead of flagging a gap that cannot be closed.
     termExpected: Optional[bool] = None
     termNotApplicable: Optional[bool] = None
+    # The label is a name the AI drafted from the author's text (D4): the card marks it
+    # as one until a person edits or keeps it, which clears this.
+    nameDrafted: Optional[bool] = None
     generatedLabel: Optional[str] = None
     reviewNote: Optional[str] = None
     formTag: Optional[str] = None

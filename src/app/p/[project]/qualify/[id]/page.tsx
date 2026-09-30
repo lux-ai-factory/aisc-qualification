@@ -6,6 +6,7 @@ import { ontologyService } from "@/server/services/OntologyService";
 import { OntologyClient } from "@/server/services/OntologyClient";
 import AnsweredForm from "./AnsweredForm";
 import FillStatus from "./FillStatus";
+import { placesToCheck } from "@/domain/placesToCheck";
 import OntologyView from "./OntologyView";
 import QualificationTabs from "./QualificationTabs";
 import { questionnairesFor } from "@/server/services/QuestionnaireService";
@@ -166,6 +167,7 @@ export default async function QualificationDetailPage({
                 project={project}
                 qualificationId={q.id}
                 statusUrl={`${basePath}/p/${project}/api/qualifications/${q.id}/fill`}
+                places={ontology ? placesToCheck(ontology.view) : 0}
               />
             )}
             {ontology ? (

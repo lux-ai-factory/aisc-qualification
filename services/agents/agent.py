@@ -80,8 +80,6 @@ def fill_one(pid: str, qualification_id: str, dry_run: bool = False) -> dict:
         "calls": result.calls,
         "flagged": len(result.payload.get("flags", {})),
         "stops": result.stop_reasons,
-        # Places the card asks a person to check: the card page counts them.
-        "notes": result.payload.get("record", {}).get("notes", 0),
         "model": f"{config.provider}/{config.model}",
         "project": project,
     }

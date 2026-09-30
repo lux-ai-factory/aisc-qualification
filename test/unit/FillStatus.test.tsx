@@ -160,28 +160,40 @@ describe("refining the card with AI from its page", () => {
 });
 
 describe("the card counting the places to check", () => {
-  async function doneWith(result: unknown) {
+  // The count is the card's own (its nodes carrying notes), so it survives a restart of the
+  // agent and drops a note a reviewer's edit settled; the run's record is not read for it.
+  async function withPlaces(places: number, state = "done", result: unknown = undefined) {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => ({ ok: true, json: async () => ({ state: "done", result }) })),
+      vi.fn(async () => ({ ok: true, json: async () => ({ state, result }) })),
     );
     await act(async () => {
-      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} places={places} />);
     });
   }
 
   it("says how many places to check", async () => {
-    await doneWith({ notes: 2 });
+    await withPlaces(2);
     expect(screen.getByText("2 places to check")).toBeTruthy();
   });
 
   it("says place, not places, for one", async () => {
-    await doneWith({ notes: 1 });
+    await withPlaces(1);
     expect(screen.getByText("1 place to check")).toBeTruthy();
   });
 
-  it.each([{ notes: 0 }, {}, undefined])("says nothing for %j", async (result) => {
-    await doneWith(result);
+  it("still says it when the agent has no run to report, after a restart", async () => {
+    await withPlaces(3, "idle");
+    expect(screen.getByText("3 places to check")).toBeTruthy();
+  });
+
+  it("goes by the card, not by the count a past run recorded", async () => {
+    await withPlaces(0, "done", { notes: 2 });
+    expect(screen.queryByText(/to check/)).toBeNull();
+  });
+
+  it("says nothing while a run is in flight", async () => {
+    await withPlaces(2, "running");
     expect(screen.queryByText(/to check/)).toBeNull();
   });
 });

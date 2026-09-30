@@ -29,7 +29,7 @@ def test_only_long_form_texts_are_named():
     assert nameable(NODES) == {"purpose": NODES[0]["fullText"]}
 
 
-@pytest.mark.parametrize("cls", ["AITechnique", "AIComponent"])
+@pytest.mark.parametrize("cls", ["AITechnique", "AIComponent", "AIModel", "Data", "AISystem"])
 def test_a_node_the_builder_takes_no_name_for_is_not_named(cls):
     node = {"id": "t", "cls": cls, "label": "x", "fullText": "long text here", "provenance": "form"}
     assert nameable([node]) == {}

@@ -5,6 +5,9 @@ findings) are an optional extra, so a payload carrying only the form's metadata
 and the graph has to validate and render: that is what the Download PDF button
 in the vertical view sends when nobody has generated the prose.
 """
+import copy
+import json
+import re
 from pathlib import Path
 
 import pytest
@@ -178,3 +181,43 @@ def subtitle(html: str) -> str:
     """The cover line under the title: provider, version, date."""
     start = html.index('<p class="subtitle">')
     return " ".join(html[start : html.index("</p>", start)].split())
+
+
+# ── an AI-drafted name is shown as one (D4) ──────────────────────────────────
+
+# The ontology builder's own view of the MCAS example (kept current by the ontology suite).
+MCAS_VIEW = json.loads(
+    (ROOT.parent / "agents" / "tests" / "fixtures" / "mcas.view.json").read_text(encoding="utf-8")
+)
+
+
+def _drafted(view: dict, ids: set) -> dict:
+    view = copy.deepcopy(view)
+    for row in view["rows"]:
+        for n in row["nodes"]:
+            if n["id"] in ids:
+                n["nameDrafted"] = True
+    for chain in view["chains"]:
+        for slot in ("risk", "source", "control"):
+            if chain.get(slot) and chain[slot]["id"] in ids:
+                chain[slot]["nameDrafted"] = True
+    return view
+
+
+def _row_label(view: dict, prop: str) -> str:
+    return next(r for r in view["rows"] if r["property"] == prop)["nodes"][0]["label"]
+
+
+def test_a_name_the_ai_drafted_is_marked_on_the_card_until_a_person_keeps_it():
+    view = _drafted(MCAS_VIEW, {"purpose", "risk0_source"})
+    html = " ".join(render(dict(ONTOLOGY_ONLY, ontology=view)).split())
+    purpose = _row_label(view, "hasPurpose")
+    source = view["chains"][0]["source"]["label"]
+    assert re.search(re.escape(purpose) + r' <span class="ai-name">\(AI name\)</span>', html)
+    assert re.search(re.escape(source) + r' <span class="ai-name">\(AI name\)</span>', html)
+    assert html.count("(AI name)") == 2
+
+
+def test_a_name_the_author_wrote_or_a_person_kept_is_not_marked():
+    html = render(dict(ONTOLOGY_ONLY, ontology=MCAS_VIEW))
+    assert "(AI name)" not in html

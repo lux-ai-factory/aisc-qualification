@@ -17,6 +17,10 @@ describe("the card page", () => {
     expect(page.slice(0, page.indexOf("card={"))).not.toContain("<FillStatus");
   });
 
+  it("counts the places to check on the card it built, not on the agent's last run", () => {
+    expect(page).toContain("places={ontology ? placesToCheck(ontology.view) : 0}");
+  });
+
   it("no longer shows the engine-link panel or asks the engine", () => {
     expect(page).not.toContain("ComponentsPanel");
     expect(page).not.toContain("engineClient");

@@ -14,8 +14,9 @@ from .controls import LABEL_MAX, _grounding, _labels
 from .models import Draft, Finding, Node
 from .prompts import naming_prompt
 
-#: Classes whose nodes the drafting of techniques and components already names.
-_DRAFTED_CLASSES = {"AITechnique", "AIComponent"}
+#: Classes whose nodes the drafting of techniques and components already names, and the
+#: ones the builder takes no name for (the system, and a component typed as a model or data).
+_UNNAMED_CLASSES = {"AITechnique", "AIComponent", "AIModel", "Data", "AISystem"}
 
 
 def nameable(nodes: list[dict]) -> dict[str, str]:
@@ -28,7 +29,7 @@ def nameable(nodes: list[dict]) -> dict[str, str]:
         for node in nodes
         if node.get("fullText")
         and node.get("provenance") == "form"
-        and node.get("cls") not in _DRAFTED_CLASSES
+        and node.get("cls") not in _UNNAMED_CLASSES
     }
 
 

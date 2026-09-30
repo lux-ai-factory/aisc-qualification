@@ -127,5 +127,9 @@ def consistency_prompt(nodes: Sequence[dict], answers: Sequence[dict]) -> tuple[
             f"{n['id']} | {n['cls']} | {n['label']} | {n.get('vair') or '-'} | {' '.join((n.get('fullText') or '-').split())}"
         )
     parts += ["", "The answers:"]
-    parts += [f"[{a.get('annexPoint', '')}] {' '.join(a['answer'].split())}" for a in answers if isinstance(a.get("answer"), str) and a["answer"].strip()]
+    parts += [
+        (f"[{a['annexPoint']}] " if a.get("annexPoint") else "") + " ".join(a["answer"].split())
+        for a in answers
+        if isinstance(a.get("answer"), str) and a["answer"].strip()
+    ]
     return system, "\n".join(parts)
