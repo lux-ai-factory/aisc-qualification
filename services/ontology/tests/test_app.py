@@ -151,3 +151,20 @@ def test_r33_description_use_case_and_users_are_optional_now(client, payload):
 def test_r34_a_request_without_a_form_gets_no_coverage_keys(client, payload):
     view = client.post("/build", json=payload).json()["view"]
     assert not {"form", "coverage", "additionalDocumentation"} & set(view)
+
+
+def _row_node(view, prop):
+    return next(r for r in view["rows"] if r["property"] == prop)["nodes"][0]
+
+
+def test_the_operator_terms_and_a_subject_as_affected_reach_the_graph_over_http(client, payload):
+    q = payload["qualification"]
+    risks = [{**q["risks"][0], "affected": "JobApplicant"}, *q["risks"][1:]]
+    r = client.post("/build", json={**payload, "qualification": {
+        **q, "providerTerm": "PublicAuthority", "deployerTerm": "EducationalInstitution", "risks": risks}})
+    assert r.status_code == 200
+    view = r.json()["view"]
+    assert _row_node(view, "isDeployedBy")["vair"] == "EducationalInstitution"
+    assert _row_node(view, "isProvidedBy")["vair"] == "PublicAuthority"
+    stakeholder = view["chains"][0]["stakeholder"]
+    assert stakeholder["cls"] == "AISubject" and stakeholder["vair"] == "JobApplicant"

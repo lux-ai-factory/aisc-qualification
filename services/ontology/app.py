@@ -49,6 +49,10 @@ class Qualification(BaseModel):
     # The VAIR terms the author chose (2026-09-30): the builder types each node with its term.
     systemType: str | None = None
     purpose: str | None = None
+    #: The operators' terms. Declared, or pydantic drops them and the provider and the
+    #: deployer are never typed however the author answered.
+    providerTerm: str | None = None
+    deployerTerm: str | None = None
     targetSystemTags: list[str] = Field(default_factory=list)
     sectorTags: list[str] = Field(default_factory=list)
     marketFormTags: list[str] = Field(default_factory=list)
