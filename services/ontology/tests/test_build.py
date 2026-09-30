@@ -543,3 +543,24 @@ def test_a_reviewer_edit_clears_the_notes_with_the_flag():
     assert (EX.risk0_control, QUAL.reviewFlag, None) not in g
     assert (EX.risk0_control, QUAL.flagNote, None) not in g
     assert "flagNotes" not in node_view(g, EX.risk0_control)
+
+
+def test_a_note_keeps_a_separator_inside_its_reason_and_its_quote():
+    q = _qualification()
+    note = _note(q, why="says A | but B", quote="the model | is hosted")
+    g = build_graph(q, {"notes": {"risk0_control": [note]}})
+    assert node_view(g, EX.risk0_control)["flagNotes"] == [{"why": note["why"], "quote": note["quote"]}]
+
+
+def test_a_node_with_an_ai_name_still_takes_a_note_for_the_authors_text():
+    q = {**_qualification(), "targetUseCase": LONG}
+    note = {"why": "w", "quote": "q", "of": LONG}
+    g = build_graph(q, {**_drafted(), "notes": {"purpose": [note]}})
+    assert str(g.value(EX.purpose, RDFS.label)) == "Consumer credit assessment"
+    assert node_view(g, EX.purpose)["flagNotes"] == [{"why": "w", "quote": "q"}]
+
+
+def test_a_note_missing_its_reason_is_refused():
+    q = _qualification()
+    with pytest.raises(ValueError):
+        build_graph(q, {"notes": {"risk0_control": [{"quote": "q", "of": q["risks"][0]["control"]}]}})

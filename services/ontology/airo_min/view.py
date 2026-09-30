@@ -4,6 +4,7 @@ Computed here rather than in the frontend, so the app needs no RDF library and t
 ontology logic stays in one language. Mirrors AIRO's Figure 3: a system half of
 property rows, and a risk half of one chain per risk.
 """
+import json
 from typing import Any
 
 from rdflib import Graph, RDF, RDFS, URIRef
@@ -83,10 +84,9 @@ def node_view(g: Graph, node: URIRef) -> dict[str, Any]:
         out["flags"] = sorted(flags)
     notes = sorted(str(o) for o in g.objects(node, QUAL.flagNote))
     if notes:
-        # "<why> | <quote>": the reason first, then the words it rests on.
-        out["flagNotes"] = [
-            dict(zip(("why", "quote"), n.split(" | ", 1))) for n in notes
-        ]
+        # Each note is one JSON literal {"why", "quote"}: both are free text, so
+        # no separator would be safe.
+        out["flagNotes"] = [json.loads(n) for n in notes]
     if not _expects_a_term(airo_cls):
         # No term can describe this node: either VAIR does not subdivide the
         # class, or its terms name a population the node is not part of. Said

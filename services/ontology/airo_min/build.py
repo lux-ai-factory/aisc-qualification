@@ -15,6 +15,7 @@ namespace (`qual:`), attached to the AISystem with their Annex IV citation. That
 keeps the AIRO structure at exactly the 19 properties of the minimal schema while
 the graph still carries 100% of the technical documentation.
 """
+import json
 from typing import Any, Iterable
 
 from rdflib import BNode, Graph, Literal, Namespace, RDF, RDFS, URIRef
@@ -386,10 +387,15 @@ def build_graph(
             if v
         }
         for note in notes:
+            if not all(isinstance(note.get(k), str) for k in ("why", "quote", "of")):
+                raise ValueError(
+                    f"a note for {node_id!r} needs a why, a quote and an of, all text"
+                )
             if " ".join(str(note.get("of", "")).split()) not in shown:
                 continue  # written for another text, or another row now at this position
             g.add((node, QUAL.reviewFlag, Literal("inconsistent")))
-            g.add((node, QUAL.flagNote, Literal(f"{note['why']} | {note['quote']}")))
+            body = json.dumps({"why": note["why"], "quote": note["quote"]}, ensure_ascii=False)
+            g.add((node, QUAL.flagNote, Literal(body)))
 
     # ── what built this graph, so an exported file can be checked ────────────
     for stamp in _build_stamp():
