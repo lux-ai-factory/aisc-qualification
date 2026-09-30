@@ -48,11 +48,16 @@ const node = z
   })
   .strict();
 
+// A curated name is a string, or a name an agent drafted together with the text it was
+// written for: the builder applies that one only while the answer still reads the same.
+const name = z.string().trim().min(1).max(LABEL_MAX);
+const draftedName = z.object({ name, of: z.string().min(1) }).strict();
+
 const extracted = z
   .object({
     techniques: z.array(node).optional(),
     components: z.array(node).optional(),
-    names: z.record(z.string(), z.string().trim().min(1).max(LABEL_MAX)).optional(),
+    names: z.record(z.string(), z.union([name, draftedName])).optional(),
     types: z.record(z.string(), z.string().min(1)).optional(),
     flags: z.record(z.string(), z.array(z.enum(REVIEW_FLAGS)).min(1)).optional(),
     /** The agent's own record of the run: rounds, findings, calls. */

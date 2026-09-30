@@ -103,3 +103,16 @@ def critic_prompt(draft: Draft, source: str, known: Sequence[str] = ()) -> tuple
         ]
     )
     return system, user
+
+
+def naming_prompt(texts: dict[str, str], findings: Sequence[Finding] = ()) -> tuple[str, str]:
+    """The prompt that names long answers: one line per node, and what a check said about a name."""
+    system = prompt_text("naming-long-answers")
+    parts = ["The nodes to name:", *(f"{node}: {' '.join(text.split())}" for node, text in texts.items())]
+    if findings:
+        parts += [
+            "",
+            "A check of your previous names raised these. Name these nodes again:",
+            *(f"- {f}" for f in findings),
+        ]
+    return system, "\n".join(parts)

@@ -400,3 +400,66 @@ def test_r32_without_any_annex_point_key_the_suffix_rule_is_as_today():
     assert answer_for(QUALIFICATION, "Annex IV(2)(c)").startswith("A scoring model")
     legacy = {"answers": [{"toolId": "f-x", "questionId": "q12a", "answer": "Suffix match."}]}
     assert answer_for(legacy, "Annex IV(2)(a)") == "Suffix match."
+
+
+PURPOSE = "Assess the creditworthiness of consumer loan applicants for retail banks"
+VIEW = {"view": {"nodes": [
+    {"id": "purpose", "cls": "Purpose", "label": "Assess the...", "fullText": PURPOSE, "provenance": "form"},
+]}}
+
+
+class TestNamingTheLongAnswers:
+    def completer(self):
+        fake = FakeCompleter()
+
+        def complete(system, user, temperature=0.0):
+            if "Naming long answers" in system:
+                return '{"purpose": "Consumer loan creditworthiness"}'
+            return fake(system, user, temperature)
+
+        return complete
+
+    def test_the_payload_carries_the_names_next_to_the_techniques(self):
+        published = {}
+        run_fill(
+            QUALIFICATION,
+            terms=TERMS,
+            complete=self.completer(),
+            publish=lambda qid, payload: published.setdefault(qid, payload),
+            build=lambda q, e: VIEW,
+        )
+        payload = published["q1"]
+        assert payload["names"] == {"purpose": {"name": "Consumer loan creditworthiness", "of": PURPOSE}}
+        assert payload["techniques"]
+
+    def test_a_name_that_could_not_be_kept_is_left_in_the_record(self):
+        published = {}
+        run_fill(
+            QUALIFICATION,
+            terms=TERMS,
+            complete=lambda s, u, temperature=0.0: '{"purpose": "Astronomy"}'
+            if "Naming long answers" in s
+            else FakeCompleter()(s, u, temperature),
+            publish=lambda qid, payload: published.setdefault(qid, payload),
+            build=lambda q, e: VIEW,
+        )
+        assert published["q1"]["names"] == {}
+        assert published["q1"]["record"]["names_left"][0]["node"] == "purpose"
+
+    def test_an_unreachable_ontology_service_publishes_the_run_without_names(self):
+        from fill.clients import ServiceError
+
+        def down(q, e):
+            raise ServiceError("unreachable")
+
+        published = {}
+        run_fill(
+            QUALIFICATION,
+            terms=TERMS,
+            complete=FakeCompleter(),
+            publish=lambda qid, payload: published.setdefault(qid, payload),
+            build=down,
+        )
+        assert published["q1"]["techniques"]
+        assert published["q1"]["names"] == {}
+        assert published["q1"]["record"]["names"] == "ontology unreachable"

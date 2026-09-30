@@ -21,6 +21,20 @@ describe("the payload a filler agent publishes", () => {
     expect(result.value.flags?.technique1).toEqual(["ungrounded"]);
   });
 
+  it("accepts a drafted name with the text it was written for", () => {
+    const names = { purpose: { name: "Consumer loan scoring", of: "Assess the creditworthiness of consumer loan applicants" }, risk0_source: "Postcode proxies" };
+    const result = parseExtracted({ ...valid, names });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.names).toEqual(names);
+  });
+
+  it("refuses a drafted name longer than a name, or without its text", () => {
+    expect(parseExtracted({ names: { purpose: { name: "x".repeat(61), of: "t" } } }).ok).toBe(false);
+    expect(parseExtracted({ names: { purpose: { name: "Scoring" } } }).ok).toBe(false);
+    expect(parseExtracted({ names: { purpose: { name: "Scoring", of: "t", extra: 1 } } }).ok).toBe(false);
+  });
+
   it("accepts an empty draft", () => {
     expect(parseExtracted({ techniques: [], components: [] }).ok).toBe(true);
   });

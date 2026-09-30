@@ -17,8 +17,10 @@ poor way to be called by a web request.
 from dataclasses import dataclass, field
 from typing import Callable
 
+from . import clients
 from .agents import LlmCritic, LlmWriter
 from .controls import run_controls
+from .names import draft_names, nameable
 from .models import (
     CITATION_OF,
     CLASS_OF,
@@ -174,6 +176,8 @@ class FillRun:
     complete: Callable[..., str]
     publish: Callable[[str, dict], object]
     max_rounds: int = MAX_ROUNDS
+    #: The ontology service's build, which says which long answers were cut to a label.
+    build: Callable[[dict, dict], dict] = clients.build
 
     queue: list[Property] = field(default_factory=list)
     current: Property | None = None
@@ -245,7 +249,26 @@ class FillRun:
     def publish_all(self) -> None:
         """Write the drafts and their flags where the card reads them."""
         self.payload = payload_of(self.outcomes, known_parts(self.qualification))
+        self._name_long_answers()
         self.publish(self.qualification["id"], self.payload)
+
+    def _name_long_answers(self) -> None:
+        """Draft a name for each long answer the builder had to cut to a label.
+
+        Node ids and full texts come from the builder's own view, not from a guess at
+        them. When the ontology service cannot be reached the run publishes what it
+        has, without names, and the record says so.
+        """
+        try:
+            view = self.build(self.qualification, {})["view"]
+        except clients.ServiceError:
+            self.payload["names"] = {}
+            self.payload["record"]["names"] = "ontology unreachable"
+            return
+        names, gave_up = draft_names(nameable(view), self.complete)
+        self.payload["names"] = names
+        if gave_up:
+            self.payload["record"]["names_left"] = gave_up
 
     # ── the conditions the state machine branches on ─────────────────────────
 
@@ -296,6 +319,7 @@ def run_fill(
     complete: Callable[..., str],
     publish: Callable[[str, dict], object],
     max_rounds: int = MAX_ROUNDS,
+    build: Callable[[dict, dict], dict] = clients.build,
 ) -> FillResult:
     """Draft, review and publish one qualification's extracted document.
 
@@ -309,6 +333,7 @@ def run_fill(
         complete=complete,
         publish=publish,
         max_rounds=max_rounds,
+        build=build,
     )
     run.load()
     while run.more_to_draft():

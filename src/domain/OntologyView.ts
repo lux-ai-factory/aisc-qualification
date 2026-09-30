@@ -127,7 +127,8 @@ export type OntologyPatch = Record<string, NodePatch>;
 export type OntologyExtracted = {
   techniques?: Array<string | { label: string; vair?: string }>;
   components?: Array<string | { label: string; vair?: string }>;
-  names?: Record<string, string>;
+  /** node id -> a curated name, or a drafted one with the text it was written for. */
+  names?: Record<string, string | { name: string; of: string }>;
   /** node id -> VAIR term, for nodes no mechanical mapping can reach. */
   types?: Record<string, string>;
 };
