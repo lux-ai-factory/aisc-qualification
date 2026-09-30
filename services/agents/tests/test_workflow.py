@@ -463,3 +463,24 @@ class TestNamingTheLongAnswers:
         assert published["q1"]["techniques"]
         assert published["q1"]["names"] == {}
         assert published["q1"]["record"]["names"] == "ontology unreachable"
+
+    def test_a_completer_that_fails_on_naming_still_publishes_the_techniques(self):
+        fake = FakeCompleter()
+
+        def complete(system, user, temperature=0.0):
+            if "Naming long answers" in system:
+                raise TimeoutError("model timed out")
+            return fake(system, user, temperature)
+
+        published = {}
+        run_fill(QUALIFICATION, terms=TERMS, complete=complete,
+                 publish=lambda qid, payload: published.setdefault(qid, payload), build=lambda q, e: VIEW)
+        assert published["q1"]["techniques"] and published["q1"]["names"] == {}
+        assert published["q1"]["record"]["names"] == "naming failed"
+
+    def test_a_malformed_build_answer_publishes_the_techniques_too(self):
+        published = {}
+        run_fill(QUALIFICATION, terms=TERMS, complete=FakeCompleter(),
+                 publish=lambda qid, payload: published.setdefault(qid, payload), build=lambda q, e: {})
+        assert published["q1"]["techniques"]
+        assert published["q1"]["record"]["names"] == "naming failed"

@@ -177,7 +177,7 @@ class FillRun:
     publish: Callable[[str, dict], object]
     max_rounds: int = MAX_ROUNDS
     #: The ontology service's build, which says which long answers were cut to a label.
-    build: Callable[[dict, dict], dict] = clients.build
+    build: Callable[[dict, dict], dict] | None = None
 
     queue: list[Property] = field(default_factory=list)
     current: Property | None = None
@@ -259,13 +259,21 @@ class FillRun:
         them. When the ontology service cannot be reached the run publishes what it
         has, without names, and the record says so.
         """
+        self.payload["names"] = {}
         try:
-            view = self.build(self.qualification, {})["view"]
+            view = (self.build or clients.build)(self.qualification, {})["view"]
         except clients.ServiceError:
-            self.payload["names"] = {}
             self.payload["record"]["names"] = "ontology unreachable"
             return
-        names, gave_up = draft_names(nameable(view), self.complete)
+        except Exception:
+            # names are optional: a malformed answer must not cost the techniques
+            self.payload["record"]["names"] = "naming failed"
+            return
+        try:
+            names, gave_up = draft_names(nameable(view), self.complete)
+        except Exception:
+            self.payload["record"]["names"] = "naming failed"
+            return
         self.payload["names"] = names
         if gave_up:
             self.payload["record"]["names_left"] = gave_up
@@ -319,7 +327,7 @@ def run_fill(
     complete: Callable[..., str],
     publish: Callable[[str, dict], object],
     max_rounds: int = MAX_ROUNDS,
-    build: Callable[[dict, dict], dict] = clients.build,
+    build: Callable[[dict, dict], dict] | None = None,
 ) -> FillResult:
     """Draft, review and publish one qualification's extracted document.
 

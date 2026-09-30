@@ -28,3 +28,16 @@ def _a_callers_token(monkeypatch, request):
         return original(self, method, url, *args, headers=headers, **kwargs)
 
     monkeypatch.setattr(TestClient, "request", with_token)
+
+
+@pytest.fixture(autouse=True)
+def _no_ontology_service(monkeypatch, request):
+    """Runs that name no `build` must not reach a real ontology service (test_clients tests the real one)."""
+    if request.module.__name__.endswith("test_clients"):
+        return
+    from fill import clients
+
+    def unreachable(qualification, extracted):
+        raise clients.ServiceError("no ontology service in tests")
+
+    monkeypatch.setattr(clients, "build", unreachable)

@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Callable
 
 from .agents import _json_object
-from .controls import _grounding, _labels
+from .controls import LABEL_MAX, _grounding, _labels
 from .models import Draft, Finding, Node
 from .prompts import naming_prompt
 
@@ -41,6 +41,9 @@ def _check(texts: dict[str, str], proposed: dict) -> tuple[dict[str, str], list[
         name = " ".join(name.split())
         draft = Draft(prop="techniques", nodes=(Node(id=node_id, label=name),))
         problems = _labels(draft) + _grounding(draft, text)
+        # the app counts UTF-16 units, Python counts code points
+        if not problems and len(name.encode("utf-16-le")) // 2 > LABEL_MAX:
+            problems = [Finding(node_id, "sentence", f"longer than {LABEL_MAX} characters as the app counts them")]
         if problems:
             findings += problems
         else:

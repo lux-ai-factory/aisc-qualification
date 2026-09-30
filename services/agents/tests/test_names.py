@@ -61,3 +61,9 @@ def test_nothing_to_name_asks_nothing():
         raise AssertionError("no call expected")
 
     assert draft_names({}, complete) == ({}, [])
+
+
+def test_a_name_that_is_long_in_utf16_units_is_asked_again():
+    text = "Assess the creditworthiness of consumer loan applicants"
+    names, gave_up = draft_names({"p": text}, lambda *a, **k: '{"p": "creditworthiness ' + "\U0001F600" * 31 + '"}', max_rounds=1)
+    assert names == {} and gave_up[0]["node"] == "p"
