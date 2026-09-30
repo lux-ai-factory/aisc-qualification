@@ -25,12 +25,12 @@ def _union_members(g, node):
 
 
 def test_exactly_the_figure_3_subset_with_the_collapse():
-    # 19 + AIModel and Data; 19 + the four hasComponent sub-properties (WP6)
-    assert len(CLASSES) == 21
-    assert len(PROPERTIES) == 23
-    for removed in ("AIProvider", "AIDeployer", "AISubject"):
+    # 19 + AIModel and Data, + AISubject back (1.1); 19 + the four hasComponent sub-properties (WP6),
+    # + hasAISubject (1.1)
+    assert len(CLASSES) == 22
+    assert len(PROPERTIES) == 24
+    for removed in ("AIProvider", "AIDeployer"):
         assert removed not in CLASSES
-    assert "hasAISubject" not in PROPERTIES
 
 
 def test_every_class_exists_in_airo(airo_graph):
@@ -41,7 +41,7 @@ def test_every_class_exists_in_airo(airo_graph):
 def test_every_parent_edge_is_declared_in_airo(airo_graph):
     for child, parent in SUBCLASS_EDGES:
         assert (_uri(child), RDFS.subClassOf, _uri(parent)) in airo_graph, (child, parent)
-    assert len(SUBCLASS_EDGES) == 8
+    assert len(SUBCLASS_EDGES) == 9
 
 
 def test_every_property_exists_in_airo_with_matching_domain(airo_graph):
@@ -80,3 +80,11 @@ def test_ancestors_and_is_a_walk_the_hierarchy():
     assert is_a("Impact", "RiskConcept")
     assert is_a("Risk", "Risk")
     assert not is_a("Risk", "Impact")
+
+
+def test_aisubject_is_back_as_a_stakeholder():
+    from airo_min.schema import CLASSES, PROPERTIES, SCHEMA_VERSION
+    assert CLASSES["AISubject"] == "Stakeholder"
+    assert PROPERTIES["hasAISubject"] == (("AISystem",), "AISubject")
+    assert PROPERTIES["hasImpactOnStakeholder"] == (("Impact",), "Stakeholder")
+    assert SCHEMA_VERSION == "1.1"

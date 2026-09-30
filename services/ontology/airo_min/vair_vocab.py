@@ -28,6 +28,8 @@ FORM_CLASSES: tuple[str, ...] = (
     "Domain",  # Sectors
     "Modality",  # How the system reaches the market
     "LocalityOfUse",  # Where the system is used
+    "AIOperator",  # Provider and deployer
+    "AISubject",  # Risk: who is affected
     "AIComponent",  # Component type
     "RiskSource",  # Risk: what causes it
     "Consequence",  # Risk: what happens as a result

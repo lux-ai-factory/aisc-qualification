@@ -55,7 +55,7 @@ class TestInventory:
 
     def test_how_many_sit_under_our_own_schema(self):
         offered = {t for terms in vocabularies().values() for t in terms}
-        assert len(offered) == 331
+        assert len(offered) == 350
 
     def test_the_terms_vair_leaves_hanging(self):
         # No rdfs:subClassOf at all, so no AIRO class can reach them: superseded

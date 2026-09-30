@@ -953,6 +953,190 @@
         "definition": "Place of work"
       }
     ],
+    "AIOperator": [
+      {
+        "id": "EducationalInstitution",
+        "label": "Educational Institution",
+        "definition": "Educational institution at any level"
+      },
+      {
+        "id": "EmergencyHealthCareProvider",
+        "label": "Emergency Healthcare Provider",
+        "definition": "Refer to emergency healthcare providers"
+      },
+      {
+        "id": "EmergencyServiceProvider",
+        "label": "Emergency Service Provider",
+        "definition": "Provider of emergency first response services"
+      },
+      {
+        "id": "EUAgency",
+        "label": "EU Agency",
+        "definition": "Union agency"
+      },
+      {
+        "id": "EUBody",
+        "label": "EU Body",
+        "definition": "Union body"
+      },
+      {
+        "id": "EUInstitution",
+        "label": "EU Institution",
+        "definition": "Union institution"
+      },
+      {
+        "id": "EUOffice",
+        "label": "EU Office",
+        "definition": "EU office"
+      },
+      {
+        "id": "FireBrigade",
+        "label": "Fire Brigade",
+        "definition": "Refers to fire department"
+      },
+      {
+        "id": "JudicialAuthority",
+        "label": "Judicial Authority",
+        "definition": "An authority to administer justice"
+      },
+      {
+        "id": "JudicialAuthorityAgent",
+        "label": "Judicial Authority Agent",
+        "definition": "An entity that acts on behalf on judicial authorities"
+      },
+      {
+        "id": "LawEnforcementAuthority",
+        "label": "Law Enforcement Authority",
+        "definition": "Law enforcement authority means: (a) any public authority competent for the prevention, investigation, detection or prosecution of criminal offences or the execution of criminal penalties, including the safeguarding against and the prevention of threats to public security; or (b) any other body or entity entrusted by Member State law to exercise public authority and public powers for the purposes of the prevention, investigation, detection or prosecution of criminal offences or the execution of criminal penalties, including the safeguarding against and the prevention of threats to public security."
+      },
+      {
+        "id": "LawEnforcementAuthorityAgent",
+        "label": "Law Enforcement Authority Agent",
+        "definition": "An entity that acts on behalf of law enforcement authorities."
+      },
+      {
+        "id": "MedicalAidProvider",
+        "label": "Medical Aid Provider",
+        "definition": "Entity that provides medical aid"
+      },
+      {
+        "id": "Police",
+        "label": "Police",
+        "definition": "Police"
+      },
+      {
+        "id": "PublicAuthority",
+        "label": "Public Authority",
+        "definition": "Refers to public authorities and bodies."
+      },
+      {
+        "id": "PublicAuthorityAgent",
+        "label": "Public Authority Agent",
+        "definition": "An entity that acts on behalf of public authorities."
+      },
+      {
+        "id": "VocationalTrainingInstitution",
+        "label": "Vocational Training Institution",
+        "definition": "Vocational training institution at any level"
+      }
+    ],
+    "AISubject": [
+      {
+        "id": "AsylumSeeker",
+        "label": "Asylum Seeker",
+        "definition": "A person who has applied for asylum"
+      },
+      {
+        "id": "CourseAttendee",
+        "label": "Course Attendee",
+        "definition": "A person who attends a course."
+      },
+      {
+        "id": "Employee",
+        "label": "Employee",
+        "definition": "A person in work-related contractual relationships"
+      },
+      {
+        "id": "Family",
+        "label": "Family",
+        "definition": "A group of people related to each other by blood or marraige"
+      },
+      {
+        "id": "Group",
+        "label": "Group",
+        "definition": "A group of persons such as citizens, marginsalised groups, etc."
+      },
+      {
+        "id": "IndividualEnteredState",
+        "label": "Individual Entered State",
+        "definition": "A person who has entered into the territory of a State"
+      },
+      {
+        "id": "IndividualIntendsToEnterState",
+        "label": "Individual Intends To Enter State",
+        "definition": "A person who intends to enter into the territory of a State"
+      },
+      {
+        "id": "JobApplicant",
+        "label": "Job Applicant",
+        "definition": "A person who has made an application for employment"
+      },
+      {
+        "id": "JobCandidate",
+        "label": "Job Candidate",
+        "definition": "A person who is considered for employment."
+      },
+      {
+        "id": "NaturalPerson",
+        "label": "Natural Person",
+        "definition": "An individual human being"
+      },
+      {
+        "id": "PotentialJobApplicant",
+        "label": "Potential Job Applicant",
+        "definition": "A person who may have applied for employment."
+      },
+      {
+        "id": "PotentialPublicServicesApplicant",
+        "label": "Potential Public Services Applicant",
+        "definition": "A person who may have applied for public services."
+      },
+      {
+        "id": "PublicServicesApplicant",
+        "label": "Public Services Applicant",
+        "definition": "A person who has applied for public services and benefits"
+      },
+      {
+        "id": "PublicServicesRecipient",
+        "label": "Public Services Recipient",
+        "definition": "Person who is recipient of public services and benefits"
+      },
+      {
+        "id": "ResidencePermitApplicant",
+        "label": "Residence Permit Applicant",
+        "definition": "A person who has applied for a residence permit"
+      },
+      {
+        "id": "Student",
+        "label": "Student",
+        "definition": "Refers to students at all levels"
+      },
+      {
+        "id": "VisaApplicant",
+        "label": "Visa Applicant",
+        "definition": "A person who has applied for a visa"
+      },
+      {
+        "id": "VulnerableGroup",
+        "label": "Vulnerable Group",
+        "definition": "A group of persons that is in a vulnerable state due to their age, disability or a specific social or economic situation."
+      },
+      {
+        "id": "VulnerablePerson",
+        "label": "Vulnerable Person",
+        "definition": "An individual human being who is in a vulnerable state due to their age, disability or a specific social or economic situation."
+      }
+    ],
     "AIComponent": [
       {
         "id": "Algorithm",

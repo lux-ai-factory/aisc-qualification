@@ -19,7 +19,9 @@ export type VairClass =
   | "Consequence"
   | "Impact"
   | "AreaOfImpact"
-  | "RiskControl";
+  | "RiskControl"
+  | "AIOperator"
+  | "AISubject";
 
 const CLASSES = vocab.classes as Record<VairClass, VairTerm[]>;
 
@@ -39,6 +41,8 @@ export const CONSEQUENCES = vairTerms("Consequence");
 export const IMPACTS = vairTerms("Impact");
 export const IMPACT_AREAS = vairTerms("AreaOfImpact");
 export const RISK_CONTROLS = vairTerms("RiskControl");
+export const OPERATORS = vairTerms("AIOperator");
+export const SUBJECTS = vairTerms("AISubject");
 
 /** The AIComponent terms that are models: vair:Model and everything under it. */
 export const MODEL_TERMS: ReadonlySet<string> = new Set(vocab.modelTerms);

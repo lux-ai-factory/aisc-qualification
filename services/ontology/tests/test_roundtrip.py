@@ -58,7 +58,8 @@ def test_the_rebuilt_graph_keeps_every_airo_relation(source):
     }
     # MCAS links no test set from the engine, and a test set is not a component: hasTestingData is the
     # one property only such a link gives (test_build.py exercises it).
-    assert used == set(PROPERTIES) - {"hasTestingData"}
+    # hasAISubject is added to the schema in 1.1; the builder and the form mapping give it a source in Task 4 (card-ai plan), which removes this exclusion.
+    assert used == set(PROPERTIES) - {"hasTestingData", "hasAISubject"}
 
 
 def test_the_rebuilt_graph_keeps_the_vair_types(source):

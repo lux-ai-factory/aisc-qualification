@@ -111,7 +111,7 @@ def test_the_vocabularies_endpoint_lists_the_terms_the_ui_offers(client):
     assert "DecisionTree" in body["AIComponent"]
     assert "API" not in body["AIComponent"]  # malformed IRI in VAIR 1.0
     assert len(body["AICapability"]) == 35
-    assert sum(len(v) for v in body.values()) == 331
+    assert sum(len(v) for v in body.values()) == 350
 
 
 def test_the_endpoint_covers_every_class_the_card_can_show(client):

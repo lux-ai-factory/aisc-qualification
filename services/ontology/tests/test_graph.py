@@ -39,7 +39,7 @@ def test_unknown_property_is_rejected():
     a = add_individual(g, ex.a, "AISystem")
     b = add_individual(g, ex.b, "AIUser")
     with pytest.raises(UnknownTerm):
-        link(g, a, "hasAISubject", b)  # dropped with the Subject collapse
+        link(g, a, "hasAIProvider", b)  # dropped with the Provider collapse
 
 
 @pytest.mark.parametrize("fmt", ["turtle", "json-ld"])

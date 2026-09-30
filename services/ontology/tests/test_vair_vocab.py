@@ -52,3 +52,12 @@ def test_the_model_terms_are_vair_s_model_and_everything_under_it():
     assert sorted(form_vocab()["modelTerms"]) == sorted(MODEL_TERMS)
     # VAIR files neural networks under Algorithm, not Model.
     assert "NeuralNetwork" not in MODEL_TERMS
+
+
+def test_the_form_offers_operators_and_subjects():
+    from airo_min.vair_vocab import FORM_CLASSES, form_vocab
+    assert "AIOperator" in FORM_CLASSES and "AISubject" in FORM_CLASSES
+    v = form_vocab()["classes"]
+    assert len(v["AIOperator"]) == 17
+    assert len(v["AISubject"]) == 19
+    assert {"JobApplicant", "Employee", "NaturalPerson"} <= {t["id"] for t in v["AISubject"]}

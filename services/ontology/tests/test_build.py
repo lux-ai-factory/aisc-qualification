@@ -200,7 +200,8 @@ def test_a_full_qualification_exercises_all_nineteen_properties():
     used = {
         str(p).replace(AIRO, "") for p in set(g.predicates()) if str(p).startswith(AIRO)
     }
-    assert used == set(PROPERTIES), set(PROPERTIES) - used
+    # hasAISubject is added to the schema in 1.1; the builder and the form mapping give it a source in Task 4 (card-ai plan), which removes this exclusion.
+    assert used == set(PROPERTIES) - {"hasAISubject"}, set(PROPERTIES) - used
 
 
 def test_an_unknown_affected_value_is_refused():
