@@ -43,7 +43,7 @@ const RISK_TEXT = [
       "The features assume complete bureau history in every deployment market; there is no explicit low-coverage path",
     consequence:
       "A creditworthy applicant is refused a loan they would have repaid, and the recorded reason cites data that was never there",
-    affected: "user",
+    affected: "NaturalPerson",
     impactAreas: ["right"],
     control:
       "Every Reject and every Review case goes to a trained loan officer before any decision reaches the applicant; bureau coverage below the configured threshold forces the case into Review",

@@ -45,7 +45,7 @@ function inVair(x: Q): Q {
       return {
         position: r.position, risk: r.risk, source: r.source, sourceTerm: terms.sourceTerm,
         vulnerability: r.vulnerability, consequence: r.consequence, consequenceTerm: terms.consequenceTerm,
-        impactTerm: terms.impactTerm, affected: r.affected, impactAreas: terms.impactAreas, control: r.control,
+        impactTerm: terms.impactTerm, affected: terms.affected, impactAreas: terms.impactAreas, control: r.control,
         controlTerm: terms.controlTerm, followUpControl: r.followUpControl, followUpControlTerm: terms.followUpControlTerm,
       };
     }),

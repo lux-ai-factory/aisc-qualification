@@ -95,6 +95,14 @@ describe("the MCAS example's VAIR terms agree everywhere", () => {
     }
   });
 
+  it("each risk's affected value", async () => {
+    const seed = await seedData();
+    json().risks.forEach((r: Record<string, unknown>, i: number) => {
+      expect(MCAS.risks[i].affected, `risk ${i}`).toEqual(r.affected);
+      expect(seed.risks.create[i].affected, `risk ${i}`).toEqual(r.affected);
+    });
+  });
+
   it("each risk's areas and terms", async () => {
     const seed = await seedData();
     json().risks.forEach((r: Record<string, unknown>, i: number) => {

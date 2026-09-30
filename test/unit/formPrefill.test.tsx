@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, render } from "@testing-library/react";
-import { IMPACT_AREAS } from "@/data/vairVocab";
+import { IMPACT_AREAS, SUBJECTS } from "@/data/vairVocab";
 import QualifyForm from "@/app/p/[project]/qualify/new/QualifyForm";
 import { findExample } from "@/data/examples";
 import { KEY_QUESTIONS } from "@/data/keyQuestions";
@@ -65,7 +65,7 @@ describe("opening the form on a worked example", () => {
     ).toMatch(/wrongly ranked as high risk/);
     expect(
       (first.querySelector('[name$=":affected"]') as HTMLSelectElement).value,
-    ).toBe("user");
+    ).toBe("NaturalPerson");
     const areas = [
       ...first.querySelectorAll('input[type="hidden"][name$=":area"]'),
     ].map((i) => (i as HTMLInputElement).value);
@@ -127,7 +127,7 @@ describe("the worked example itself", () => {
   it("uses only vocabulary ids the pickers offer", () => {
     const areaIds = new Set(IMPACT_AREAS.map((a) => a.id));
     for (const row of example.risks) {
-      expect(["operator", "user"]).toContain(row.affected);
+      expect(["operator", "user", ...SUBJECTS.map((s) => s.id)]).toContain(row.affected);
       for (const area of row.areas) expect(areaIds.has(area)).toBe(true);
     }
   });

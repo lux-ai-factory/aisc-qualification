@@ -62,7 +62,7 @@ export const MCAS: FormExample = {
       source: "Credit bureau coverage is incomplete or stale for that applicant, so the model scores them on thin data",
       vulnerability: "The features assume complete bureau history in every deployment market; there is no explicit low-coverage path",
       consequence: "A creditworthy applicant is refused a loan they would have repaid, and the recorded reason cites data that was never there",
-      affected: "user",
+      affected: "NaturalPerson",
       areas: ["Right"],
       control: "Every Reject and every Review case goes to a trained loan officer before any decision reaches the applicant; bureau coverage below the configured threshold forces the case into Review",
       followUpControl: "The officer may override the recommendation with a mandatory written justification recorded against the case, and the applicant is told how to contest the outcome",

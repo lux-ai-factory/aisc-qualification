@@ -180,7 +180,7 @@ def test_annotations_use_our_namespace_so_the_airo_structure_is_untouched():
     assert validate(g) == []
 
 
-def test_a_full_qualification_exercises_all_nineteen_properties():
+def test_a_full_qualification_exercises_every_property():
     """Every property of the schema, the four component properties of 2026-09-23 included: the
     Components block gives the model and the data the system is built on, and a test set the card
     links from the engine gives hasTestingData (a test set is not a component)."""
