@@ -179,7 +179,7 @@ def test_a_reviewed_node_shows_as_reviewed_in_the_view(graph):
 
 def test_the_view_reports_the_counts_the_card_header_shows(graph):
     view = build_view(graph)
-    assert view["counts"]["nodes"] == 61
+    assert view["counts"]["nodes"] == 62
     assert view["counts"]["triples"] == len(graph)
     assert view["counts"]["risks"] == 5
 

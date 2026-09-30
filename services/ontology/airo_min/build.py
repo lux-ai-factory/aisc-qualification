@@ -239,25 +239,19 @@ def build_graph(
         )
         _typed(g, purpose, purpose_term)
         link(g, system, "hasPurpose", purpose)
-    link(
-        g,
-        system,
-        "isProvidedBy",
-        named(g, ex.provider, "AIOperator", qualification.get("company", ""), names.get("provider")),
-    )
+    provider = named(g, ex.provider, "AIOperator", qualification.get("company", ""), names.get("provider"))
+    _typed(g, provider, qualification.get("providerTerm"))
+    link(g, system, "isProvidedBy", provider)
     if qualification.get("intendedDeployers"):
-        link(
+        deployer = named(
             g,
-            system,
-            "isDeployedBy",
-            named(
-                g,
-                ex.deployer,
-                "AIOperator",
-                qualification["intendedDeployers"],
-                names.get("deployer"),
-            ),
+            ex.deployer,
+            "AIOperator",
+            qualification["intendedDeployers"],
+            names.get("deployer"),
         )
+        _typed(g, deployer, qualification.get("deployerTerm"))
+        link(g, system, "isDeployedBy", deployer)
     if qualification.get("targetUsers", ""):
         link(
             g,
@@ -445,8 +439,6 @@ def _add_risk(
 ) -> None:
     i = row["position"]
     affected = row["affected"]
-    if affected not in _AFFECTED_CLASS:
-        raise ValueError(f"unknown affected value: {affected!r} (expected operator or user)")
 
     risk = named(g, ex[f"risk{i}"], "Risk", row["risk"], names.get(f"risk{i}"))
     link(g, system, "hasRisk", risk)
@@ -490,12 +482,21 @@ def _add_risk(
     )
     _typed(g, impact, row.get("impactTerm"))
     link(g, consequence, "hasImpact", impact)
-    # The affected stakeholder is the system's own operator or user node, so the
-    # graph has one node per stakeholder rather than one per risk.
-    stakeholder_prop = _AFFECTED_CLASS[affected]
-    # A form without the users block has no AIUser node: the chain then has no
-    # stakeholder rather than failing.
-    stakeholder = next(iter(g.objects(system, URIRef(AIRO + stakeholder_prop))), None)
+    # The affected stakeholder is the system's own operator or user node, or one
+    # shared AISubject node per VAIR subject, so the graph has one node per
+    # stakeholder rather than one per risk.
+    if affected in _AFFECTED_CLASS:
+        # A form without the users block has no AIUser node: the chain then has no
+        # stakeholder rather than failing.
+        stakeholder = next(iter(g.objects(system, URIRef(AIRO + _AFFECTED_CLASS[affected]))), None)
+    elif is_term_for("AISubject", affected):
+        stakeholder = ex[f"subject_{affected}"]
+        if (stakeholder, RDF.type, None) not in g:
+            stakeholder = named(g, stakeholder, "AISubject", label_of(affected))
+            _typed(g, stakeholder, affected)
+            link(g, system, "hasAISubject", stakeholder)
+    else:
+        raise ValueError(f"unknown affected value: {affected!r} (expected operator, user or a VAIR subject)")
     if stakeholder is not None:
         link(g, impact, "hasImpactOnStakeholder", stakeholder)
 

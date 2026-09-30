@@ -196,12 +196,13 @@ def test_a_full_qualification_exercises_all_nineteen_properties():
     ]
     linked = [{"pid": "e0e0e0e0-0000-4000-8000-000000000001", "name": "Holdout set", "componentType": "dataset",
                "objectName": "holdout.csv", "property": "hasTestingData"}]
-    g = build_graph(_qualification(systemComponents=rows, engineComponents=linked), EXTRACTED)
+    q = _qualification(systemComponents=rows, engineComponents=linked)
+    q["risks"][0]["affected"] = "JobApplicant"  # a VAIR subject gives hasAISubject
+    g = build_graph(q, EXTRACTED)
     used = {
         str(p).replace(AIRO, "") for p in set(g.predicates()) if str(p).startswith(AIRO)
     }
-    # hasAISubject is added to the schema in 1.1; the builder and the form mapping give it a source in Task 4 (card-ai plan), which removes this exclusion.
-    assert used == set(PROPERTIES) - {"hasAISubject"}, set(PROPERTIES) - used
+    assert used == set(PROPERTIES), set(PROPERTIES) - used
 
 
 def test_an_unknown_affected_value_is_refused():

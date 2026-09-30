@@ -49,7 +49,7 @@ def test_the_export_fills_every_new_form_element(qualification):
 
 def test_the_risk_rows_exercise_both_stakeholders_and_the_optional_fields(qualification):
     rows = qualification["risks"]
-    assert {r["affected"] for r in rows} == {"operator", "user"}
+    assert {r["affected"] for r in rows} == {"operator", "user", "NaturalPerson"}
     assert any(r["vulnerability"] for r in rows)
     assert any(not r["vulnerability"] for r in rows)
     assert any(r["followUpControl"] for r in rows)
@@ -72,8 +72,7 @@ def test_it_exercises_every_property_but_the_engine_test_link(graph):
     }
     # MCAS links no test set from the engine, and a test set is not a component: hasTestingData is the
     # one property only such a link gives (test_build.py exercises it).
-    # hasAISubject is added to the schema in 1.1; the builder and the form mapping give it a source in Task 4 (card-ai plan), which removes this exclusion.
-    assert used == set(PROPERTIES) - {"hasTestingData", "hasAISubject"}, set(PROPERTIES) - used
+    assert used == set(PROPERTIES) - {"hasTestingData"}, set(PROPERTIES) - used
 
 
 def test_the_airo_namespace_carries_nothing_outside_the_minimal_schema(graph):
@@ -229,16 +228,16 @@ def test_the_committed_jsonld_is_the_same_graph():
 # ── Addendum 06, R72: the example answers 1(f) ─────────────────────────────
 
 
-def test_the_graph_is_451_triples_and_the_view_61_nodes(graph):
+def test_the_graph_is_456_triples_and_the_view_62_nodes(graph):
     """2026-09-30: the form speaks VAIR. Four VAIR capabilities where six of our tags were, and no
     "Other" locality (VAIR has none), so three nodes fewer than R72's 59; the example's nine
     Components rows add five in the view (the data and model rows hang off their own properties);
     and nothing the form fills is left for an agent to type."""
     from airo_min.view import build_view
 
-    assert len(graph) == 451
+    assert len(graph) == 456
     view = build_view(graph)
-    assert view["counts"]["nodes"] == 61
+    assert view["counts"]["nodes"] == 62
     assert view["counts"]["needsTerm"] == 0
 
 

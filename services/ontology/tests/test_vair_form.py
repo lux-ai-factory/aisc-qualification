@@ -293,3 +293,44 @@ def test_one_of_our_own_types_says_that_no_vair_term_applies():
     assert g.value(rules, QUAL.termNotApplicable) is not None
     assert g.value(next(component(g, "k-tool")), QUAL.termNotApplicable) is None
     assert build_view(g)["counts"]["needsTerm"] == 0
+
+
+# ── the operators and the people a risk affects ──────────────────────────────
+
+
+def node_of(g, local):
+    return next(s for s in g.subjects(RDF.type, None) if str(s).endswith("#" + local))
+
+
+def test_provider_and_deployer_take_their_terms():
+    q = {**base(), "providerTerm": None, "deployerTerm": "EducationalInstitution"}
+    g = build_graph(q)
+    assert types_of(g, node_of(g, "deployer")) == {"EducationalInstitution"}
+    assert types_of(g, node_of(g, "provider")) == set()
+
+
+def test_a_subject_is_one_shared_node_the_impact_points_at():
+    risk = base()["risks"][0]
+    rows = [{**risk, "position": 0, "affected": "JobApplicant"},
+            {**risk, "position": 1, "affected": "JobApplicant"}]
+    g = build_graph({**base(), "risks": rows})
+    subject = node_of(g, "subject_JobApplicant")
+    assert (subject, RDF.type, URIRef(AIRO + "AISubject")) in g
+    assert types_of(g, subject) == {"JobApplicant"}
+    assert label(g, subject) == "Job Applicant"
+    assert objects(g, system(g), "hasAISubject") == [subject]
+    for i in (0, 1):
+        assert objects(g, node_of(g, f"risk{i}_impact"), "hasImpactOnStakeholder") == [subject]
+    assert validate(g) == []
+
+
+def test_old_affected_values_still_link_the_operator_and_user():
+    g = build_graph({**base(), "risks": [{**base()["risks"][0], "position": 0, "affected": "user"}]})
+    assert objects(g, node_of(g, "risk0_impact"), "hasImpactOnStakeholder") == [node_of(g, "users")]
+    assert objects(g, system(g), "hasAISubject") == []
+
+
+@pytest.mark.parametrize("affected", ["Police", "Nonsense", "subject"])
+def test_an_affected_value_that_is_no_subject_is_refused(affected):
+    with pytest.raises(ValueError, match="affected"):
+        build_graph({**base(), "risks": [{**base()["risks"][0], "affected": affected}]})

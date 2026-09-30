@@ -40,6 +40,7 @@ FORM_MAPPING: list[FieldMapping] = [
     FieldMapping("risk:*:vulnerability", "Art 15(5)", "exploitsVulnerability", "RiskSource", "Vulnerability"),
     FieldMapping("risk:*:consequence", "Art 9(2)(a); Art 15(1)", "hasConsequence", "Risk", "Consequence"),
     FieldMapping("risk:*:affected", "Annex IV 2(b); Art 9(9)", "hasImpactOnStakeholder", "Impact", "Stakeholder"),
+    FieldMapping("risk:*:affected", "Annex IV 2(b); Art 9(9)", "hasAISubject", "AISystem", "AISubject"),
     FieldMapping("risk:*:area", "Art 9(2)(a)", "hasImpactOnArea", "Impact", "AreaOfImpact"),
     FieldMapping("risk:*:area", "Art 9(2)(a)", "hasImpact", "Consequence", "Impact"),
     FieldMapping("risk:*:control", "Art 9(2)(d)", "modifiesRiskConcept", "RiskControl", "Risk"),

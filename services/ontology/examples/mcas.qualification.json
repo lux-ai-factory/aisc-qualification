@@ -107,7 +107,7 @@
       "consequence": "A creditworthy applicant is refused a loan they would have repaid, and the recorded reason cites data that was never there",
       "consequenceTerm": "ImpairedDecisionMaking",
       "impactTerm": "UnfavourableTreatment",
-      "affected": "user",
+      "affected": "NaturalPerson",
       "impactAreas": [
         "Right"
       ],
