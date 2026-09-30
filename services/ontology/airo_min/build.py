@@ -91,19 +91,34 @@ def shorten(text: str) -> str:
     return cut.rstrip(" ,;:.") + "..."
 
 
+def _name_for(entry: Any, text: str) -> tuple[str | None, bool]:
+    """A curated name, and whether an agent drafted it. A drafted name carries the text it
+    was written for, and names nothing once that text changed (or moved to another row)."""
+    if isinstance(entry, str):
+        return entry or None, False
+    if isinstance(entry, dict) and " ".join(str(entry.get("of", "")).split()) == " ".join(text.split()):
+        return entry.get("name") or None, True
+    return None, False
+
+
 def named(
-    g: Graph, iri: URIRef, cls: str, text: str, name: str | None = None
+    g: Graph, iri: URIRef, cls: str, text: str, name: Any = None
 ) -> URIRef:
     """add_individual with the label rule applied: short name, full text alongside.
 
-    `name` is a curated noun phrase from the `extracted` slot. Truncation is only the
-    fallback: a cut sentence satisfies the length rule but is not a name.
+    `name` is a curated noun phrase from the `extracted` slot: a string, or a drafted
+    `{"name", "of"}` entry that applies only to the text it was written for and marks the
+    node `qual:nameDrafted`. Truncation is only the fallback: a cut sentence satisfies the
+    length rule but is not a name.
     """
     text = " ".join(text.split())
+    name, drafted = _name_for(name, text)
     if name:
         node = add_individual(g, iri, cls, shorten(name))
         if text != name:
             g.add((node, QUAL.fullLabel, Literal(text)))
+        if drafted:
+            g.add((node, QUAL.nameDrafted, Literal(True)))
         _provenance(g, node, "form")
         return node
     node = add_individual(g, iri, cls, shorten(text))
@@ -193,7 +208,7 @@ def build_graph(
     extracted = extracted or {}
     # Curated noun-phrase names for the prose-fed nodes, keyed by node local name
     # ("purpose", "users", "risk0_control", ...). Truncation is the fallback.
-    names: dict[str, str] = dict(extracted.get("names") or {})
+    names: dict[str, Any] = dict(extracted.get("names") or {})
     qid = qualification.get("id", "unsaved")
     g, ex = new_graph(base or f"https://lux-ai-factory.github.io/qualification/q/{qid}#")
     g.bind("qual", QUAL)
@@ -435,7 +450,7 @@ def _add_risk(
     system: URIRef,
     row: dict[str, Any],
     areas: dict[str, URIRef],
-    names: dict[str, str],
+    names: dict[str, Any],
 ) -> None:
     i = row["position"]
     affected = row["affected"]

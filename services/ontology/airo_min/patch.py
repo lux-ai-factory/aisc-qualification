@@ -49,6 +49,8 @@ def apply_patch(g: Graph, patch: dict[str, dict[str, Any]] | None) -> None:
                 g.add((node, QUAL.generatedLabel, generated))
             g.remove((node, RDFS.label, None))
             g.add((node, RDFS.label, Literal(change["label"])))
+            # A person's wording is not an AI name.
+            g.remove((node, QUAL.nameDrafted, None))
 
         if "vair" in change:
             for existing in list(g.objects(node, RDF.type)):

@@ -4,10 +4,12 @@ Everything the form captures as a structured field is deterministic. The two
 properties that live inside prose (usesTechnique from 2(a), hasComponent from
 2(c)) come from the `extracted` slot, which is where an agent's output lands.
 """
-from rdflib import RDF, RDFS, URIRef
+from rdflib import Namespace, RDF, RDFS, URIRef
 import pytest
 
 from airo_min.build import QUAL, build_graph
+from airo_min.patch import apply_patch
+from airo_min.view import node_view
 from airo_min.schema import AIRO, PROPERTIES
 from airo_min.validate import validate
 
@@ -458,3 +460,50 @@ def test_a_types_entry_does_not_override_a_term_from_the_form():
     g = build_graph(_qualification(), {"types": {}})
     qa = list(g.subjects(RDF.type, URIRef(VAIR + "QuestionAnswering")))
     assert len(qa) == 1
+
+
+EX = Namespace("https://lux-ai-factory.github.io/qualification/q/q123#")
+LONG = "Assess the creditworthiness of consumer loan applicants for retail banks in Germany, France and the Netherlands"
+
+
+def _drafted(of=LONG):
+    return {"names": {"purpose": {"name": "Consumer credit assessment", "of": of}}}
+
+
+def test_a_name_for_this_text_is_used_and_marked():
+    q = {**_qualification(), "targetUseCase": LONG}
+    g = build_graph(q, _drafted())
+    assert str(g.value(EX.purpose, RDFS.label)) == "Consumer credit assessment"
+    assert g.value(EX.purpose, QUAL.nameDrafted) is not None
+    assert str(g.value(EX.purpose, QUAL.fullLabel)) == LONG
+    assert node_view(g, EX.purpose)["nameDrafted"] is True
+
+
+def test_a_name_for_this_text_ignores_whitespace_differences():
+    q = {**_qualification(), "targetUseCase": LONG}
+    g = build_graph(q, _drafted("  " + LONG.replace(" ", "  ") + "\n"))
+    assert str(g.value(EX.purpose, RDFS.label)) == "Consumer credit assessment"
+
+
+def test_a_name_for_other_text_is_ignored():
+    q = {**_qualification(), "targetUseCase": LONG + " and Belgium"}
+    g = build_graph(q, _drafted())
+    assert str(g.value(EX.purpose, RDFS.label)).endswith("...")
+    assert g.value(EX.purpose, QUAL.nameDrafted) is None
+    assert "nameDrafted" not in node_view(g, EX.purpose)
+
+
+def test_a_reviewed_label_is_no_longer_an_ai_name():
+    q = {**_qualification(), "targetUseCase": LONG}
+    g = build_graph(q, _drafted())
+    apply_patch(g, {"purpose": {"label": "Credit scoring"}})
+    assert str(g.value(EX.purpose, RDFS.label)) == "Credit scoring"
+    assert g.value(EX.purpose, QUAL.nameDrafted) is None
+
+
+def test_an_old_string_name_still_applies_and_is_not_marked_as_drafted():
+    q = {**_qualification(), "targetUseCase": LONG}
+    g = build_graph(q, {"names": {"purpose": "Consumer credit assessment"}})
+    assert str(g.value(EX.purpose, RDFS.label)) == "Consumer credit assessment"
+    assert str(g.value(EX.purpose, QUAL.provenance)) == "form"
+    assert g.value(EX.purpose, QUAL.nameDrafted) is None

@@ -73,6 +73,9 @@ def node_view(g: Graph, node: URIRef) -> dict[str, Any]:
     if g.value(node, QUAL.termNotApplicable) is not None:
         # A reviewer determined the vocabulary has nothing that fits.
         out["termNotApplicable"] = True
+    if g.value(node, QUAL.nameDrafted) is not None:
+        # An agent wrote this name; it stays marked until a reviewer edits it.
+        out["nameDrafted"] = True
     flags = [str(o) for o in g.objects(node, QUAL.reviewFlag)]
     if flags:
         # Sorted for a stable card, and because the order a set yields is not an
