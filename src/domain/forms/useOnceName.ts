@@ -1,4 +1,4 @@
-// The name a "Use once" form is saved under (R67): "Custom questions: <system>,
+// The name a "Use once" form is saved under: "Custom questions: <system>,
 // <UTC date>", numbered " (2)", " (3)", ... when that name is already taken.
 // Pure: the caller hands in the date and every form name.
 

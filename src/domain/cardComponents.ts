@@ -35,7 +35,7 @@ export type LinkedComponent = {
   name: string;
   componentType: string;
   objectName: string;
-  /** Which of the card's components it is (targets plan v2); null or absent for none. */
+  /** Which of the card's components it is; null or absent for none. */
   componentKey?: string | null;
 };
 
@@ -81,7 +81,7 @@ export function hasDrift(drift: ComponentDrift): boolean {
 }
 
 /**
- * Which of the card's components a linked engine item is (targets plan v2): none, or one of the
+ * Which of the card's components a linked engine item is: none, or one of the
  * same card's component keys. Test material (hasTestingData) is what an assessment uses, never a
  * part of the system.
  */

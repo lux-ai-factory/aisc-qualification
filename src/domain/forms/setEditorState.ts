@@ -1,4 +1,4 @@
-// The question-set editor's state (T16). Every click is one reducer action;
+// The question-set editor's state. Every click is one reducer action;
 // QuestionSetEditor.tsx only renders this state and dispatches. Pure: no React, no
 // network, and the reducer never mutates the state it is given.
 import type { AnnexPointId } from "./annexPoints";
@@ -31,7 +31,7 @@ export type SetEditorState = {
   description: string;
   rows: SetRow[];
   origin: "builder" | "import";
-  /** "Also make a questionnaire with all its questions" (T49). */
+  /** "Also make a questionnaire with all its questions". */
   alsoQuestionnaire: boolean;
   /** The next row key: a counter, so keys stay unique and the reducer stays pure. */
   nextRow: number;

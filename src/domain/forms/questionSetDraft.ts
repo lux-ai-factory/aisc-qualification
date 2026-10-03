@@ -1,6 +1,6 @@
 // The question-set editor's save payload, validated on the server before anything
 // is written. zod checks the shape; the plain checks after it give the messages a
-// person reads, in a fixed order, naming the 1-based question position (T12).
+// person reads, in a fixed order, naming the 1-based question position.
 import { z } from "zod";
 import { isAnnexPoint, type AnnexPointId } from "./annexPoints";
 import type { ResolvedSetVersion } from "./types";
@@ -99,7 +99,7 @@ export function parseSetDraft(input: unknown, context?: { takenNames?: string[] 
 
 /**
  * Whether saving `draft` as the next version of the set whose latest version is
- * `latest` would change nothing (T13). Name, description and group labels are not
+ * `latest` would change nothing. Name, description and group labels are not
  * content; a row without a questionId is a new question, so always a change.
  */
 export function sameSetContent(draft: SetDraft, latest: ResolvedSetVersion): boolean {

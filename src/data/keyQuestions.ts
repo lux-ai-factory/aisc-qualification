@@ -2,7 +2,7 @@
 // Annex IV (technical documentation), points 1 and 2. Self-contained: each entry
 // carries its own question text, its Annex IV citation, and a topic group for
 // display. Answers are stored as (toolId = group, questionId = id) and the form
-// field is `q:<group>:<id>`, keeping the existing storage/parse convention.
+// field is `q:<group>:<id>`.
 //
 // Annex IV points 1 and 2 have 16 lettered sub-items; they compress to 14
 // questions here:
@@ -13,8 +13,8 @@
 //     the hardware it runs on are one answer in practice.
 //   - 1(g) and 1(h) merge: the Annex repeats "a basic description of the
 //     user-interface provided to the deployer" verbatim under (h).
-// Points 3 to 9 of Annex IV are not covered yet; adding them is a
-// pure data edit to this file.
+// Points 3 to 9 of Annex IV are not covered; adding them is a data edit
+// to this file.
 
 export type KeyQuestion = {
   /** Stable, unique within its group. Used as the stored questionId. */
@@ -29,8 +29,8 @@ export type KeyQuestion = {
   text: string;
   /**
    * True for the sub-items Annex IV itself qualifies with "where applicable" or
-   * "where relevant". Optional questions may be left blank on the form and are
-   * simply not stored.
+   * "where relevant". Optional questions may be left blank on the form; a blank
+   * answer is not stored.
    */
   optional?: boolean;
 };
@@ -46,7 +46,7 @@ const GROUP_2 = {
 } as const;
 
 export const KEY_QUESTIONS: KeyQuestion[] = [
-  // ── Annex IV(1) — general description ────────────────────────────────────
+  // Annex IV(1): general description
   {
     ...GROUP_1,
     id: "1a",
@@ -86,7 +86,7 @@ export const KEY_QUESTIONS: KeyQuestion[] = [
     text: "What does the system look like to the companies that use it, and what instructions do you provide to them?",
   },
 
-  // ── Annex IV(2) — elements of the system and its development ────────────
+  // Annex IV(2): elements of the system and its development
   {
     ...GROUP_2,
     id: "2a",

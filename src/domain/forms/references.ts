@@ -1,6 +1,6 @@
-// Importing a questionnaire file by reference (T53): which of its items name a set
+// Importing a questionnaire file by reference: which of its items name a set
 // version or a question this install does not have. References match by (setId,
-// setVersion, scope, localId), never by names (D15). Pure: the service looks the
+// setVersion, scope, localId), never by names. Pure: the service looks the
 // set versions up, this builds the sentences a person reads.
 
 /** One item of a references file. */

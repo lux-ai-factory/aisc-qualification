@@ -1,8 +1,8 @@
 // The builtin rows, in memory: question set "Annex IV" v1 and questionnaire
 // "Annex IV default" v1. Both are KEY_QUESTIONS, the twins of the rows the
-// 20260925150000_two_level_forms migration makes from the seeded form. Every card
-// saved before forms existed has no questionnaire version (NULL) and reads through
-// annexDefaultVersion(). Pure: also used in the browser.
+// 20260925150000_two_level_forms migration makes from the seeded form. A card
+// with no questionnaire version (NULL) reads through annexDefaultVersion().
+// Pure: also used in the browser.
 import { KEY_QUESTIONS, keyQuestionField } from "@/data/keyQuestions";
 import type { AnnexPointId } from "./annexPoints";
 import { FORM_BLOCKS } from "./blocks";

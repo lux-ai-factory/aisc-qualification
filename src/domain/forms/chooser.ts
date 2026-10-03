@@ -2,7 +2,7 @@
 // parameter the edit page looks up. A project's first card starts on the Annex
 // IV default; every later card starts on the exact questionnaire version the
 // previous card was filled with, so a card never moves to a newer version by
-// itself (T37, D11).
+// itself.
 import { findExample } from "@/data/examples";
 import { DEFAULT_QUESTIONNAIRE_ID } from "./legacy";
 
@@ -35,7 +35,7 @@ export type QuestionnaireLookup =
   | { lookup: "none" };
 
 /**
- * What the edit page looks up (T39): a known ?example, else
+ * What the edit page looks up: a known ?example, else
  * ?questionnaireVersion, else ?formVersion (alias), else ?questionnaire, else
  * ?form (alias), else nothing (the chooser). An empty parameter counts as absent.
  */

@@ -1,5 +1,5 @@
-// Moving a card to another questionnaire version (T41), and the "newer version"
-// line of the card page (T42). A move makes a new card version: answers carry over
+// Moving a card to another questionnaire version, and the "newer version"
+// line of the card page. A move makes a new card version: answers carry over
 // by question (the field q:<scope>:<localId>), a question whose text changed keeps
 // its answer, marked for review. Pure.
 import type { ResolvedQuestionnaireVersion } from "./types";
@@ -57,7 +57,7 @@ export function moveNotice(args: {
 
 /**
  * The latest version of the card's questionnaire, when it is listed, not retired
- * and numbered higher than the card's; else null (D27).
+ * and numbered higher than the card's; else null.
  */
 export function newerVersion(
   card: ResolvedQuestionnaireVersion,

@@ -89,9 +89,8 @@ const CHAIN_SLOTS = {
   followUp: { col: 1.6, row: 1 },
 };
 /** An open chain needs two rows plus breathing room; a collapsed risk is one
- * box and should take one row. Reserving the full height for all of them made
- * five collapsed risks 1625px tall on their own, which forced fitView down to
- * 0.43 and left everything small in the middle of the canvas. */
+ * box and takes one row. Reserving the full height for every risk would make a
+ * few collapsed risks very tall and force fitView to zoom far out. */
 const CHAIN_ROW_HEIGHT = 2.5 * ROW;
 const COLLAPSED_ROW_HEIGHT = NODE_H + 44;
 
@@ -177,7 +176,7 @@ export function layoutFigure(
 
   put(airo(view.system, at(SYSTEM.col, SYSTEM.row), "system"));
 
-  // ── upper band ───────────────────────────────────────────────────────────
+  // Upper band.
   for (const row of view.rows) {
     const slot = UPPER_SLOTS[row.property];
     if (!slot) continue; // a property the figure gives no place
@@ -223,7 +222,7 @@ export function layoutFigure(
     });
   }
 
-  // ── lower band, one Figure 3 chain per risk ─────────────────────────────
+  // Lower band, one Figure 3 chain per risk.
   // The risk band starts below the nominal split, or below whatever the system
   // band has actually grown to, whichever is lower: the components group grows
   // downward and would otherwise land on the first risk.
@@ -232,7 +231,7 @@ export function layoutFigure(
     BAND_SPLIT,
   );
   // Rows are laid out in sequence rather than on a fixed pitch, so an open
-  // chain takes its space and the risks below simply move down.
+  // chain takes its space and the risks below move down.
   let top = Math.max(BAND_SPLIT + 0.7 * ROW, systemBottom + 0.5 * ROW);
   view.chains.forEach((chain) => {
     const rowTop = top;

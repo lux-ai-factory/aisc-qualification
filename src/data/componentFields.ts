@@ -1,9 +1,9 @@
-// The card's Components block (targets plan v2, 2026-09-29): one row per part of the system. Each
-// row keeps a stable key from one card version to the next, so an assessment, and its results,
-// can name the part it is about. On every card, whatever its questionnaire, like the identity.
+// The card's Components block: one row per part of the system. Each row keeps a stable key from
+// one card version to the next, so an assessment and its results can name the part they are
+// about. Every card has this block, whatever its questionnaire, like the identity.
 //
-// A row's type is ONE list (2026-09-30): VAIR's AIComponent terms first, then ours only for what
-// VAIR has no term for. The type decides the stored `kind` (the platform's targets read it) and
+// A row's type comes from one list: VAIR's AIComponent terms first, then ours for what VAIR has
+// no term for. The type decides the stored `kind` (the platform's assessment targets read it) and
 // the VAIR type: a term under vair:Model is kind `model`, any other VAIR term kind `other`.
 import { COMPONENT_TERMS, MODEL_TERMS, vairLabel } from "./vairVocab";
 
@@ -18,7 +18,7 @@ export type ComponentKindId =
   | "interface"
   | "other";
 
-/** Every kind, with the label the card showed for it. `model` is now only reached through a VAIR
+/** Every kind, with the label the card shows for it. `model` is reached only through a VAIR
  *  Model term. Each maps to an AIRO class in the graph builder (services/ontology/airo_min/build.py,
  *  COMPONENT_KINDS). */
 export const COMPONENT_KINDS: { id: ComponentKindId; label: string }[] = [
@@ -40,7 +40,7 @@ const OWN_TYPES: ComponentKindId[] = [
 
 export type ComponentType = { id: string; label: string; vair: boolean; definition?: string };
 
-/** The one Type list, in the order the form offers it. */
+/** The Type list, in the order the form offers it. */
 export const COMPONENT_TYPES: ComponentType[] = [
   ...COMPONENT_TERMS.map((t) => ({ id: t.id, label: t.label, vair: true, definition: t.definition })),
   ...OWN_TYPES.map((id) => ({ id, label: COMPONENT_KINDS.find((k) => k.id === id)!.label, vair: false })),

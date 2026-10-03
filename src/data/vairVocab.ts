@@ -1,4 +1,4 @@
-// The VAIR lists the form offers (2026-09-30). VAIR has precedence: wherever it has a vocabulary
+// The VAIR lists the form offers. VAIR has precedence: wherever it has a vocabulary
 // for a field, the form offers only VAIR's terms. vair_vocab.json is generated from the vendored
 // vair.ttl by services/ontology (python -m airo_min.vair_vocab --write), the same terms the graph
 // builder accepts, so the form cannot offer a term the builder would refuse.

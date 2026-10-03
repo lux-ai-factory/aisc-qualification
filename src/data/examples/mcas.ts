@@ -14,7 +14,7 @@ export const MCAS: FormExample = {
     targetUseCase: "Retail banking and consumer micro-finance in the EU (deployed in Germany, France, and the Netherlands). Evaluates creditworthiness for €100–€5,000 consumer loans, returns a 0–1000 credit score, a Low/Medium/High risk category, and an Approve/Review/Reject recommendation, alongside influential factors and a natural-language explanation surfaced via the bank's web portal, mobile app, and staff dashboard. The subjects of the system are individual loan applicants whose access to credit is affected by its outputs.",
     targetUsers: "Primary: bank customers aged 18+ applying for consumer loans through the bank's web portal or mobile app. Secondary: bank loan officers and compliance staff who monitor decisions, conduct manual reviews of borderline cases, and can approve, reject, or override outcomes with mandatory written justification.",
     intendedDeployers: "Retail banks and consumer micro-finance providers licensed in DE, FR and NL, who run MCAS inside their own data centre and inside their own lending workflow. Each deployer configures the Approve/Review/Reject thresholds to its own risk appetite, staffs the Review queue with its own trained loan officers, and remains the controller for applicant data. Creditum AI SARL never operates the system on a deployer's behalf and never sees applicant-level data.",
-    // VAIR terms (2026-09-30), the same as services/ontology/examples/mcas.qualification.json.
+    // VAIR terms, the same as services/ontology/examples/mcas.qualification.json.
     systemType: "NarrowAI",
     purpose: "AssessingCreditworthiness",
     targetSystemTags: ["Profiling", "NaturalLanguageGeneration", "QuestionAnswering", "InformationRetrieval"],

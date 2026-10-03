@@ -1,7 +1,7 @@
 // Question 15: the risk block. One row per risk; each field maps to one step of
 // the AIRO risk chain (see services/ontology/airo_min/mapping.py).
 //
-// VAIR has precedence (2026-09-30): a text field whose node VAIR can type has ONE VAIR select
+// VAIR has precedence: a text field whose node VAIR can type has one VAIR select
 // beside it (`<id>Term`), and the harm, which has no text of its own, is a VAIR select alone.
 // A term is required where VAIR always has one that fits; the consequence's is optional.
 import type { VairClass } from "./vairVocab";

@@ -43,7 +43,7 @@ export function systemCardPayload(
     description: facts.description,
     target_use_case: facts.targetUseCase,
     target_users: facts.targetUsers,
-    // VAIR terms (2026-09-30): a capability is a flat term, so it has no category; the renderer
+    // VAIR terms: a capability is a flat term, so it has no category; the renderer
     // then shows its label alone. A value that is not a VAIR term of its class is left out.
     classification: {
       target_systems: facts.targetSystemTags
@@ -89,9 +89,9 @@ export function aiCardExport(
   };
 }
 
-/** A version with exactly one leading "v". Providers type it themselves about
- *  half the time, and every place that showed "v{version}" showed "vv1.2.0"
- *  when they did. Mirrors SystemCard.version_label in the renderer. */
+/** A version with exactly one leading "v". Providers often type the "v"
+ *  themselves, and prefixing another would show "vv1.2.0". Mirrors
+ *  SystemCard.version_label in the renderer. */
 export function versionLabel(version: string): string {
   const v = version.trim();
   return v.toLowerCase().startsWith("v") ? v : `v${v}`;

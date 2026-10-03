@@ -38,7 +38,7 @@ export const METADATA_FIELDS: Record<
     label: "Intended deployers",
     citation: "Art 3(4); Annex IV 1(h)",
   },
-  // The VAIR fields (2026-09-30): each offers VAIR's own list.
+  // The VAIR fields: each offers VAIR's own list.
   systemType: {
     label: "Type of AI system",
     citation: "Art 3(1)",

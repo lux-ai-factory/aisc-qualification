@@ -1,5 +1,5 @@
 // The questionnaire builder's save payload, validated on the server before
-// anything is written (T22). A questionnaire never words a question: an item is
+// anything is written. A questionnaire never words a question: an item is
 // only the question and the set version whose wording it shows. zod checks the
 // shape; the plain checks after it give the messages a person reads, in a fixed
 // order, naming the 1-based item position.
@@ -79,7 +79,7 @@ export function parseQuestionnaireDraft(
 }
 
 /**
- * Whether saving `draft` over `version` would change nothing (T23). The name and
+ * Whether saving `draft` over `version` would change nothing. The name and
  * description are not content; blocks compare as sets; items compare as the
  * (setVersionId, questionId) pairs in order, so a question pinned to another set
  * version is a change.

@@ -111,7 +111,7 @@ export type CardContent = {
   localityTags: string[];
   answers: { toolId: string; questionId: string; answer: string }[];
   risks: CardRisk[];
-  /** The Components block's rows (absent or empty on a card made before it). */
+  /** The Components block's rows (absent or empty when the card has none). */
   systemComponents?: CardComponentRow[];
   /** The filler's extraction: its components are offered when the card has no rows yet. */
   ontologyExtracted?: unknown;

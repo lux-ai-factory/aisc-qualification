@@ -1,4 +1,4 @@
-// The questionnaire builder's state (T27 to T33). Every click is one reducer
+// The questionnaire builder's state. Every click is one reducer
 // action; QuestionnaireBuilder.tsx only renders this state and dispatches. A
 // questionnaire is assembled only by picking questions from question-set versions:
 // every row is a pick, and nothing here writes or rewords a question (that is the
@@ -13,7 +13,7 @@ import type { ResolvedQuestion, ResolvedQuestionnaireVersion } from "./types";
  * One row of the right column: a question pinned to the set version whose wording
  * it shows. `rowKey` is internal (React keys, focus after a move) and never leaves
  * the builder; `viaSetId` is the selected set this pick came from, so unselecting
- * that set takes it back (R77).
+ * that set takes it back.
  */
 export type BuilderRow = {
   rowKey: string;
@@ -32,14 +32,14 @@ export type BuilderState = {
   blocks: FormBlock[];
   rows: BuilderRow[];
   origin: "builder" | "import";
-  /** The sets selected in "Select question sets", in the order they were selected (R75). */
+  /** The sets selected in "Select question sets", in the order they were selected. */
   selected: string[];
   /** The next row key: a counter, so keys stay unique and the reducer stays pure. */
   nextRow: number;
 };
 
 export type BuilderAction =
-  /** With `group`, the tick is made in that selected set's group (R78). */
+  /** With `group`, the tick is made in that selected set's group. */
   | { type: "tick"; question: ResolvedQuestion; setVersionId: string; group?: SetGroup }
   | { type: "untick"; questionId: string }
   | { type: "selectSet"; group: SetGroup }
@@ -48,7 +48,7 @@ export type BuilderAction =
   | { type: "remove"; index: number }
   | { type: "toggleBlock"; block: FormBlock }
   | { type: "setName"; name: string }
-  /** "Accept the update": the pick now shows that set version's wording (T29). */
+  /** "Accept the update": the pick now shows that set version's wording. */
   | { type: "acceptUpdate"; index: number; question: ResolvedQuestion; setVersionId: string }
   /** "Accept all updates": every reworded update of `updatesAvailable`; removed ones are left. */
   | { type: "acceptAllUpdates"; updates: Record<number, SetUpdate> };
@@ -63,7 +63,7 @@ export type BuilderInit = {
   origin?: "builder" | "import";
   /** An import by reference: its resolved picks, their sets shown as selected. */
   picks?: BuilderPick[];
-  /** /questionnaires/new?from=<id>: that questionnaire's picks, pins and blocks (R79). */
+  /** /questionnaires/new?from=<id>: that questionnaire's picks, pins and blocks. */
   startFrom?: ResolvedQuestionnaireVersion;
   /** /questionnaires/<id>/edit: the questionnaire's latest version, to save the next one. */
   edit?: ResolvedQuestionnaireVersion;
@@ -125,7 +125,7 @@ function insertAt(state: BuilderState, index: number, row: RowInput): BuilderSta
 const append = (state: BuilderState, row: RowInput) => insertAt(state, state.rows.length, row);
 
 /**
- * Where a question ticked in set S's group goes (R78): after the last row from S
+ * Where a question ticked in set S's group goes: after the last row from S
  * that stands earlier in S's order; else before the first row from S that stands
  * later; else at the end.
  */
@@ -167,7 +167,7 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
       return { ...state, rows: state.rows.filter((r) => r.questionId !== action.questionId) };
     case "selectSet": {
       // Every question of the set not already ticked, in its order, after what is
-      // there, pinned to the set's latest version (R76, R62).
+      // there, pinned to the set's latest version.
       const { group } = action;
       if (state.selected.includes(group.setId)) return state;
       let next: BuilderState = { ...state, selected: [...state.selected, group.setId] };
@@ -177,7 +177,7 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
       return next;
     }
     case "deselectSet":
-      // Takes back the picks that came from it; plain ticks stay (R77).
+      // Takes back the picks that came from it; plain ticks stay.
       if (!state.selected.includes(action.setId)) return state;
       return {
         ...state,
@@ -220,7 +220,7 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
       return { ...state, rows };
     }
     default:
-      // No own questions, no edits, no copies: anything else changes nothing (T28).
+      // No own questions, no edits, no copies: anything else changes nothing.
       return state;
   }
 }

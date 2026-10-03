@@ -9,7 +9,7 @@ import type { ResolvedQuestion } from "./types";
 export type SetGroup = {
   setId: string;
   setName: string;
-  /** The version these questions are worded in: what a tick pins to (R62). */
+  /** The version these questions are worded in: what a tick pins to. */
   versionId: string;
   versionNumber: number;
   /** Retired sets are not offered as chips, but still count for "Update available". */
@@ -17,7 +17,7 @@ export type SetGroup = {
   questions: ResolvedQuestion[];
 };
 
-/** What "Update available" offers for one picked row (T26). */
+/** What "Update available" offers for one picked row. */
 export type SetUpdate =
   | { kind: "reworded"; question: ResolvedQuestion; versionId: string; versionNumber: number }
   | { kind: "removed"; setName: string; versionNumber: number };
@@ -79,8 +79,8 @@ const WORDING_FIELDS = ["text", "citation", "required", "annexPoint", "groupLabe
  * Row index -> the update its set offers, for every pick whose set (the pick's
  * source setId) is among `groups` and whose latest version is not the pinned one:
  * "reworded" when that version words the question differently in any of the five
- * wording fields, "removed" when it no longer has the question. The same wording
- * in a newer version is no update: a pin is never bumped silently (D13). Pure.
+ * wording fields, "removed" when it does not have the question. The same wording
+ * in a newer version is no update: a pin is never bumped silently. Pure.
  */
 export function updatesAvailable(rows: BuilderRow[], groups: SetGroup[]): Record<number, SetUpdate> {
   const updates: Record<number, SetUpdate> = {};

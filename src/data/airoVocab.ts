@@ -1,6 +1,6 @@
-// Our own picker lists, only for what VAIR has no vocabulary for (2026-09-30): who a risk affects.
-// Everything VAIR covers is in vairVocab.ts. The JSON is shared with services/ontology (Python
-// reads the same file), so ids stay in lockstep.
+// Our own picker lists, only for what VAIR has no vocabulary for: who a risk affects.
+// Everything VAIR covers is in vairVocab.ts. services/ontology reads the same JSON file, so the
+// ids are the same on both sides.
 import vocab from "./airo_vocab.json";
 import { SUBJECTS } from "./vairVocab";
 

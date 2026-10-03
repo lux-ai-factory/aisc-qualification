@@ -1,5 +1,5 @@
 /**
- * The parts of the AI system, as its card lists them (targets plan v2, 2026-09-29).
+ * The parts of the AI system, as its card lists them.
  *
  * A part's key is its identity: kept when the next card version carries the row, so the
  * assessments made against it, and their results, stay with it through renames. The server
