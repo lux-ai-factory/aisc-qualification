@@ -1,11 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { formVersion, loadSrc, seededQuestion, setQuestion } from "../support/forms";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md): moving a card to
-// another questionnaire version (T41), and the "newer version" line on the card page (T42's
-// newerVersion). Pure functions of src/domain/forms/moveCard.ts.
+// Moving a card to another questionnaire version, and the "newer version" line on the card
+// page. Pure functions of src/domain/forms/moveCard.ts.
 //
-// newerVersion(card, latest) (interface chosen by the test author): the latest version of the
+// newerVersion(card, latest): the latest version of the
 // card's questionnaire when it is listed, not retired and numbered higher; else null.
 
 const mod = () => loadSrc("domain/forms/moveCard.ts");

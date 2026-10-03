@@ -3,18 +3,12 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { loadSrc } from "../support/forms";
 
-// Importing a question set from a file (two-level forms,
-// docs/superpowers/two-level-forms-2026-09-25/01-spec.md, T49): the old form import page moved to
-// /question-sets/import (spec 8.2: replaces FormImport.test.tsx). Upload, preview and correct
-// (01 R28, 06 R59, unchanged), then the SET EDITOR in place (not the builder), with the rows as
-// new questions, the file's name as the set's name, origin "import", and the unchecked box
-// "Also make a questionnaire with all its questions" (D22).
+// Importing a question set from a file at /question-sets/import: upload, preview and correct,
+// then the set editor in place (not the builder), with the rows as new questions, the file's
+// name as the set's name, origin "import", and the unchecked box "Also make a questionnaire
+// with all its questions".
 //
-// Carried from FormImport.test.tsx: the R28 accept, send, preview, remove and failed-read cases
-// and the three R59 cases, with readFormFile -> readQuestionSetFile and the builder's
-// "Form name"/"Save form" -> the set editor's "Name"/"Save question set".
-//
-// Choices made here where the spec is silent: QuestionSetImport.tsx takes props {project, header?};
+// What these tests rely on: QuestionSetImport.tsx takes props {project, header?};
 // saving calls saveQuestionSet(project, draftJson, undefined, {origin: "import", alsoQuestionnaire}).
 
 const { readQuestionSetFile, saveQuestionSet } = vi.hoisted(() => ({
@@ -203,10 +197,10 @@ describe("importing a question-set file (T49, 01 R28)", () => {
   });
 });
 
-// ── 06 R59: the Annex column reaches the set editor ────────────────────────
+// The Annex column reaches the set editor
 
 describe("an imported file's Annex tags (T49, 06 R59)", () => {
-  // what POST /forms/import answers for R50's example CSV
+  // what POST /forms/import answers for the example CSV
   const r50 = {
     ok: true,
     found: 2,

@@ -3,8 +3,7 @@ import { FormImportClient } from "@/server/services/FormImportClient";
 
 // Carries a form file to the prefill service's POST /forms/import and the
 // questions back. Like PrefillClient it never throws: a service that is down
-// or not deployed means the person builds the form by hand
-// (form-assembly spec R28, section 5.3).
+// or not deployed means the person builds the form by hand.
 //
 // Interface: new FormImportClient(baseUrl = PREFILL_URL, fetchImpl = fetch).read(file)
 
@@ -89,7 +88,7 @@ describe("FormImportClient (R28)", () => {
   });
 });
 
-// ── Addendum 06: the Annex tag travels (R59) ───────────────────────────────
+// The Annex tag travels
 
 describe("FormImportClient carries each question's Annex IV point (R59)", () => {
   it("R59 annexPoint is kept when it is one of the 14, and null for anything else or when missing", async () => {

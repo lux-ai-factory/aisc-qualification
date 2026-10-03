@@ -1,14 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md), T59, decision 10 of
-// the brief: the image migrates (`prisma migrate deploy`) instead of pushing the schema with
-// `db push --accept-data-loss`, which would drop the form tables' data without a migration.
-// Nothing else in the Dockerfile changes: every other line is compared with
-// test/fixtures/Dockerfile.before, a copy of the Dockerfile taken before the change.
-// Project databases (isolation, 2026-09-25) moved the schema step out of the image: each project
-// database is migrated by scripts/migrate-projects.mjs and by the app on first open, so the last
-// line starts Next.js only. What T59 guards, no `db push --accept-data-loss`, still holds.
+// The image never pushes the schema with `db push --accept-data-loss`, which would drop the
+// form tables' data without a migration. Each project database is migrated by
+// scripts/migrate-projects.mjs and by the app on first open, so the last line starts Next.js
+// only. Every other line is compared with test/fixtures/Dockerfile.before, a copy of the
+// Dockerfile from when the image still pushed the schema. DEPLOY.md is read too: its startup
+// and backup paragraphs must keep the sentences checked below.
 
 const NEW_CMD = 'CMD ["npx", "next", "start", "-p", "3000"]';
 
@@ -28,7 +26,7 @@ describe("the Dockerfile migrates instead of pushing (T59)", () => {
   it("T59 every other line is the line of the Dockerfile before the change", () => {
     const before = lines("test/fixtures/Dockerfile.before");
     const after = lines("Dockerfile");
-    // the fixture really is the old file: its last line is the push this replaces
+    // the fixture really is the old file: its last line is the schema push
     expect(before.at(-1)).toBe('CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx next start -p 3000"]');
     // the lines above the command are the old ones, plus the comment saying why there is no schema step
     const code = (ls: string[]) => ls.slice(0, -1).filter((l) => !l.startsWith("#"));

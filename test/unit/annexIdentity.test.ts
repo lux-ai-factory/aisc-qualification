@@ -3,24 +3,23 @@ import { readFileSync } from "node:fs";
 import { loadSrc } from "../support/forms";
 import { mcasCard } from "../support/mcasCard";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md), T10: an Annex IV card
-// exports the same answers and form header as before (proof on paper, spec 4.3 point 3).
+// An Annex IV card exports the same answers and form header as it did before question sets
+// and questionnaires.
 //
 // test/fixtures/mcas-export-before.json is
 //   JSON.stringify(toExport(mcasCard(), annexDefaultVersion()), null, 2)
-// written from the code BEFORE the change (2026-09-25, form assembly still in place). After the
-// change the same card and the new annexDefaultVersion() export the same bytes, except that each
-// form.questions[] entry's owner keys are renamed: ownerForm -> ownerSet "Annex IV", ownerFormId
-// -> ownerSetId "annex-iv", in the key order key, text, citation, required, annexPoint, ownerSet,
-// ownerSetId, ownerBuiltin (T43).
+// as written by the one-level forms code. The same card and today's annexDefaultVersion()
+// export the same bytes, except that each form.questions[] entry's owner keys are renamed:
+// ownerForm -> ownerSet "Annex IV", ownerFormId -> ownerSetId "annex-iv", in the key order key,
+// text, citation, required, annexPoint, ownerSet, ownerSetId, ownerBuiltin.
 
 const FIXTURE = "test/fixtures/mcas-export-before.json";
 
 type Q = Record<string, unknown>;
 const before = () => JSON.parse(readFileSync(FIXTURE, "utf8"));
 
-// The form speaks VAIR (2026-09-30, docs/superpowers/vair-form-2026-09-30/01-plan.md): the export
-// carries the VAIR terms the author chose instead of our resolved tags. That is the one other change
+// The form speaks VAIR: the export carries the VAIR terms the author chose instead of resolved
+// tags. That is the one other change
 // to these bytes, and its values come from the ontology's own MCAS fixture, not from the exporter.
 const VAIR_EXAMPLE = JSON.parse(readFileSync("services/ontology/examples/mcas.qualification.json", "utf8"));
 const RISK_TERMS = ["sourceTerm", "consequenceTerm", "impactTerm", "controlTerm", "followUpControlTerm"];
@@ -53,8 +52,8 @@ function inVair(x: Q): Q {
   };
 }
 
-/** The fixture as the new code must write it: the owner keys of each question change (T43), and the
- *  tags are VAIR terms (2026-09-30). */
+/** The fixture as the code must write it: the owner keys of each question are renamed, and the
+ *  tags are VAIR terms. */
 function expectedAfter() {
   const x = before();
   x.form.questions = x.form.questions.map((q: Q) => ({

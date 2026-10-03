@@ -1,11 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { transactional } from "../support/ledgerRepo";
 
-// API auth WP2 (2026-09-25), inventory finding 9. The card agent reads the form
-// from GET /p/{pid}/api/qualifications/:id/extracted and publishes its draft with PUT on
-// the same path (isolation Q1: under the project whose database holds the card). It is a service with no user behind it, so the user check
-// answered 404 and every publish failed. It now sends a token of its own
-// (QUALIFICATION_AGENTS_TO_WEB_TOKEN, in X-AISC-Service-Token), accepted on
+// The card agent reads the form from GET /p/{pid}/api/qualifications/:id/extracted and
+// publishes its draft with PUT on the same path (under the project whose database holds the
+// card). It is a service with no user behind it, so a user check would answer 404. It sends a
+// token of its own (QUALIFICATION_AGENTS_TO_WEB_TOKEN, in X-AISC-Service-Token), accepted on
 // exactly these two routes, compared in constant time and failing closed: 503
 // when this app has no token set, 401 when the one sent is wrong. With the token
 // the route still checks that the qualification exists (in that project's database,

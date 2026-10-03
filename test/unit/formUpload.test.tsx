@@ -6,8 +6,8 @@ const { readDocument } = vi.hoisted(() => ({ readDocument: vi.fn() }));
 vi.mock("@/app/p/[project]/qualify/new/prefill-actions", () => ({ readDocument }));
 vi.mock("@/app/p/[project]/qualify/new/actions", () => ({ submitQualification: vi.fn() }));
 
-// The MCAS form renders several hundred VAIR options (2026-09-30), which jsdom takes about three
-// seconds to mount and read back; under a full parallel run that crossed the 5 s default. A browser
+// The MCAS form renders several hundred VAIR options, which jsdom takes about three seconds to
+// mount and read back; under a full parallel run that can exceed the 5 s default. A browser
 // does it in milliseconds, so this is the test environment's cost, not the page's.
 vi.setConfig({ testTimeout: 15_000 });
 
@@ -56,7 +56,7 @@ describe("uploading on the new form", () => {
     expect(screen.getByText(/filled 1/i)).toBeTruthy();
   });
 
-  // The MCAS form carries several hundred VAIR options (2026-09-30), and a role query computes every
+  // The MCAS form carries several hundred VAIR options, and a role query computes every
   // element's accessible name on each poll: these buttons are found by their text instead.
   it("asks first on a form with answers, and applies only when a button is pressed", async () => {
     readDocument.mockResolvedValue({
@@ -193,8 +193,8 @@ describe("uploading components", () => {
   });
 
   it("shows each block once when the document brings both risks and components", async () => {
-    // Regression 2026-09-30: both blocks restarted from version 1 shared a key,
-    // and the page showed the Components block three times, empty.
+    // Regression guard: if both blocks number their rows from 1 they share keys,
+    // and the page shows the Components block three times, empty.
     readDocument.mockResolvedValue({
       ok: true, values: {}, filled: [], kept: [], model: null,
       risks: [docRisk("first")], risksKept: false, risksProposed: 1,
@@ -210,7 +210,7 @@ describe("uploading components", () => {
   });
 });
 
-// 2026-09-30: the document can name the VAIR picks too (system type, purpose and the four tag sets).
+// The document can name the VAIR picks too (system type, purpose and the four tag sets).
 describe("uploading the VAIR picks", () => {
   const PICKS = {
     systemType: "NarrowAI", purpose: "AssessingCreditworthiness",

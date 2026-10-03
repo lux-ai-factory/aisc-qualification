@@ -2,9 +2,9 @@ import { describe, it, expect, vi } from "vitest";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-// Addendum 06 (docs/superpowers/form-assembly-2026-09-24/06-spec-addendum.md):
-// R44 nothing can change the default form, R47 no form is scoped to a project.
-// Source scans and prototype checks, like oneSystemEntryPoints.test.ts.
+// Nothing can change the default questionnaire (R44), and the services are never
+// given a project (R47: the project is the database). Source scans and prototype
+// checks, like oneSystemEntryPoints.test.ts.
 
 // The project doors let these calls through: which project's database a forms page, action or
 // route opens, and who may, is pinned by isolationForms.test.ts.
@@ -22,10 +22,9 @@ function sources(dir: string): string[] {
   });
 }
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md, 8.3, T30, T63): the
-// actions are the questionnaire actions (the default is a questionnaire); the service and
-// repository scans cover both levels; the R47 models are the seven new models. The setDefault
-// scans are unchanged.
+// The actions are the questionnaire actions (the default is a questionnaire); the service and
+// repository scans cover question sets and questionnaires; the R47 models are the seven
+// question-set and questionnaire models.
 const ACTIONS = "src/app/p/[project]/questionnaires/actions.ts";
 const SERVICES = ["src/server/services/QuestionSetService.ts", "src/server/services/QuestionnaireService.ts"];
 const REPOSITORIES = [

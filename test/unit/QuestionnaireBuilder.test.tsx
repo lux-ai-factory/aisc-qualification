@@ -4,16 +4,13 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { METADATA_FIELDS } from "@/data/formFields";
 import { ALL_BLOCKS, loadSrc, questionnaireVersion, seededQuestion, setQuestion } from "../support/forms";
 
-// The questionnaire builder (two-level forms, docs/superpowers/two-level-forms-2026-09-25/01-spec.md,
-// T27 to T33): the question-set library on the left, the questionnaire being assembled on the right.
-// A questionnaire only picks questions from set versions; it never writes or rewords one. Replaces
-// test/unit/FormBuilder.test.tsx (spec 8.2): the R16, R18, R21, R22, R23 and R75 to R80 cases live
-// on here with "set" for "form"; the R19 "+ New question" cases moved to QuestionSetEditor.test.tsx;
-// the R20 copy cases are removed (T28); R64 "Source updated" became T29 "Update available".
+// The questionnaire builder: the question-set library on the left, the questionnaire being
+// assembled on the right. A questionnaire only picks questions from set versions; it never
+// writes or rewords one ("+ New question" is tested in QuestionSetEditor.test.tsx).
 //
-// Choices made here where the spec is silent (recorded in 02-tests.md):
-//   the left column is <section aria-label="Question library"> (as FormBuilder's was);
-//   the question checkboxes of the selected groups sit under `.qf-builder-groups` (as before);
+// What these tests rely on:
+//   the left column is <section aria-label="Question library">;
+//   the question checkboxes of the selected groups sit under `.qf-builder-groups`;
 //   each group is headed by an h3 with the set's name;
 //   the builder imports its actions from "./actions" (questionnaires/actions.ts);
 //   saving calls saveQuestionnaire(project, JSON.stringify(draft), questionnaireId | undefined, origin)
@@ -39,7 +36,7 @@ beforeEach(() => {
   useQuestionnaireOnce.mockReset();
 });
 
-// ── the library: three current sets and one retired ─────────────────────────
+// The library: three current sets and one retired
 
 const acme1 = setQuestion("acme", "q1", {
   text: "Who signs off a model release?",
@@ -89,7 +86,7 @@ const oldGroup = {
 const zetaGroup = {
   setId: "zeta", setName: "Zeta", versionId: "zeta-v1", versionNumber: 1, retired: false, questions: [zeta1],
 };
-/** As QuestionSetService.groups() returns them: Annex IV, then by name; retired included (T45). */
+/** As QuestionSetService.groups() returns them: Annex IV, then by name; retired included. */
 const groups = [annexGroup, acmeGroup, oldGroup, zetaGroup];
 
 async function mount(initial: Record<string, unknown> = {}, gs: unknown[] = groups) {
@@ -129,7 +126,7 @@ async function browse(initial: Record<string, unknown> = {}) {
   return r;
 }
 
-// ── T27 the library column selects question-set versions ────────────────────
+// The library column selects question-set versions
 
 describe("the library column (T27)", () => {
   it('T27 "Select question sets" has one chip per non-retired set, Annex IV first then by name, each "v<N> · <count> questions"', async () => {
@@ -232,7 +229,7 @@ describe("the library column (T27)", () => {
   });
 });
 
-// ── T28 the questionnaire column: locked identity, blocks, picks only ──────────
+// The questionnaire column: locked identity, blocks, picks only
 
 describe("the questionnaire column (T28)", () => {
   const three = async () => {
@@ -240,7 +237,7 @@ describe("the questionnaire column (T28)", () => {
     tick("Who signs off a model release?");
     tick("Which datasets are approved");
     tick("How are incidents reported?");
-    // ticked inside the Acme group, q2 lands in Acme's order (R78): q1, q2, q3; one move gives q1, q3, q2
+    // ticked inside the Acme group, q2 lands in Acme's order: q1, q2, q3; one move gives q1, q3, q2
     fireEvent.click(screen.getByRole("button", { name: "Move How are incidents reported? down" }));
   };
 
@@ -350,7 +347,7 @@ describe("the questionnaire column (T28)", () => {
   });
 });
 
-// ── T29 "Update available" and accepting it ───────────────────────────────────
+// "Update available" and accepting it
 
 describe('"Update available" (T29)', () => {
   // Questionnaire Q v1 pinned three Acme questions to acme-v1; acme is at v2 since:
@@ -394,7 +391,7 @@ describe('"Update available" (T29)', () => {
     expect(box.querySelector("span.qf-tag.qf-tag--notice")?.textContent).toBe("Update available");
     expect(box.querySelector("p.qf-new-wording")?.textContent).toBe("Removed from Acme AI policy v2.");
     const button = within(box).getByText("Remove from questionnaire").closest("button") as HTMLButtonElement;
-    // "same aria pattern with Remove" (spec T29): the verb, then the first 40 characters of the pinned text
+    // the same aria pattern as Remove: the verb, then the first 40 characters of the pinned text
     expect(button.getAttribute("aria-label")).toMatch(/^Remove /);
     expect(button.getAttribute("aria-label")).toContain(q4v1.text.slice(0, 40));
   });
@@ -476,7 +473,7 @@ describe('"Update available" (T29)', () => {
   });
 });
 
-// ── T30 save and use once ──────────────────────────────────────────────────────
+// Save and use once
 
 describe("saving and using once (T30)", () => {
   it('T30 a new questionnaire\'s footer has "Use once" (ghost) and "Save questionnaire"', async () => {
@@ -539,7 +536,7 @@ describe("saving and using once (T30)", () => {
   });
 });
 
-// ── T31 where the builder opens ────────────────────────────────────────────────
+// Where the builder opens
 
 describe("where the builder opens (T31)", () => {
   // Q's latest version pins acme q3 to acme-v1 (older than the library's acme-v2) and Annex IV 1a.
@@ -625,7 +622,7 @@ describe("where the builder opens (T31)", () => {
   });
 });
 
-// ── T32 the builder's markup ──────────────────────────────────────────────────
+// The builder's markup
 
 describe("the builder's root (T32)", () => {
   it("T32 the root is div.qualify-form.qf-builder with the two sections as its only children", async () => {

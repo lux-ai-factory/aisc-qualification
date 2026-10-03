@@ -50,7 +50,7 @@ describe("the overlay while a qualification is being turned into a card", () => 
     const all = items.join(" ");
     expect(all).toMatch(/answers/i);
     expect(all).toMatch(/sav/i);
-    // and nothing that no longer happens here
+    // and nothing that saving does not do
     expect(all).not.toMatch(/assembling/i);
   });
 

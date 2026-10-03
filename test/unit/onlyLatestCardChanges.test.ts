@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { transactional } from "../support/ledgerRepo";
 
-// WP3 (pipeline 2026-09-23). Only the latest version's card may change.
+// Only the latest version's card may change.
 // S3.3: a reviewer patch, a reset or the filler's draft aimed at an older card
 //       is refused (403) before anything is written.
 // S3.4: the same, aimed at the latest card, edits it in place: no new version.
@@ -47,7 +47,7 @@ const platform = {
   latestVersion: vi.fn(async () => version(2)),
   listVersions: vi.fn(async () => [version(2), version(1)]),
   createVersion: vi.fn(async () => version(3)),
-  // the pre-WP3 shape, so the current code reaches its own check and not a TypeError
+  // an ai-system answer is given too, so the code reaches its own check and not a TypeError
   aiSystem: vi.fn(async () => ({
     pid: "s", project_id: PROJECT_ID,
     current: { ...version(2), frozen_at: null }, versions: [
@@ -61,7 +61,7 @@ const build = vi.fn(async () => BUILT);
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
-// isolation Q1: the doors of src/lib/projectDb.ts open the project's database (here the
+// The doors of src/lib/projectDb.ts open the project's database (here the
 // caller is an editor of it), and the repository is bound to that database.
 vi.mock("@/lib/projectDb", () => ({
   projectDbForAction: vi.fn(async () => ({ db: {} })),

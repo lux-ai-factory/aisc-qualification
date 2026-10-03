@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-// Isolation stage 2 (01-specs.md I3.3, I3.6, I3.8, I16.5, I18.3), the id-addressed entry
-// points that are not the seven card routes of isolationRoutes.test.ts:
+// The id-addressed entry points that are not the seven card routes of isolationRoutes.test.ts:
 //
 // - the card version route /p/{pid}/api/system-versions/{systemPid}/ontology.jsonld
 //   (control objectives reads it), addressed by a version pid;
@@ -11,11 +10,11 @@ import { join } from "node:path";
 //   (loadOntology, patchOntologyNode, resetOntology, linkComponent, unlinkComponent);
 // - the card page /p/{pid}/qualify/{id} and the list page, through QualificationService.
 //
-// After isolation the project is the database: the lookup happens in the database of
-// the pid in the URL (the action's first argument), so A's card or version under B is
-// 404 even for a member of both, and A's database is never opened. Today these pass the
-// "404" half vacuously (the global client finds nothing in the fake), so each test also
-// asserts that the lookup happened in B's database; that is what is red until WP Q1.
+// The project is the database: the lookup happens in the database of the pid in the URL
+// (the action's first argument), so A's card or version under B is 404 even for a member
+// of both, and A's database is never opened. A lookup in the wrong database would also find
+// nothing in the fake and answer 404, so each test also asserts that the lookup happened in
+// B's database.
 
 const caller = vi.hoisted(() => ({ auth: "Bearer person-token" as string | null }));
 const calls = vi.hoisted(() => ({ build: [] as unknown[][], deliver: [] as unknown[][] }));
@@ -139,7 +138,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-// ── the card version route ────────────────────────────────────────────────────
+// The card version route
 
 type Handler = (req: Request, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
 const VERSION_ROUTE = join(SRC, "app", "p", "[project]", "api", "system-versions", "[systemPid]", "ontology.jsonld", "route.ts");
@@ -179,7 +178,7 @@ describe("I16.5 the card version route looks the version up in the database of t
   });
 });
 
-// ── the card page's server actions ───────────────────────────────────────────
+// The card page's server actions
 
 type OntologyActions = {
   loadOntology: (project: string, id: string) => Promise<{ ok: boolean; error?: string }>;
@@ -245,7 +244,7 @@ describe("I16.5 I18.3 the card page's actions act on the card in the database of
   });
 });
 
-// ── the pages, through QualificationService ─────────────────────────────────
+// The pages, through QualificationService
 
 type Service = {
   get: (project: string, id: string) => Promise<{ id: string } | null>;
@@ -277,15 +276,15 @@ describe("I16.5 the card page and the list page read the database of the page's 
   });
 });
 
-// ── static: the save action, the seed, the environment ─────────────────────
+// Read as source: the save action, the seed, the environment
 
 describe("I3.4 I3.6 I3.8 wiring that is only visible in the source", () => {
   it("I3.4 saving builds the card from the form alone; only Refine with AI asks the agent, with the project and the card", () => {
-    // 2026-09-30: the card is deterministic; the filler runs when a person asks.
+    // The card is deterministic; the filler runs only when a person asks.
     const save = read(join(SRC, "app", "p", "[project]", "qualify", "new", "actions.ts"));
     expect(save).not.toMatch(/requestFill/);
     const refine = read(join(SRC, "app", "p", "[project]", "qualify", "[id]", "fill-actions.ts"));
-    expect(refine).toMatch(/requestFill\(\s*project\s*,\s*qualificationId\s*[,)]/);   // + the run (phase 5)
+    expect(refine).toMatch(/requestFill\(\s*project\s*,\s*qualificationId\s*[,)]/);   // then the run's own arguments
   });
 
   it("I3.6 scripts/migrate-projects.mjs exists and names only ^project_[0-9a-f]{32}$ databases", () => {
@@ -304,7 +303,7 @@ describe("I3.4 I3.6 I3.8 wiring that is only visible in the source", () => {
     const offenders = [...sourceFiles(), ...sourceFiles(join(APP, "scripts"))]
       .filter((f) => /\bprocess\.env\.DATABASE_URL\b|\benv\.DATABASE_URL\b|\["DATABASE_URL"\]/.test(read(f)))
       .map(rel);
-    // Decision: prisma/schema.prisma may keep env("DATABASE_URL") for the Prisma CLI, which
+    // prisma/schema.prisma may keep env("DATABASE_URL") for the Prisma CLI, which
     // migrate-projects.mjs sets per database in the child's environment; only reads count.
     expect(offenders).toEqual([]);
   });

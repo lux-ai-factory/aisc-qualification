@@ -36,7 +36,7 @@ describe("opening the form on a worked example", () => {
       [...container.querySelectorAll(`input[type="hidden"][name="${name}"]`)].map(
         (i) => (i as HTMLInputElement).value,
       );
-    // VAIR terms (2026-09-30)
+    // VAIR terms
     expect(hidden("targetSystemTags")).toContain("Profiling");
     expect(hidden("sectorTags")).toEqual(["PrivateService"]);
     expect(hidden("marketFormTags")).toEqual(["Software", "Service"]);

@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { join } from "node:path";
 
-// Forms inside a project (the user's decision of 2026-09-25, which replaced D3 / R47 of the
-// isolation specs): the question sets and questionnaires a person makes live in their own
-// project's database, like its cards. The builtin Annex IV set and default questionnaire are
+// Forms inside a project: the question sets and questionnaires a person makes live in their
+// own project's database, like its cards. The builtin Annex IV set and default questionnaire are
 // seeded into every project database by the forms migrations, so they are the same, and
 // read-only, everywhere. Reuse across projects is by export and import only.
 //
@@ -159,7 +158,7 @@ async function mod(file: string): Promise<Mod> {
   return m!;
 }
 
-// ── the actions: the door of the project they name, before anything is opened ──
+// The actions: the door of the project they name, before anything is opened
 
 const WRITES: Array<[string, string, (pid: string) => unknown[]]> = [
   ["question-sets/actions.ts", "saveQuestionSet", (pid) => [pid, JSON.stringify({ name: "S", questions: [{ text: "Q?", citation: "", required: false, annexPoint: null }] })]],
@@ -211,7 +210,7 @@ describe("forms actions act in the database of the project they name", () => {
   });
 });
 
-// ── the pages: past the middleware's door, on the database of the page's pid ──
+// The pages: past the middleware's door, on the database of the page's pid
 
 const PAGES: Array<[string, Record<string, string>, Record<string, string>]> = [
   ["question-sets/page.tsx", {}, {}],
@@ -238,7 +237,7 @@ describe("forms pages read the database of the page's project", () => {
   }
 });
 
-// ── the export routes: the route door ──
+// The export routes: the route door
 
 const EXPORTS: Array<[string, Record<string, string>]> = [
   ["question-sets/[setId]/export/route.ts", { setId: "set-1" }],
@@ -267,7 +266,7 @@ describe("forms export routes answer from the database of the pid in the URL", (
   }
 });
 
-// ── the source: no way around the doors ──
+// The source: no way around the doors
 
 describe("the forms code has no install-wide way in", () => {
   it("no file in src/ uses the old install-wide forms singletons", () => {

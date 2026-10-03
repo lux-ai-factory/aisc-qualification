@@ -159,7 +159,7 @@ describe("field naming and lookup", () => {
     expect(set.size).toBe(14);
     expect(set.has("annex-1:1de")).toBe(true);
     expect(set.has("annex-2:2h")).toBe(true);
-    // Ids from the retired plain-language question set must no longer resolve.
+    // Ids of the earlier plain-language question set must not resolve.
     expect(set.has("data:data-source")).toBe(false);
   });
 

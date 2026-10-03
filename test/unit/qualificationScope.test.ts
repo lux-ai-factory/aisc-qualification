@@ -1,13 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 
-// A qualification belongs to one project. Reading it by id alone served any
+// A qualification belongs to one project. Reading it by id alone would serve any
 // project's system description, answers, risks and card to anyone who could
-// open any project's page, and the seven download routes under
-// /api/qualifications/:id were not even behind the project door.
+// open any project's page.
 //
-// Under isolation (Q1) the defence is the database: a repository is bound to one
-// project's own database, so a query by id finds only that project's card. The
-// download routes moved under /p/{pid} and open that pid's database after the
+// The defence is the database: a repository is bound to one project's own
+// database, so a query by id finds only that project's card. The seven download
+// routes are under /p/{pid} and open that pid's database after the
 // platform's answer (isolationRoutes.test.ts pins the stranger 404 on each).
 
 describe("the repository reads by id inside the one project database it is bound to", () => {

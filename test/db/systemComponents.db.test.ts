@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { PrismaClient } from "@prisma/client";
 
-// The Components block in a real project database (targets plan v2, QL1, QL3, QL7): migration
+// The Components block in a real project database: migration
 // 20260929000000_system_components on the throwaway of test/db/throwaway-db.sh. Never the live DB.
 
 const TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_DATABASE_URL ?? "";
@@ -93,7 +93,7 @@ describe.skipIf(!enabled)("QL7 a linked engine item may say which part it is", (
   });
 });
 
-// The form speaks VAIR (2026-09-30, migration 20260930000000_vair_terms): the terms the author
+// The form speaks VAIR (migration 20260930000000_vair_terms): the terms the author
 // chose are kept beside the text, in nullable columns, and read back through the Prisma names.
 describe.skipIf(!enabled)("the VAIR terms a card is saved with", () => {
   it("are stored and read back through Prisma", async () => {

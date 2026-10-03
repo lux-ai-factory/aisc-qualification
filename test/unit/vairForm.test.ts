@@ -1,4 +1,4 @@
-// The form speaks VAIR (docs/superpowers/vair-form-2026-09-30/01-plan.md). One control per thing:
+// The form speaks VAIR. One control per thing:
 // wherever VAIR has a vocabulary for a field, the form offers only VAIR's terms; our own list only
 // where VAIR has none. A VAIR field is required only where VAIR can always answer.
 import { describe, expect, it } from "vitest";
@@ -281,7 +281,7 @@ describe("the parser takes VAIR terms and nothing else where VAIR has the concep
   });
 });
 
-// ── the export the graph builder reads ──────────────────────────────────────
+// The export the graph builder reads
 import { toExport } from "@/server/services/QualificationExporter";
 import type { QualificationWithAnswers } from "@/server/repositories/QualificationRepository";
 
@@ -333,7 +333,7 @@ describe("the export carries the author's VAIR terms to the builder", () => {
   });
 });
 
-// ── a card opens the next version's form with every term it was saved with ──
+// A card opens the next version's form with every term it was saved with
 import { cardAsFormStart, type CardContent } from "@/domain/cardVersions";
 
 describe("the next card starts from the terms this one was saved with", () => {
@@ -368,7 +368,7 @@ describe("the next card starts from the terms this one was saved with", () => {
   });
 });
 
-// ── the PDF card's classification ───────────────────────────────────────────
+// The PDF card's classification
 import { systemCardPayload } from "@/domain/SystemCard";
 
 describe("the PDF card names VAIR's capabilities and domains", () => {

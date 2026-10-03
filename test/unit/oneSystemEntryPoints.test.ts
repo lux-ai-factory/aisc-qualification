@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 // A project has one AI system, edited and versioned; there is no "new
 // qualification" to make. Every way into the form is "edit the system", and
-// the old address only redirects there, so a link to it cannot come back
+// the /qualify/new address only redirects there, so a link to it cannot come back
 // unnoticed.
 
 function sources(dir: string): string[] {

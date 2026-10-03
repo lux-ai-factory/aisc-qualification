@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 
-// Every npm script that runs a file of this app names one that exists (2026-09-30): seed_examples.mjs
-// was deleted (it could not run since the project databases: its cards have no system_id), and its
-// db:seed script with it.
+// Every npm script that runs a file of this app names one that exists.
 describe("the npm scripts", () => {
   const scripts: Record<string, string> = JSON.parse(readFileSync("package.json", "utf8")).scripts;
 

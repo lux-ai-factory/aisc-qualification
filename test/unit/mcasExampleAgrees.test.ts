@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { MCAS } from "@/data/examples/mcas";
 import { seedMcas } from "../../scripts/seed_mcas.mjs";
 
-// Addendum 06, R72: the worked MCAS example answers the same questions, 1(f)
+// The worked MCAS example answers the same questions, 1(f)
 // included and with the same text, in all three places it lives: the ontology
 // fixture services/ontology/examples/mcas.qualification.json, the form's
 // example src/data/examples/mcas.ts, and the seed scripts/seed_mcas.mjs. The
@@ -69,7 +69,7 @@ describe("the MCAS example agrees everywhere (R72)", () => {
   });
 });
 
-// 2026-09-30: the form speaks VAIR, and the three copies carry the same terms.
+// The form speaks VAIR, and the three copies carry the same terms.
 async function seedData(): Promise<Record<string, unknown> & { risks: { create: Record<string, unknown>[] } }> {
   const create = vi.fn(async (args: { data: unknown }) => ({ id: "x", systemName: "MCAS", args }));
   const prisma = { qualification: { findUnique: vi.fn(async () => null), create, delete: vi.fn() } };

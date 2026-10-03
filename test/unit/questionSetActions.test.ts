@@ -3,11 +3,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { decide } from "@/server/access/projectAccess";
 import { loadSrc, setVersion, annexSetLiteral } from "../support/forms";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md): the question-set
-// server actions (T18), who saved (T55), and the edit page's refusals (T15). The service and the
-// caller's name are stood in for; parseSetDraft (src/domain/forms/questionSetDraft.ts) is real.
-// Carried from formActions.test.ts (deleted, spec 8.2): R42 door tests, R48 redirects inside
-// /p/<project>/, R47 the service is never given the project.
+// The question-set server actions, who saved, and the edit page's refusals. The service and
+// the caller's name are stood in for; parseSetDraft (src/domain/forms/questionSetDraft.ts) is
+// real. Also: the project door, redirects stay inside /p/<project>/, and the service is never
+// given the project.
 //
 //   saveQuestionSet(project, draftJson, setId?, opts?: {origin?, alsoQuestionnaire?})
 //   retireQuestionSet(project, setId)

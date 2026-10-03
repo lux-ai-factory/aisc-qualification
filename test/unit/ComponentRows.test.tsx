@@ -11,7 +11,7 @@ import QualifyForm from "@/app/p/[project]/qualify/new/QualifyForm";
 import { COMPONENT_TYPES } from "@/data/componentFields";
 import { formVersion } from "../support/forms";
 
-// The Components block on the form (targets plan v2, QL1, QL2, QL4): rows with their keys in
+// The Components block on the form: rows with their keys in
 // hidden fields, suggestions from the extraction marked as such, and the block on every form.
 
 afterEach(cleanup);

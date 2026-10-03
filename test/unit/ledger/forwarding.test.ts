@@ -1,4 +1,4 @@
-// Q4 and the phase 5 review's test gaps: the witnessed request travels to the platform and to the agent,
+// The witnessed request travels to the platform and to the agent,
 // with the run; author fields never reach an event; a server action's re-render is no page view.
 import { afterEach, describe, expect, it, vi } from "vitest";
 

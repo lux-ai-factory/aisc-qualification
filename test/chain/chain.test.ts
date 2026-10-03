@@ -5,13 +5,13 @@ import { PrismaClient } from "@prisma/client";
 
 import { projectDatabaseUrl } from "@/lib/projectDb";
 
-// Qualification's step of the pipeline chain (scripts/test-pipeline-chain.sh, 03 WP12).
-// Skipped unless CHAIN_JSON names the chain's shared state. Since the isolation (I19.2) the
-// card lives in the chain project's own database: PROJECT_DATABASE_URL (a template with
-// {database}, set by the driver) names it, and the driver has already migrated it. Step 2: the
-// AI card of version 1 with two engine components linked by AIRO properties (a model and a
-// dataset). It consumes the link from a card to its version: the card's foreign key into
-// project.system of the same database (I1.6; the card names no project, I1.7).
+// Qualification's step of the pipeline chain (scripts/test-pipeline-chain.sh in the aisc repo).
+// Skipped unless CHAIN_JSON names the chain's shared state. The card lives in the chain
+// project's own database: PROJECT_DATABASE_URL (a template with {database}, set by the driver)
+// names it, and the driver has already migrated it. Step 2: the AI card of version 1 with two
+// engine components linked by AIRO properties (a model and a dataset). It consumes the link
+// from a card to its version: the card's foreign key into project.system of the same database
+// (the card names no project).
 
 const CHAIN_JSON = process.env.CHAIN_JSON ?? "";
 

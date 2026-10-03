@@ -2,15 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-// Isolation stage 2 (docs/superpowers/isolation-2026-09-25/01-specs.md, I1.8, I3.1, I17.1).
-// Every qualification table moves into the project's own database. src/lib/projectDb.ts
+// Every qualification table lives in the project's own database. src/lib/projectDb.ts
 // (controls' src/lib/projectDb.ts is the model) is the only way in: projectDbFor asks the
 // platform about the caller in THAT project first, and only then opens its database.
 //
 // Seams faked here, none of them the module under test: the Prisma client (a fake that
 // records its URL), the migration child process, Next's notFound and headers, and fetch
-// (the platform). Written before the module exists: each test loads it by path and fails
-// with the requirement named until it does.
+// (the platform). Each test loads the module by path, so a missing module fails with the
+// requirement named.
 
 vi.mock("@prisma/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@prisma/client")>();
@@ -113,7 +112,7 @@ describe("I3.1 projectDatabaseUrl", () => {
   });
 
   it("I3.1 I17.1 a template without schema or limit still gets schema=qualification and connection_limit=2", async () => {
-    // Decision recorded in 02-tests.md: the per-project budget (section 17) is the module's, not the env's.
+    // The per-project connection budget is the module's, not the env's.
     const m = await projectDb();
     const url = m.projectDatabaseUrl(EXAMPLE_PID, "postgresql://qualification_rw:pw@postgres:5432/{database}");
     expect(url).toContain(`/${EXAMPLE_DB}`);
@@ -258,8 +257,8 @@ describe("I3.1 source scan: projectDb.ts is the only door", () => {
   });
 
   it("I3.1 `new PrismaClient` of the project client appears in src/ only inside src/lib/projectDb.ts", () => {
-    // Decision (02-tests.md): the form library's own generated client (I4.2) is a
-    // different import, so this scan counts only files importing "@prisma/client".
+    // A separately generated Prisma client would be a different import, so this scan
+    // counts only files importing "@prisma/client".
     const offenders = sourceFiles()
       .filter((f) => /from ["']@prisma\/client["']/.test(read(f)) && /new\s+PrismaClient\b/.test(read(f)))
       .map(rel)

@@ -87,10 +87,9 @@ describe("the vertical AI card", () => {
 
 });
 
-// ── Form assembly: coverage and "Additional documentation" ─────────────────
-// (spec docs/superpowers/form-assembly-2026-09-24/01-spec.md, R29, R36)
+// Coverage and "Additional documentation"
 //
-// The view gains optional `form`, `coverage` and `additionalDocumentation`,
+// The view has optional `form`, `coverage` and `additionalDocumentation`,
 // computed by services/ontology (airo_min/coverage.py). A view without them
 // renders exactly as above.
 
@@ -133,7 +132,7 @@ describe("the vertical AI card with a form (R36)", () => {
     expect(screen.getByText("The head of data science.")).toBeTruthy();
     expect(screen.getByText("Through the risk desk.")).toBeTruthy();
     const chips = [...container.querySelectorAll("span.qf-citation")].map((s) => s.textContent);
-    // R29: the free-text citation in the same chip as the Annex ones
+    // the free-text citation in the same chip as the Annex ones
     expect(chips).toContain("Acme AI Policy §4.2");
     expect(chips.filter((c) => c === "")).toEqual([]);
   });
@@ -176,7 +175,7 @@ describe("the vertical AI card with a form (R36)", () => {
   });
 });
 
-// ── Addendum 06 (R66): a legacy card keeps the coverage line ───────────────
+// A legacy card keeps the coverage line
 
 describe("a legacy card (R66)", () => {
   it("R66 a legacy card with 1b, 1f, 2d and 2f blank shows the optional-left-blank coverage line", () => {

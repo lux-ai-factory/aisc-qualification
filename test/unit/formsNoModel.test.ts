@@ -3,8 +3,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 // Nothing in form assembly calls a model: search, overlap hints, import and
-// coverage are all deterministic (form-assembly spec R41). A source scan, like
-// oneSystemEntryPoints.test.ts.
+// coverage are all deterministic. A source scan, like oneSystemEntryPoints.test.ts.
 
 function sources(dir: string): string[] {
   if (!existsSync(dir)) return [];
@@ -14,9 +13,7 @@ function sources(dir: string): string[] {
   });
 }
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md, T61, 8.3): the file
-// list is the two levels' modules. formDraft.ts, FormService.ts, FormRepository.ts, FormBuilder.tsx
-// and the old forms actions are deleted (spec 5.4); the /forms pages stay as redirects.
+// The file list is the question-set and questionnaire modules; the /forms pages are redirects.
 const REQUIRED = [
   "src/domain/forms/annexPoints.ts",
   "src/domain/forms/blocks.ts",
@@ -133,7 +130,7 @@ describe("form assembly calls no model (R41)", () => {
   });
 });
 
-// ── Addendum 06 (R73): the new parts call no model either ─────────────────
+// The import, export and builder parts call no model either
 
 const NEW_PARTS = [
   "src/server/services/FormExportClient.ts",
@@ -154,10 +151,9 @@ describe("the addendum's new parts call no model (R73)", () => {
     expect(offending).toEqual([]);
   });
 
-  // Amended 2026-09-25 (product owner): the prefill service token is a
-  // service-to-service token, not a model credential, so it is allowed too.
-  // Two-level forms (T61): NEXT_BASE_PATH is allowed too; the old export route becomes a
-  // redirect whose Location carries the base path (T62).
+  // The prefill service token is a service-to-service token, not a model credential,
+  // so it is allowed. NEXT_BASE_PATH is allowed because the /forms export redirect's
+  // Location carries the base path.
   const ALLOWED = ["PREFILL_URL", "PLATFORM_URL", "NEXT_BASE_PATH", "QUALIFICATION_WEB_TO_PREFILL_TOKEN"];
 
   it("R73 T61 the only environment names they read are PREFILL_URL, PLATFORM_URL, NEXT_BASE_PATH and QUALIFICATION_WEB_TO_PREFILL_TOKEN", () => {

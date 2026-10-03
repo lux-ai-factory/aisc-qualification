@@ -34,7 +34,7 @@ describe("the payload the renderer is sent", () => {
 
   it("resolves the tags to names, since a PDF reader cannot read ids", () => {
     const payload = systemCardPayload(facts, null, null);
-    // VAIR terms (2026-09-30): a capability is flat, so it has no category
+    // VAIR terms: a capability is flat, so it has no category
     expect(payload.classification).toEqual({
       target_systems: [{ subcategory: "Profiling" }],
       sectors: ["Private Service"],

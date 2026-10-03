@@ -3,8 +3,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { loadSrc } from "../support/forms";
 
-// The retire button (two-level forms, docs/superpowers/two-level-forms-2026-09-25/01-spec.md,
-// T56): src/app/p/[project]/RetireButton.tsx, props {name, action}. A ghost "Retire" that asks
+// The retire button: src/app/p/[project]/RetireButton.tsx, props {name, action}. A ghost "Retire" that asks
 // once before it calls the action; the action's {error} shows in div.error. Loaded at run time
 // so a missing module fails each test, not the file.
 

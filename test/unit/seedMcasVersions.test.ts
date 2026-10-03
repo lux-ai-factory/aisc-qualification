@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import * as seed from "../../scripts/seed_mcas.mjs";
 
-// WP3 (pipeline 2026-09-23), S3.5. The MCAS seed makes card version 1 through
+// The MCAS seed makes card version 1 through
 // the platform's POST /projects/{project}/system-versions, and only when it is
 // about to write the card: a project that already has its card gets no version.
 
@@ -74,7 +74,7 @@ describe("seed_mcas and card versions", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(fetchImpl.mock.calls[0][0]).toBe("http://platform:8000/projects/mcas/system-versions");
     const data = prisma.qualification.create.mock.calls[0][0].data;
-    // isolation Q1: the seed writes into the project's own database; the card names no project
+    // the seed writes into the project's own database; the card names no project
     expect(data).toMatchObject({ systemId: V1.pid });
     expect(data).not.toHaveProperty("projectId");
   });

@@ -2,10 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
-// WP7 (pipeline 2026-09-23). Control objectives reads the card of one system
-// version by that version's pid:
+// Control objectives reads the card of one system version by that version's pid:
 //   GET /p/{project}/api/system-versions/{systemPid}/ontology.jsonld
-// Under isolation (Q1) it goes through the door of src/lib/projectDb.ts (the
+// It goes through the door of src/lib/projectDb.ts (the
 // platform decides who the caller is, then that project's database is opened),
 // finds the card by systemId in that database, and hands over exactly the bytes
 // /p/{project}/api/qualifications/{id}/ontology.jsonld hands over

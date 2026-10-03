@@ -1,11 +1,10 @@
 /**
- * Helpers for the isolation tests (docs/superpowers/isolation-2026-09-25, stage 2).
+ * Helpers for the isolation tests.
  *
- * The isolation moves every qualification table into the project's own database
- * and every id-addressed route under /p/{pid}. The tests are written before that
- * code exists, so modules are loaded by computed path: a missing module makes the
- * one test that needs it fail with the requirement named, and `tsc --noEmit`
- * stays as it was.
+ * Every qualification table lives in the project's own database and every
+ * id-addressed route is under /p/{pid}. Modules are loaded by computed path: a
+ * missing module makes only the test that needs it fail, with the requirement
+ * named, and `tsc --noEmit` does not depend on them.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
@@ -14,13 +13,13 @@ export const APP = resolve(__dirname, "..", "..");
 export const ROOT = resolve(APP, "..", "..");
 export const SRC = join(APP, "src");
 
-/** Same example pid as platform/tests/test_project_databases.py and controls' projectDb.test.ts (I1.8). */
+/** Same example pid as platform/tests/test_project_databases.py and controls' projectDb.test.ts. */
 export const EXAMPLE_PID = "3f2b8c1e-0d4a-4e7b-9a55-1c2d3e4f5a6b";
 export const EXAMPLE_DB = "project_3f2b8c1e0d4a4e7b9a551c2d3e4f5a6b";
 
 export const dbName = (pid: string) => `project_${pid.toLowerCase().replace(/-/g, "")}`;
 
-/** The seven routes that found a card by id alone (I3.3). */
+/** The seven card routes that address a card by its id. */
 export const CARD_ROUTES = [
   "ai-card.json",
   "ai-card.pdf",
@@ -65,7 +64,7 @@ export function sourceFiles(dir: string = SRC): string[] {
 export const read = (file: string) => readFileSync(file, "utf8");
 export const rel = (file: string) => relative(APP, file);
 
-/** Q2: the forms work (gate I4.6, two-level forms) is on this branch when these exist. */
+/** The two-level forms code is on this branch when these files exist. */
 export const FORMS_FILES = [
   join(SRC, "server", "repositories", "QuestionSetRepository.ts"),
   join(SRC, "server", "services", "QuestionnaireService.ts"),
@@ -75,7 +74,7 @@ export const formsMerged = FORMS_FILES.every((f) => existsSync(f));
 export const FORMS_SKIP_REASON =
   "I4.6 gate: forms files absent on this branch; WP Q2 waits for the forms merge";
 
-// ── a fake Prisma client: an empty database per URL, unless rows are put in it ──
+// A fake Prisma client: an empty database per URL, unless rows are put in it
 
 export type Rows = Record<string, Record<string, unknown>[]>;
 
@@ -92,7 +91,7 @@ function databaseOf(url: string): string {
 function matches(row: Record<string, unknown>, where: Record<string, unknown> | undefined): boolean {
   if (!where) return true;
   // Only the keys that identify a card: an id or a system id. Anything else in
-  // the filter (a project column that no longer exists, a relation) is ignored.
+  // the filter (a project column, a relation) is ignored.
   for (const key of ["id", "systemId"]) {
     if (key in where && typeof where[key] !== "object" && row[key] !== where[key]) return false;
   }

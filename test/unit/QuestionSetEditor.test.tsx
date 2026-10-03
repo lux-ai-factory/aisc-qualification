@@ -4,14 +4,13 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { KEY_QUESTIONS } from "@/data/keyQuestions";
 import { customQuestion, loadSrc, setVersion } from "../support/forms";
 
-// The question-set editor (two-level forms, docs/superpowers/two-level-forms-2026-09-25/01-spec.md,
-// T17; the R19 "+ New question" cases of the old FormBuilder.test.tsx moved here, spec 8.2), run
-// through the two pages that mount it: /question-sets/new (T17) and /question-sets/<S>/edit (T17,
-// T15's 404). The pages are server components, awaited with questionSetService mocked, then
+// The question-set editor, run through the two pages that mount it: /question-sets/new and
+// /question-sets/<S>/edit (and its 404). The pages are server components, awaited with
+// questionSetService mocked, then
 // rendered; the editor is QuestionSetEditor.tsx. Pages and editor are loaded at run time so a
 // missing module fails each test, not the file.
 //
-// Choices made here where the spec is silent: the edit page reads the set's latest version
+// What these tests rely on: the edit page reads the set's latest version
 // through questionSetService.latest(setId) (atNumber and resolveSetVersion are mocked to the same
 // answer); the editor's question editor is the panel .qf-builder-editor holding a textarea, the
 // citation input, the "Required" checkbox and the "Answers Annex IV point" select; each row's Edit
@@ -315,7 +314,7 @@ describe("editing a question set (T17, T15)", () => {
       { questionId: "acme-q2", text: "Which datasets are approved?", citation: "", required: false, annexPoint: "2d" },
       { text: "Is there a rollback plan?", citation: "", required: true, annexPoint: null },
     ]);
-    // no row keys and no group labels travel (T16 toSetDraft)
+    // no row keys and no group labels travel (toSetDraft)
     expect(json).not.toMatch(/rowKey|groupLabel/);
   });
 

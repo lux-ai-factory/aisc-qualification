@@ -1,14 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { loadSrc, setVersion, setQuestion, annexSetLiteral } from "../support/forms";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md), T47:
-// GET /p/<project>/question-sets/<setId>/export?format=csv|md[&version=<n>] is 06 R57's contract
-// (formExportRoute.test.ts, deleted, carried here unchanged in substance) on a question set:
+// GET /p/<project>/question-sets/<setId>/export?format=csv|md[&version=<n>] exports a question set:
 // the version comes from questionSetService.atNumber(setId, n?) (the latest when n is absent),
 // and FormExportClient.write gets a plain list {name: set name, version: set version number,
 // questions: {text, citation, required, annexPoint}[]}. Builtin and retired sets export too.
 //
-// Names chosen here: the route uses the module singletons `questionSetService`
+// The route uses the module singletons `questionSetService`
 // (src/server/services/QuestionSetService.ts) and `formExportClient`
 // (src/server/services/FormExportClient.ts).
 

@@ -3,11 +3,10 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { loadSrc } from "../support/forms";
 
-// The question sets page /p/[project]/question-sets (two-level forms,
-// docs/superpowers/two-level-forms-2026-09-25/01-spec.md, T20, T63), rendered as the server
-// component it is with questionSetService mocked, as FormsPage.test.tsx did for the old library.
-// The rows are what questionSetService.list({retired}) returns (SetListRow, in its order: Annex IV
-// first, then by name ignoring case, T45). Loaded at run time so a missing page fails each test.
+// The question sets page /p/[project]/question-sets, rendered as the server component it is
+// with questionSetService mocked. The rows are what questionSetService.list({retired}) returns
+// (SetListRow, in its order: Annex IV first, then by name ignoring case). Loaded at run time so
+// a missing page fails each test.
 
 const { questionSetService, retireQuestionSet, saveQuestionSet } = vi.hoisted(() => ({
   questionSetService: { list: vi.fn(), groups: vi.fn() },

@@ -1,9 +1,8 @@
 // The worked MCAS example (src/data/examples/mcas.ts) as a stored card, a
-// QualificationWithAnswers, for the two-level forms T10 check
-// (docs/superpowers/two-level-forms-2026-09-25/01-spec.md): the fixture
-// test/fixtures/mcas-export-before.json is toExport(mcasCard(), annexDefaultVersion())
-// from the code before the change, and test/unit/annexIdentity.test.ts builds the
-// same card after it. Fixed ids and dates, so the export is the same bytes every run.
+// QualificationWithAnswers: the fixture test/fixtures/mcas-export-before.json is
+// toExport(mcasCard(), annexDefaultVersion()) as the one-level forms code wrote it, and
+// test/unit/annexIdentity.test.ts checks today's export of the same card against it.
+// Fixed ids and dates, so the export is the same bytes every run.
 import { MCAS } from "@/data/examples/mcas";
 import type { QualificationWithAnswers } from "@/server/repositories/QualificationRepository";
 
@@ -29,7 +28,7 @@ export function mcasCard(): QualificationWithAnswers {
     impactAreas: [...r.areas],
     control: r.control,
     followUpControl: r.followUpControl === "" ? null : r.followUpControl,
-    // the VAIR terms (2026-09-30)
+    // the VAIR terms
     sourceTerm: r.sourceTerm || null,
     consequenceTerm: r.consequenceTerm || null,
     impactTerm: r.impactTerm || null,

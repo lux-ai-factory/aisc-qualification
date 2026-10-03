@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { loadSrc, setQuestion, setVersion } from "../support/forms";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md), T16: the question-set
-// editor's state. Every click is one reducer action; QuestionSetEditor.tsx only renders it.
+// The question-set editor's state. Every click is one reducer action; QuestionSetEditor.tsx
+// only renders it.
 //
 // SetEditorState = { setId, name, description, rows: SetRow[], origin, alsoQuestionnaire, nextRow }
 // SetRow = { rowKey, questionId?, text, citation, required, annexPoint, groupLabel }
-// Actions (interface chosen by the test author): add {values}, edit {index, values},
+// Actions: add {values}, edit {index, values},
 // move {from, to}, remove {index}, setName {name}, setDescription {description},
 // toggleAlsoQuestionnaire.
 

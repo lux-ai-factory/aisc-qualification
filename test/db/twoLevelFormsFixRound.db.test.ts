@@ -3,12 +3,12 @@ import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { loadSrc } from "../support/forms";
 
-// Two-level forms, fix round for 05-verification.md H4 and H12, against a real Postgres with
-// the migration applied (the CHECK and the triggers are what the unit fakes only imitate):
+// The H4 and H12 cases of test/unit/twoLevelFormsFixRound.test.ts, against a real Postgres
+// with the migration applied (the CHECK and the triggers are what the unit fakes only imitate):
 //
-//   H4   a self-contained import with a groupLabel the CHECK refuses is answered with the T51
+//   H4   a self-contained import with a groupLabel the CHECK refuses is answered with a user
 //        message; nothing is written and nothing is thrown.
-//   H12  a save or a second retire that meets a retire committed meanwhile gets the existing
+//   H12  a save or a second retire that meets a retire committed meanwhile gets the usual
 //        user message; the real Prisma error carries the trigger's text.
 //
 // The race is made by reading through a repository whose find answers retired_at NULL (the

@@ -2,18 +2,15 @@ import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-// WP6 (pipeline 2026-09-23). The card's components link to the engine's real
-// ones through AIRO (hasModel, hasTrainingData, hasTestingData,
+// The card's components link to the engine's real ones through AIRO (hasModel, hasTrainingData, hasTestingData,
 // hasValidationData, hasComponent). The engine is read, never written: its
 // components come from GET /api/v1/projects?platform_project_id=<pid>, then
 // GET /api/v1/projects/{enginePid}/aisystem, with the caller's own token.
 // Drift between the latest card's links and the engine is shown, not fixed.
 //
-// Modules that do not exist yet are imported by a runtime path, so this file
-// fails in its tests (missing feature) rather than at collection.
-//
-// ASSUMED names (03 names only EngineClient.ts): src/domain/cardComponents.ts
-// with defaultProperty, propertyOptions and componentDrift.
+// Modules are imported by a runtime path, so a missing one fails its tests
+// rather than the whole file at collection. Under test: src/server/services/EngineClient.ts
+// and src/domain/cardComponents.ts (defaultProperty, propertyOptions, componentDrift).
 
 const ENGINE_CLIENT = "server/services/EngineClient.ts";
 const CARD_COMPONENTS = "domain/cardComponents.ts";
@@ -170,7 +167,7 @@ describe("the export shape carries the linked components (6b)", () => {
   });
 });
 
-// targets plan v2 (QL7): a linked engine item may say which of the card's components it is;
+// A linked engine item may say which of the card's components it is;
 // test material never is one.
 import { partOfLink } from "@/domain/cardComponents";
 

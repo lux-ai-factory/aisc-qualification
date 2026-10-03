@@ -3,12 +3,11 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { customQuestion, loadSrc, seededQuestion, setVersion, annexSetLiteral } from "../support/forms";
 
-// One question set's page /p/[project]/question-sets/[setId] (two-level forms,
-// docs/superpowers/two-level-forms-2026-09-25/01-spec.md, T21): who saved each version and when,
+// One question set's page /p/[project]/question-sets/[setId]: who saved each version and when,
 // one version's questions, Edit and the exports. Rendered as the server component it is with
 // questionSetService mocked. Loaded at run time so a missing page fails each test.
 //
-// Choices made here where the spec is silent: the page reads the versions through
+// What these tests rely on: the page reads the versions through
 // questionSetService.history(setId) (VersionStamp[], newest first) and the shown version through
 // questionSetService.atNumber(setId, n) (n undefined = latest; latest(setId) is mocked to the same);
 // a version link's href ends in `?version=<n>` (relative, or the page's own path).

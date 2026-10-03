@@ -6,14 +6,13 @@ import { resolve } from "node:path";
 import { createElement } from "react";
 import { formVersion } from "../support/forms";
 
-// Addendum 06, R58 and R66, carried to two-level forms (T42,
-// docs/superpowers/two-level-forms-2026-09-25/01-spec.md): the "Questionnaire:" line of the
-// card and edit pages, with the export links for the very version the card was filled with.
+// The "Questionnaire:" line of the card and edit pages, with the export links for the very
+// version the card was filled with.
 //
 // FormLine (src/app/p/[project]/FormLine.tsx), props
 //   { project, questionnaireId, questionnaireName, versionNumber, basePath?, newer? }
-// (the old formId/formName renamed; the tests also pass `form`, the resolved version, so a
-// component that reads that instead works the same):
+// (the tests also pass `form`, the resolved version, so a component that reads that instead
+// works the same):
 //   <p className="qf-row-form">Questionnaire: <name> v<N> · JSON · CSV · Markdown</p>
 // With `newer: {versionId, versionNumber}`: p.qf-questionnaire-update
 //   "<name> has a newer version, v<M>." and a link "Move to v<M>".
@@ -24,7 +23,7 @@ const load = async (): Promise<any> => (await import(/* @vite-ignore */ resolve(
 
 afterEach(cleanup);
 
-/** The props under both names: the renamed flat ones and the resolved version. */
+/** The props both ways: the flat ones and the resolved version. */
 function props(id: string, name: string, versionNumber: number, over: Record<string, unknown> = {}) {
   return {
     questionnaireId: id,

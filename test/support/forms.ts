@@ -1,16 +1,13 @@
-// Test support for the form tests: form assembly (docs/superpowers/form-assembly-2026-09-24/)
-// and its replacement, two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md):
-// question sets, where questions are written, and questionnaires, what a card is filled with.
+// Test support for the form tests: question sets, where questions are written, and
+// questionnaires, what a card is filled with.
 //
-// Literal builders for ResolvedQuestion / ResolvedQuestionnaireVersion / ResolvedSetVersion
-// (spec 5.1), so a test can describe a questionnaire without the modules under test. Only types
-// are imported from src/domain/forms, and `import type` is erased at run time, so this file loads
-// before those modules exist.
+// Literal builders for ResolvedQuestion / ResolvedQuestionnaireVersion / ResolvedSetVersion,
+// so a test can describe a questionnaire without the modules under test. Only types are
+// imported from src/domain/forms, and `import type` is erased at run time, so this file loads
+// even when those modules fail to.
 //
-// Two-level forms, spec 8.3: the builders keep their names and return the new field names
-// (setId, setName, setVersionId, setVersionNumber, setBuiltin; questionnaireId,
-// questionnaireName, description, retired). `formVersion` is kept as the name of the
-// questionnaire version builder so the tests that use it keep their assertions.
+// `formVersion` is the name of the questionnaire version builder (`questionnaireVersion` is the
+// same builder under its other name).
 import type {
   ResolvedQuestion,
   ResolvedQuestionnaireVersion,
@@ -18,7 +15,7 @@ import type {
 } from "@/domain/forms/types";
 import { KEY_QUESTIONS } from "@/data/keyQuestions";
 
-/** The 9 removable blocks, in FORM_BLOCKS order (spec section 3). */
+/** The 9 removable blocks, in FORM_BLOCKS order. */
 export const ALL_BLOCKS = [
   "description",
   "targetUseCase",
@@ -36,8 +33,8 @@ export const ANNEX_DESCRIPTION = "EU AI Act Annex IV points 1 and 2, as 14 quest
 
 /**
  * One custom question of set `setId`, keyed f-<setId>:<localId>: the scope of a question made
- * before two-level forms (a migrated form's own question keeps it, spec 1). Its set has the
- * form's id (D1). Wording from set version `<setId>-v1` unless overridden.
+ * before two-level forms (a migrated form's own question keeps it). Its set has the form's id.
+ * Wording from set version `<setId>-v1` unless overridden.
  */
 export function customQuestion(
   setId: string,
@@ -66,7 +63,7 @@ export function customQuestion(
 }
 
 /**
- * One question written in set `setId` after two-level forms: keyed s-<setId>:<localId> (D5).
+ * One question written in set `setId` after two-level forms: keyed s-<setId>:<localId>.
  * Wording from set version `<setId>-v1` unless overridden.
  */
 export function setQuestion(
@@ -126,7 +123,7 @@ export function formVersion(over: Partial<ResolvedQuestionnaireVersion> = {}): R
   } as ResolvedQuestionnaireVersion;
 }
 
-/** The same builder under the new name. */
+/** The same builder under the questionnaire name. */
 export const questionnaireVersion = formVersion;
 
 /** A resolved set version. Defaults: set "Acme AI policy" (acme) v1, builder, no questions. */
@@ -191,10 +188,9 @@ export function policyOnlyVersion(): ResolvedQuestionnaireVersion {
 }
 
 /**
- * Load a module that the spec adds, at run time. A static import of a module
- * that does not exist yet fails the whole file; this fails only the tests that
- * need it, with the reason in the message. Same pattern as
- * test/unit/prefillOnEditPage.test.ts.
+ * Load a module at run time. A static import of a module that is missing or
+ * fails to load fails the whole file; this fails only the tests that need it,
+ * with the reason in the message.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function loadSrc(path: string): Promise<any> {

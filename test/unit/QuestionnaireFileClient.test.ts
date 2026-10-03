@@ -1,13 +1,12 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { loadSrc } from "../support/forms";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md), 5.3, T48, T53, T54:
 // QuestionnaireFileClient carries a questionnaire to the prefill service's
 // POST /questionnaires/export and the file back, and a questionnaire file to
 // POST /questionnaires/import and the normalised document back. Like FormImportClient and
 // FormExportClient it never throws and sends this app's service token.
 //
-// Interface chosen here (spec 5.3 names write and read):
+// Interface:
 //   new QuestionnaireFileClient(baseUrl = PREFILL_URL ?? "", fetchImpl = fetch,
 //                               serviceToken = QUALIFICATION_WEB_TO_PREFILL_TOKEN ?? "")
 //   .write(file: QuestionnaireFileInput, bundle: "references" | "self-contained")

@@ -7,8 +7,6 @@ import { transactional } from "../support/ledgerRepo";
 // the platform numbers) and then stores the card against it, so the card and
 // the version stay about the same thing. Nothing is frozen: an older version
 // is kept as it was because it is not the latest.
-// (Rewritten for WP3, pipeline 2026-09-23: the draft, freeze and one-card-
-// per-version refusal cases were about behaviour that is gone.)
 
 const version = (number: number) => ({
   pid: `v${number}`,
@@ -64,7 +62,7 @@ describe("submitting an AI card", () => {
     const { id } = await svc.createFromForm("mcas", new FormData());
     expect(id).toBe("card-2");
     expect(calls).toEqual(["version", "create"]);
-    // isolation Q1: the card is written into its project's own database and names no project
+    // the card is written into its project's own database and names no project
     expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ systemId: "v2" }));
     expect((repo.create.mock.calls[0] as unknown[])[0]).not.toHaveProperty("projectId");
   });

@@ -3,22 +3,19 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { loadSrc, questionnaireVersion, seededQuestion, setQuestion } from "../support/forms";
 
-// The questionnaires page /p/[project]/questionnaires (two-level forms,
-// docs/superpowers/two-level-forms-2026-09-25/01-spec.md, T34 and T63), rendered as the server
-// component it is with the services stood in for. Replaces test/unit/FormsPage.test.tsx (spec
-// 8.2): R44 "no Set as default" and R48 "install-wide, only the prefix differs" carried over; the
-// R58 actions changed (T34).
+// The questionnaires page /p/[project]/questionnaires, rendered as the server component it is
+// with the services stood in for.
 //
-// Choices made here where the spec is silent (recorded in 02-tests.md):
+// What these tests rely on:
 //   the page takes { params, searchParams } with searchParams { retired?: string };
 //   the rows come from questionnaireService.library({ retired }) in its order (the service orders them);
 //   "update available" is shown for a row whose `updates` is at least 1. The stand-ins below are
-//   consistent, so a page that instead computes T26 from latestVersion() and
+//   consistent, so a page that instead computes the updates from latestVersion() and
 //   questionSetService.groups() gets the same answer;
-//   "Saved by" reads "<savedBy>, <YYYY-MM-DD of savedAt in UTC>" (T20's rule), "Retired" the
+//   "Saved by" reads "<savedBy>, <YYYY-MM-DD of savedAt in UTC>", "Retired" the
 //   YYYY-MM-DD of retiredAt;
-//   a retired row's actions are "Export" and "Export self-contained" only (T35: it leaves
-//   "Start from"; it cannot be edited or retired again).
+//   a retired row's actions are "Export" and "Export self-contained" only (no "Start from";
+//   it cannot be edited or retired again).
 
 const PAGE = "app/p/[project]/questionnaires/page.tsx";
 
@@ -135,7 +132,7 @@ describe("the questionnaires page (T34)", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Questionnaires");
     const intro = container.querySelector("header p")?.textContent ?? "";
     expect(intro).toContain(
-      // forms are per project (2026-09-25): the intro says so, and how to reuse one elsewhere
+      // questionnaires are per project: the intro says so, and how to reuse one elsewhere
       "A questionnaire is what an AI card is filled with. These questionnaires belong to this project; to use one in another project, export it and import it there. A new AI card starts with the Annex IV default.",
     );
   });

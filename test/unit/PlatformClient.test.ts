@@ -4,8 +4,7 @@ import { PlatformClient } from "@/server/services/PlatformClient";
 // The AI card's versions are rows of core.system, made and numbered by the
 // platform, and every module points at them: qualification describes the
 // system, the engine tests it, the dashboard reports on it. This client is how
-// this app asks for them. (Rewritten for WP3, pipeline 2026-09-23: the
-// ai-system routes are gone; the card-version routes replace them.)
+// this app asks for them.
 describe("PlatformClient and the project's card versions", () => {
   const latest = {
     pid: "v1", number: 1, project_id: "a1b2c3d4-0000-4000-8000-000000000002",

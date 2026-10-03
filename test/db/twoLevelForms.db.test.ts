@@ -5,19 +5,18 @@ import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { loadSrc } from "../support/forms";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md): the forward migration
-// 20260925150000_two_level_forms in a real Postgres. Replaces test/db/forms.db.test.ts (spec 8.2):
-// its R1 seed, R5 answer index, R6 triggers, R45 builtin rules and R7 no-history cases are
-// re-expressed here on the new tables (T3 to T9).
+// The two-level forms migration 20260925150000_two_level_forms, in a real Postgres:
 //
-//   T3        a fresh install: the builtin set and the default questionnaire, equal to the twins
-//   T4 to T6  triggers and constraints of spec 3.1 and 3.2
+//   T3        a fresh install: the builtin set and the default questionnaire, equal to the
+//             in-code twins
+//   T4 to T6  the triggers and constraints of the new tables
 //   T7        answer keys unchanged; the card's key into questionnaire_version
 //   T8, T9    the split, run by psql inside BEGIN ... ROLLBACK on a database put back to the
-//             state of live (every migration up to and including 20260925120000), then seeded
-//   live      the exact state of live (builtin form only, one card with form_version_id NULL
-//             and 14 answers, its graph and card JSON): answers, graph digest and card JSON are
-//             byte-identical after, and the new rows are exactly the builtin level
+//             schema before it (every migration up to and including 20260925120000), then seeded
+//   deployed  the state of a deployed database before the split (builtin form only, one card
+//             with form_version_id NULL and 14 answers, its graph and card JSON): answers, graph
+//             digest and card JSON are byte-identical after, and the new rows are exactly the
+//             builtin level
 //   aborts    a tampered builtin form, a count check that fails, data breaking a new CHECK
 //
 // Runs only against a throwaway database: test/db/throwaway-db.sh starts one, migrates it with
@@ -112,9 +111,7 @@ async function projectWithACard() {
   return { project, v1, card };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// T3: a fresh install
-// ─────────────────────────────────────────────────────────────────────────────
+// A fresh install
 
 describe.skipIf(!enabled)("a fresh install has the builtin set and the default questionnaire (T3)", () => {
   it("T3 the migration file exists and is recorded as applied", async () => {
@@ -231,9 +228,7 @@ describe.skipIf(!enabled)("a fresh install has the builtin set and the default q
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// T4 to T6: triggers and constraints (every write rolled back)
-// ─────────────────────────────────────────────────────────────────────────────
+// Triggers and constraints (every write rolled back)
 
 /** A builder set `id` with v1 holding `id-q1` (scope s-<id>), and questionnaire `id` v1 pinning it. */
 const smallLibrary = (id: string) => `
@@ -489,9 +484,7 @@ describe.skipIf(!enabled)("retiring is one-way and frees the name (T6)", () => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// T7: answer keys and the card's key
-// ─────────────────────────────────────────────────────────────────────────────
+// Answer keys and the card's key
 
 describe.skipIf(!enabled)("answer keys are unchanged; the card points at a questionnaire version (T7)", () => {
   it("T7 the same (qualification, toolId, questionId) twice fails; the same questionId under two scopes does not", async () => {
@@ -553,15 +546,13 @@ describe.skipIf(!enabled)("answer keys are unchanged; the card points at a quest
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// T8, T9 and the live state: the migration run on a database put back to before it
-// ─────────────────────────────────────────────────────────────────────────────
+// The migration run on a database put back to the schema before it
 
 /**
- * Put the schema back to the state of live: every migration up to and including 20260925120000.
- * Drops the seven new tables (their triggers go with them) and trigger functions, and the renamed
- * column; recreates the old answer index after deleting rows only the new key allows (as the old
- * R7 test did); runs the texts of 20260925090000 and 20260925120000. Only ever inside BEGIN.
+ * Put the schema back to the state before the split: every migration up to and including
+ * 20260925120000. Drops the seven new tables (their triggers go with them) and trigger functions,
+ * and the renamed column; recreates the old answer index after deleting rows only the new key
+ * allows; runs the texts of 20260925090000 and 20260925120000. Only ever inside BEGIN.
  */
 function revertToLive(): string {
   return `
@@ -697,7 +688,7 @@ type MigrationResult = {
   old_tables: boolean[];
 };
 
-// The four fixture forms of T8, created 2026-09-01 to -04 so passes A and B visit them in this order.
+// The four fixture forms, created on four consecutive days so passes A and B visit them in this order.
 const T8_FIXTURE = `
   INSERT INTO qualification.form (id, name, description, origin, listed, created_at) VALUES
     ('acme', 'Acme AI policy', 'The Acme AI policy, as questions.', 'builder', true, '2026-09-01T00:00:00Z'),
@@ -815,7 +806,7 @@ const CARDS_RESULT = (before: string, after: string) => `,
 
 let t8: { ok: boolean; out: string; err: string; result?: Split } | null = null;
 
-/** The T8 script, run once and shared by the T8 and T9 tests. */
+/** The split script, run once and shared by the T8 and T9 tests. */
 function runT8() {
   if (t8) return t8;
   expect(existsSync(MIGRATION), `${MIGRATION} exists`).toBe(true);
@@ -1073,7 +1064,7 @@ describe.skipIf(!enabled)("the migration changes no history and trips no card tr
   });
 
   it("T9 a tampered builtin wording row is not a precondition failure but keeps its bytes (the split copies, never rewords)", () => {
-    // 4.2 step 2 checks the 14 rows and their ids; step 4 copies whatever wording they hold.
+    // The migration checks the 14 rows and their ids, then copies whatever wording they hold.
     expect(existsSync(MIGRATION)).toBe(true);
     const r = psql(`
       BEGIN;
@@ -1133,12 +1124,10 @@ describe.skipIf(!enabled)("the migration changes no history and trips no card tr
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// The state of live (read-only check 2026-09-25): 1 builtin form, 1 version, 14 questions, 14
-// version rows, 1 card with form_version_id NULL and 14 answers, no custom forms.
-// ─────────────────────────────────────────────────────────────────────────────
+// A deployed database before the split: 1 builtin form, 1 version, 14 questions, 14 version
+// rows, 1 card with form_version_id NULL and 14 answers, no custom forms.
 
-/** The live card: NULL form version, 14 Annex answers, its graph, a risk and its card JSON. */
+/** The deployed card: NULL form version, 14 Annex answers, its graph, a risk and its card JSON. */
 function liveCard(project: string, v1: string): string {
   return `
   INSERT INTO project.system (pid, name, version, number) VALUES ('${v1}', 'MCAS', 'v1.2.0', (SELECT coalesce(max(number), 0) + 1 FROM project.system));
@@ -1287,7 +1276,7 @@ describe.skipIf(!enabled)("on a database in the state of live, the card is byte-
   });
 
   it("T9 live the card's questionnaire resolves, in memory, to exactly the wording the card was rendered with", async () => {
-    // NULL resolves to annexDefaultVersion() (T3 proves it equals the migrated rows); here the
+    // NULL resolves to annexDefaultVersion() (the fresh-install tests prove it equals the migrated rows); here the
     // migrated rows are compared with the old ones, so the twin, the old rows and the new rows agree.
     const { annexDefaultVersion } = await loadSrc("domain/forms/legacy.ts");
     const r = liveResult();
@@ -1302,11 +1291,9 @@ describe.skipIf(!enabled)("on a database in the state of live, the card is byte-
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Aborts on a count check: the checks of 4.2 step 7 and 11 really stop the migration. A test-only
-// event trigger arms a row trigger on a table the migration creates, so the migration's own
-// INSERT ... SELECT loses (C5) or adds (C8) one row; the migration must notice and roll back.
-// ─────────────────────────────────────────────────────────────────────────────
+// Aborts on a count check: the migration's row-count checks really stop it. A test-only event
+// trigger arms a row trigger on a table the migration creates, so the migration's own
+// INSERT ... SELECT loses or adds one row; the migration must notice and roll back.
 
 /** Arm `body` (a BEFORE/AFTER row trigger on qualification.questionnaire_version_item) as soon as the migration creates it. */
 function armOnCreate(triggerSql: string): string {

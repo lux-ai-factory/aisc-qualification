@@ -117,8 +117,7 @@ describe("PrefillClient", () => {
   });
 });
 
-// ── Form assembly: the prefill is told which form it is filling ────────────
-// (spec docs/superpowers/form-assembly-2026-09-24/01-spec.md, R38, R40)
+// The prefill is told which form it is filling
 //
 // read(file, mode, current, currentRisks, formSpec?) with
 // formSpec = { fields: string[], questions: {field, text, citation, annexPoint}[] }.

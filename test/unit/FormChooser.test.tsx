@@ -11,12 +11,10 @@ vi.mock("next/navigation", () => ({
 import FormChooser from "@/app/p/[project]/system/edit/FormChooser";
 import { readFileSync } from "node:fs";
 
-// The chooser on /p/[project]/system/edit when no questionnaire is named yet
-// (form-assembly R8; two-level forms T36, T38,
-// docs/superpowers/two-level-forms-2026-09-25/01-spec.md). A thin component: which option is
-// checked comes from preselect() (test/unit/formChooser.test.ts).
+// The chooser on /p/[project]/system/edit when no questionnaire is named yet. A thin
+// component: which option is checked comes from preselect() (test/unit/formChooser.test.ts).
 //
-// Props (two-level forms; the file keeps its name, spec 5.4):
+// Props:
 //   project, options: [{ questionnaireId, name, versionNumber, questionCount, isDefault,
 //                        versionId /* latest */, versionIds /* oldest first */ }],
 //   preselected: { param: "questionnaire" | "questionnaireVersion", id },
@@ -29,7 +27,7 @@ afterEach(cleanup);
 beforeEach(() => push.mockReset());
 
 const options = [
-  // addendum 06 (R43): isDefault is computed, true exactly for annex-iv-default
+  // isDefault is computed, true exactly for annex-iv-default
   {
     questionnaireId: "annex-iv-default", name: "Annex IV default", versionNumber: 1, questionCount: 14, isDefault: true,
     versionId: "annex-iv-default-v1", versionIds: ["annex-iv-default-v1"],

@@ -113,7 +113,7 @@ describe("layoutFigure, the two bands of AIRO Figure 3", () => {
     }
   });
 
-  // ── the upper band, arranged as the figure arranges it ───────────────────
+  // The upper band, arranged as the figure arranges it
 
   it("places capability, purpose and domain above the system", () => {
     const l = layoutFigure(view(), new Set());
@@ -146,7 +146,7 @@ describe("layoutFigure, the two bands of AIRO Figure 3", () => {
     expect(comp.y).toBeLessThan(BAND_SPLIT);
   });
 
-  // ── the lower band: one Figure 3 chain per risk ──────────────────────────
+  // The lower band: one Figure 3 chain per risk
 
   it("runs each chain left to right: source, risk, consequence, impact", () => {
     const l = layoutFigure(view(), new Set(["risk0"]));
@@ -175,7 +175,7 @@ describe("layoutFigure, the two bands of AIRO Figure 3", () => {
     expect(at(l, "risk1_source").y).toBeGreaterThan(at(l, "risk0_ctrl").y);
   });
 
-  // ── the crossing edges that make the figure the figure ──────────────────
+  // The edges that cross between the bands
 
   it("keeps the impact targets in the upper band so those edges cross up", () => {
     const l = layoutFigure(view(), new Set(["risk0"]));
@@ -224,7 +224,7 @@ describe("layoutFigure, the two bands of AIRO Figure 3", () => {
     });
   });
 
-  // ── expansion ───────────────────────────────────────────────────────────
+  // Expansion
 
   it("grows an opened group outward from its own slot, away from the system", () => {
     // Figure 3 has one box per class and can stack a column; a group of six
@@ -367,8 +367,8 @@ describe("a collapsed risk takes only the room it needs", () => {
   });
 
   it("opens at a readable size rather than needing a zoom", () => {
-    // 2169px of height forced fitView to 0.43 on a 940px canvas, which
-    // made everything tiny and centred.
+    // A much taller layout makes fitView zoom far out on a canvas of about
+    // 940px, so everything opens tiny and centred.
     const { h } = extent(layoutFigure(view(), new Set()));
     expect(h).toBeLessThan(1000);
   });

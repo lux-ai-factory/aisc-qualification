@@ -2,10 +2,8 @@ import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md), T1: the Prisma schema
-// has question sets and questionnaires (spec 3.3), and nothing of the form. Read as text, so it
-// needs no generated client. Replaces the two "schema has no default flag" tests of
-// annexDefaultForm.test.ts (spec 8.3): the Form model they read is gone.
+// The Prisma schema has question sets and questionnaires, and no Form model. Read as text, so it
+// needs no generated client.
 
 const schema = () => readFileSync("prisma/schema.prisma", "utf8");
 
@@ -38,7 +36,7 @@ function blockAttributes(body: string): string[] {
 
 type FieldSpec = { type: RegExp; map?: string };
 
-// spec 3.3, field by field: the type (with optionality or list) and the column it maps to.
+// Field by field: the type (with optionality or list) and the column it maps to.
 const MODELS: Record<string, { table: string; fields: Record<string, FieldSpec>; attributes: RegExp[] }> = {
   QuestionSet: {
     table: "question_set",
@@ -157,7 +155,7 @@ const MODELS: Record<string, { table: string; fields: Record<string, FieldSpec>;
     },
     attributes: [
       /^@@id\(\[questionnaireVersionId, questionId\], map: "questionnaire_version_item_pkey"\)$/,
-      // Spec 3.3 names this index questionnaire_version_item_questionnaire_version_id_position_key, which is
+      // The natural name, questionnaire_version_item_questionnaire_version_id_position_key, is
       // 64 bytes: Prisma refuses it (at most 63, `prisma validate` fails) and Postgres would cut it to 63.
       // So only the key and a name that fits are pinned here; the name must equal the migration's index.
       /^@@unique\(\[questionnaireVersionId, position\], map: "questionnaire_version_item_\w+"\)$/,
@@ -211,7 +209,7 @@ describe("the Prisma schema has the two levels (T1)", () => {
     });
     expect(r.status, `${r.stdout}\n${r.stderr}`).toBe(0);
     // A child process: npx starting the Prisma CLI takes seconds, and under a full parallel run it
-    // crossed vitest's 5 s default (2026-09-30), which failed a schema that validates.
+    // can exceed vitest's 5 s default, which would fail a schema that validates.
   }, 60_000);
 
   it("T1 the timestamps of the seven models are timestamptz(3)", () => {

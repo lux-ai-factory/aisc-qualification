@@ -17,10 +17,9 @@ import {
   seededQuestion,
 } from "../support/forms";
 
-// The qualification form renders from the resolved form version, not from
-// KEY_QUESTIONS (form-assembly spec R9, R29). Prop `form: ResolvedFormVersion`
-// replaces `keyQuestions`; when it is absent the form is the default version,
-// so existing mounts (formPrefill.test.tsx, formUpload.test.tsx) keep working.
+// The qualification form renders from the resolved form version (prop `form`),
+// not from KEY_QUESTIONS; when the prop is absent the form is the default
+// version, as in formPrefill.test.tsx and formUpload.test.tsx.
 
 afterEach(cleanup);
 

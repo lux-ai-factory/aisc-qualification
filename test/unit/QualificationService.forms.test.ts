@@ -5,19 +5,13 @@ import { customQuestion, defaultVersionLiteral, formVersion } from "../support/f
 import { transactional } from "../support/ledgerRepo";
 
 // Saving a card stores the form version it was filled with, and the form's
-// definition always comes from the server, never from the request
-// (form-assembly spec R15, section 5.2).
+// definition always comes from the server, never from the request.
 //
-// Interface chosen here: QualificationService gains a fourth constructor
-// argument `forms: { resolve(id: string | null): Promise<ResolvedFormVersion | null> }`
-// (FormService by default). resolve returns null for an unknown id.
-//
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md, 8.3, T40, T41):
-// the fourth argument is a QuestionnaireResolver (questionnaireService by default); the
-// posted field is questionnaireVersionId (formVersionId still read when it is absent, D20);
-// forms per project (2026-09-25): the fourth argument gives the resolver of a project,
-// (project) => Promise<QuestionnaireResolver>, so a card is filled with its own project's forms;
-// the stored field is questionnaireVersionId; startingPoint() names fromQuestionnaireVersionId.
+// QualificationService's fourth constructor argument gives the questionnaire resolver of a
+// project, (project) => Promise<QuestionnaireResolver>, so a card is filled with its own
+// project's forms; the resolver returns null for an unknown id. The posted field is
+// questionnaireVersionId (formVersionId is read when it is absent); the stored field is
+// questionnaireVersionId; startingPoint() names fromQuestionnaireVersionId.
 
 const version = (number: number) => ({
   pid: `v${number}`,
@@ -112,7 +106,7 @@ describe("saving a card with a form (R15)", () => {
     expect(repo.create).toHaveBeenCalledWith(
       expect.objectContaining({ questionnaireVersionId: "acme-v2", systemId: "v2" }),
     );
-    // the card names no project: its database is the project (isolation I1.7)
+    // the card names no project: its database is the project
     expect((repo.create.mock.calls[0] as unknown[])[0]).not.toHaveProperty("projectId");
     expect((repo.create.mock.calls[0] as unknown[])[0]).not.toHaveProperty("formVersionId");
   });

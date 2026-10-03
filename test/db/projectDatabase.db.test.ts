@@ -4,16 +4,12 @@ import { existsSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { PrismaClient } from "@prisma/client";
 
-// Isolation stage 2 (docs/superpowers/isolation-2026-09-25/01-specs.md I1.5, I1.6, I1.7,
-// I2.5, I2.6, I3.5, I3.6, I3.7, I16.5, I17.1), against real project databases.
+// One database per project, tested against real project databases.
 //
 // test/db/throwaway-db.sh makes them the platform's way (projectdb.provision, the real
 // template) in a throwaway container and loads scripts/tests/fixtures/isolation/live_shape.sql
 // (the schema-only shape of the live platform database, no data) into database
 // `live_shape`. Never the live DB: every URL is on the throwaway's random port.
-//
-// Red until WP P1 (template 0006..0010) and WP Q1 (baseline migration, migrate-projects.mjs,
-// projectDb.ts) land; each test names what it waits for.
 
 const TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_DATABASE_URL ?? "";
 const ADMIN_TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_ADMIN_URL ?? "";
@@ -100,7 +96,7 @@ describe.skipIf(!enabled)("isolation setup", () => {
   });
 });
 
-// ── I3.6 migrate-projects.mjs ────────────────────────────────────────────────
+// migrate-projects.mjs
 
 describe.skipIf(!enabled)("I3.6 scripts/migrate-projects.mjs", () => {
   let first: { status: number; out: string };
@@ -154,7 +150,7 @@ describe.skipIf(!enabled)("I3.6 scripts/migrate-projects.mjs", () => {
   }, 300_000);
 });
 
-// ── I3.5 I3.7 the schema of a project database equals the live one, minus project_id ──
+// The schema of a project database equals the live one, minus project_id
 
 type Line = { k: string };
 
@@ -182,34 +178,34 @@ async function shape(c: PrismaClient, live: boolean): Promise<string[]> {
       FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'qualification'`);
   let lines = [...cols, ...cons, ...idx, ...trg, ...fns];
   const formsLine = /\bform(_version|_question|_version_question)?\b|form_version_id|form_(name|builtin|question_identity|version)_is_|form_version_question_is/;
-  // The forms tables are not compared here. The live shape (2026-09-25) holds the one-level
-  // forms (form, form_version, ...) of 20260925120000; a project database is at
+  // The forms tables are not compared here. The live shape holds the one-level forms
+  // (form, form_version, ...) of 20260925120000; a project database is at
   // 20260925150000_two_level_forms, which replaces them by question sets and questionnaires.
   // Those are pinned by their own tests (twoLevelForms.db.test.ts, projectForms.db.test.ts).
   const twoLevelLine = /\bquestion(naire)?(_set)?(_version)?(_item)?\b|questionnaire_version_id|question(naire)?(_set)?(_version)?(_item)?_is_|question_identity_is_fixed|questionnaire_row_is_fixed|question_set_row_is_fixed/;
   // The forms migration also replaces the answers' unique index (qualificationId, questionId)
   // by (qualificationId, toolId, questionId): both sides of that swap are the forms work's.
   const formsIndex = /qualification_answer_qualification_id_tool_id_question_id_key|"QualificationAnswer_qualificationId_questionId_key"/;
-  // The Components block (20260929000000_system_components, targets plan v2) came after the live
-  // shape: its table, triggers, functions and card_component's component_key are pinned by
+  // The Components block (20260929000000_system_components) is newer than the live shape: its
+  // table, triggers, functions and card_component's component_key are pinned by
   // systemComponents.db.test.ts, not here.
   const componentsLine = /qualification_component|system_component_only_latest_changes|card_component_part_is_on_the_card|card_component_test_material_is_no_part|\bcomponent_key\b/;
   lines = lines.filter((l) => !componentsLine.test(l));
-  // The VAIR terms (20260930000000_vair_terms) came after it too: nullable columns only, pinned
+  // The VAIR terms (20260930000000_vair_terms) are newer too: nullable columns only, pinned
   // by the VAIR block of systemComponents.db.test.ts.
   const vairLine = /^column qualification\.(system_type|purpose|provider_term|deployer_term) |^column qualification_risk\.(source_term|consequence_term|impact_term|control_term|follow_up_control_term) /;
   lines = lines.filter((l) => !vairLine.test(l));
-  // A card's history (20261003000000_ledger_history, ledger phase 5) came after it as well: its table,
-  // index, trigger and function are pinned by ledger.db.test.ts.
+  // A card's history (20261003000000_ledger_history) is newer as well: its table, index,
+  // trigger and function are pinned by ledger.db.test.ts.
   lines = lines.filter((l) => !/card_history/.test(l));
   if (!formsOnBranch) lines = lines.filter((l) => !formsLine.test(l) && !formsIndex.test(l));
   else lines = lines.filter((l) => !formsLine.test(l) && !twoLevelLine.test(l));
   if (live) {
     lines = lines
-      // I1.7: project_id, its index and the keys to core go
+      // project_id, its index and the keys to core go
       .filter((l) => !/\bproject_id\b/.test(l))
       .filter((l) => !/REFERENCES core\.project\b/.test(l))
-      // I1.6: the key to the card version is to project.system in the same database
+      // the key to the card version is to project.system in the same database
       .map((l) => l.replace(/\bcore\.system\b/g, "project.system"));
   }
   return lines.map((l) => l.replace(/\s+/g, " ").trim()).sort();
@@ -282,7 +278,7 @@ describe.skipIf(!enabled)("I3.5 I3.7 a project database's qualification schema i
   });
 });
 
-// ── the rules, in a real project database ─────────────────────────────────────
+// The rules, in a real project database
 
 const card = (id: string, systemId: string) => `
   INSERT INTO qualification.qualification (id, system_id, "systemName", "systemVersion", company,
@@ -340,7 +336,7 @@ describe.skipIf(!enabled)("I1.5 I1.6 I3.5 I16.5 cards and versions in a project 
   });
 });
 
-// ── I2.6 reader grants inside the project database ────────────────────────────
+// Reader grants inside the project database
 
 describe.skipIf(!enabled)("I2.6 report_ro and dashboard_ro read exactly the listed qualification tables", () => {
   let why = "";
@@ -375,7 +371,7 @@ describe.skipIf(!enabled)("I2.6 report_ro and dashboard_ro read exactly the list
   });
 });
 
-// ── I2.5 I17.1 a dropped project database is evicted and answers 404 ───────────
+// A dropped project database is evicted and answers 404
 
 vi.mock("next/headers", () => ({
   headers: async () => new Headers({ authorization: "Bearer person-token" }),

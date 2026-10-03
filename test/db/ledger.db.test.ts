@@ -1,5 +1,5 @@
-// Ledger phase 5 (Q1, Q3, Q4) against a real project database, made the platform's way (its template
-// has ledger.emit, 0020): each action writes its event with ledger.emit in the change's own
+// The ledger, against a real project database made the platform's way (its template has
+// ledger.emit): each action writes its event with ledger.emit in the change's own
 // transaction, a rolled-back change leaves no event, and what a change overwrites is kept in
 // card_history. The doors, the platform and the engine are stubbed; the database is not.
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -56,7 +56,7 @@ vi.mock("@/server/services/EngineClient", () => ({
   engineClient: { components: async () => [{ pid: MODEL, name: state.engineName, component_type: "model", data: "m.pkl" }] },
 }));
 vi.mock("@/server/services/FillerClient", () => ({
-  // what the outbox holds when the agent is asked: the run must be open by then (review test gap)
+  // what the outbox holds when the agent is asked: the run must be open by then
   requestFill: async (...args: unknown[]) => {
     const rows = await (state.su as PrismaClient).$queryRawUnsafe<{ n: number }[]>(
       `SELECT count(*)::int AS n FROM ledger.outbox WHERE action = 'card.ai_refinement_requested' AND item_id = $1`,
@@ -138,10 +138,10 @@ describe.skipIf(!enabled)("Q1 every card action writes its event in its own tran
     expect(rows.map((r) => r.action)).toEqual(["card.component_linked", "card.component_linked", "card.component_unlinked"]);
     for (const r of rows) expect([r.db_role, r.request_id]).toEqual(["qualification_rw", REQUEST]);
     expect(rows[1].details).toEqual({ component: MODEL, property: "hasModel" });
-    // one link's states are content (the card's before/after are the whole card's; review m1)
+    // one link's states are content (the card's before/after are the whole card's)
     expect((rows[1].content as { before: { name: string } }).before.name).toBe("Scoring model");
     expect([rows[1].before, rows[1].after]).toEqual([null, null]);
-    // Q3: the relink and the unlink keep what they replace
+    // the relink and the unlink keep what they replace
     expect((await history(`lg-card-1-${TAG}`)).map((h) => h.kind)).toEqual(["component_linked", "component_relinked", "component_unlinked"]);
   });
 

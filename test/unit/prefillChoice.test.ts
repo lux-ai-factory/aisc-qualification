@@ -75,10 +75,9 @@ describe("the risk rows the form holds now", () => {
   });
 });
 
-// ── Form assembly: what a document may propose depends on the form ─────────
-// (spec docs/superpowers/form-assembly-2026-09-24/01-spec.md, R40)
+// What a document may propose depends on the form
 //
-// Interface chosen here, in src/lib/prefillChoice.ts:
+// Interface, in src/lib/prefillChoice.ts:
 //   prefillableFor(form): Set<string>   identity + included metadata text fields + question fields
 //   prefillFormSpec(form): { fields, questions }   what useDocumentPrefill sends
 //   currentAnswers(formData, prefillable?)          limited to that set (default: PREFILLABLE)
@@ -137,8 +136,9 @@ describe("the prefillable fields of a form (R40)", () => {
   });
 });
 
-// ── Two-level forms T58: prefill uses the pinned wording ───────────────────
-// (docs/superpowers/two-level-forms-2026-09-25/01-spec.md). The questionnaire version pins
+// Prefill uses the pinned wording
+//
+// The questionnaire version pins
 // s-acme:q1 to set v1; set v2 rewords it. The spec sent to the prefill holds the v1 wording,
 // because it is built from the resolved questionnaire version only.
 

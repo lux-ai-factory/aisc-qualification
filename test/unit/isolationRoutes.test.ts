@@ -3,9 +3,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { NextRequest } from "next/server";
 
-// Isolation stage 2 (01-specs.md I3.2, I3.3, I3.4, I16.5 for qualification, I18.1, I18.3, I18.4).
-//
-// Every route that found a card by its id alone moves under the project:
+// Every route that addresses a card by its id is under the project:
 // /p/{pid}/api/qualifications/{id}/{ai-card.json, ai-card.pdf, system-card.pdf,
 // ontology.jsonld, ontology.ttl, fill, extracted}. Each opens that pid's database and looks
 // the card up there, so a card of project A opened under project B is 404: it is not in B's

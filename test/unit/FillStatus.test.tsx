@@ -3,7 +3,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import FillStatus from "@/app/p/[project]/qualify/[id]/FillStatus";
 
-// isolation Q1: the page passes the fill route under its project
+// the page passes the fill route under its project
 const STATUS_URL = "/p/a1b2c3d4-0000-4000-8000-000000000002/api/qualifications/q1/fill";
 
 const refresh = vi.fn();

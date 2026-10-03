@@ -62,7 +62,7 @@ describe("the answered form, read back", () => {
 
   it("renders the pickers as their labels, not their codes", () => {
     render(<AnsweredForm {...props()} />);
-    // VAIR terms (2026-09-30), shown by VAIR's labels
+    // VAIR terms, shown by VAIR's labels
     expect(screen.queryByText("PrivateService")).toBeNull();
     expect(screen.getByText("Private Service")).toBeTruthy();
     expect(screen.getByText("Service")).toBeTruthy();
@@ -156,13 +156,10 @@ describe("the answered form, read back", () => {
   });
 });
 
-// ── Form assembly: the answered form walks the card's own form version ─────
-// (spec docs/superpowers/form-assembly-2026-09-24/01-spec.md, R6, R7, R29, R36)
+// The answered form walks the card's own form version
 //
-// AnsweredForm takes `form: ResolvedFormVersion`. Without it the form is the
-// default version, so the cases above keep passing unmodified.
-// Two-level forms (T40): the prop is a ResolvedQuestionnaireVersion and the heading is
-// `groupLabel ?? setName`.
+// AnsweredForm takes `form`, a ResolvedQuestionnaireVersion; without it the form is
+// the default version (as in the cases above). A group's heading is `groupLabel ?? setName`.
 
 import { customQuestion, formVersion, loadSrc, seededQuestion } from "../support/forms";
 

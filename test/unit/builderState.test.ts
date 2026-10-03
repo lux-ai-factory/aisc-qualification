@@ -7,16 +7,11 @@ import { formVersion, loadSrc, seededQuestion, setQuestion } from "../support/fo
 // Every click in the questionnaire builder is one reducer action; QuestionnaireBuilder.tsx only
 // renders the state.
 //
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md, T27 to T33): a
-// questionnaire is assembled only by picking questions from question-set versions. A row is
+// A questionnaire is assembled only by picking questions from question-set versions. A row is
 // only a pick: { rowKey, kind: "pick", questionId, setVersionId, source, viaSetId? }. There is
 // no own row, no copy, no "+ New question" and no "Edit" (those live in the question-set editor).
-// Carried over from form assembly (spec 8.3): R16 ticking, R18 reordering, R21 blocks, R76 to
-// R79 multi-select, with "set" for "form". Removed: R6/R19 "edit opens own questions as own",
-// R19 addOwn/edit, R20 copies, R28 "import opens as own"; renamed: R62 fromVersionId ->
-// setVersionId, R64 takeLatest -> acceptUpdate (T29).
 //
-// Interface (test author, see 02-tests.md):
+// Interface:
 //   state: { questionnaireId, name, description, blocks, rows, origin, selected, nextRow }
 //   actions: tick {question, setVersionId, group?}, untick {questionId}, selectSet {group},
 //     deselectSet {setId}, move {from, to}, remove {index}, toggleBlock {block}, setName {name},

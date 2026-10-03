@@ -131,8 +131,7 @@ describe("the AI card as JSON", () => {
   });
 });
 
-// ── Form assembly: the JSON export carries form, coverage and extra sections ─
-// (spec docs/superpowers/form-assembly-2026-09-24/01-spec.md, R37)
+// The JSON export carries form, coverage and extra sections
 
 describe("the AI card as JSON, for a card built with a form (R37)", () => {
   const formView = {

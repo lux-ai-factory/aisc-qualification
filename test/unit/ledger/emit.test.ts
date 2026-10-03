@@ -1,4 +1,5 @@
-// Q1 (unit half): what the emitter writes, and that it writes nothing while the ledger is off.
+// What the emitter writes, and that it writes nothing while the ledger is off.
+// The database half is test/db/ledger.db.test.ts.
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { NotCanonical } from "@/server/ledger/canonical";

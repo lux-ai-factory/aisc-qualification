@@ -1,17 +1,15 @@
 // @vitest-environment jsdom
-// The form pages' layout (docs/superpowers/form-assembly-2026-09-24/10-ui-plan.md, section 8),
-// carried to the two levels of docs/superpowers/two-level-forms-2026-09-25/01-spec.md (8.3, T32):
-// the markup hooks the CSS relies on, and guards on the CSS rules that answer them. Behaviour,
+// The form pages' layout: the markup hooks the CSS relies on, and guards on the CSS rules
+// that answer them. Behaviour,
 // labels and texts are pinned by the QuestionnairesPage, QuestionnaireBuilder, QuestionSetEditor,
 // QuestionSetImport, QuestionnaireImport, FormChooser and FormLine tests; this file pins only
 // structure and classes.
 //
-// Two-level forms (spec 8.3): the L tests target the questionnaires page; the B tests the
-// questionnaire builder, except B6 (the question editor panel), which moved to the set editor;
-// B7 expects Move and Remove only (no Edit); B8 reads "Update available". I1 and P3 target the
-// question-set import (it mounts the set editor and stays --form); P3b the questionnaire import
-// (it mounts the builder and turns --wide). The CSS pins B2, B3, B4, P4 are unchanged. The new
-// pages and components are loaded at run time, so a missing module fails each test, not the file.
+// The L tests target the questionnaires page; the B tests the questionnaire builder, except B6
+// (the question editor panel), which is on the set editor. I1 and P3 target the question-set
+// import (it mounts the set editor and stays --form); P3b the questionnaire import (it mounts
+// the builder and turns --wide). The pages and components are loaded at run time, so a missing
+// module fails each test, not the file.
 import { readFileSync } from "node:fs";
 import type { ComponentProps } from "react";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
@@ -79,7 +77,7 @@ beforeEach(() => {
   vi.restoreAllMocks();
 });
 
-// ── Questionnaires page (L) ────────────────────────────────────────────────
+// Questionnaires page (L)
 
 const ROWS = [
   { questionnaireId: "annex-iv-default", name: "Annex IV default", description: "EU AI Act Annex IV points 1 and 2.", origin: "builtin", builtin: true, isDefault: true, versionId: "annex-iv-default-v1", version: 1, questionCount: 14, savedBy: "system", savedAt: "2026-09-25T08:00:00.000Z", retiredAt: null, updates: 0 },
@@ -155,7 +153,7 @@ describe("L the questionnaires page", () => {
   });
 });
 
-// ── Builder (B) ────────────────────────────────────────────────────────────
+// Builder (B)
 
 const acme1 = customQuestion("acme", "q1", { text: "Who signs off a model release?", citation: "Acme AI Policy §4.2" });
 const acme2 = customQuestion("acme", "q2", { text: "How are incidents reported?", citation: "" });
@@ -178,7 +176,7 @@ async function mountBuilder(initial: Record<string, unknown> = {}, gs: unknown[]
 const left = () => screen.getByRole("region", { name: "Question library" });
 const right = () => screen.getByRole("region", { name: "Your questionnaire" });
 const hasClass = (el: Element | null, c: string) => !!el && el.classList.contains(c);
-/** Tick a set in "Select question sets" (T27): its questions show, ticked. */
+/** Tick a set in "Select question sets": its questions show, ticked. */
 const selectSet = (name: RegExp) =>
   fireEvent.click(within(within(left()).getByRole("group", { name: "Select question sets" })).getByRole("checkbox", { name }));
 
@@ -288,7 +286,7 @@ describe("B the builder", () => {
     const saveSet = within(footer as HTMLElement).getByRole("button", { name: "Save question set" });
     expect(hasClass(saveSet, "btn") && !hasClass(saveSet, "ghost")).toBe(true);
     expect(footer.lastElementChild).toBe(saveSet);
-    // the set editor's rows are the builder's row classes (spec 5.3 CSS)
+    // the set editor's rows use the builder's row classes
     fireEvent.change(editor.querySelector("textarea")!, { target: { value: "Who may retrain the model?" } });
     fireEvent.click(save);
     expect(container.querySelector("ol.qf-builder-rows li.qf-builder-row")).toBeTruthy();
@@ -330,7 +328,7 @@ describe("B the builder", () => {
   });
 });
 
-// ── Import (I) ─────────────────────────────────────────────────────────────
+// Import (I)
 
 const PREVIEW = {
   ok: true,
@@ -366,11 +364,11 @@ describe("I the import preview", () => {
   });
 });
 
-// ── Chooser (C) ────────────────────────────────────────────────────────────
+// Chooser (C)
 
 describe("C the chooser", () => {
   it("C1 T36 each option's tags sit in .qf-chooser-tags; the default tag is a qf-tag--default", () => {
-    // Props are cast: their exact shape is pinned by FormChooser.test.tsx (T36, T38), not here.
+    // Props are cast: their exact shape is pinned by FormChooser.test.tsx, not here.
     const options = [
       { questionnaireId: "annex-iv-default", name: "Annex IV default", versionId: "annex-iv-default-v1", version: 1, versionNumber: 1, questionCount: 14, isDefault: true, versionIds: ["annex-iv-default-v1"] },
       { questionnaireId: "acme", name: "Acme AI policy", versionId: "acme-v3", version: 3, versionNumber: 3, questionCount: 18, isDefault: false, versionIds: ["acme-v3"] },
@@ -379,7 +377,7 @@ describe("C the chooser", () => {
       project: "mcas",
       options,
       preselected: { param: "questionnaire", id: "annex-iv-default" },
-      // the previous card was filled with the default's latest version: its option carries "same as v4" (T38)
+      // the previous card was filled with the default's latest version: its option carries "same as v4"
       previous: { cardVersionNumber: 4, versionId: "annex-iv-default-v1", name: "Annex IV default", versionNumber: 1 },
     };
     const { container } = render(<FormChooser {...(props as unknown as ComponentProps<typeof FormChooser>)} />);
@@ -392,11 +390,11 @@ describe("C the chooser", () => {
   });
 });
 
-// ── FormLine (F) ───────────────────────────────────────────────────────────
+// FormLine (F)
 
 describe("F the questionnaire line", () => {
   it("F1 T42 the three dots between the name and the JSON, CSV and Markdown links are span.qf-row-form-sep", () => {
-    // Props are cast: their exact shape is pinned by FormLine.test.tsx (T42), not here.
+    // Props are cast: their exact shape is pinned by FormLine.test.tsx, not here.
     const form = formVersion({ questionnaireId: "acme", questionnaireName: "Acme AI policy", versionId: "acme-v3", versionNumber: 3 });
     const props = { project: "demo", form, questionnaireId: "acme", name: "Acme AI policy", versionNumber: 3 };
     const { container } = render(<FormLine {...(props as unknown as ComponentProps<typeof FormLine>)} />);
@@ -406,7 +404,7 @@ describe("F the questionnaire line", () => {
   });
 });
 
-// ── Page shells (P) ────────────────────────────────────────────────────────
+// Page shells (P)
 
 const PAGES = {
   library: "src/app/p/[project]/questionnaires/page.tsx",

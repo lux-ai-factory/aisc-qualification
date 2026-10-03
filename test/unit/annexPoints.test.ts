@@ -10,7 +10,7 @@ import {
 // The 14 Annex IV points a custom question may be tagged with. One file,
 // src/data/annexPoints.json, read by the app and by services/ontology
 // (airo_min/annex_points.py); both must agree with KEY_QUESTIONS, which the
-// default form is made of (form-assembly spec, section 2 and R2).
+// default form is made of.
 
 const FILE = "src/data/annexPoints.json";
 const read = () => JSON.parse(readFileSync(FILE, "utf8")) as {

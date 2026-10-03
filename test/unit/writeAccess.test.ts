@@ -1,20 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { transactional } from "../support/ledgerRepo";
 
-// API auth WP2 (2026-09-25), inventory findings 6 and 7, under isolation (Q1).
+// Write access to a card.
 //
-// F6: PUT /api/qualifications/:id/extracted asked only "is the caller in the
-//     project", so a viewer could replace the agent's draft. It is a write, so it
-//     takes an editor (or a platform admin, whom the platform answers as owner).
-//     Under isolation the route is /p/{pid}/api/qualifications/:id/extracted and the
-//     card is looked up in that project's own database, after the platform has
-//     said the caller may write THAT project.
-// F7: the card page's server actions took the project from the browser, while the
-//     middleware checked the project in the URL the action was posted to. An editor
-//     of project A who was only a viewer of B could write B's card through /p/A.
-//     Under isolation each action opens the database of the project it is given,
-//     and only after the platform confirms the caller may write that project: a
-//     viewer of B is refused, and an editor of B writes B's card as B.
+// PUT /p/{pid}/api/qualifications/:id/extracted replaces the agent's draft. It is a
+//     write, so it takes an editor (or a platform admin, whom the platform answers as
+//     owner); the card is looked up in that project's own database, after the platform
+//     has said the caller may write that project.
+// The card page's server actions get the project from the browser, while the
+//     middleware checks the project in the URL the action is posted to. So each action
+//     opens the database of the project it is given, and only after the platform
+//     confirms the caller may write that project: an editor of A who is a viewer of B
+//     cannot write B's card through /p/A, and an editor of B writes B's card as B.
 
 const OWN = "a1b2c3d4-0000-4000-8000-000000000002";
 const OTHER = "b0000000-0000-4000-8000-000000000009";
@@ -124,7 +121,7 @@ describe("projectDbForAction: write access to the project the action names", () 
   });
 });
 
-// ── the routes and actions, with every dependency faked ──────────────────────
+// The routes and actions, with every dependency faked
 
 const DB = { database: "the project's own" };
 const refused = (status: 403 | 404) =>
@@ -139,7 +136,7 @@ const REFUSED_404: ActionDoor = { status: 404, error: "Qualification not found."
 const repo = transactional({
   find: vi.fn(async (id: string) => ({ id, systemId: "v2" })),
   cardSummary: vi.fn(async (id: string) => ({ id, systemId: "v2" })),
-  // an unlink removes a link that is there (ledger phase 5: nothing linked, nothing changes)
+  // an unlink removes a link that is there (with nothing linked, nothing changes and no event is written)
   findLink: vi.fn(async () => ({ airoProperty: "hasModel", name: "m", componentType: "model", objectName: "", componentKey: null })),
   saveOntologyExtracted: vi.fn(async () => ({})),
   linkComponent: vi.fn(async () => ({})),
@@ -238,7 +235,7 @@ describe("F7: the card page's actions open the project they name, after the plat
     const state = await patchOntologyNode(OTHER, "q1", "purpose", { label: "x" });
     expect(state.ok).toBe(true);
     expect(actionDoor).toHaveBeenCalledWith(OTHER, { write: true });
-    // the fifth argument writes the ledger event in the save's transaction (ledger phase 5)
+    // the fifth argument writes the ledger event in the save's transaction
     expect(ontology.patchNode).toHaveBeenCalledWith(OTHER, "q1", "purpose", { label: "x" }, expect.any(Function));
   });
 

@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { loadSrc } from "../support/forms";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md), T62, D20: the old
-// /forms URLs stay, as permanent (308) redirects to the two new levels. The ids are the same
-// (D1: a migrated questionnaire keeps its form's id), so /forms/<id>/... names the questionnaire.
+// The /forms URLs of one-level forms are permanent (308) redirects to question sets and
+// questionnaires. The ids are the same (a migrated questionnaire keeps its form's id), so
+// /forms/<id>/... names the questionnaire.
 //
 // Each page is awaited as a server component with next/navigation mocked; permanentRedirect
 // throws (as Next's does) with the URL, so the test reads where it went. The pages must not

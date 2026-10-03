@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { loadSrc, formVersion, setQuestion, seededQuestion, defaultVersionLiteral } from "../support/forms";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md), T48, D23:
 // GET /p/<project>/questionnaires/<id>/export?format=json|csv|md[&bundle=self-contained][&version=<n>]
-//   json    -> QuestionnaireFileClient.write(<the version as T50's input>, bundle ?? "references")
+//   json    -> QuestionnaireFileClient.write(<the version as a file input>, bundle ?? "references")
 //   csv/md  -> FormExportClient.write({name: questionnaire name, version: its number, questions}), the
-//              questionnaire's resolved questions flattened into an 06 R50/R51 file
-// Versions and unknown ids as T47 (404 Not found). Unlisted, retired and builtin export too.
+//              questionnaire's resolved questions flattened into a form file
+// An unknown id or version is 404 Not found. Unlisted, retired and builtin questionnaires export too.
 //
-// Names chosen here: the module singletons `questionnaireService`
+// The module singletons used: `questionnaireService`
 // (src/server/services/QuestionnaireService.ts, method exportable(id, n?)),
 // `questionnaireFileClient` (src/server/services/QuestionnaireFileClient.ts) and
 // `formExportClient` (src/server/services/FormExportClient.ts).

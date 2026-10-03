@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-// The card page (2026-09-30): Refine with AI sits in the AI card tab only, and
-// the engine-link panel is gone. The card's parts are its own Components rows;
-// the engine is not asked about them here.
+// The card page: Refine with AI sits in the AI card tab only, and there is no
+// engine-link panel. The card's parts are its own Components rows; the engine
+// is not asked about them here.
 const page = readFileSync(
   join(__dirname, "..", "..", "src", "app", "p", "[project]", "qualify", "[id]", "page.tsx"),
   "utf8",

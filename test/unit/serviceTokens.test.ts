@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 
-// API auth WP2 (2026-09-25), inventory findings 8 and 11. The sidecars this app
-// calls (agents, ontology, prefill, pdf) now refuse a caller without a token.
+// The sidecars this app calls (agents, ontology, prefill, pdf) refuse a caller without a token.
 // Each edge has its own: this app sends the one for the service it calls, in
 // X-AISC-Service-Token, and never another service's.
 
@@ -40,7 +39,7 @@ describe("the shared header helper", () => {
   });
 });
 
-// Runs are addressed by project and card (isolation Q1: /fill/{pid}/{id}).
+// Runs are addressed by project and card (/fill/{pid}/{id}).
 const PID = "a1b2c3d4-0000-4000-8000-000000000002";
 
 describe("qualification-agents", () => {
@@ -55,7 +54,7 @@ describe("qualification-agents", () => {
   it("the card's GET /fill proxy carries it too", async () => {
     vi.stubEnv("QUALIFICATION_WEB_TO_AGENTS_TOKEN", tok("agents"));
     vi.stubEnv("AGENT_SERVICE_URL", "http://agents:8012");
-    // isolation Q1: the door lets the caller read the project, and the card is in its database
+    // the door lets the caller read the project, and the card is in its database
     vi.doMock("@/lib/projectDb", () => ({ projectDbForRoute: async () => ({}) }));
     vi.doMock("@/server/repositories/QualificationRepository", () => ({
       QualificationRepository: class {

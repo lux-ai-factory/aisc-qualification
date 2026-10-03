@@ -5,12 +5,11 @@ import { homedir } from "node:os";
 
 import { APP, FORMS_SKIP_REASON, formsMerged, read } from "../support/isolation";
 
-// Isolation stage 2 (01-specs.md I3.5, I4.6): the migration history a project
-// database is built from, read as files. I4.1/I4.2 (an install-wide form library in
-// platform.form_library, decision D3) were replaced by the user's decision of 2026-09-25:
-// the forms a person makes stay in their own project's database, and the builtin Annex IV
-// forms are seeded into every project database by the forms migrations themselves. The database side (the schema it makes equals the
-// live one minus project_id) is test/db/projectDatabase.db.test.ts.
+// The migration history a project database is built from, read as files. There is no
+// install-wide form library: the forms a person makes stay in their own project's database,
+// and the builtin Annex IV forms are seeded into every project database by the forms
+// migrations themselves. The database side (the schema it makes equals the live one minus
+// project_id) is test/db/projectDatabase.db.test.ts.
 
 const MIGRATIONS = join(APP, "prisma", "migrations");
 const BASELINE = "20260925000000_project_database";
@@ -19,7 +18,7 @@ const FORMS = [
   "20260925120000_the_default_form_is_fixed",
   "20260925150000_two_level_forms",
 ];
-/** The uncommitted originals of the forms work (read only, never edited: RULES.md). */
+/** A local copy of the forms migrations in ~/aisc-install, compared when present; read only, never edited. */
 const FORMS_ORIGINALS = join(homedir(), "aisc-install", "apps", "qualification", "prisma", "migrations");
 const dirs = () => readdirSync(MIGRATIONS).filter((d) => /^\d{14}_/.test(d)).sort();
 

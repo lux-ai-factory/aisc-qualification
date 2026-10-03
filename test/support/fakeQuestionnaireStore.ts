@@ -1,10 +1,8 @@
-// An in-memory stand-in for QuestionSetRepository AND QuestionnaireRepository, for the
-// QuestionSetService and QuestionnaireService tests (two-level forms,
-// docs/superpowers/two-level-forms-2026-09-25/01-spec.md, sections 3 and 5.3). Replaces
-// test/support/fakeFormStore.ts.
+// An in-memory stand-in for QuestionSetRepository and QuestionnaireRepository, for the
+// QuestionSetService and QuestionnaireService tests.
 //
 // It defines the repository contract both services are written against. The rows are the
-// Prisma models of spec 3.3 (field names as in the Prisma client); the methods below are the
+// Prisma models (field names as in the Prisma client); the methods below are the
 // only ones the services may call. The real repositories implement the same methods with
 // Prisma (QuestionnaireRepository may extend QuestionSetRepository: it needs the set reads too,
 // for update detection, reference resolution and the self-contained import).
@@ -20,8 +18,8 @@
 //     insertSetVersion(plan)          ONE transaction: the set (plan.set, when new), the new
 //                                     question identities, the version, its items, and, when
 //                                     plan.questionnaire is given, that questionnaire version
-//                                     too (the import's "Also make a questionnaire", T49, and
-//                                     the self-contained import, T54)
+//                                     too (the import's "Also make a questionnaire", and the
+//                                     self-contained import)
 //     retireSet(id, at)               sets retired_at (the only UPDATE the triggers allow)
 //
 //   QuestionnaireRepository (plus every read above)
@@ -36,8 +34,8 @@
 //                                     new), the version, its items
 //     retireQuestionnaire(id, at)     sets retired_at
 //
-// Like the database, the fake refuses what the migration's constraints and triggers refuse
-// (spec 3.1, 3.2): a taken (setId, number) or (questionnaireId, number), a second active set
+// Like the database, the fake refuses what the migration's constraints and triggers refuse:
+// a taken (setId, number) or (questionnaireId, number), a second active set
 // or listed questionnaire with the same name ignoring case, a taken (scope, localId), all fail
 // with an error whose `code` is "P2002", as Prisma's do; an item naming no set item fails with
 // code "P2003"; a new version of a builtin or retired set/questionnaire, and a set item whose
@@ -126,7 +124,7 @@ export type SetVersionInsert = {
   version: { id: string; setId: string; number: number; createdBy: string };
   newQuestions: Array<{ id: string; setId: string; scope: string; localId: string }>;
   items: Array<Omit<SetItemRow, "setVersionId">>;
-  /** The questionnaire made in the same transaction (T49 "Also make a questionnaire", T54). */
+  /** The questionnaire made in the same transaction ("Also make a questionnaire", or the self-contained import). */
   questionnaire?: QuestionnaireVersionInsert;
 };
 
@@ -174,7 +172,7 @@ export class FakeQuestionnaireStore {
     return new Date(Date.UTC(2026, 8, 25, 9, 0, this.t));
   }
 
-  // ── seeding ────────────────────────────────────────────────────────────
+  // Seeding
 
   /**
    * The builtin rows as the two-level migration makes them: set "Annex IV" (annex-iv) v1
@@ -298,7 +296,7 @@ export class FakeQuestionnaireStore {
     return this;
   }
 
-  // ── reads shared by both repositories ─────────────────────────────────
+  // Reads shared by both repositories
 
   private set(id: string) {
     return this.sets.find((s) => s.id === id) ?? null;
@@ -344,7 +342,7 @@ export class FakeQuestionnaireStore {
     };
   }
 
-  // ── QuestionSetRepository ──────────────────────────────────────────────
+  // QuestionSetRepository
 
   async listSets() {
     this.calls.push("listSets");
@@ -438,7 +436,7 @@ export class FakeQuestionnaireStore {
     s.retiredAt = at;
   }
 
-  // ── QuestionnaireRepository ────────────────────────────────────────────
+  // QuestionnaireRepository
 
   async listQuestionnaires() {
     this.calls.push("listQuestionnaires");
@@ -486,7 +484,7 @@ export class FakeQuestionnaireStore {
     q.retiredAt = at;
   }
 
-  // ── internals ──────────────────────────────────────────────────────────
+  // Internals
 
   private takeRaces(isNew: boolean) {
     const number = this.raceOnNextInsert;

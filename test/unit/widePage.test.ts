@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 // A compiled qualification runs nearly edge to edge, and that width lives in
-// CSS where no component test can see it. It has already regressed once: the
-// old rule was scoped to a direct child of .qualify-page and stopped applying
-// the moment the card moved into a tab panel. These are guards on the two
-// halves of that arrangement, the class the page asks for and the rule that
-// answers it, so the two cannot drift apart again.
+// CSS where no component test can see it. A rule scoped to a direct child of
+// .qualify-page stops applying once the card sits in a tab panel. These are
+// guards on the two halves of that arrangement, the class the page asks for and
+// the rule that answers it, so the two cannot drift apart.
 import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 
@@ -59,7 +58,7 @@ describe("a compiled qualification uses the window's width", () => {
   it("gives the questionnaire builder the card's wide page, the same way (addendum 06 R74, two-level forms T32)", () => {
     // The builder is two columns of long questions: it takes the same class
     // as the compiled card, not a rule of its own. The questionnaires list and
-    // every question-set page stay 1080px (two-level forms, 01-spec T32).
+    // every question-set page stay 1080px.
     for (const path of [
       "src/app/p/[project]/questionnaires/new/page.tsx",
       "src/app/p/[project]/questionnaires/[questionnaireId]/edit/page.tsx",

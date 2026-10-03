@@ -163,8 +163,8 @@ describe("NodeEditor as a pop-up", () => {
 
   /**
    * Rendered through a portal to document.body, not inside the ontology
-   * section. The section is about to break out of the page's 820px column to
-   * use the full width, and any transformed or filtered ancestor would turn
+   * section. The section breaks out of the page's 820px column to use the
+   * full width, and any transformed or filtered ancestor would turn
    * this dialog's `position: fixed` into `absolute`, trapping the backdrop
    * inside the section.
    */
@@ -196,8 +196,8 @@ describe("NodeEditor as a pop-up", () => {
       termExpected: false,
     });
     // The terms are still offered: a deployer that IS a public authority should
-    // carry one. What goes is the "none applies" mark, which existed only to
-    // silence a flag that is no longer raised.
+    // carry one. There is no "none applies" mark here: no flag is raised for
+    // this node, so there is nothing to silence.
     expect(panel.querySelector("select")).toBeTruthy();
     expect(
       panel.querySelector('[data-testid="term-not-applicable"]'),

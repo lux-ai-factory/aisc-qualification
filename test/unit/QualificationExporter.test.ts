@@ -12,7 +12,7 @@ function row(over: Partial<QualificationWithAnswers> = {}) {
     targetUseCase: "Creditworthiness.",
     targetUsers: "Officers.",
     intendedDeployers: "Banks.",
-    // VAIR terms (2026-09-30), each list with one value that is not a term of its class
+    // VAIR terms, each list with one value that is not a term of its class
     systemType: "NarrowAI",
     purpose: null,
     providerTerm: "EducationalInstitution",
@@ -132,16 +132,15 @@ describe("toExport", () => {
   });
 });
 
-// ── Form assembly: the export carries the form and each answer's tag ───────
-// (spec docs/superpowers/form-assembly-2026-09-24/01-spec.md, R30)
+// The export carries the form and each answer's tag
 //
 // toExport(q, form). Called with no form it is exactly the export above, which
 // is what those cases check.
 
 import { customQuestion, formVersion, seededQuestion } from "../support/forms";
 
-// Two-level forms (8.3, T43): the version is a questionnaire version, and each question names
-// the question set that words it: ownerSet / ownerSetId (were ownerForm / ownerFormId), in the
+// The version is a questionnaire version, and each question names the question set that
+// words it: ownerSet / ownerSetId, in the
 // key order key, text, citation, required, annexPoint, ownerSet, ownerSetId, ownerBuiltin.
 const mixed = formVersion({
   questionnaireName: "Acme mix",
@@ -255,7 +254,7 @@ describe("toExport with the card's form version (R30)", () => {
   });
 });
 
-// ── Addendum 06 (R69): questions carry their owner form's id ───────────────
+// Questions carry their owner set's id
 
 describe("toExport names each question's owner by id (R69)", () => {
   it("R69 T43 two sets that share the name Custom questions stay two owners: ownerSetId tells them apart", () => {

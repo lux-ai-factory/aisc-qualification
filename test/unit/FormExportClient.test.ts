@@ -1,21 +1,19 @@
 import { describe, it, expect, vi } from "vitest";
 import { resolve } from "node:path";
 
-// Addendum 06, R56: FormExportClient carries a form version to the prefill
-// service's POST /forms/export and the file back. Like FormImportClient it
-// never throws.
+// FormExportClient carries a question list to the prefill service's POST /forms/export
+// and the file back. Like FormImportClient it never throws.
 //
-// Interface (addendum): new FormExportClient(baseUrl = PREFILL_URL ?? "", fetchImpl = fetch)
-//   .write(list: {name, version, questions}, format: "csv" | "md")   (two-level forms 5.3; was a ResolvedFormVersion)
+// Interface: new FormExportClient(baseUrl = PREFILL_URL ?? "", fetchImpl = fetch)
+//   .write(list: {name, version, questions}, format: "csv" | "md")
 //   -> { ok: true, filename, contentType, content } | { ok: false, status: 502 | 503, error }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const load = async (): Promise<any> =>
   (await import(/* @vite-ignore */ resolve("src/server/services/FormExportClient.ts"))).FormExportClient;
 
-// Two-level forms (01-spec 5.3, 8.3): write takes a plain question list, {name, version,
-// questions: {text, citation, required, annexPoint}[]}, so a question-set version and a
-// flattened questionnaire version are written alike. Everything else is R56 unchanged.
+// write takes a plain question list, {name, version, questions: {text, citation, required,
+// annexPoint}[]}, so a question-set version and a flattened questionnaire version are written alike.
 const form = {
   name: "Acme AI policy",
   version: 3,

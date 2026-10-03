@@ -3,14 +3,10 @@ import { filterLibrary, overlapHints, overlapLabel } from "@/domain/forms/librar
 import * as library from "@/domain/forms/library";
 import { customQuestion, seededQuestion, setQuestion } from "../support/forms";
 
-// The builder's left column: search and overlap hints, both pure and
-// deterministic (form-assembly spec R16, R23).
+// The builder's left column: search, overlap hints and available updates, all pure and
+// deterministic.
 //
-// (Two-level forms, T26: the sourceUpdates tests at the end are replaced by updatesAvailable;
-// filterLibrary and overlapHints are unchanged, spec 8.3.)
-//
-// Interface chosen here: groups are { formId, formName, questions:
-// ResolvedQuestion[] } (what FormService.libraryGroups returns);
+// Interface: groups are { formId, formName, questions: ResolvedQuestion[] };
 // overlapHints returns a plain object questionId -> AnnexPointId;
 // overlapLabel(point) is the chip text.
 
@@ -100,9 +96,8 @@ describe("overlapHints (R23)", () => {
   });
 });
 
-// ── Two-level forms: "Update available" (T26) ────────────────────────────
+// "Update available"
 //
-// Replaces the addendum 06 sourceUpdates tests (spec 8.3, formLibrary row).
 // updatesAvailable(rows: BuilderRow[], groups: SetGroup[]) -> Record<rowIndex, Update>,
 // SetGroup = { setId, setName, versionId, versionNumber, retired, questions } (a set's latest
 // version), Update = { kind: "reworded", question, versionId, versionNumber }

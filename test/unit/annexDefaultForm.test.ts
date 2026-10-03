@@ -4,18 +4,11 @@ import { KEY_QUESTIONS } from "@/data/keyQuestions";
 import * as legacyModule from "@/domain/forms/legacy";
 import { FORM_BLOCKS, IDENTITY_FIELDS } from "@/domain/forms/blocks";
 
-// Form assembly (spec docs/superpowers/form-assembly-2026-09-24/01-spec.md).
-// The seeded "Annex IV default" form is KEY_QUESTIONS as data: the in-memory
-// twin (annexDefaultVersion) and the migration's seed must both say exactly
-// what the constant says, or every card saved before forms existed would read
-// back differently.
-//
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md, spec 8.3 row of this
-// file): the in-memory twin is now annexDefaultVersion(): ResolvedQuestionnaireVersion with the
-// new field names (T3), beside annexSetVersion(): ResolvedSetVersion and the constants of 3.4;
-// resolveFormVersionId is renamed resolveQuestionnaireVersionId; DEFAULT_FORM_ID is removed.
-// The two "schema has no default flag" tests are replaced by T1 (test/unit/twoLevelSchema.test.ts),
-// since model Form is removed. The texts of 20260925090000 and 20260925120000 stay pinned unchanged.
+// The seeded "Annex IV default" questionnaire is KEY_QUESTIONS as data: the in-memory
+// twins (annexDefaultVersion(): ResolvedQuestionnaireVersion and annexSetVersion():
+// ResolvedSetVersion) and the migration's seed must both say exactly what the constant
+// says, or every card saved before forms existed would read back differently. The texts
+// of the applied migrations 20260925090000 and 20260925120000 are pinned unchanged.
 
 // legacy.ts exports read through the module object, so a renamed or missing export fails the
 // test that needs it, not the whole file.
@@ -151,7 +144,7 @@ describe("resolveQuestionnaireVersionId (spec 3.1, 4.3)", () => {
   });
 });
 
-// ── the migration, read as text ─────────────────────────────────────────────
+// The migration, read as text
 
 /** One SQL literal: a string (with '' unescaped), a number, a boolean, NULL, or raw text. */
 type Lit = string | number | boolean | null | { raw: string };
@@ -159,7 +152,7 @@ type Lit = string | number | boolean | null | { raw: string };
 /**
  * The rows of every `INSERT INTO <schema.>table (cols) VALUES (...), (...)` in
  * the file, as objects keyed by column. Enough SQL to read a seed written as
- * literal VALUES rows, which is what spec 4.3 step 2 asks for.
+ * literal VALUES rows.
  */
 function insertedRows(sql: string, table: string): Record<string, Lit>[] {
   const rows: Record<string, Lit>[] = [];
@@ -333,7 +326,7 @@ describe("the migration's shape (spec 4.2, 4.3; checked in a DB by test/db/forms
     expect(sql).not.toMatch(new RegExp(`\\bUPDATE\\s+(?:ONLY\\s+)?${history}\\s+SET\\b`, "i"));
     expect(sql).not.toMatch(new RegExp(`\\bDELETE\\s+FROM\\s+(?:ONLY\\s+)?${history}(?:\\s|;|$)`, "i"));
     expect(sql).not.toMatch(new RegExp(`\\bTRUNCATE\\s+(?:TABLE\\s+)?${history}`, "i"));
-    // The new column has no default and no backfill (spec 4.4).
+    // The new column has no default and no backfill.
     expect(sql).toMatch(/ADD COLUMN\s+form_version_id\s+text\s+NULL/i);
   });
 
@@ -346,7 +339,7 @@ describe("the migration's shape (spec 4.2, 4.3; checked in a DB by test/db/forms
   });
 });
 
-// ── Addendum 06 (R45): the forward migration that removes the default flag ──
+// The forward migration that removes the default flag
 
 const FIXED = "prisma/migrations/20260925120000_the_default_form_is_fixed/migration.sql";
 
@@ -381,8 +374,8 @@ describe("the forward migration 20260925120000_the_default_form_is_fixed (R45)",
   });
 
   it("R45 no UPDATE, DELETE, TRUNCATE, BEGIN, COMMIT, CONCURRENTLY or IF EXISTS outside the function body", () => {
-    // The plpgsql body between $$ ... $$ has its own BEGIN ... END (section 3.2's
-    // exact text); what is refused is a transaction or a data change around it.
+    // The plpgsql body between $$ ... $$ has its own BEGIN ... END; what is
+    // refused is a transaction or a data change around it.
     const outside = flat().replace(/\$\$[\s\S]*?\$\$/g, "$$ $$");
     for (const word of ["UPDATE", "DELETE", "TRUNCATE", "BEGIN", "COMMIT", "CONCURRENTLY", "IF EXISTS"]) {
       expect(outside, word).not.toMatch(new RegExp(`\\b${word}\\b`, "i"));
@@ -403,6 +396,5 @@ describe("the forward migration 20260925120000_the_default_form_is_fixed (R45)",
   });
 });
 
-// The two "schema has no default flag" tests (R45, addendum 3.3) read model Form, which two-level
-// forms removes. Their successor is T1 in test/unit/twoLevelSchema.test.ts: no model Form, and the
-// builtin rules live in the migration's CHECKs on question_set and questionnaire (T5).
+// That the schema has no model Form and the builtin rules live in the CHECKs on question_set and
+// questionnaire is pinned by test/unit/twoLevelSchema.test.ts.

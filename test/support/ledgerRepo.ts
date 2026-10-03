@@ -1,4 +1,4 @@
-// Ledger phase 5: a fake repository's transaction. The card actions run a change, its history row and
+// A fake repository's transaction. The card actions run a change, its history row and
 // its ledger event in `repo.transaction`; a fake runs them on a transaction client that records the
 // emitter's SQL, so unit tests can see what was emitted (the real database is test/db/ledger.db.test.ts).
 import { vi } from "vitest";

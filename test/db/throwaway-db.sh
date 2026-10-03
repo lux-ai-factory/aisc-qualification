@@ -43,9 +43,9 @@ for f in "$ROOT"/platform/migrations/*.sql; do
     psql -q -h 127.0.0.1 -U platform_rw -d platform -v ON_ERROR_STOP=1 < "$f" >/dev/null
 done
 
-# (isolation Q1: the qualification schema no longer lives in `platform`; the history of
+# (the qualification schema does not live in `platform`; the history of
 # prisma/migrations is replayed in each project database instead, below.)
-# ── isolation (docs/superpowers/isolation-2026-09-25, stage 2) ─────────────────
+#
 # Project databases made the platform's way (platform_service.projectdb.provision, so
 # they get the real template), for test/db/projectDatabase.db.test.ts and
 # test/db/projectForms.db.test.ts. A failure here does not stop the older tests: the
@@ -54,7 +54,7 @@ for f in report-roles inspector-role; do su_psql < "$ROOT/init/$f.sql" >/dev/nul
 ISO_A=aaaaaaaa-0000-4000-8000-00000000000a
 ISO_B=bbbbbbbb-0000-4000-8000-00000000000b
 ISO_C=cccccccc-0000-4000-8000-00000000000c   # qualification_rw may not connect: skipped
-ISO_E=eeeeeeee-0000-4000-8000-00000000000e   # dropped mid-test (I2.5)
+ISO_E=eeeeeeee-0000-4000-8000-00000000000e   # dropped mid-test
 ISO_F=ffffffff-0000-4000-8000-00000000000f   # the older DB tests (cardVersions) run here
 ISO_SETUP=ok
 if (cd "$ROOT/platform" && PROVISION_DSN="postgresql://platform_rw:platform_rw@127.0.0.1:$PORT/platform" \

@@ -9,8 +9,7 @@ import QualifyForm from "@/app/p/[project]/qualify/new/QualifyForm";
 import { findExample } from "@/data/examples";
 import { customQuestion, formVersion, seededQuestion, setQuestion } from "../support/forms";
 
-// Two-level forms T40 and T41 (docs/superpowers/two-level-forms-2026-09-25/01-spec.md):
-// the card form renders the pinned wording of a questionnaire version, heads each run of
+// The card form renders the pinned wording of a questionnaire version, heads each run of
 // questions by `groupLabel ?? setName`, posts `questionnaireVersionId`, and, when the card
 // moves from the previous card's version P to another version V, says so and flags every
 // reworded question whose carried answer is not blank.

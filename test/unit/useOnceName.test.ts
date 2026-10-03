@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 
-// Addendum 06, R67: the name of a use-once form.
+// The name of a use-once form.
 //   useOnceFormName(systemName: string, today: Date, taken: string[]): string
 // in src/domain/forms/useOnceName.ts, pure.
 

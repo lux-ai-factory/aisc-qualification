@@ -1,11 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { loadSrc } from "../support/forms";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md), T53: importing a
-// questionnaire file by reference. The "missing" list is built by the pure
+// Importing a questionnaire file by reference. The "missing" list is built by the pure
 // missingReferences(items, found) of src/domain/forms/references.ts, in item order.
 //
-// Interface (test author):
+// Interface:
 //   ReferenceItem   = { setId, setName, setVersion: number, scope, localId }   (a file item)
 //   FoundSetVersion = { setId, number, name, versionId, keys: string[] }        (a set version
 //                     this install has; keys are "<scope>:<localId>" of its questions; name is

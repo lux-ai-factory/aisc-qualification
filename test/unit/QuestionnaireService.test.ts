@@ -3,14 +3,10 @@ import { readFileSync } from "node:fs";
 import { FakeQuestionnaireStore, idCounter } from "../support/fakeQuestionnaireStore";
 import { ALL_BLOCKS, loadSrc } from "../support/forms";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md): the questionnaire
-// service, with its repository replaced by the in-memory store
+// The questionnaire service, with its repository replaced by the in-memory store
 // (test/support/fakeQuestionnaireStore.ts documents the methods the service may call).
-// T24, T25, T35, T46, T53, T54, T57, T63. Replaces the questionnaire half of the old
-// test/unit/FormService.test.ts (spec 8.2): its R3/R43 library, R6/R7 resolve, R47
-// install-wide, R57 exportable, R60 to R62 pinning and R68 use-once cases live on here.
 //
-// Interface (spec 5.3, and the lead's interfaces note where the spec is silent):
+// Interface:
 //   new QuestionnaireService(repository, { newId?, now? })
 //   saveDraft(draft, { questionnaireId?, listed, origin?, createdBy, systemName? })
 //     -> { ok: true, questionnaireId, versionId, number, created } | { ok: false, error }
@@ -21,7 +17,7 @@ import { ALL_BLOCKS, loadSrc } from "../support/forms";
 //     -> { ok: true, setId, questionnaireId, versionId } | { ok: false, error }
 
 const SERVICE = "server/services/QuestionnaireService.ts";
-/** 2026-09-25 late in the day, UTC: the use-once name's date (06 R67). */
+/** Late in the day, UTC: the use-once name's date. */
 const NOW = new Date("2026-09-25T23:30:00.000Z");
 
 let store: FakeQuestionnaireStore;
@@ -73,7 +69,7 @@ beforeEach(() => {
   store = new FakeQuestionnaireStore().seedAnnex();
 });
 
-// ── T24 saving never authors a question ─────────────────────────────────────
+// Saving never authors a question
 
 describe("saving a questionnaire never authors a question (T24)", () => {
   beforeEach(seedAcme);
@@ -154,7 +150,7 @@ describe("saving a questionnaire never authors a question (T24)", () => {
     });
     expect(same).toEqual({ ok: true, questionnaireId: "qn", versionId: "qn-v1", number: 1, created: false });
     expect(store.calls).not.toContain("insertQuestionnaireVersion");
-    // T23: the same question pinned to another set version is a change
+    // the same question pinned to another set version is a change
     const next = await saved(
       svc.saveDraft(draft({ name: "Q", blocks: ["risks"], items: [item("acme-v2", "acme-q1")] }), {
         questionnaireId: "qn", listed: true, createdBy: "bob",
@@ -246,7 +242,7 @@ describe("saving a questionnaire never authors a question (T24)", () => {
   });
 });
 
-// ── T25 resolving renders the pinned wording ────────────────────────────────
+// Resolving renders the pinned wording
 
 describe("resolving a questionnaire version renders the pinned wording (T25)", () => {
   beforeEach(() => {
@@ -334,7 +330,7 @@ describe("resolving a questionnaire version renders the pinned wording (T25)", (
   });
 });
 
-// ── T35 retiring ────────────────────────────────────────────────────────────
+// Retiring
 
 describe("retiring a questionnaire (T35)", () => {
   beforeEach(() => {
@@ -371,7 +367,7 @@ describe("retiring a questionnaire (T35)", () => {
   });
 });
 
-// ── T46 library and chooser ─────────────────────────────────────────────────
+// Library and chooser
 
 describe("library() and chooserOptions() (T46)", () => {
   beforeEach(() => {
@@ -456,7 +452,7 @@ describe("library() and chooserOptions() (T46)", () => {
   });
 });
 
-// ── T53 references ──────────────────────────────────────────────────────────
+// References
 
 describe("resolving a reference file (T53)", () => {
   beforeEach(() => {
@@ -519,7 +515,7 @@ describe("resolving a reference file (T53)", () => {
   });
 });
 
-// ── T54 self-contained import ───────────────────────────────────────────────
+// Self-contained import
 
 const selfContained = (over: Record<string, unknown> = {}) => ({
   format: "aisc-questionnaire",
@@ -623,7 +619,7 @@ describe("importing a self-contained file (T54)", () => {
   });
 });
 
-// ── T57 history ─────────────────────────────────────────────────────────────
+// History
 
 describe("who and when (T57)", () => {
   it("T57 history(id) is every version's stamp, newest first, createdAt ISO 8601 in UTC", async () => {
@@ -649,7 +645,7 @@ describe("who and when (T57)", () => {
   });
 });
 
-// ── T63 install-wide ────────────────────────────────────────────────────────
+// Install-wide
 
 describe("questionnaires are install-wide (T63, 06 R47)", () => {
   it("T63 no public method takes a project or projectId parameter; library reads take none at all", async () => {

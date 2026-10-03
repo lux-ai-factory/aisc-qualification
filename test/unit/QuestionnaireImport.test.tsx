@@ -3,15 +3,13 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { loadSrc, seededQuestion, setQuestion } from "../support/forms";
 
-// Importing a questionnaire file (two-level forms,
-// docs/superpowers/two-level-forms-2026-09-25/01-spec.md, T53 and T54, page part; T32 the page
-// widths). A reference file whose set versions are all here opens the builder; one that names
+// Importing a questionnaire file. A reference file whose set versions are all here opens the builder; one that names
 // what this install lacks lists what is missing and stores nothing; a self-contained file shows
 // its questions and makes a new question set and a questionnaire.
 //
-// Choices made here where the spec is silent (recorded in 02-tests.md):
+// What these tests rely on:
 //   QuestionnaireImport props: { project, groups: SetGroup[], header?: ReactNode }, and it renders the
-//   page's <main> (as FormImport did, 06 R74);
+//   page's <main>;
 //   the file input takes ".json"; readQuestionnaireFile(formData) gets the file under "file";
 //   readQuestionnaireFile answers {ok:true, bundle:"references", open: BuilderInit} |
 //   {ok:true, bundle:"self-contained", file, fileName} | {ok:false, error, missing?};

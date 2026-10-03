@@ -3,12 +3,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { decide } from "@/server/access/projectAccess";
 import { loadSrc, formVersion, defaultVersionLiteral, setQuestion } from "../support/forms";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md): the questionnaire
-// server actions (T30), where the builder opens and what it refuses (T31, the 404 cases), who
-// saved (T55), and the import actions (T53, T54). Services, the platform, the file client and the
-// caller's name are stood in for; parseQuestionnaireDraft is real.
-// Carried from formActions.test.ts (deleted, spec 8.2): R42 door tests, R48 redirects, R68 use-once
-// naming, R73 exact export list and no admin flag, R47 the service is never given the project.
+// The questionnaire server actions, where the builder opens and what it refuses (the 404
+// cases), who saved, and the import actions. Services, the platform, the file client and the
+// caller's name are stood in for; parseQuestionnaireDraft is real. Also: the project door,
+// redirects, use-once naming, the exact export list with no admin flag, and the service is
+// never given the project.
 //
 //   saveQuestionnaire(project, draftJson, questionnaireId?, origin?)
 //   useQuestionnaireOnce(project, draftJson, origin?)
@@ -421,7 +420,7 @@ describe("the questionnaire import actions (T53, T54)", () => {
       setName: "Acme mix questions",
       questionnaireName: "Acme mix",
       createdBy: "alice",
-      record: expect.any(Function),                                   // its ledger events (phase 5)
+      record: expect.any(Function),                                   // its ledger events
     });
     expect(redirected).toBe("/p/mcas/system/edit?questionnaire=q1");
   });

@@ -1,10 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { loadSrc, setQuestion, setVersion } from "../support/forms";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md): the question-set
-// editor's save payload, validated before anything is written. T12 parseSetDraft (every
-// message, in check order), T13 sameSetContent. Replaces the own/copy half of the old
-// test/unit/formDraft.test.ts (spec 8.2).
+// The question-set editor's save payload, validated before anything is written: parseSetDraft
+// (every message, in check order) and sameSetContent.
 //
 // SetDraft = { name, description?, questions: [{ questionId?, text, citation, required, annexPoint }] }
 

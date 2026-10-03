@@ -3,14 +3,13 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { loadSrc, questionnaireVersion, seededQuestion, setQuestion } from "../support/forms";
 
-// The questionnaire builder pages as server components (two-level forms,
-// docs/superpowers/two-level-forms-2026-09-25/01-spec.md): /questionnaires/<Q>/edit shows who saved
-// the latest version and when (T57), opens the builder on Q's latest version (T31) and is a wide
-// page (T32); /questionnaires/new opens empty or, with ?from=<Q>, from Q's latest version (T31).
+// The questionnaire builder pages as server components: /questionnaires/<Q>/edit shows who saved
+// the latest version and when, opens the builder on Q's latest version and is a wide page;
+// /questionnaires/new opens empty or, with ?from=<Q>, from Q's latest version.
 // The pages are awaited with the services stood in for; questionnaires/libraryData.ts is real
-// (builderData() is questionSetService.groups(), T45).
+// (builderData() is questionSetService.groups()).
 //
-// Choices made here where the spec is silent (recorded in 02-tests.md):
+// What these tests rely on:
 //   the new page reads ?from through questionnaireService.latestVersion(from) and ignores a
 //   version that is null, unlisted or retired; the edit page reads questionnaireService.history(id).
 

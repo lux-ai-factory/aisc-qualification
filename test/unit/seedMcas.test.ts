@@ -4,8 +4,7 @@ import { systemForProject } from "../../scripts/seed_mcas.mjs";
 // The MCAS walkthrough has to land in a project, like anything else here: a
 // qualification describes one project's system, and that system is named by the
 // platform so the engine's tests and the dashboard's results mean the same one.
-// (Rewritten for WP3, pipeline 2026-09-23: the draft-then-PATCH and freeze
-// cases are gone; seedMcasVersions.test.ts pins the one POST that replaces them.)
+// seedMcasVersions.test.ts pins the POST that makes the card version.
 describe("naming MCAS's system on the platform", () => {
   it("will not seed into no project at all", async () => {
     await expect(

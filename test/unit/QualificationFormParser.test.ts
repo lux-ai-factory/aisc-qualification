@@ -5,8 +5,8 @@ import {
 } from "@/server/forms/QualificationFormParser";
 import { KEY_QUESTIONS, keyQuestionField } from "@/data/keyQuestions";
 
-// The form speaks VAIR (2026-09-30): the tags are checked against VAIR's terms, not an injected
-// taxonomy, so the parser takes no arguments.
+// The form speaks VAIR: the tags are checked against VAIR's terms, not an injected taxonomy,
+// so the parser takes no arguments.
 
 function validMetadata(): FormData {
   const fd = new FormData();
@@ -32,7 +32,7 @@ function addRisk(
     consequence: "Staff sent to a full shelf",
     affected: "user",
     control: "Confidence threshold and human confirmation",
-    // the VAIR selects that are required (2026-09-30)
+    // the VAIR selects that are required
     sourceTerm: "ErroneousInputData",
     impactTerm: "Harm",
     controlTerm: "HumanOversightMeasure",
@@ -122,7 +122,7 @@ describe("QualificationFormParser", () => {
     expect(parsed.answers.some((a) => a.toolId === "data")).toBe(false);
   });
 
-  // ── AIRO-aligned metadata (market form, locality, intended deployers) ────
+  // AIRO-aligned metadata (market form, locality, intended deployers)
 
   it("requires intended deployers", () => {
     const fd = fullySubmittable();
@@ -162,7 +162,7 @@ describe("QualificationFormParser", () => {
     );
   });
 
-  // ── Risk block (question 15) ─────────────────────────────────────────────
+  // Risk block (question 15)
 
   it("requires at least one risk row", () => {
     const fd = fullySubmittable();
@@ -240,12 +240,10 @@ describe("QualificationFormParser", () => {
   });
 });
 
-// ── Form assembly: the parser takes the resolved form version ──────────────
-// (spec docs/superpowers/form-assembly-2026-09-24/01-spec.md, R10 to R14)
+// The parser takes the resolved form version
 //
 // parse(formData, form) reads the blocks and questions of `form`. The cases
-// above call parse(formData) with no form; that stays the default version, so
-// they, and prefillOnEditPage.test.ts, keep passing unmodified.
+// above call parse(formData) with no form, which means the default version.
 
 import {
   ALL_BLOCKS,
@@ -303,7 +301,7 @@ describe("the identity block is always required (R10)", () => {
       localityTags: [],
       answers: [],
       risks: [],
-      // the Components block is on every card, whatever its form (targets plan v2): none posted, none parsed
+      // the Components block is on every card, whatever its form: none posted, none parsed
       systemComponents: [],
       formVersionId: "bare-v1",
     });
@@ -347,7 +345,7 @@ describe("metadata text fields follow the form's blocks (R11, A5)", () => {
 });
 
 describe("pickers follow the form's blocks (R12)", () => {
-  // VAIR terms (2026-09-30). Only market form needs a value: VAIR's four forms cover every system,
+  // VAIR terms. Only market form needs a value: VAIR's four forms cover every system,
   // while its capabilities, domains and localities do not.
   const pickers = [
     ["targetSystemTags", null, "ObjectRecognition"],

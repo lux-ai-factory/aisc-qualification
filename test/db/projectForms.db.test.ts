@@ -7,9 +7,7 @@ import { PrismaClient } from "@prisma/client";
 import { questionSetsOn } from "@/server/services/QuestionSetService";
 import { questionnairesOn } from "@/server/services/QuestionnaireService";
 
-// Forms inside a project, against real project databases (the user's decision of
-// 2026-09-25, which replaced D3 / I4.1..I4.5 and test/db/formLibrary.db.test.ts): the
-// question sets and questionnaires a person makes are kept in their own project's database
+// Forms inside a project, against real project databases: the question sets and questionnaires a person makes are kept in their own project's database
 // and nowhere else; the builtin Annex IV set and default questionnaire are seeded into
 // every project database by the forms migrations and cannot be changed there; a card's
 // questionnaire version is a real key into the same database. There is no install-wide

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { annexDefaultVersion } from "@/domain/forms/legacy";
 
-// Addendum 06, R54: the Python round-trip test exports the 14 Annex IV default
+// The Python round-trip test exports the 14 Annex IV default
 // questions from a committed fixture. This keeps that fixture equal to the TS
 // default form (and so to KEY_QUESTIONS), so the round trip tests the real form.
 

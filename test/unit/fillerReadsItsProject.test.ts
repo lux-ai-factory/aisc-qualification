@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// LLM keys (2026-09-25). The card agent is never told whose model to use: it reads the
-// project from the qualification it works on, so a caller cannot point a run at another
-// project's key. What it reads is GET /p/{pid}/api/qualifications/:id/extracted
-// (isolation Q1), which carries the project of the database the card was found in: the
+// The card agent is never told whose model (LLM key) to use: it reads the project from the
+// qualification it works on, so a caller cannot point a run at another project's key. What
+// it reads is GET /p/{pid}/api/qualifications/:id/extracted, which carries the project of
+// the database the card was found in: the
 // path's pid, never anything in the query string.
 
 const OWN_PROJECT = "a1b2c3d4-0000-4000-8000-000000000002";

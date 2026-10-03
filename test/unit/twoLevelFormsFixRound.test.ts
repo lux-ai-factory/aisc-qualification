@@ -2,14 +2,13 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { FakeQuestionnaireStore, idCounter } from "../support/fakeQuestionnaireStore";
 import { loadSrc } from "../support/forms";
 
-// Two-level forms, fix round for 05-verification.md H4, H8 and H12
-// (docs/superpowers/two-level-forms-2026-09-25/).
+// Edge cases of the questionnaire and question-set services and routes:
 //
 //   H4   importSelfContained re-validates each item's groupLabel on the server (the file comes
-//        back from the browser): the T51 message, never a Prisma or CHECK error (500).
-//   H8   the old /forms/<id>/export route encodes the project segment of its Location (T62).
+//        back from the browser): a user message, never a Prisma or CHECK error (500).
+//   H8   the /forms/<id>/export redirect encodes the project segment of its Location.
 //   H12  a retire racing a save, or a second retire racing the first, maps the trigger's error
-//        to the existing user message instead of a 500 (T15, T24, T35).
+//        to the usual user message instead of a 500.
 //
 // A race is simulated with the in-memory store: the service's read sees the row as it was
 // before the other writer, the write then meets the state after it (as the triggers do).
@@ -38,7 +37,7 @@ beforeEach(() => {
   store = new FakeQuestionnaireStore().seedAnnex();
 });
 
-// ── H4 ──────────────────────────────────────────────────────────────────────
+// H4: the self-contained import re-validates group labels
 
 const wording = (over: Record<string, unknown> = {}) => ({
   setId: "p", setName: "Partner", setVersion: 1, scope: "s-p", localId: "q1",
@@ -101,7 +100,7 @@ describe("H4 the self-contained import re-validates groupLabel (T51, T54)", () =
   });
 });
 
-// ── H8 ──────────────────────────────────────────────────────────────────────
+// H8: the export redirect encodes the project
 
 describe("H8 the old export route encodes every segment it interpolates (T62)", () => {
   afterEach(() => vi.unstubAllEnvs());
@@ -126,7 +125,7 @@ describe("H8 the old export route encodes every segment it interpolates (T62)", 
   });
 });
 
-// ── H12 ─────────────────────────────────────────────────────────────────────
+// H12: a retire racing a save or another retire
 
 /** Make the store's reads of `id` answer as if retired_at were still NULL (the racing writer's view). */
 function staleSet(id: string) {

@@ -2,9 +2,8 @@ import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md), T2: the forward
-// migration obeys the rules of spec 4.1 and the order of 4.2, read as text. What it does to a
-// real database is test/db/twoLevelForms.db.test.ts (T3 to T9).
+// The two-level forms migration, read as text: it changes no history row, and creates its
+// triggers after the data. What it does to a real database is test/db/twoLevelForms.db.test.ts.
 
 const MIGRATION = "prisma/migrations/20260925150000_two_level_forms/migration.sql";
 const APPLIED = [
@@ -51,7 +50,7 @@ function statementStarts(sql: string): string[] {
   return starts.filter((s) => s !== "");
 }
 
-// spec 3.2: every trigger the migration creates, after the data
+// every trigger the migration creates, after the data
 const TRIGGERS = [
   "question_set_version_is_append_only",
   "question_set_version_item_is_append_only",
@@ -71,7 +70,7 @@ describe("the two-level migration file obeys its rules (T2)", () => {
   });
 
   it("T2 it has no BEGIN, COMMIT, CONCURRENTLY, IF EXISTS or CASCADE", () => {
-    // `ON COMMIT DROP` (the temp tables of spec 4.2 step 1) is not a COMMIT
+    // `ON COMMIT DROP` (on the migration's temp tables) is not a COMMIT
     const text = scanned().replace(/\bON\s+COMMIT\s+DROP\b/gi, "ON_COMMIT_DROP");
     for (const word of [/\bBEGIN\s*;/i, /\bCOMMIT\b/i, /\bCONCURRENTLY\b/i, /\bIF\s+EXISTS\b/i, /\bCASCADE\b/i]) {
       expect(text, String(word)).not.toMatch(word);
@@ -173,7 +172,7 @@ describe("the two-level migration file obeys its rules (T2)", () => {
 
 describe("the migrations applied on live are not edited (T2)", () => {
   // The same pins as annexDefaultForm.test.ts, repeated here so this requirement has its own
-  // test: these files are on live and Prisma refuses a changed checksum.
+  // test: these migrations are applied on deployed databases and Prisma refuses a changed checksum.
   const SHA: Record<string, string> = {};
   it("T2 20260925090000 and 20260925120000 still carry the bytes pinned in annexDefaultForm.test.ts", () => {
     const pins = readFileSync("test/unit/annexDefaultForm.test.ts", "utf8");
@@ -183,14 +182,14 @@ describe("the migrations applied on live are not edited (T2)", () => {
       expect(bytes.length).toBeGreaterThan(0);
     }
     // annexDefaultForm.test.ts parses 090000's seed rows and 120000's statements; the files'
-    // hashes as of the day they were applied on live:
+    // hashes as they were applied:
     expect(SHA).toEqual(APPLIED_HASHES);
     expect(pins).toContain("20260925090000_forms_are_data");
     expect(pins).toContain("20260925120000_the_default_form_is_fixed");
   });
 });
 
-// sha256 of the two applied migrations, taken 2026-09-25 from the files live applied.
+// sha256 of the two applied migrations, as deployed databases recorded them.
 const APPLIED_HASHES: Record<string, string> = {
   "prisma/migrations/20260925090000_forms_are_data/migration.sql": "cbea212d7cd330c13c667918bad2b57572a2ceb871c327da423a3bb687147557",
   "prisma/migrations/20260925120000_the_default_form_is_fixed/migration.sql": "b8338d12f1c9f3c92022798556e1d0ef7a5b1f25b60b6e7b141feac2ca8dfb4c",

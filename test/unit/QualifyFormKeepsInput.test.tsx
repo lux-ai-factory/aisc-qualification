@@ -8,11 +8,10 @@ vi.mock("@/app/p/[project]/qualify/new/actions", () => ({ submitQualification })
 
 import QualifyForm from "@/app/p/[project]/qualify/new/QualifyForm";
 
-// Reported on the clean stack (2026-09-27): a save the server refuses ("Pick at least one
-// target-system capability.") showed the message and then the form was blank again. A
-// <form action={fn}> is reset by React when the action finishes, whatever it returned, and
-// the fields are uncontrolled (the document prefill writes onto them), so a refusal erased
-// everything typed or prefilled. A refused save must leave every field as it was.
+// A save the server refuses (for example "Pick at least one target-system capability.")
+// must leave every field as it was. A <form action={fn}> is reset by React when the action
+// finishes, whatever it returned, and the fields are uncontrolled (the document prefill
+// writes onto them), so without care a refusal erases everything typed or prefilled.
 
 afterEach(() => {
   cleanup();

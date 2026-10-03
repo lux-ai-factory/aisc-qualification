@@ -3,9 +3,8 @@ import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import SiteHeader from "@/components/SiteHeader";
 
-// Addendum 06, R49: a "Forms" link in the site header, inside a project only. Two-level
-// forms T60 (D24): "Question sets" and "Questionnaires" take its place. 2026-09-28: those
-// two and "Methodology" sit in one "Framework" menu, what a qualification is measured by.
+// The site header, inside a project only: "Question sets", "Questionnaires" and
+// "Methodology" sit in one "Framework" menu, what a qualification is measured by.
 
 let before: string | undefined;
 beforeEach(() => {

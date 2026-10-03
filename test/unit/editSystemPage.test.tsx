@@ -3,18 +3,17 @@ import { isValidElement, type ReactElement, type ReactNode } from "react";
 import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
 import { readFileSync } from "node:fs";
 
-// The edit page's branching (R8), run rather than read: which of ?example, ?questionnaire and
-// ?questionnaireVersion (and the old names ?form, ?formVersion) decides the questionnaire,
+// The edit page's branching, run rather than read: which of ?example, ?questionnaire and
+// ?questionnaireVersion (and the alias names ?form, ?formVersion) decides the questionnaire,
 // what an unknown id does, what the chooser is given, and what QualifyForm is given when a
-// card moves to another questionnaire version. Two-level forms T37 to T39 and T41
-// (docs/superpowers/two-level-forms-2026-09-25/01-spec.md). The services are mocked at their
+// card moves to another questionnaire version. The services are mocked at their
 // module singletons; QualifyForm and FormChooser are replaced by markers whose props the tests
 // read from the returned element tree.
 //
 // The page resolves ?questionnaireVersion (alias ?formVersion) through
 // questionnaireService.resolve and ?questionnaire (alias ?form) through latestVersion.
 // startingPoint() returns { next: {versionNumber, fromVersionNumber}, initial,
-// fromQuestionnaireVersionId } (spec 8.3).
+// fromQuestionnaireVersionId }.
 // Chooser props: see test/unit/FormChooser.test.tsx.
 
 const { questionnaireService, qualificationService } = vi.hoisted(() => ({

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// The form speaks VAIR (docs/superpowers/vair-form-2026-09-30/01-plan.md): one control per thing,
+// The form speaks VAIR: one control per thing,
 // VAIR's list wherever VAIR has one, ours only where it has none.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -162,7 +162,7 @@ describe("a component row", () => {
   });
 });
 
-// ── the answered form on the card shows what was chosen, by VAIR's labels ────
+// The answered form on the card shows what was chosen, by VAIR's labels
 import AnsweredForm from "@/app/p/[project]/qualify/[id]/AnsweredForm";
 
 describe("the answered form", () => {
@@ -204,7 +204,7 @@ describe("the answered form", () => {
   });
 });
 
-// ── the form never says "VAIR": the methodology page explains it, the form does not ────
+// The form never says "VAIR": the methodology page explains it, the form does not
 describe("the word VAIR", () => {
   const named = (html: string) => html.match(/.{0,40}\bVAIR\b.{0,40}/g) ?? [];
 

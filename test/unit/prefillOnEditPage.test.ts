@@ -4,12 +4,11 @@ import { resolve } from "node:path";
 import { KEY_QUESTIONS, keyQuestionField } from "@/data/keyQuestions";
 import { QualificationFormParser, FormValidationError } from "@/server/forms/QualificationFormParser";
 
-// WP5 (pipeline 2026-09-23): finish the document prefill. The upload lives on
-// the system's edit page (705a288 made /qualify/new a redirect), proposes the
-// 21 mapped fields and the risk rows, and never sets tags.
+// The document prefill. The upload lives on the system's edit page (/qualify/new
+// is a redirect), proposes the 21 mapped fields and the risk rows, and never sets tags.
 //
-// The prefill modules are other people's untracked work; they are loaded at run
-// time so this file does not depend on them at collection.
+// The prefill modules are loaded at run time so this file does not depend on them
+// at collection.
 
 const EDIT_PAGE = "src/app/p/[project]/system/edit/page.tsx";
 const FORM = "src/app/p/[project]/qualify/new/QualifyForm.tsx";

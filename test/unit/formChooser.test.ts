@@ -4,18 +4,15 @@ import * as chooser from "@/domain/forms/chooser";
 // "Which questionnaire?": which option the chooser opens with, and which URL parameter the edit
 // page looks up.
 //
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md, T37, T39; spec 8.3
-// formChooser row). Changed deliberately:
-//   - preselect's signature: options are { questionnaireId, versionId /* its latest */ }, from is
+//   - preselect: options are { questionnaireId, versionId /* its latest */ }, from is
 //     { fromVersionId }. ChooserPick is { param: "questionnaire" | "questionnaireVersion", id }.
-//   - R8 "an older version of a form still starts on that form (its latest version)" flips (D11):
-//     a card never moves to a newer version by itself, so an older version starts on that exact
-//     version.
-//   - pickFormParams is renamed pickQuestionnaireParams and extended with the new parameter
-//     names; ?form and ?formVersion stay as aliases (D20). The lookups are
+//   - a card never moves to a newer version by itself, so a card made from an older version
+//     starts on that exact version.
+//   - pickQuestionnaireParams reads the questionnaire parameters; ?form and ?formVersion are
+//     aliases kept for links made before questionnaires. The lookups are
 //     { lookup: "example" } | { lookup: "version", id } | { lookup: "latest", id } | { lookup: "none" }.
-// Kept: the first card starts on the Annex IV default whatever the options' order; the first
-// option without it; null without options; a stale extra argument changes nothing.
+//   - the first card starts on the Annex IV default whatever the options' order; else the first
+//     option; null without options; a stale extra argument changes nothing.
 
 type Pick = { param: string; id: string } | null;
 const preselect = (options: unknown[], from: unknown): Pick =>
@@ -84,7 +81,7 @@ describe("preselect (T37)", () => {
 //   else ?form (alias)                    { lookup: "latest", id }
 //   else                                  { lookup: "none" }
 // Empty strings count as absent. An unknown version never falls back to a questionnaire
-// parameter: the lookup names the version, and the page shows T36's message when it is not found.
+// parameter: the lookup names the version, and the page shows a "not found" message when it is missing.
 
 describe("pickQuestionnaireParams (T39)", () => {
   const pick = (params: Record<string, string | undefined>) =>

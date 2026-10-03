@@ -1,11 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { loadSrc, formVersion, setQuestion, seededQuestion } from "../support/forms";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md): the questionnaire
-// builder's save payload. T22 parseQuestionnaireDraft (every message, in check order), T23
-// sameQuestionnaireContent. Replaces test/unit/formDraft.test.ts (spec 8.2): the name,
-// description and block checks carried over; the pick/own/copy kinds are gone, an item is only
-// { setVersionId, questionId } and never carries wording.
+// The questionnaire builder's save payload: parseQuestionnaireDraft (every message, in check
+// order) and sameQuestionnaireContent. An item is only { setVersionId, questionId } and never
+// carries wording.
 
 const mod = () => loadSrc("domain/forms/questionnaireDraft.ts");
 

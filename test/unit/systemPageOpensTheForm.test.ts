@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 // With no card to show, the AI system page opens the empty form rather than a
-// page that only says so (2026-09-30). Only a platform that does not answer
+// page that only says so. Only a platform that does not answer
 // still gets a page of its own: there is nothing to open then.
 
 const redirect = vi.fn((to: string) => {

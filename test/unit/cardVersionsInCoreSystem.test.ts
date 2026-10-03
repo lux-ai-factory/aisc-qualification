@@ -4,14 +4,14 @@ import { QualificationService } from "@/server/services/QualificationService";
 import * as cardVersions from "@/domain/cardVersions";
 import { transactional } from "../support/ledgerRepo";
 
-// WP3 (pipeline 2026-09-23). The project has one AI system, not versioned;
+// The project has one AI system, not versioned;
 // only its AI card is. Saving the card makes the next card version, a row of
 // core.system (the platform's `/system-versions` routes), and the card points
 // at it. Nothing is frozen: old versions are read-only because they are not
 // the latest, which the database enforces.
 //
-// Written before the implementation. Methods that do not exist yet are reached
-// through `loose` so tsc stays clean while the tests fail at run time.
+// Some methods are reached through `loose` so a missing one fails its test at
+// run time rather than tsc.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const loose = (x: unknown) => x as any;
@@ -107,7 +107,7 @@ describe("cardVersions with {pid, number} rows (no frozen_at)", () => {
   });
 
   it("S3.1 a latest version left without a card (a failed save) is skipped: the next save makes vN+1", () => {
-    // WP3 code note: versions are never deleted, so v2 stays card-less
+    // versions are never deleted, so v2 stays card-less
     const next = loose(cardVersions).nextCard([v(2), v(1)], [{ id: "c1", systemId: "v1" }]);
     expect(next).toEqual({ versionNumber: 3, fromCardId: "c1", fromVersionNumber: 1 });
   });
@@ -177,7 +177,7 @@ describe("save = next version (QualificationService.createFromForm)", () => {
       name: "MCAS", version: "1.3", provider: "LIST", description: "Scores loans",
     });
     expect(created.map((c) => c.systemId)).toEqual(["v1", "v2"]);
-    // isolation Q1: the card goes into its project's own database and names no project
+    // the card goes into its project's own database and names no project
     expect(created.every((c) => !("projectId" in c))).toBe(true);
   });
 
@@ -226,7 +226,7 @@ describe("the save action reports the platform plainly (S3.6)", () => {
     const redirect = vi.fn();
     vi.doMock("next/navigation", () => ({ redirect }));
     vi.doMock("@/server/services/FillerClient", () => ({ requestFill: vi.fn(async () => true) }));
-    // isolation Q1: the action's door lets the editor in (the non-pid "mcas" would be 404)
+    // the action's door lets the editor in (the non-pid "mcas" would be 404)
     vi.doMock("@/lib/projectDb", () => ({ projectDbForAction: vi.fn(async () => ({ db: {} })) }));
     vi.doMock("@/server/services/QualificationService", async (orig) => {
       const real = (await orig()) as Record<string, unknown>;

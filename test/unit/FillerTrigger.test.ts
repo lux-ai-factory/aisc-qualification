@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { requestFill } from "@/server/services/FillerClient";
 
-// Runs are addressed by project and card (isolation Q1: /fill/{pid}/{id}).
+// Runs are addressed by project and card (/fill/{pid}/{id}).
 const PID = "a1b2c3d4-0000-4000-8000-000000000002";
 
 describe("asking the filler to run", () => {

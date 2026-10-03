@@ -4,8 +4,7 @@ import { cardAsFormStart, cardStanding, nextCard } from "@/domain/cardVersions";
 // A project has one AI system; its AI card is versioned. Every save makes the
 // version after the latest (a row of core.system), and the card starts from
 // the newest card before it, to be reviewed rather than typed again.
-// (Rewritten for WP3, pipeline 2026-09-23: rows are {pid, number}; the draft
-// case is gone, the other fixtures lost their frozen flag.)
+// Version rows are {pid, number}.
 
 const v = (number: number) => ({ pid: `v${number}`, number });
 

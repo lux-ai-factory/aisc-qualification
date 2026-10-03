@@ -5,7 +5,7 @@ import { toExport } from "@/server/services/QualificationExporter";
 import { defaultVersionLiteral } from "../support/forms";
 import { transactional } from "../support/ledgerRepo";
 
-// Saving the Components block (targets plan v2, QL2 and QL5 input): keys come from the card the
+// Saving the Components block: keys come from the card the
 // save starts from, never from the browser; the graph builder gets the rows and the links' parts.
 
 const version = (number: number) => ({

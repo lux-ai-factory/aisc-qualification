@@ -3,13 +3,10 @@ import { readFileSync } from "node:fs";
 import { FakeQuestionnaireStore, idCounter } from "../support/fakeQuestionnaireStore";
 import { ALL_BLOCKS, loadSrc } from "../support/forms";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md): the question-set
-// service, with both repositories replaced by the in-memory store
+// The question-set service, with both repositories replaced by the in-memory store
 // (test/support/fakeQuestionnaireStore.ts documents the methods the service may call).
-// T14, T15, T19, T45, T49 (alsoQuestionnaire), T57, T63. Replaces the set half of the old
-// test/unit/FormService.test.ts (spec 8.2).
 //
-// Interface (spec 5.3, and the lead's interfaces note where the spec is silent):
+// Interface:
 //   new QuestionSetService(repository, { newId?, now? })
 //   saveDraft(draft, { setId?, origin?, createdBy, alsoQuestionnaire? })
 //     -> { ok: true, setId, versionId, number, created, questionnaireId? } | { ok: false, error }
@@ -65,7 +62,7 @@ beforeEach(() => {
   store = new FakeQuestionnaireStore().seedAnnex();
 });
 
-// ── T14 creating a set ──────────────────────────────────────────────────────
+// Creating a set
 
 describe("creating a question set (T14)", () => {
   it("T14 one transaction writes the set, its questions s-<setId>:q1, q2, and v1 with the items in order", async () => {
@@ -152,7 +149,7 @@ describe("creating a question set (T14)", () => {
   });
 });
 
-// ── T15 editing a set ───────────────────────────────────────────────────────
+// Editing a set
 
 describe("editing a set makes its next version (T15)", () => {
   beforeEach(() => {
@@ -309,7 +306,7 @@ describe("editing a set makes its next version (T15)", () => {
   });
 });
 
-// ── T19 retiring ────────────────────────────────────────────────────────────
+// Retiring
 
 describe("retiring a set (T19)", () => {
   beforeEach(() => {
@@ -360,7 +357,7 @@ describe("retiring a set (T19)", () => {
   });
 });
 
-// ── T45 groups and list ─────────────────────────────────────────────────────
+// Groups and list
 
 describe("groups() and list() (T45)", () => {
   beforeEach(() => {
@@ -434,7 +431,7 @@ describe("groups() and list() (T45)", () => {
   });
 });
 
-// ── T49 alsoQuestionnaire ───────────────────────────────────────────────────
+// alsoQuestionnaire
 
 describe("an import that also makes a questionnaire (T49)", () => {
   it("T49 one transaction: set v1 and a listed questionnaire named as the set, all 9 blocks, items pinned to v1", async () => {
@@ -484,7 +481,7 @@ describe("an import that also makes a questionnaire (T49)", () => {
   });
 });
 
-// ── T57 history ─────────────────────────────────────────────────────────────
+// History
 
 describe("who and when (T57)", () => {
   it("T57 history(setId) is every version's stamp, newest first, createdAt ISO 8601 in UTC", async () => {
@@ -519,7 +516,7 @@ describe("who and when (T57)", () => {
   });
 });
 
-// ── T63 install-wide ────────────────────────────────────────────────────────
+// Install-wide
 
 describe("question sets are install-wide (T63)", () => {
   it("T63 no public method takes a project or projectId parameter", async () => {

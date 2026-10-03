@@ -8,7 +8,7 @@ import { COMPONENT_KINDS, COMPONENT_BLOCK, COMPONENT_TYPES, isComponentKind } fr
 import { assignComponentKeys } from "@/domain/systemComponents";
 import { cardAsFormStart, type CardContent } from "@/domain/cardVersions";
 
-// The card's Components block (targets plan v2, 2026-09-29, QL1 to QL4): one row per part of the
+// The card's Components block: one row per part of the
 // system, each with a stable key carried from one card version to the next, so assessments and
 // their results can name it. On every card, whatever its questionnaire, like the identity fields.
 
@@ -27,7 +27,7 @@ function identity(): FormData {
 }
 
 function addComponent(fd: FormData, i: number, over: Partial<Record<string, string>> = {}) {
-  // A row's one Type list (2026-09-30): a VAIR AIComponent term, or one of our own types.
+  // A row's one Type list: a VAIR AIComponent term, or one of our own types.
   const v = { name: "Scoring model", role: "Scores each application", type: "DecisionTree", provider: "in_house", ...over };
   for (const [k, val] of Object.entries(v)) fd.set(`component:${i}:${k}`, val);
 }

@@ -75,7 +75,7 @@ describe("the MCAS seed", () => {
     const row = db.rows[0] as any;
     expect(row.answers.length).toBe(14);
     expect(row.risks.length).toBe(5);
-    // The Annex IV ids the form asks under, not the question set they replaced.
+    // The Annex IV ids the form asks under.
     expect(
       row.answers.map((a: any) => `${a.toolId}:${a.questionId}`),
     ).toContain("annex-1:1de");

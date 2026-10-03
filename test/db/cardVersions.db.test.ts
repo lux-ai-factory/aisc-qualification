@@ -2,11 +2,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 
-// WP3 (pipeline 2026-09-23): a card points at one row of the card versions, the
-// card version. Only the latest version's card may change; older ones are kept as
+// A card points at one row of the card versions, the card version. Only the latest version's card may change; older ones are kept as
 // they were, by the database itself, and deleting a version takes its card with it.
 //
-// Isolation Q1: the versions are project.system of the project's own database, and
+// The versions are project.system of the project's own database, and
 // the card names no project (the database is the project). Runs only against a
 // throwaway project database: test/db/throwaway-db.sh provisions project F the
 // platform's way, migrates it and sets the variables. Never the live DB.
@@ -39,7 +38,7 @@ function card(systemId: string, name: string) {
 }
 
 describe.skipIf(!enabled)("the migration's schema (catalog)", () => {
-  // S3.3, S3.7: the card's key is into the project's card versions, and cascades from it
+  // the card's key is into the project's card versions, and cascades from it
   it("S3.7 qualification.system_id references project.system(pid) ON DELETE CASCADE", async () => {
     const rows = await admin.$queryRawUnsafe<{ target: string; del: string }[]>(
       `SELECT confrelid::regclass::text AS target, confdeltype::text AS del
@@ -93,7 +92,7 @@ describe.skipIf(!enabled)("the migration's schema (catalog)", () => {
     );
     expect(cols).toEqual([
       { column_name: "airo_property", is_nullable: "NO" },
-      // targets plan v2 (20260929000000_system_components): which part of the system the item is
+      // 20260929000000_system_components: which part of the system the item is
       { column_name: "component_key", is_nullable: "YES" },
       { column_name: "component_pid", is_nullable: "NO" },
       { column_name: "component_type", is_nullable: "NO" },

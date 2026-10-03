@@ -126,7 +126,7 @@ describe("the methodology page reads as a procedure", () => {
   it("has no step that refers forward or doubles back", () => {
     const { container } = mount();
     const text = container.textContent ?? "";
-    // The filler loop used to arrive as "Step 5a" after the procedure ended.
+    // A lettered step such as "Step 5a" would be a loop tacked on after the procedure ends.
     expect(text).not.toMatch(/Step \d+[a-z]/);
     // Each ontology is explained inside the step that first needs it, so there
     // is no separate section to jump to afterwards.

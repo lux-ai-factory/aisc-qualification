@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { loadSrc } from "../support/forms";
 
-// Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md), T55: created_by is
-// the signed-in user. identityFromToken(token) is pure: it decodes a JWT's payload (base64url,
-// no signature check, D4) and returns the first non-blank string of preferred_username, email,
+// created_by is the signed-in user. identityFromToken(token) is pure: it decodes a JWT's
+// payload (base64url, no signature check: the gateway has already verified it) and returns the first non-blank string of preferred_username, email,
 // sub, trimmed and cut to 200 characters; null for null, a malformed token, or none of the
 // three. callerName() = identityFromToken(await callerToken()) ?? "unknown".
 
