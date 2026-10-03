@@ -5,8 +5,8 @@ import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
 
 /**
  * The shape the ontology service consumes. This app owns the database, so the
- * service never parses the Prisma schema. The structured fields are VAIR terms
- * (2026-09-30): the service names each node with VAIR's label and types it with
+ * service never parses the Prisma schema. The structured fields are VAIR terms:
+ * the service names each node with VAIR's label and types it with
  * the term, so nothing is resolved here.
  *
  * Mirrors scripts/export_qualification.mjs, which does the same for the CLI.
@@ -58,7 +58,7 @@ export type QualificationExport = {
     followUpControlTerm: string | null;
   }>;
   /** The engine components the card links, each by its AIRO property; absent
-   *  when it links none, so a card without links exports as it always did. */
+   *  when it links none, so the export of a card without links is unchanged. */
   engineComponents?: Array<{
     pid: string;
     name: string;
@@ -68,8 +68,8 @@ export type QualificationExport = {
     /** Which of the card's components this item is; absent when the link names none. */
     componentKey?: string;
   }>;
-  /** The Components block's rows, in order; absent on a card without rows, so it exports as it
-   *  always did (targets plan v2). */
+  /** The Components block's rows, in order; absent on a card without rows, so the export of
+   *  such a card is unchanged. */
   systemComponents?: Array<{
     key: string;
     name: string;
@@ -147,8 +147,8 @@ const operatorTerm = (id: string | null | undefined) =>
   id && isVairTerm("AIOperator", id) ? id : null;
 const terms = (cls: VairClass, ids: readonly string[]) => ids.filter((id) => isVairTerm(cls, id));
 
-/** The card as the ontology service reads it. Without a form version it is the
- *  export as it always was. */
+/** The card as the ontology service reads it. Without a form version the answers
+ *  keep their plain shape. */
 export function toExport(
   q: QualificationWithAnswers,
   form?: ResolvedQuestionnaireVersion,

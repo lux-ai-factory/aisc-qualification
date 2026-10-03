@@ -15,8 +15,8 @@ const IDENTITY_REQUIRED: Array<["systemName" | "systemVersion" | "company", stri
   ["company", "Company is required"],
 ];
 
-// The metadata text blocks, required when the form includes them. Checked in
-// this order, after the identity, so the first message is the one it always was.
+// The metadata text blocks, required when the form includes them. They are checked
+// in this order, after the identity, so the first error message is always the same.
 const TEXT_BLOCKS: Array<["description" | "targetUseCase" | "targetUsers", string]> = [
   ["description", "Description is required"],
   ["targetUseCase", "Target use case is required"],

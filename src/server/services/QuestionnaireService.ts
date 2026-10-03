@@ -32,7 +32,7 @@ import {
   uniqueConflict,
 } from "@/server/services/QuestionSetService";
 
-/** One row of the questionnaire list page (T34, T46). */
+/** One row of the questionnaire list page. */
 export type QuestionnaireLibraryRow = {
   questionnaireId: string;
   name: string;
@@ -47,7 +47,7 @@ export type QuestionnaireLibraryRow = {
   savedBy: string;
   savedAt: string;
   retiredAt: string | null;
-  /** How many picks of the latest version have an update available (T46). */
+  /** How many picks of the latest version have an update available. */
   updates: number;
 };
 
@@ -55,7 +55,7 @@ export type QuestionnaireLibraryRow = {
 export type QuestionnaireChooserOption = QuestionnaireLibraryRow & { versionIds: string[] };
 
 export type SaveQuestionnaireOptions = {
-  /** The caller's ledger events, in the save's transaction (ledger phase 5). */
+  /** The caller's ledger events, in the save's transaction. */
   record?: FormsRecorder;
   /** The questionnaire to save the next version of; absent for a new one. */
   questionnaireId?: string;
@@ -63,7 +63,7 @@ export type SaveQuestionnaireOptions = {
   listed: boolean;
   origin?: "builder" | "import";
   createdBy: string;
-  /** The card's system name, for a use-once name (R68). */
+  /** The card's system name, for a use-once name. */
   systemName?: string;
 };
 
@@ -71,7 +71,7 @@ export type SaveQuestionnaireResult =
   | { ok: true; questionnaireId: string; versionId: string; number: number; created: boolean }
   | { ok: false; error: string };
 
-/** A self-contained questionnaire file as the prefill service reads it back (T51). */
+/** A self-contained questionnaire file as the prefill service reads it back. */
 export type SelfContainedFile = {
   name?: string;
   description?: string;
@@ -94,12 +94,12 @@ export type ResolvedReferences =
   | { ok: true; picks: Array<{ question: ResolvedQuestion; setVersionId: string }> }
   | { ok: false; missing: string[] };
 
-/** The group_label CHECK's bound (spec 3.1) and T51's. */
+/** The length bound of the group_label CHECK constraint, also applied to imported files. */
 const MAX_GROUP_LABEL = 120;
 
 const RACED = "This questionnaire was saved by someone else meanwhile. Reload it and save again.";
 
-/** A questionnaire version row, resolved: the pinned wording of each item (T25). */
+/** A questionnaire version row, resolved: the pinned wording of each item. */
 function toResolvedQuestionnaireVersion(row: QuestionnaireVersionRow): ResolvedQuestionnaireVersion {
   const q = row.questionnaire;
   return {
@@ -117,8 +117,9 @@ function toResolvedQuestionnaireVersion(row: QuestionnaireVersionRow): ResolvedQ
 }
 
 /**
- * The install's questionnaires: what a card is filled with. The install is the
- * organisation: one library, the same for every project. A questionnaire is
+ * The questionnaires of one library: what a card is filled with. The service never
+ * names a project; the database its repository is bound to is the scope (see
+ * questionnairesOn below). A questionnaire is
  * assembled only by picking questions from question-set versions; it never writes
  * or rewords a question. Each item is pinned to the set version whose wording it
  * shows, and never follows a newer one by itself. The default is always
@@ -142,8 +143,8 @@ export class QuestionnaireService implements QuestionnaireResolver {
   }
 
   /**
-   * The version a card was filled with. NULL is every card saved before forms
-   * existed: the default version, answered in memory without the database. An
+   * The version a card was filled with. NULL (a card saved before forms existed)
+   * is the default version, answered in memory without the database. An
    * unknown id is null.
    */
   async resolve(id: string | null): Promise<ResolvedQuestionnaireVersion | null> {
@@ -157,14 +158,14 @@ export class QuestionnaireService implements QuestionnaireResolver {
     return this.exportable(questionnaireId);
   }
 
-  /** Version `n` of a questionnaire (its latest without one), whatever its listing; or null (06 R57). */
+  /** Version `n` of a questionnaire (its latest without one), whatever its listing; or null. */
   async exportable(questionnaireId: string, n?: number): Promise<ResolvedQuestionnaireVersion | null> {
     const versions = await this.repository.questionnaireVersionsOf(questionnaireId);
     const row = n === undefined ? versions.at(-1) : versions.find((v) => v.number === n);
     return row ? toResolvedQuestionnaireVersion(row) : null;
   }
 
-  /** The listed questionnaires, non-retired (or with `retired` only the retired ones), default first (T46). */
+  /** The listed questionnaires, non-retired (or with `retired` only the retired ones), default first. */
   async library({ retired = false }: { retired?: boolean } = {}): Promise<QuestionnaireLibraryRow[]> {
     return (await this.listed(retired)).map((l) => l.row);
   }
@@ -174,7 +175,7 @@ export class QuestionnaireService implements QuestionnaireResolver {
     return (await this.listed(false)).map(({ row, versionIds }) => ({ ...row, versionIds }));
   }
 
-  /** Who saved each version and when, newest first (T57). */
+  /** Who saved each version and when, newest first. */
   async history(questionnaireId: string): Promise<VersionStamp[]> {
     return (await this.repository.questionnaireVersionsOf(questionnaireId)).map(stampOf).reverse();
   }
@@ -183,7 +184,7 @@ export class QuestionnaireService implements QuestionnaireResolver {
    * Saves the builder's draft: a new questionnaire's v1, or the next version of
    * `opts.questionnaireId`. `listed: false` is "Use once", named after the system
    * and the day, whatever the draft says. An existing questionnaire keeps its
-   * name. Items name set items; their wording is never read from the draft (T24).
+   * name. Items name set items; their wording is never read from the draft.
    */
   async saveDraft(input: unknown, opts: SaveQuestionnaireOptions): Promise<SaveQuestionnaireResult> {
     const all = await this.repository.listQuestionnaires();
@@ -273,7 +274,7 @@ export class QuestionnaireService implements QuestionnaireResolver {
     return { ok: true, questionnaireId, versionId, number: 1, created: true };
   }
 
-  /** Retires a listed questionnaire: hidden from lists and the chooser, still resolvable (T35). */
+  /** Retires a listed questionnaire: hidden from lists and the chooser, still resolvable. */
   async retire(
     questionnaireId: string,
     record?: (tx: Prisma.TransactionClient) => Promise<unknown>,
@@ -294,7 +295,7 @@ export class QuestionnaireService implements QuestionnaireResolver {
 
   /**
    * A references file's items, looked up on this install by (setId, setVersion)
-   * and (scope, localId), never by name (T53, D15): the picks, pinned to the named
+   * and (scope, localId), never by name: the picks, pinned to the named
    * set versions, or every missing reference.
    */
   async resolveReferences(items: ReferenceItem[]): Promise<ResolvedReferences> {
@@ -327,15 +328,15 @@ export class QuestionnaireService implements QuestionnaireResolver {
   /**
    * A self-contained file: a new question set (origin import) holding the file's
    * wording as new questions s-<setId>:q1..qN, and a listed questionnaire v1 with
-   * the file's blocks pinned to that set's v1, in one transaction (T54, D16).
+   * the file's blocks pinned to that set's v1, in one transaction.
    */
   async importSelfContained(
     file: SelfContainedFile,
     opts: { setName: string; questionnaireName: string; createdBy: string; record?: FormsRecorder },
   ): Promise<{ ok: true; setId: string; questionnaireId: string; versionId: string } | { ok: false; error: string }> {
     // The file comes back from the browser: every item and its groupLabel are checked
-    // again here, with T51's messages (the prefill service checked them once), so a
-    // tampered POST meets a message, never the group_label CHECK (05-verification H4).
+    // again here, with the prefill service's messages (it checked them once), so a
+    // tampered POST gets a message, never the group_label CHECK error.
     for (const [i, it] of file.items.entries()) {
       const n = i + 1;
       if (it === null || typeof it !== "object" || Array.isArray(it)) {
@@ -439,8 +440,6 @@ export class QuestionnaireService implements QuestionnaireResolver {
     }
     return { ok: true, setId, questionnaireId, versionId };
   }
-
-  // ── internals ───────────────────────────────────────────────────────────
 
   /** The listed questionnaires with their latest version, in library order. */
   private async listed(retired: boolean): Promise<Array<{ row: QuestionnaireLibraryRow; versionIds: string[] }>> {

@@ -21,10 +21,10 @@ export type PrefillValues = Record<string, string>;
 /** One risk row, as the form's rows hold it (question 15). */
 export type PrefillRisk = RiskExample;
 
-/** One row of the Components block, as the form holds it (targets plan v2). */
+/** One row of the Components block, as the form holds it. */
 export type PrefillComponent = ComponentExample;
 
-/** The VAIR picks a document names (2026-09-30), as VAIR ids; a field it names none for is absent. */
+/** The VAIR picks a document names, as VAIR ids; a field it names none for is absent. */
 export type PrefillPicks = {
   systemType?: string;
   purpose?: string;
@@ -88,8 +88,7 @@ export class PrefillClient {
     body.set("current", JSON.stringify(current));
     body.set("current_risks", JSON.stringify(currentRisks));
     body.set("current_components", JSON.stringify(currentComponents));
-    // Without a form the request is exactly what it was before forms existed,
-    // so the service reads the default form the way it always has.
+    // Without a form spec the service reads against the default form.
     if (formSpec) {
       body.set("fields", JSON.stringify(formSpec.fields));
       body.set("questions", JSON.stringify(formSpec.questions));
@@ -133,7 +132,7 @@ export class PrefillClient {
       filled: body_.filled,
       kept: body_.kept,
       model: body_.model,
-      // An older service omits the risk fields.
+      // An older prefill service omits the risk fields.
       risks: body_.risks ?? null,
       risksKept: body_.risksKept ?? false,
       risksProposed: body_.risksProposed ?? 0,
@@ -141,7 +140,7 @@ export class PrefillClient {
       components: body_.components ?? null,
       componentsKept: body_.componentsKept ?? false,
       componentsProposed: body_.componentsProposed ?? 0,
-      // and the picks
+      // and the picks.
       picks: body_.picks ?? {},
       picksProposed: body_.picksProposed ?? 0,
     };

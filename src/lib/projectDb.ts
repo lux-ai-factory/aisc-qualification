@@ -13,7 +13,7 @@
  * a server action's arguments come from the client and can name a different
  * one, so an action opens the database of the project it names, after asking.
  *
- * The model is controls' src/lib/projectDb.ts.
+ * The controls app has the same module, in its src/lib/projectDb.ts.
  */
 import { PrismaClient } from "@prisma/client";
 import { execFile } from "node:child_process";
@@ -69,8 +69,8 @@ export function projectDatabaseName(pid: string): string {
 /**
  * The URL of a project's database: `{database}` of the template filled in, and
  * always `schema=qualification` and `connection_limit=2`. Those two are this
- * module's, not the environment's: the per-project connection budget is part of
- * the design (section 17), so a template that says otherwise is overridden.
+ * module's, not the environment's: they set the per-project connection budget, so
+ * a template that says otherwise is overridden.
  */
 export function projectDatabaseUrl(
   pid: string,

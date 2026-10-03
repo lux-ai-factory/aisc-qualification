@@ -2,8 +2,8 @@
 //
 // Node owns the database (Prisma); Python owns the ontology. This script is the
 // seam: it writes the shape airo_min.build.build_graph expects, so the Python side
-// never parses the Prisma schema. The structured fields are VAIR terms
-// (2026-09-30), which the builder names and types itself; a value that is not a
+// never parses the Prisma schema. The structured fields are VAIR terms, which
+// the builder names and types itself; a value that is not a
 // term of its class is dropped with a warning, as QualificationExporter drops it.
 //
 // A card lives in its project's own database, so the project is named by its pid and the

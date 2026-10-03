@@ -51,8 +51,8 @@ export class PlatformClient {
         "PLATFORM_URL is not set: this app cannot name the system it is qualifying.",
       );
     }
-    // The request the gateway witnessed for this person travels on, so the platform's own event (a card
-    // version, a target sync) cites it, and in `enforce` the platform accepts the write (spec 4.3).
+    // The request the gateway witnessed for this person is passed on, so the platform's own event (a card
+    // version, a target sync) cites it; with the ledger in `enforce` mode the platform needs it to accept the write.
     const requestId = await currentRequestId();
     const headers = {
       "Content-Type": "application/json",
@@ -94,7 +94,7 @@ export class PlatformClient {
   }
 
   /** The card's components may have changed: the platform brings the project's assessment
-   *  targets up to date (targets plan v2, O4). The caller treats a failure as best-effort. */
+   *  targets up to date. The caller treats a failure as best-effort. */
   async syncTargets(project: string): Promise<void> {
     await this.call("POST", `/projects/${encodeURIComponent(project)}/targets/sync`, {});
   }

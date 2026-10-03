@@ -19,13 +19,13 @@ export class FillerClient {
   /** True when the filler accepted the request. Never throws.
    *
    * The project says which project database the filler reads the card from; the
-   * model it uses is still the one of the card's own project, which the app
-   * tells it from that database. */
+   * model it uses is the one configured for that project, which the app reads
+   * from that database. */
   async request(project: string, qualificationId: string, run: FillRun = {}): Promise<boolean> {
     if (!this.serviceUrl) return false; // no filler in this deployment
     try {
       // The run's id and the person's witnessed request travel with it, so the agent's ledger events
-      // cite the run this app opened (card.ai_refinement_requested; spec 4.4).
+      // cite the run this app opened (the card.ai_refinement_requested event).
       const headers: Record<string, string> = { ...serviceTokenHeaders(this.serviceToken) };
       if (run.runId) headers["X-AISC-Run-Id"] = run.runId;
       if (run.requestId) headers["X-AISC-Request-Id"] = run.requestId;
@@ -40,7 +40,7 @@ export class FillerClient {
   }
 }
 
-/** Convenience for server actions. */
+/** Request a fill with a default client, for server actions. */
 export async function requestFill(project: string, qualificationId: string, run: FillRun = {}): Promise<boolean> {
   return new FillerClient().request(project, qualificationId, run);
 }

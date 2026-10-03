@@ -9,7 +9,7 @@ import {
 export type { QuestionnaireVersionInsert } from "./QuestionSetRepository";
 
 /**
- * The questionnaire tables (two-level forms, spec 3.1), plus every read of the
+ * The questionnaire tables, plus every read of the
  * question sets (update detection, reference resolution and the self-contained
  * import need them). Versions and items are append-only, so the only writes are a
  * new version in one transaction and retiring a questionnaire.
@@ -21,7 +21,7 @@ export type { QuestionnaireVersionInsert } from "./QuestionSetRepository";
 
 /**
  * What a questionnaire version is read with: its questionnaire, and its items in
- * order, each with the set item it is pinned to (THE wording), that item's
+ * order, each with the set item it is pinned to (which holds the wording), that item's
  * question, and its set version with its set.
  */
 export const QUESTIONNAIRE_VERSION_INCLUDE = {

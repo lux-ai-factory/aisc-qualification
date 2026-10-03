@@ -4,7 +4,7 @@
  * Choosing a file reads it at once. A file that cannot be read says why. One
  * that can, on a form that already has answers, asks what to do with them, and
  * nothing on the form changes until one of the two buttons is pressed. On an
- * empty form the two choices are the same, so it simply lands.
+ * empty form the two choices are the same, so it is applied at once.
  *
  * The reading and the merge are the prefill service's: this only decides what
  * comes next, and the reader is passed in so the steps can be tested alone.
@@ -38,7 +38,7 @@ export type Apply = {
   /** the Components block's rows to put on the form, or null to leave them alone */
   components: PrefillComponent[] | null;
   componentsKept: boolean;
-  /** the VAIR picks the document names (2026-09-30); the form applies them by the mode's rule */
+  /** the VAIR picks the document names; the form applies them by the mode's rule */
   picks: PrefillPicks;
 };
 

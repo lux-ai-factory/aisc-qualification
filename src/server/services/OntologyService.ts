@@ -75,7 +75,7 @@ export class OntologyService {
     qualificationId: string,
     nodeId: string,
     change: NodePatch,
-    /** The caller's ledger event, written in the save's own transaction (ledger phase 5). */
+    /** The caller's ledger event, written in the save's own transaction. */
     record: Recorder<{ node: string; before: NodePatch | null; after: NodePatch | null }> = async () => undefined,
   ): Promise<OntologyBuild> {
     const { repo, q } = await this.findChangeable(projectId, qualificationId);
@@ -87,7 +87,7 @@ export class OntologyService {
     if (Object.keys(merged).length === 0) delete patch[nodeId];
     else patch[nodeId] = merged;
 
-    // Build BEFORE saving, so a rejected term (an invented VAIR type) leaves the
+    // Build before saving, so a rejected term (an invented VAIR type) leaves the
     // stored patch untouched rather than persisting something the graph refuses.
     const built = await this.clientFactory().build(
       await this.exportOf(projectId, q),
@@ -95,7 +95,7 @@ export class OntologyService {
       patch,
     );
     await repo.transaction(async (r, tx) => {
-      // the patch as it is now, locked: a correction saved meanwhile is kept, not overwritten (review m2)
+      // the patch as it is now, locked: a correction saved meanwhile is kept, not overwritten
       const now = ((await r.lockedPatch(qualificationId)) as OntologyPatch | null) ?? {};
       const before = now[nodeId] ?? null;
       const fresh: OntologyPatch = { ...now };
@@ -130,8 +130,8 @@ export class OntologyService {
     // Read first, so a qualification of another project is refused before
     // anything is written rather than after.
     const { repo } = await this.findChangeable(projectId, qualificationId);
-    // The discarded corrections are kept (card_history), with the ledger's event (ledger phase 5), read
-    // inside the transaction with the row locked, so a correction saved meanwhile is discarded too, and kept.
+    // The discarded corrections are kept in card_history, with the ledger event. They are read inside
+    // the transaction with the row locked, so a correction saved meanwhile is discarded and kept too.
     await repo.transaction(async (r, tx) => {
       const before = ((await r.lockedPatch(qualificationId)) as OntologyPatch | null) ?? {};
       if (Object.keys(before).length === 0) return;                  // nothing to discard, nothing to record

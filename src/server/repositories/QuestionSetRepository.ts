@@ -1,7 +1,7 @@
 import type { PrismaClient, Prisma, Question, QuestionSet, Questionnaire } from "@prisma/client";
 
 /**
- * The question-set tables (two-level forms, spec 3.1). Versions and their items are
+ * The question-set tables. Versions and their items are
  * append-only and a question's identity is fixed (the migration's triggers refuse
  * an update or a delete), so the only writes are a new version in one transaction
  * and retiring a set.
@@ -42,7 +42,7 @@ export type SetVersionInsert = {
     annexPoint: string | null;
     groupLabel: string | null;
   }>;
-  /** The questionnaire made in the same transaction (T49 "Also make a questionnaire", T54). */
+  /** The questionnaire made in the same transaction ("Also make a questionnaire"). */
   questionnaire?: QuestionnaireVersionInsert;
 };
 
@@ -59,7 +59,7 @@ export async function writeQuestionnaireVersion(tx: Tx, plan: QuestionnaireVersi
   }
 }
 
-/** Written in a forms transaction after its rows: the caller's ledger event (ledger phase 5). */
+/** Written in a forms transaction after its rows: the caller's ledger event. */
 export type OnWrite = (tx: Tx) => Promise<unknown>;
 
 export class QuestionSetRepository {

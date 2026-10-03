@@ -13,7 +13,7 @@ import {
   type SetVersionRow,
 } from "@/server/repositories/QuestionSetRepository";
 
-/** One row of the question-set list page (T20, T45). */
+/** One row of the question-set list page. */
 export type SetListRow = {
   setId: string;
   name: string;
@@ -28,7 +28,7 @@ export type SetListRow = {
   retiredAt: string | null;
 };
 
-/** What a forms save wrote, for its ledger events (ledger phase 5). `created` is a new set or
+/** What a forms save wrote, for its ledger events. `created` is a new set or
  *  questionnaire; otherwise it is the next version of an existing one. */
 export type SetSaved = {
   id: string;
@@ -68,13 +68,13 @@ export function questionnaireSaved(plan: QuestionnaireVersionInsert): Questionna
 }
 
 export type SaveSetOptions = {
-  /** The caller's ledger events, in the save's transaction (ledger phase 5). */
+  /** The caller's ledger events, in the save's transaction. */
   record?: FormsRecorder;
   /** The set to save the next version of; absent for a new set. */
   setId?: string;
   origin?: "builder" | "import";
   createdBy: string;
-  /** Also make a listed questionnaire with all the new set's questions, in the same transaction (T49). */
+  /** Also make a listed questionnaire with all the new set's questions, in the same transaction. */
   alsoQuestionnaire?: boolean;
 };
 
@@ -94,7 +94,7 @@ type SetItemLike = {
 };
 type SetVersionLike = { id: string; number: number; set: { id: string; name: string; origin: string } };
 
-/** One question of a set version, resolved (spec 5.1). */
+/** One question of a set version, resolved. */
 export function toResolvedQuestion(item: SetItemLike, version: SetVersionLike): ResolvedQuestion {
   const { scope, localId } = item.question;
   return {
@@ -162,7 +162,7 @@ export function uniqueConflict(err: unknown): "questionnaireName" | "name" | "nu
 }
 
 /**
- * Whether a write lost a race with a retire (05-verification H12): the save met
+ * Whether a write lost a race with a retire: the save met
  * the `_is_allowed` trigger ("is retired: it gets no new version"), or a second
  * retire met the `_row_is_fixed` trigger ("it can only be retired, once").
  * Read from the error text, the only place Prisma carries a trigger's message.
@@ -177,8 +177,9 @@ export function retireRace(err: unknown): "saveAfterRetire" | "retiredTwice" | n
 const RACED = "This question set was saved by someone else meanwhile. Reload it and save again.";
 
 /**
- * The install's question sets: where questions are written. The install is the
- * organisation: there is one library, the same for every project.
+ * The question sets of one library: where questions are written. The service never
+ * names a project; the database its repository is bound to is the scope (see
+ * questionSetsOn below).
  *
  * A save never changes a version: it makes the next one, or nothing when the
  * content is unchanged. Question identities are minted here, keyed
@@ -227,7 +228,7 @@ export class QuestionSetService {
     return rows;
   }
 
-  /** Every set's latest version, retired ones included and flagged, Annex IV first (T45). */
+  /** Every set's latest version, retired ones included and flagged, Annex IV first. */
   async groups(): Promise<SetGroup[]> {
     const sets = (await this.repository.listSets()).sort((a, b) => libraryOrder(a, b, ANNEX_SET_ID));
     const groups: SetGroup[] = [];
@@ -265,18 +266,18 @@ export class QuestionSetService {
     return row ? toResolvedSetVersion(row) : null;
   }
 
-  /** Who saved each version and when, newest first (T57). */
+  /** Who saved each version and when, newest first. */
   async history(setId: string): Promise<VersionStamp[]> {
     return (await this.repository.setVersionsOf(setId)).map(stampOf).reverse();
   }
 
-  /** Saves a new set, or the next version of `opts.setId` (T14, T15, T49). */
+  /** Saves a new set, or the next version of `opts.setId`. */
   async saveDraft(input: unknown, opts: SaveSetOptions): Promise<SaveSetResult> {
     if (opts.setId !== undefined) return this.saveNextVersion(input, opts.setId, opts.createdBy, opts.record);
     return this.saveNewSet(input, opts);
   }
 
-  /** Retires a set: hidden from lists and pickers, still resolvable (T19). */
+  /** Retires a set: hidden from lists and pickers, still resolvable. */
   async retire(
     setId: string,
     record?: (tx: Prisma.TransactionClient) => Promise<unknown>,
@@ -292,8 +293,6 @@ export class QuestionSetService {
     }
     return { ok: true };
   }
-
-  // ── internals ───────────────────────────────────────────────────────────
 
   private async saveNewSet(input: unknown, opts: SaveSetOptions): Promise<SaveSetResult> {
     const taken = (await this.repository.listSets()).filter((s) => s.retiredAt === null).map((s) => s.name);
@@ -390,7 +389,7 @@ export class QuestionSetService {
     if (!set || set.origin === "builtin" || set.retiredAt !== null) {
       return { ok: false, error: "That question set cannot be changed." };
     }
-    // The name and description are fixed at creation (D21): the draft's are not read.
+    // The name and description are fixed at creation: the draft's are not read.
     const draft = input !== null && typeof input === "object" && !Array.isArray(input)
       ? { ...(input as Record<string, unknown>), name: set.name, description: set.description }
       : input;
@@ -410,7 +409,7 @@ export class QuestionSetService {
       return { ok: true, setId, versionId: latestRow.id, number: latestRow.number, created: false };
     }
 
-    // An existing question keeps the group label its set last gave it (D19).
+    // An existing question keeps the group label its set last gave it.
     const labelOf = (questionId: string): string | null => {
       for (let v = versions.length - 1; v >= 0; v--) {
         const item = versions[v].items.find((i) => i.questionId === questionId);
@@ -439,7 +438,7 @@ export class QuestionSetService {
     });
     const number = (latestRow?.number ?? 0) + 1;
     const versionId = this.newId();
-    // What changed against the latest version, for the ledger (question_set.version_created)
+    // What changed against the latest version, for the ledger event question_set.version_created
     const was = new Map((latestRow?.items ?? []).map((i) => [i.questionId, i.text]));
     const now = new Set(items.map((i) => i.questionId));
     const change = {

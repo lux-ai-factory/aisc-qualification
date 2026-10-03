@@ -8,7 +8,7 @@ import type { OntologyBuild } from "./OntologyClient";
 // Stores the knowledge graph built for one system: one row per qualification,
 // replaced when the graph changes.
 //
-// The graph is still rebuilt from the answers, the draft and the patch on every
+// The graph is rebuilt from the answers, the draft and the patch on every
 // read. This store keeps the result so it can be handed over, and so a download
 // and the stored row are the same bytes.
 

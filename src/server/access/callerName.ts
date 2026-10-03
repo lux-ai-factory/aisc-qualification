@@ -1,8 +1,8 @@
 /**
- * Who saved a version: the signed-in user's name, for created_by (T55).
+ * Who saved a version: the signed-in user's name, for created_by.
  *
  * The gateway has already checked the token; this only reads a name out of its
- * payload (base64url JSON, no signature check, D4). The first non-blank string of
+ * payload (base64url JSON, with no signature check). The first non-blank string of
  * preferred_username, email and sub wins, trimmed and cut to 200 characters (the
  * database's created_by limit). Reads no env.
  */

@@ -3,8 +3,7 @@
  *
  * The decision is not made in this app. A project belongs to the people in it,
  * and the platform is the one place that knows who: this asks it, and maps the
- * answer onto a status. Six modules each inventing their own idea of who may do
- * what is exactly what this is here to prevent.
+ * answer onto a status, so no module keeps its own idea of who may do what.
  */
 import { bearerHeaders } from "@/server/services/http";
 
@@ -47,8 +46,8 @@ export function projectFromPath(pathname: string): string | null {
  */
 export function decide(method: string, access: Access | null): Verdict {
   if (access === null) return "unavailable";
-  // Not 403: the slug is the project's name, often a customer's, and 403 would
-  // confirm it exists. A stranger is told what a stranger may know.
+  // Not 403: a 403 would confirm that the project exists. A stranger is told
+  // only what a stranger may know.
   if (!access.role) return "not-found";
   if (SAFE_METHODS.has(method.toUpperCase())) return "allow";
   // Every write in these apps is a server action, which is a POST to the page

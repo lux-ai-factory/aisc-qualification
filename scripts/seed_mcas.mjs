@@ -5,9 +5,9 @@ import { PrismaClient } from "@prisma/client";
 import { PROJECT_ID, projectDatabaseUrl } from "./projectDb.mjs";
 // The prose extraction and the curated node names: the parts of the AIRO graph
 // that need judgment rather than a form field. See
-// services/ontology/skills/filling-the-airo-ontology/SKILL.md.
+// services/ontology/prompts/filling-the-airo-ontology.md.
 import ontologyExtracted from "../services/ontology/examples/mcas.extracted.json" with { type: "json" };
-// The VAIR terms of the worked example (2026-09-30) come from the ontology's committed fixture, so
+// The VAIR terms of the worked example come from the ontology's committed fixture, so
 // the seed, the fixture and the graph built from it agree term for term.
 import example from "../services/ontology/examples/mcas.qualification.json" with { type: "json" };
 
@@ -225,9 +225,8 @@ export async function systemForProject(project, options = {}) {
  * `prisma` is a client on the project's own database: the card names no project,
  * the database is the project.
  *
- * The migrate container runs this on every `docker compose up`, so a second run
- * has to be a no-op: it leaves the row alone rather than adding a second copy,
- * and it does not overwrite a card someone has since edited. `force` (or
+ * A second run is a no-op: it leaves the row alone rather than adding a second
+ * copy, and it does not overwrite a card someone has since edited. `force` (or
  * SEED_FORCE=1) replaces it, which is what you want after changing the fixture.
  *
  * @param {import("@prisma/client").PrismaClient} prisma
@@ -253,7 +252,7 @@ export async function seedMcas(prisma, { force = false, project, platform } = {}
     await prisma.qualification.delete({ where: { id: existing.id } });
   }
 
-  // Only now is the system named: finding the card already seeded must not
+  // The system is named only here: finding the card already seeded must not
   // make a version nobody asked for, and a card of a system nothing else can
   // point at would be a dead end (the database refuses it anyway).
   const { systemId } = platform ?? (await systemForProject(project));

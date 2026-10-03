@@ -42,7 +42,7 @@ export type CreateQualificationInput = {
   localityTags: string[];
   answers: AnswerInput[];
   risks: RiskInput[];
-  /** The Components block's rows, keys assigned (targets plan v2). */
+  /** The Components block's rows, with their keys assigned. */
   systemComponents?: KeyedComponent[];
   /** The questionnaire version the card was filled with. */
   questionnaireVersionId: string;
@@ -77,11 +77,11 @@ const WITH_ANSWERS = {
 } as const satisfies Prisma.QualificationInclude;
 
 /**
- * The cards of ONE project: a repository is bound to that project's own
+ * The cards of one project: a repository is bound to that project's own
  * database, so every query is inside the project without naming it. A card id
- * from another project is simply not in this database.
+ * from another project is not in this database.
  */
-/** One row of a card's history (ledger phase 5): what a change would otherwise overwrite. */
+/** One row of a card's history: what a change would otherwise overwrite. */
 export type CardHistoryInput = {
   qualificationId: string;
   kind:
@@ -106,7 +106,7 @@ export class QualificationRepository {
 
   /**
    * Run `fn` in one transaction: a change, its history row and its ledger event
-   * commit together or not at all (spec R2.4). Inside, `repo` is bound to the
+   * commit together or not at all. Inside, `repo` is bound to the
    * transaction and `tx` is what the emitter writes on.
    */
   transaction<T>(fn: (repo: QualificationRepository, tx: Tx) => Promise<T>): Promise<T> {
@@ -312,8 +312,8 @@ export class QualificationRepository {
 
   /**
    * Whether this card version is the latest in this project's database: the
-   * rule the only-latest triggers enforce (qualification.card_is_latest). For
-   * a caller with no user behind it, the card agent, which the platform's
+   * rule the only-latest triggers enforce (qualification.card_is_latest). It is
+   * for a caller with no user behind it (the card agent), which the platform's
    * /system-versions/latest would not answer.
    */
   async isLatest(systemId: string): Promise<boolean> {

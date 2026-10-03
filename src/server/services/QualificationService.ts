@@ -65,13 +65,13 @@ export class QualificationService {
    *
    * The questionnaire version the card was filled with is loaded here, from its
    * id: which questions and blocks count is never taken from the request. A page
-   * opened before the rename posts `formVersionId`; it is read when the new name
-   * is absent (D20).
+   * opened before `questionnaireVersionId` existed posts `formVersionId`, which is
+   * read when the new name is absent.
    */
   async createFromForm(
     project: string,
     formData: FormData,
-    /** The caller's ledger event, written in the card's own transaction (ledger phase 5). */
+    /** The caller's ledger event, written in the card's own transaction. */
     record: (tx: Tx, card: CreatedCard) => Promise<unknown> = async () => undefined,
   ): Promise<{ id: string; projectId: string }> {
     const id = postedId(formData, "questionnaireVersionId") ?? postedId(formData, "formVersionId");
@@ -84,7 +84,7 @@ export class QualificationService {
     void _parsedVersion;
     // Component keys come from the card this save starts from, never from the browser: a row
     // carried from it keeps its key, a new row gets a fresh one, anything else is refused before
-    // anything is written (targets plan v2, QL2).
+    // anything is written.
     // (the card before is looked up only when a row claims one of its keys)
     let allowed = new Set<string>();
     if ((posted ?? []).some((row) => row.key !== null)) {

@@ -1,7 +1,7 @@
 /**
  * What the form holds now, and whether an upload has to ask before it lands.
  *
- * The rule the person sees: an empty form is simply filled, and a form with
+ * The rule the person sees: an empty form is filled directly, and a form with
  * answers in it asks first, because there is something to lose. Both of those
  * are decided here so the component only renders the choice.
  */
@@ -96,7 +96,7 @@ function emptyRisk(): RiskExample {
     areas: [],
     control: "",
     followUpControl: "",
-    // the VAIR selects beside the fields (2026-09-30)
+    // the VAIR term selects beside the text fields
     sourceTerm: "",
     consequenceTerm: "",
     impactTerm: "",

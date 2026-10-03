@@ -29,7 +29,7 @@ export type QuestionnaireFileItem = {
   groupLabel?: string | null;
 };
 
-/** What a questionnaire file is written from (spec T50). */
+/** What a questionnaire file is written from. */
 export type QuestionnaireFileInput = {
   name: string;
   description: string;
@@ -38,7 +38,7 @@ export type QuestionnaireFileInput = {
   items: QuestionnaireFileItem[];
 };
 
-/** A questionnaire file as the service reads it back (spec T51): normalised. */
+/** A questionnaire file as the service reads it back, normalised. */
 export type QuestionnaireFile = {
   bundle: QuestionnaireBundle;
   name: string;
