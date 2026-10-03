@@ -69,8 +69,29 @@ def headers() -> dict[str, str]:
     return out
 
 
+#: The model of a run before it is known (a run can fail before: the app down, no model chosen, a bad
+#: key). The platform requires one on every AI event (review M4).
+UNKNOWN_MODEL = "unknown"
+
+
+def error_code(exc: BaseException) -> str:
+    """What a failure was, from a closed list: never its text, which can hold a key in a URL or a card's
+    personal data, and immudb keeps what it is given for ever (review M5)."""
+    name = type(exc).__name__
+    if name == "ServiceError":
+        return "service_unreachable"
+    if name in ("ResolveError",):
+        return "no_model"
+    if name in ("JSONDecodeError", "ValidationError", "ValueError"):
+        return "parse_error"
+    if name in ("TimeoutError", "ReadTimeout", "ConnectTimeout"):
+        return "timeout"
+    return "error"
+
+
 def emit(action: str, item_type: str, item_id: str | None, details: dict | None = None,
-         send: Callable[[str, bytes, dict], int] | None = None) -> bool:
+         send: Callable[[str, bytes, dict], int] | None = None, retries: tuple = RETRIES,
+         timeout: float = TIMEOUT) -> bool:
     """Post one event of the current run; True when the platform took it (202)."""
     state = RUN.get()
     if not on() or not state or not state.get("run_id") or not state.get("request_id"):
@@ -83,14 +104,13 @@ def emit(action: str, item_type: str, item_id: str | None, details: dict | None 
     event: dict[str, Any] = {"event_id": str(uuid.uuid4()), "request_id": state["request_id"],
                              "run_id": state["run_id"], "action": action, "item_type": item_type,
                              "item_id": item_id, "details": details or {}}
-    if state.get("model"):
-        event["model"] = state["model"]
+    event["model"] = state.get("model") or UNKNOWN_MODEL
     url = f"{base}/internal/projects/{state['pid']}/ledger/events"
     body = json.dumps(event).encode("utf-8")
     hdrs = {"Content-Type": "application/json", "X-AISC-Service-Token": token}
-    for wait in (*RETRIES, None):                                     # the same event id each time
+    for wait in (*retries, None):                                     # the same event id each time
         try:
-            status = (send or _send)(url, body, hdrs)
+            status = (send or _send)(url, body, hdrs, timeout)
             if status in (202, 409):                                  # 409: an earlier try got through
                 return True
             if status < 500:
@@ -105,10 +125,10 @@ def emit(action: str, item_type: str, item_id: str | None, details: dict | None 
     return False
 
 
-def _send(url: str, body: bytes, hdrs: dict) -> int:
+def _send(url: str, body: bytes, hdrs: dict, timeout: float = TIMEOUT) -> int:
     req = request.Request(url, data=body, method="POST", headers=hdrs)
     try:
-        with request.urlopen(req, timeout=TIMEOUT) as res:
+        with request.urlopen(req, timeout=timeout) as res:
             return res.status
     except error.HTTPError as exc:
         return exc.code
@@ -122,7 +142,10 @@ def recording(complete: Callable[..., str]) -> Callable[..., str]:
             return complete(system, user, *args, **kwargs)
         finally:
             what = PURPOSE.get() or {}
+            # one short try: a model call never waits on the ledger (review m6); the run's own start and
+            # end are retried
             emit("ai.llm_call", "llm_call", str(uuid.uuid4()),
                  {"purpose": what.get("purpose") or "unknown", "property": what.get("property"),
-                  "round": what.get("round"), "latency_ms": int((time.monotonic() - started) * 1000)})
+                  "round": what.get("round"), "latency_ms": int((time.monotonic() - started) * 1000)},
+                 retries=(), timeout=2.0)
     return recorded

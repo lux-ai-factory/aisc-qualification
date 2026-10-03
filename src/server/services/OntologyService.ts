@@ -94,10 +94,16 @@ export class OntologyService {
       (q.ontologyExtracted as OntologyExtracted | null) ?? undefined,
       patch,
     );
-    const before = ((q.ontologyPatch as OntologyPatch | null) ?? {})[nodeId] ?? null;
-    const after = patch[nodeId] ?? null;
     await repo.transaction(async (r, tx) => {
-      await r.saveOntologyPatch(qualificationId, patch as unknown as Prisma.InputJsonValue);
+      // the patch as it is now, locked: a correction saved meanwhile is kept, not overwritten (review m2)
+      const now = ((await r.lockedPatch(qualificationId)) as OntologyPatch | null) ?? {};
+      const before = now[nodeId] ?? null;
+      const fresh: OntologyPatch = { ...now };
+      const mergedNow: NodePatch = { ...(fresh[nodeId] ?? {}), ...change };
+      if (Object.keys(mergedNow).length === 0) delete fresh[nodeId];
+      else fresh[nodeId] = mergedNow;
+      const after = fresh[nodeId] ?? null;
+      await r.saveOntologyPatch(qualificationId, fresh as unknown as Prisma.InputJsonValue);
       await r.recordHistory({
         qualificationId,
         kind: "node_corrected",
@@ -123,16 +129,16 @@ export class OntologyService {
   ): Promise<OntologyBuild> {
     // Read first, so a qualification of another project is refused before
     // anything is written rather than after.
-    const { repo, q } = await this.findChangeable(projectId, qualificationId);
-    const before = (q.ontologyPatch as OntologyPatch | null) ?? {};
-    if (Object.keys(before).length > 0) {
-      // The discarded corrections are kept (card_history), with the ledger's event (ledger phase 5).
-      await repo.transaction(async (r, tx) => {
-        await r.saveOntologyPatch(qualificationId, {});
-        await r.recordHistory({ qualificationId, kind: "corrections_discarded", before: before as Prisma.InputJsonValue });
-        await record(tx, { before });
-      });
-    }
+    const { repo } = await this.findChangeable(projectId, qualificationId);
+    // The discarded corrections are kept (card_history), with the ledger's event (ledger phase 5), read
+    // inside the transaction with the row locked, so a correction saved meanwhile is discarded too, and kept.
+    await repo.transaction(async (r, tx) => {
+      const before = ((await r.lockedPatch(qualificationId)) as OntologyPatch | null) ?? {};
+      if (Object.keys(before).length === 0) return;                  // nothing to discard, nothing to record
+      await r.saveOntologyPatch(qualificationId, {});
+      await r.recordHistory({ qualificationId, kind: "corrections_discarded", before: before as Prisma.InputJsonValue });
+      await record(tx, { before });
+    });
     return this.build(projectId, qualificationId);
   }
 

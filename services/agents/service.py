@@ -65,7 +65,7 @@ def _run(pid: str, qualification_id: str, run_id: str | None = None, request_id:
         try:
             result = fill_one(pid, qualification_id)
         except Exception as exc:  # the app must be able to read why
-            ledger.emit("agent.run_failed", "agent_run", run_id, {"error": str(exc)[:500]})
+            ledger.emit("agent.run_failed", "agent_run", run_id, {"error": ledger.error_code(exc)})
             with _LOCK:
                 RUNS[key] |= {
                     "state": "failed",

@@ -17,5 +17,6 @@ export function transactional<T extends Repoish>(repo: T, tx = fakeTx()) {
   out.recordHistory ??= vi.fn(async () => undefined);
   out.findLink ??= vi.fn(async () => null);
   out.ontologyState ??= vi.fn(async () => ({ ontologyPatch: null, ontologyExtracted: null }));
+  out.lockedPatch ??= vi.fn(async () => null);
   return Object.assign(out, { ledgerTx: tx }) as T & { ledgerTx: ReturnType<typeof fakeTx> };
 }

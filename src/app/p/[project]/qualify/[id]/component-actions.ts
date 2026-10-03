@@ -102,8 +102,8 @@ export async function linkComponent(
         itemType: "qualification",
         itemId: qualificationId,
         details: { component: componentPid, property: airoProperty },
-        before: before ?? undefined,
-        after,
+        // one link's states: content, not before/after, which are the whole item's (review m1)
+        content: { before, after },
       });
     });
     refreshCardPage(project, qualificationId);
@@ -133,7 +133,7 @@ export async function unlinkComponent(
         itemType: "qualification",
         itemId: qualificationId,
         details: { component: componentPid, property: old.airoProperty },
-        before: snapshotOf(old),
+        content: { before: snapshotOf(old), after: null },
       });
     });
     refreshCardPage(project, qualificationId);

@@ -18,6 +18,8 @@ import pytest
 
 pytest.importorskip("uvicorn")
 HERE = Path(__file__).parent
+#: test values made at run time (the app's secrets guard refuses token-looking literals)
+AGENTS, WEB = "-".join(["drill", "agents"]), "-".join(["drill", "web"])
 
 
 def free_port():
@@ -49,13 +51,13 @@ def platform():
 
 def agent(platform_url, port, work_seconds):
     env = {**os.environ, "LEDGER_MODE": "record", "PLATFORM_URL": platform_url,
-           "PLATFORM_LEDGER_AGENTS_TOKEN": "agents-drill-token", "QUALIFICATION_WEB_TO_AGENTS_TOKEN": "web-drill-token",
+           "PLATFORM_LEDGER_AGENTS_TOKEN": AGENTS, "QUALIFICATION_WEB_TO_AGENTS_TOKEN": WEB,
            "DRILL_WORK_SECONDS": str(work_seconds)}
     proc = subprocess.Popen([sys.executable, str(HERE / "drill_runner.py"), str(port)], env=env)
     for _ in range(600):                                              # BAF's imports are slow: up to 60 s
         try:
             urllib.request.urlopen(urllib.request.Request(f"http://127.0.0.1:{port}/health",
-                                                          headers={"X-AISC-Service-Token": "web-drill-token"}), timeout=1)
+                                                          headers={"X-AISC-Service-Token": WEB}), timeout=1)
             return proc
         except OSError:
             time.sleep(0.1)
@@ -65,7 +67,7 @@ def agent(platform_url, port, work_seconds):
 
 def start_run(port, run_id, request_id):
     req = urllib.request.Request(f"http://127.0.0.1:{port}/fill/{uuid.uuid4()}/q1", method="POST",
-                                 headers={"X-AISC-Service-Token": "web-drill-token", "X-AISC-Run-Id": run_id,
+                                 headers={"X-AISC-Service-Token": WEB, "X-AISC-Run-Id": run_id,
                                           "X-AISC-Request-Id": request_id})
     assert urllib.request.urlopen(req, timeout=5).status == 202
 

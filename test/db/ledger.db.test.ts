@@ -23,7 +23,23 @@ const V1 = "c5c5c5c5-0000-4000-8000-000000000001";
 const V2 = "c5c5c5c5-0000-4000-8000-000000000002";
 const MODEL = "d5d5d5d5-0000-4000-8000-000000000001";
 
-const state = vi.hoisted(() => ({ db: null as unknown, request: "" as string, fill: [] as unknown[], engineName: "Scoring model" }));
+const state = vi.hoisted(() => ({ db: null as unknown, su: null as unknown, request: "" as string, fill: [] as unknown[],
+  engineName: "Scoring model", failAfter: "" as string }));
+// the real emitter; a test can make the next write fail right after a given event (failAfter)
+vi.mock("@/server/ledger/emit", async (orig) => {
+  const real = await orig<typeof import("@/server/ledger/emit")>();
+  return {
+    ...real,
+    emitEvent: async (tx: never, event: { action: string }) => {
+      const id = await real.emitEvent(tx, event as never);
+      if (state.failAfter && state.failAfter === event.action) {
+        state.failAfter = "";
+        throw new Error("a failure right after the event (test)");
+      }
+      return id;
+    },
+  };
+});
 vi.mock("@/lib/projectDb", async (orig) => ({
   ...(await orig<typeof import("@/lib/projectDb")>()),
   projectDbForAction: async () => ({ db: state.db }),
@@ -40,7 +56,14 @@ vi.mock("@/server/services/EngineClient", () => ({
   engineClient: { components: async () => [{ pid: MODEL, name: state.engineName, component_type: "model", data: "m.pkl" }] },
 }));
 vi.mock("@/server/services/FillerClient", () => ({
-  requestFill: async (...args: unknown[]) => (state.fill.push(args), true),
+  // what the outbox holds when the agent is asked: the run must be open by then (review test gap)
+  requestFill: async (...args: unknown[]) => {
+    const rows = await (state.su as PrismaClient).$queryRawUnsafe<{ n: number }[]>(
+      `SELECT count(*)::int AS n FROM ledger.outbox WHERE action = 'card.ai_refinement_requested' AND item_id = $1`,
+      args[1]);
+    state.fill.push([...args, { openBefore: rows[0].n }]);
+    return true;
+  },
 }));
 vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
 vi.mock("@/server/services/OntologyClient", () => ({
@@ -85,6 +108,7 @@ beforeAll(async () => {
   su = new PrismaClient({ datasourceUrl: at(ADMIN_TEMPLATE, dbName(B)) });
   rw = new PrismaClient({ datasourceUrl: at(TEMPLATE, dbName(B)) });
   state.db = rw;
+  state.su = su;
   for (const [pid, n] of [[V1, 1], [V2, 2]] as const) {
     await su.$executeRawUnsafe(`INSERT INTO project.system (pid, number, name) VALUES ('${pid}', ${n}, 'MCAS') ON CONFLICT DO NOTHING`);
   }
@@ -114,7 +138,9 @@ describe.skipIf(!enabled)("Q1 every card action writes its event in its own tran
     expect(rows.map((r) => r.action)).toEqual(["card.component_linked", "card.component_linked", "card.component_unlinked"]);
     for (const r of rows) expect([r.db_role, r.request_id]).toEqual(["qualification_rw", REQUEST]);
     expect(rows[1].details).toEqual({ component: MODEL, property: "hasModel" });
-    expect((rows[1].before as { name: string }).name).toBe("Scoring model");      // what it replaced
+    // one link's states are content (the card's before/after are the whole card's; review m1)
+    expect((rows[1].content as { before: { name: string } }).before.name).toBe("Scoring model");
+    expect([rows[1].before, rows[1].after]).toEqual([null, null]);
     // Q3: the relink and the unlink keep what they replace
     expect((await history(`lg-card-1-${TAG}`)).map((h) => h.kind)).toEqual(["component_linked", "component_relinked", "component_unlinked"]);
   });
@@ -144,7 +170,7 @@ describe.skipIf(!enabled)("Q1 every card action writes its event in its own tran
     const [row] = await outbox(`lg-card-run-${TAG}`);
     expect(row.action).toBe("card.ai_refinement_requested");
     expect(row.run_id).toMatch(/^[0-9a-f-]{36}$/);
-    expect(state.fill).toEqual([[B, `lg-card-run-${TAG}`, { runId: row.run_id, requestId: REQUEST }]]);
+    expect(state.fill).toEqual([[B, `lg-card-run-${TAG}`, { runId: row.run_id, requestId: REQUEST }, { openBefore: 1 }]]);
   });
 });
 
@@ -209,8 +235,8 @@ describe.skipIf(!enabled)("Q3 a correction, and discarding them all, keep what t
     expect((await resetOntology(B, card)).ok).toBe(true);
     const rows = await outbox(card);
     expect(rows.map((r) => r.action)).toEqual(["card.node_corrected", "card.node_corrected", "card.corrections_discarded"]);
-    expect([rows[1].before, rows[1].after, rows[1].content]).toEqual([{ label: "First" }, { label: "Second" }, { label: "Second" }]);
-    expect(rows[2].before).toEqual({ n1: { label: "Second" } });
+    expect(rows[1].content).toEqual({ change: { label: "Second" }, before: { label: "First" }, after: { label: "Second" } });
+    expect((rows[2].content as { before: unknown }).before).toEqual({ n1: { label: "Second" } });
     const kept = await history(card);
     expect(kept.map((h) => [h.kind, h.subject])).toEqual([["node_corrected", "n1"], ["node_corrected", "n1"],
       ["corrections_discarded", null]]);
@@ -263,5 +289,50 @@ describe.skipIf(!enabled)("Q1 a new card and its event commit together", () => {
     const [{ cards }] = await su.$queryRawUnsafe<{ cards: number }[]>(
       `SELECT count(*)::int AS cards FROM qualification.qualification WHERE id = $1`, written);
     expect(cards).toBe(0);
+  });
+});
+
+describe.skipIf(!enabled)("each change and its event are one transaction (review test gap)", () => {
+  async function put(card: string) {
+    const { PUT } = await import("@/app/p/[project]/api/qualifications/[id]/extracted/route");
+    return PUT(new Request("http://x/", { method: "PUT", body: JSON.stringify({ techniques: [] }) }),
+      { params: Promise.resolve({ project: B, id: card }) });
+  }
+
+  it("a failure right after the draft's event leaves neither the draft, its history, nor the event", async () => {
+    const card = `lg-card-tx-${TAG}`;
+    await newCard(card);
+    state.failAfter = "card.extracted_replaced_by_user";
+    await expect(put(card)).rejects.toThrow(/right after the event/);
+    expect(await outbox(card)).toEqual([]);
+    expect(await history(card)).toEqual([]);
+    const [{ draft }] = await su.$queryRawUnsafe<{ draft: unknown }[]>(
+      `SELECT "ontologyExtracted" AS draft FROM qualification.qualification WHERE id = $1`, card);
+    expect(draft).toBeNull();
+  });
+
+  it("and the same for a link and a correction", async () => {
+    const { linkComponent } = await import("@/app/p/[project]/qualify/[id]/component-actions");
+    const { patchOntologyNode } = await import("@/app/p/[project]/qualify/[id]/ontology-actions");
+    const card = `lg-card-tx2-${TAG}`;
+    await newCard(card);
+    state.failAfter = "card.component_linked";
+    expect((await linkComponent(B, card, MODEL, "hasModel")).ok).toBe(false);
+    state.failAfter = "card.node_corrected";
+    expect((await patchOntologyNode(B, card, "n1", { label: "x" })).ok).toBe(false);
+    expect(await outbox(card)).toEqual([]);
+    expect(await history(card)).toEqual([]);
+    const [{ links }] = await su.$queryRawUnsafe<{ links: number }[]>(
+      `SELECT count(*)::int AS links FROM qualification.card_component WHERE qualification_id = $1`, card);
+    expect(links).toBe(0);
+  });
+});
+
+describe.skipIf(!enabled)("no event of a forms save carries its author (review M6)", () => {
+  it("the content of question_set.created has no createdBy", async () => {
+    const rows = await su.$queryRawUnsafe<{ content: unknown }[]>(
+      `SELECT content FROM ledger.outbox WHERE action IN ('question_set.created', 'questionnaire.created')`);
+    expect(rows.length).toBeGreaterThan(0);
+    for (const r of rows) expect(JSON.stringify(r.content)).not.toMatch(/createdBy|created_by/);
   });
 });

@@ -64,9 +64,8 @@ export async function patchOntologyNode(
         itemType: "qualification",
         itemId: qualificationId,
         details: { node: c.node },
-        content: change,
-        before: c.before ?? undefined,
-        after: c.after ?? undefined,
+        // one node's states: content, not before/after, which are the whole item's (review m1)
+        content: { change, before: c.before, after: c.after },
       }),
     );
     revalidatePath(`/p/${project}/qualify/${qualificationId}`);
@@ -92,8 +91,7 @@ export async function resetOntology(
         action: "card.corrections_discarded",
         itemType: "qualification",
         itemId: qualificationId,
-        before: c.before,
-        after: {},
+        content: { before: c.before, after: {} },
       }),
     );
     revalidatePath(`/p/${project}/qualify/${qualificationId}`);

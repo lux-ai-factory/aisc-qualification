@@ -30,3 +30,13 @@ BEGIN
 END $$;
 CREATE TRIGGER card_history_is_append_only BEFORE UPDATE OR DELETE ON qualification.card_history
   FOR EACH ROW EXECUTE FUNCTION qualification.card_history_is_append_only();
+
+-- and TRUNCATE (review m8). The app's role owns the table (it runs the migrations), so it could still
+-- drop the trigger: the ledger's digests are what show such a rewrite.
+CREATE OR REPLACE FUNCTION qualification.card_history_is_not_truncated() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION 'card history is append-only';
+END $$;
+CREATE TRIGGER card_history_is_not_truncated BEFORE TRUNCATE ON qualification.card_history
+  FOR EACH STATEMENT EXECUTE FUNCTION qualification.card_history_is_not_truncated();

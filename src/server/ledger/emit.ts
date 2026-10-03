@@ -51,6 +51,32 @@ export async function currentRequestId(): Promise<string | null> {
   }
 }
 
+/** Whether the request being served is a server action's POST (Next-Action), which re-renders its page. */
+export async function isServerAction(): Promise<boolean> {
+  try {
+    const { headers } = await import("next/headers");
+    return (await headers()).has("next-action");
+  } catch {
+    return false;
+  }
+}
+
+/** Fields that would name who acted: the witness says who did, an event never does (I2, I10; review M6). */
+const WHO_FIELDS = new Set(["createdBy", "created_by", "updatedBy", "updated_by", "savedBy"]);
+
+/** `value` without any field that names a person, at any depth. */
+export function withoutAuthors(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(withoutAuthors);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([k]) => !WHO_FIELDS.has(k))
+        .map(([k, v]) => [k, withoutAuthors(v)]),
+    );
+  }
+  return value;
+}
+
 /** The JSON the emitter writes; exported for the tests. Throws NotCanonical for a value the ledger can't keep. */
 export function eventBody(event: LedgerEvent, requestId: string | null): string {
   const body: Record<string, unknown> = {
@@ -61,14 +87,15 @@ export function eventBody(event: LedgerEvent, requestId: string | null): string 
     item_id: event.itemId,
     details: event.details ?? {},
   };
-  if (event.content !== undefined) body.content = event.content;
-  if (event.before !== undefined) body.before = event.before;
-  if (event.after !== undefined) body.after = event.after;
+  if (event.content !== undefined) body.content = withoutAuthors(event.content);
+  if (event.before !== undefined) body.before = withoutAuthors(event.before);
+  if (event.after !== undefined) body.after = withoutAuthors(event.after);
   if (event.itemVersion !== undefined && event.itemVersion !== null) body.item_version = String(event.itemVersion);
   if (event.runId) body.run_id = event.runId;
   if (event.model) body.model = event.model;
-  ledgerSafe(body); // refuse now, in the person's transaction, what the ledger would reject later
-  return JSON.stringify(body);
+  const sent = JSON.stringify(body);
+  ledgerSafe(JSON.parse(sent)); // what is sent (undefined fields dropped), refused now if the ledger would later
+  return sent;
 }
 
 /** Queue one event on `tx`, inside the caller's transaction. Returns its event id, or null while the ledger is off. */

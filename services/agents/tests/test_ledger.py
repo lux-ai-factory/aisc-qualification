@@ -22,9 +22,10 @@ REQUEST_ID = str(uuid.uuid4())
 def sent(monkeypatch):
     out = []
 
-    def fake_send(url, body, hdrs):
-        out.append({"url": url, "event": json.loads(body), "headers": hdrs})
-        return 202
+    def fake_send(url, body, hdrs, timeout=None):
+        event = json.loads(body)
+        out.append({"url": url, "event": event, "headers": hdrs})
+        return 202 if event.get("model") else 422                     # as the real route (review M4)
     monkeypatch.setattr(ledger, "_send", fake_send)
     monkeypatch.setattr(ledger.time, "sleep", lambda _s: None)
     monkeypatch.setenv("LEDGER_MODE", "record")
@@ -72,8 +73,9 @@ def test_a_failed_run_records_why(client, sent, monkeypatch):
         raise RuntimeError("the model is down")
     monkeypatch.setattr(service, "fill_one", boom)
     start(client, **{"X-AISC-Run-Id": RUN_ID, "X-AISC-Request-Id": REQUEST_ID})
-    assert [(s["event"]["action"], s["event"]["details"]) for s in sent] == [
-        ("agent.run_failed", {"error": "the model is down"})]
+    # a code from a closed list, never the text (review M5), and a model even before one is known (M4)
+    assert [(s["event"]["action"], s["event"]["details"], s["event"]["model"]) for s in sent] == [
+        ("agent.run_failed", {"error": "error"}, "unknown")]
 
 
 def test_without_a_run_id_or_with_the_ledger_off_nothing_is_sent(client, sent, monkeypatch):
@@ -94,7 +96,7 @@ def test_a_post_that_fails_is_retried_with_the_same_event_then_logged(monkeypatc
     answers = iter([503, OSError("refused"), 202])
     seen = []
 
-    def flaky(url, body, hdrs):
+    def flaky(url, body, hdrs, timeout=None):
         seen.append(json.loads(body)["event_id"])
         a = next(answers)
         if isinstance(a, Exception):
@@ -123,3 +125,25 @@ def test_the_published_draft_carries_the_run(monkeypatch, sent):
         state["model"] = "openai/gpt-4o-mini"
         clients.publish(PID, "q1", {"components": []})
     assert got == {"X-AISC-Run-Id": RUN_ID, "X-AISC-Request-Id": REQUEST_ID, "X-AISC-Model": "openai/gpt-4o-mini"}
+
+
+@pytest.mark.parametrize("exc, code", [
+    (RuntimeError("POST https://x/v1:generate?key=AIzaSyA-not-a-real-key failed"), "error"),
+    (ValueError("the answer was 'The system scores Jane Doe, born 1980'"), "parse_error"),
+])
+def test_a_failure_is_recorded_as_a_code_never_its_text(exc, code):
+    """Review M5: immudb keeps what it is given for ever; an error's text can hold a key or a person."""
+    assert ledger.error_code(exc) == code
+
+
+def test_a_model_call_never_waits_on_the_ledger(monkeypatch):
+    """Review m6: one short try per ai.llm_call."""
+    tries = []
+    monkeypatch.setenv("LEDGER_MODE", "record")
+    monkeypatch.setenv("PLATFORM_URL", "http://platform:8000")
+    monkeypatch.setenv("PLATFORM_LEDGER_AGENTS_TOKEN", "x")
+    monkeypatch.setattr(ledger, "_send", lambda url, body, hdrs, timeout=None: tries.append(timeout) or 503)
+    monkeypatch.setattr(ledger.time, "sleep", lambda s: (_ for _ in ()).throw(AssertionError("slept")))
+    with ledger.run(PID, "q1", RUN_ID, REQUEST_ID):
+        ledger.recording(lambda s, u: "{}")("s", "u")
+    assert tries == [2.0]
