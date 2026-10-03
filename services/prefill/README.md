@@ -1,7 +1,14 @@
 # Pre-fill
 
 Upload the document you already wrote, and the qualification form opens with
-its answers in place. You amend them and save; nothing here is stored.
+its answers in place. You amend them and save; nothing here is stored. The same
+service reads and writes the files of question sets and questionnaires.
+
+In the AISC stack this is the `qualification-prefill` service (port 8012). Its
+only caller is qualification-web (`PREFILL_URL`), which sends
+`QUALIFICATION_WEB_TO_PREFILL_TOKEN` in `X-AISC-Service-Token`. The image is
+built from the app root (`docker build -f services/prefill/Dockerfile .`),
+because it copies `src/data/prefillFields.json` and `src/data/vair_vocab.json`.
 
     POST /prefill
       file     the document: .pdf, .docx, .txt or .md
@@ -157,4 +164,8 @@ alike), the sizes of its parts are added up; more than
 non-integer or non-positive value means the default) is a 422 that says so,
 and a file that is not a zip is a 422 "this .docx could not be read".
 
+Run and test:
+
+    python3.12 -m venv .venv && . .venv/bin/activate
     pip install -r requirements.txt && python -m pytest
+    QUALIFICATION_WEB_TO_PREFILL_TOKEN=dev-web uvicorn app:app --port 8012

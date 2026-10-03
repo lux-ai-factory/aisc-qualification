@@ -1,8 +1,10 @@
-# Ontology filler
+# Ontology filler (the card agent)
 
 Reads the prose answers of a qualification, drafts the ontology nodes they
 support, reviews its own draft, and publishes it to the graph flagged for a
-person to edit.
+person to edit. In the AISC stack this is the `qualification-agents` service:
+qualification-web starts a run with `POST /fill/{pid}/{id}` after each save and
+reads its state with `GET /fill/{pid}/{id}`.
 
 Two of the graph's properties cannot be filled from form fields, because the
 Annex IV answers they come from are paragraphs:
@@ -13,8 +15,13 @@ Annex IV answers they come from are paragraphs:
 | `components` | Annex IV 2(c), what it is made of | `AIComponent` |
 
 Everything else in the graph comes from a picker or a risk row and needs no
-model. `risk_types` (naming and typing the risk-chain nodes) is the next
-increment; the loop already takes it, the prompt does not yet.
+model. The loop also accepts `risk_types` (naming and typing the risk-chain
+nodes), but the drafting prompt does not cover it.
+
+Two further passes run on the same card: one drafts short names for long
+answers (`fill/names.py`), and one points out card choices that the author's
+own answers contradict, quoting the answer (`fill/consistency.py`). Neither
+changes the author's text.
 
 ## The loop
 
@@ -53,15 +60,21 @@ would leave the user with nothing to correct.
 ## Layout
 
 ```
-agent.py             CLI: --qualification <id> | --serve | --dry-run
+service.py           the HTTP entry point (FastAPI): POST and GET /fill/{pid}/{id}
+agent.py             CLI: --qualification <id> --project <pid> | --serve | --dry-run
 fill/workflow.py     FillRun (the steps), run_fill() for callers, and the six
                      BAF states whose bodies call the same steps
 fill/controls.py     the deterministic checks
 fill/agents.py       the writer and the critic, and the parsing of their answers
 fill/prompts.py      the writer's and reviewer's prompts, built from prompts/
-fill/clients.py      HTTP to the LLM service, the ontology service and the app
+fill/clients.py      HTTP to the ontology service and the app
+fill/llm.py          the model from this service's environment
+fill/baf_llm.py      the provider table, and the model a project chose on the platform
+fill/names.py        short names for long answers
+fill/consistency.py  the pass that compares card choices with the answers
+fill/ledger.py       a run's ledger events, sent to the platform when LEDGER_MODE is on
 fill/models.py       Draft, Node, Finding, Round, Outcome
-prompts/             reviewing-an-ontology-draft.md (the review pass)
+prompts/             the review, naming and consistency prompts
 ```
 
 The drafting prompt is **not** here: it is
@@ -71,9 +84,11 @@ a change to the rule cannot apply to half the system.
 
 ## The model
 
-BAF's own mechanism, and the only one in the app: a BAF LLM wrapper, chosen and
-configured by environment variable, with the credential held in BAF's property
-store (`fill/llm.py`).
+A BAF LLM wrapper, with the credential held in BAF's property store. The model
+is the one the card's project chose on the platform ("Models and API keys"),
+read through the platform's internal route with `PLATFORM_URL` and
+`PLATFORM_INTERNAL_TOKEN`. A project without a choice uses the model named by
+the environment (`fill/llm.py`):
 
 | provider | wrapper | key it reads | model examples |
 |---|---|---|---|
@@ -106,9 +121,9 @@ BAF_LLM_MODEL=claude-sonnet-5
 ANTHROPIC_API_KEY=...
 ```
 
-Put those in the repo's `.env`. `docker compose` forwards all five variables to
-this service; nothing else reads them, and the app itself makes no LLM calls at
-all.
+In the AISC stack these variables come from the aisc repo's environment files;
+the stack sets no provider key for this service by default, so a run there uses
+the project's own choice. The Next.js app makes no model calls at all.
 
 BAF imports each provider SDK lazily and only logs a warning when one is
 missing, so a missing package appears as a `None` client at the first
@@ -118,24 +133,31 @@ prediction rather than at startup. `requirements.txt` pins `openai` and
 ## Running it
 
 ```bash
-pip install -r requirements.txt
+python3.12 -m venv .venv && . .venv/bin/activate
+pip install -r requirements.txt fastapi==0.115.5 "uvicorn[standard]==0.32.1"
 
-set -a; source ../../.env; set +a      # the same variables compose would pass
-export APP_URL=http://localhost:3399
+export APP_URL=http://localhost:3000/qualification   # the app, with its base path
 export ONTOLOGY_SERVICE_URL=http://localhost:8011
+export QUALIFICATION_AGENTS_TO_WEB_TOKEN=...        # its tokens for the app and the ontology
+export QUALIFICATION_AGENTS_TO_ONTOLOGY_TOKEN=...
+export BAF_LLM_PROVIDER=mistral BAF_LLM_MODEL=mistral-large-latest MISTRAL_API_KEY=...
 
-python agent.py --qualification <id> --dry-run   # draft, review, print, write nothing
-python agent.py --qualification <id>             # and publish
-uvicorn service:app --port 8012                  # the HTTP entry point the app calls
-python agent.py --serve                          # BAF agent on the A2A platform
+python agent.py --qualification <id> --project <pid> --dry-run   # draft, review, print, write nothing
+python agent.py --qualification <id> --project <pid>             # and publish
+QUALIFICATION_WEB_TO_AGENTS_TOKEN=... uvicorn service:app --port 8012   # the HTTP entry point
+python agent.py --serve                                          # BAF agent on the A2A platform
 ```
+
+In the stack the image is built from `Dockerfile.stack` (this directory as the
+context, the ontology prompts as a named context); `Dockerfile` builds the same
+image from the app root.
 
 Temperature is 0: a draft should be reproducible.
 
 ## Tests
 
 ```bash
-python -m pytest            # 100 tests, no network, no model
+python -m pytest            # no network, no model
 ```
 
 The controls and the stopping rules are tested against a fake writer and critic,

@@ -1,11 +1,25 @@
-# airo_min
+# Ontology service and airo_min
 
-AIRO's minimal core schema (documentation section 3.1, Figure 3) as a Python package,
+In the AISC stack this is the `qualification-ontology` service (port 8011,
+`app.py`). It builds the AI card's graph; it has no model and stores nothing.
+
+- `GET /vocabularies`: the VAIR terms a reviewer may pick, per AIRO class.
+- `POST /build`: a qualification's answers, the agent's `extracted` draft and a
+  reviewer's patch in; the filled graph (Turtle and JSON-LD), its card view,
+  validation problems and a digest of the graph out.
+
+Callers send their token in `X-AISC-Service-Token`: qualification-web
+(`QUALIFICATION_WEB_TO_ONTOLOGY_TOKEN`) and the card agent
+(`QUALIFICATION_AGENTS_TO_ONTOLOGY_TOKEN`). The image is built from the app root
+(`docker build -f services/ontology/Dockerfile .`), because it copies
+`src/data/airo_vocab.json` and `src/data/annexPoints.json`.
+
+The builder underneath is the `airo_min` package: AIRO's minimal core schema (documentation section 3.1, Figure 3) as a Python package,
 with stakeholders simplified to Operator and User: 19 classes, 19 object properties,
 6 subclass edges. IRIs are AIRO's own, so output is valid AIRO.
 
 - `airo_min/schema.py`   the schema as data, cross-checked against `airo/airo.ttl`
-- `airo_min/vocab.py`    picker vocabularies (VAIR terms), shared with the form via
+- `airo_min/pickers.py` picker vocabularies (VAIR terms), shared with the form via
                          `../../src/data/airo_vocab.json`
 - `airo_min/graph.py`    build and serialise instance graphs (Turtle, JSON-LD)
 - `airo_min/validate.py` structural validation: known terms, domains, ranges
@@ -16,17 +30,20 @@ with stakeholders simplified to Operator and User: 19 classes, 19 object propert
                          src/data/vair_vocab.json (`python -m airo_min.vair_vocab --write`)
 - `airo_min/build.py`    a saved qualification to a filled graph, plus a CLI
 
-Test:
+Run and test:
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/pytest
+python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/pytest
+QUALIFICATION_WEB_TO_ONTOLOGY_TOKEN=dev-web QUALIFICATION_AGENTS_TO_ONTOLOGY_TOKEN=dev-agents \
+  .venv/bin/uvicorn app:app --port 8011
 ```
 
 ## Filling the ontology from a qualification
 
 ```bash
 # in apps/qualification: Node owns the database and the taxonomies
-node scripts/export_qualification.mjs --name "MicroCredit" --out mcas.json
+PROJECT_DATABASE_URL=... node scripts/export_qualification.mjs --project <pid> --name "MicroCredit" --out mcas.json
 
 # here: Python owns the ontology
 .venv/bin/python -m airo_min.build mcas.json --extracted mcas.extracted.json \
@@ -74,5 +91,5 @@ properties, and asserts 10 VAIR terms.
 
 Deliberately not here: the Annex III SHACL classifier from the AIRO repo (as shipped,
 none of its 103 property shapes has `sh:minCount`, so every AISystem matches all 28
-shapes), the 24 AIRO classes outside Figure 3, `AISubject`, and any HTTP service.
+shapes), the 24 AIRO classes outside Figure 3, and `AISubject`.
 See `NOTICE` for licences.

@@ -1,125 +1,50 @@
 # Deployment
 
-The app is a Next.js 15 server, Postgres 16, and Prisma. Everything self-hosts on a
-single server with Docker. There is no authentication — the app is open.
+The app is deployed as part of the AISC stack, from the aisc repo root. How to bring the stack up,
+which compose services belong to this app and which variables they read is in the
+[README](README.md#install-and-run). This page covers what a deployment has to get right about the
+database.
 
-## 1. Local development
+## Migrations at start
 
-```bash
-# 1. install deps
-npm install
+Every project has a database of its own, made by the platform. The `qualification-migrate` one-shot
+runs `scripts/migrate-projects.mjs`, which runs `prisma migrate deploy` in every project database at start,
+and the app migrates a project's database the first time it opens it. The web container itself runs
+no schema step, and `qualification-web` starts only after `qualification-migrate` has succeeded.
+If a project database fails to migrate, `qualification-migrate` exits with status 2 and the web app
+does not start; its log names the database.
 
-# 2. copy env (DATABASE_URL, and a model key if you want the filler to run)
-cp .env.example .env
+## Before upgrading an existing install
 
-# 3. start the supporting services (Postgres, ontology, filler, PDF renderer)
-docker compose up -d
-
-# 4. run migrations
-npx prisma migrate dev
-
-# 5. dev server
-npm run dev
-```
-
-Open http://localhost:3000.
-
-## 2. Production deploy on a single server
-
-Prereqs on the server: Docker + Docker Compose, ports 80/443 open, a domain pointing at
-the box (for HTTPS).
-
-### 2a. Pull the repo
-
-```bash
-git clone <your-repo-url> qualification_ai_system
-cd qualification_ai_system
-```
-
-### 2b. Configure env
-
-```bash
-cp .env.example .env
-# edit .env and set:
-#   DATABASE_URL=postgresql://app:<strong-pass>@db:5432/qualification?schema=public
-#   MISTRAL_API_KEY=<your key>   # read by the filler service (services/agents)
-#   BAF_LLM_PROVIDER=mistral     # or anthropic, openai, ollama, ... see services/agents/README.md
-#   BAF_LLM_MODEL=mistral-large-latest
-#
-# The app itself makes no LLM calls. With no key at all it still runs: the card
-# is built from the answers, and the two prose-derived properties stay empty.
-```
-
-Update `docker-compose.yml` `POSTGRES_PASSWORD` to match the password you used in
-`DATABASE_URL`.
-
-### 2c. Build and start
-
-```bash
-docker compose up -d --build
-docker compose logs -f app
-```
-
-Every project has a database of its own. The `qualification-migrate` one-shot runs `scripts/migrate-projects.mjs`,
-which runs `prisma migrate deploy` in every project database at start, and the app migrates a project's database
-the first time it opens it. The web container itself runs no schema step.
-
-Before deploying 20260925150000_two_level_forms, take a backup of the qualification schema: `pg_dump --schema=qualification`
-(for example `docker compose exec db pg_dump -U <user> -d <db> --schema=qualification > qualification-before-two-level-forms.sql`).
-The migration drops the old form tables in the same transaction that copies them, and there is no down
-migration: the dump is the way back.
+Before deploying 20260925150000_two_level_forms, take a backup of the qualification schema of each project database: `pg_dump --schema=qualification`
+(for example `pg_dump -U <user> -d project_<pid without hyphens> --schema=qualification > qualification-before-two-level-forms.sql`).
+The migration drops the old form tables in the same transaction that copies them, and there is no
+down migration: the dump is the way back.
 
 A database created by `prisma db push` has no migration history. Baseline it before the first start with the
 new image: run `prisma migrate resolve --applied <name>` for every migration in `prisma/migrations` that the
 database already reflects, then start the container, which applies the rest.
 
-### 2d. HTTPS (Caddy — easiest)
+Never edit a migration that has been applied: Prisma stores each migration's checksum in the
+database and treats a changed file as drift.
 
-Install Caddy on the host and create `/etc/caddy/Caddyfile`:
+## Backups
 
-```
-your-domain.tld {
-  reverse_proxy localhost:3000
-}
-```
+The card data is the `qualification` schema of each project database. Back it up with the rest of
+the project databases (`pg_dump` per `project_<pid>` database).
 
-```bash
-sudo systemctl restart caddy
-```
+## Troubleshooting
 
-Caddy fetches a Let's Encrypt cert automatically. (Alternatives: nginx + certbot,
-Traefik in compose.)
-
-## 3. Backups
-
-Nightly Postgres dump (cron):
-
-```bash
-0 3 * * * docker compose -f /path/to/docker-compose.yml exec -T db \
-  pg_dump -U app qualification | gzip > /var/backups/qualification-$(date +\%F).sql.gz
-```
-
-Keep `postgres-data/` out of git (already in `.gitignore`).
-
-## 4. Updating
-
-```bash
-git pull
-docker compose up -d --build app
-```
-
-Migrations run on container start.
-
-## 5. Troubleshooting
-
-- **`P1001: Can't reach database`** — `DATABASE_URL` host should be `db` (the compose
-  service name) when the app runs in compose, `localhost` when running `npm run dev` on
-  the host.
-- **Schema drift after a pull** — run `docker compose exec app npx prisma migrate deploy`.
+- **Project pages answer 503 "The platform is not answering"**: `PLATFORM_URL` is unset or the
+  platform is down. The app asks the platform about every request under `/p/`.
+- **A service call fails with 503 "its service tokens are not set"**: the service was started
+  without its tokens. Run `scripts/secrets.sh` in the aisc repo and recreate the containers.
+- **`PROJECT_DATABASE_URL must contain {database}`**: the variable is a template, not one database's
+  URL.
 
 ---
 
-##  License
+## License
 
-This document is part of the AISC project, licensed under the [Apache License 2.0](LICENSE).  
+This document is part of the AISC project, licensed under the [Apache License 2.0](LICENSE.md).
 © 2024–2026 Université du Luxembourg and Luxembourg Institute of Science and Technology (LIST).
