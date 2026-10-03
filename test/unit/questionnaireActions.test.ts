@@ -209,8 +209,8 @@ describe("retireQuestionnaire (T30, T35)", () => {
     questionnaireService.retire.mockResolvedValue({ ok: true });
     const { retireQuestionnaire } = await actions();
     const { redirected } = await run(retireQuestionnaire("mcas", "mix"));
-    expect(questionnaireService.retire).toHaveBeenCalledWith("mix");
-    expect(questionnaireService.retire.mock.calls[0]).toHaveLength(1);
+    expect(questionnaireService.retire).toHaveBeenCalledWith("mix", expect.any(Function));   // + its ledger event
+    expect(questionnaireService.retire.mock.calls[0]).toHaveLength(2);         // the id, and its ledger recorder
     expect(redirected).toBe("/p/mcas/questionnaires");
   });
 
@@ -421,6 +421,7 @@ describe("the questionnaire import actions (T53, T54)", () => {
       setName: "Acme mix questions",
       questionnaireName: "Acme mix",
       createdBy: "alice",
+      record: expect.any(Function),                                   // its ledger events (phase 5)
     });
     expect(redirected).toBe("/p/mcas/system/edit?questionnaire=q1");
   });

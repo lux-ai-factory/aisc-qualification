@@ -7,8 +7,10 @@ and one that fails them twice is not published rather than published flagged.
 """
 from __future__ import annotations
 
+
 from typing import Callable
 
+from . import ledger
 from .agents import _json_object
 from .controls import LABEL_MAX, _grounding, _labels
 from .models import Draft, Finding, Node
@@ -65,11 +67,13 @@ def draft_names(
     names: dict[str, dict] = {}
     pending = dict(texts)
     findings: list[Finding] = []
-    for _ in range(max_rounds):
+    for round_no in range(max_rounds):
         if not pending:
             break
         system, user = naming_prompt(pending, findings)
-        kept, findings = _check(pending, _json_object(complete(system, user)))
+        with ledger.purpose("naming", None, round_no + 1):
+            answer = complete(system, user)
+        kept, findings = _check(pending, _json_object(answer))
         names.update({i: {"name": n, "of": texts[i]} for i, n in kept.items()})
         pending = {i: t for i, t in pending.items() if i not in kept}
     reasons: dict[str, str] = {}

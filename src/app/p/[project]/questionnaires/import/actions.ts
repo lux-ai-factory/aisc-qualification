@@ -8,6 +8,21 @@ import { callerName } from "@/server/access/callerName";
 import { projectDbForAction } from "@/lib/projectDb";
 import { questionnairesOn, type SelfContainedFile } from "@/server/services/QuestionnaireService";
 import { questionnaireFileClient, type QuestionnaireFile } from "@/server/services/QuestionnaireFileClient";
+import type { FormsRecorder } from "@/server/services/QuestionSetService";
+import { emitEvent } from "@/server/ledger/emit";
+
+/** The ledger's events for an import: the set and the questionnaire it makes (ledger phase 5). */
+const recordImport: FormsRecorder = async (tx, saved) => {
+  if (saved.set) {
+    await emitEvent(tx, { action: "question_set.created", itemType: "question_set", itemId: saved.set.id,
+      details: { version: saved.set.number }, content: saved.set.content });
+  }
+  if (saved.questionnaire) {
+    await emitEvent(tx, { action: "questionnaire.created", itemType: "questionnaire", itemId: saved.questionnaire.id,
+      details: { version: saved.questionnaire.number }, content: saved.questionnaire.content });
+  }
+};
+
 
 const MISSING =
   "This questionnaire refers to questions this install does not have. Import its self-contained file, or import those question sets first.";
@@ -75,6 +90,7 @@ export async function importSelfContained(
     setName,
     questionnaireName,
     createdBy: await callerName(),
+    record: recordImport,
   });
   if (!saved.ok) return { error: saved.error };
   redirect(`/p/${project}/system/edit?questionnaire=${encodeURIComponent(saved.questionnaireId)}`);

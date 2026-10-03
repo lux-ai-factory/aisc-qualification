@@ -8,10 +8,12 @@ crash would publish nothing, and always publishing something is the design.
 """
 from __future__ import annotations
 
+
 import json
 import re
 from typing import Callable, Sequence
 
+from . import ledger
 from .models import CLASS_OF, Draft, Finding, Node, Property
 from .prompts import critic_prompt, writer_prompt
 
@@ -117,7 +119,9 @@ class LlmWriter:
         known: Sequence[str] = (),
     ) -> Draft:
         system, user = writer_prompt(prop, source, terms, findings, known=known)
-        return Draft(prop=prop, nodes=tuple(parse_nodes(self._complete(system, user), prop)))
+        with ledger.purpose("draft" if not findings else "revise", str(prop)):
+            answer = self._complete(system, user)
+        return Draft(prop=prop, nodes=tuple(parse_nodes(answer, prop)))
 
 
 class LlmCritic:
@@ -128,4 +132,6 @@ class LlmCritic:
 
     def review(self, draft: Draft, source: str, known: Sequence[str] = ()) -> list[Finding]:
         system, user = critic_prompt(draft, source, known=known)
-        return parse_findings(self._complete(system, user))
+        with ledger.purpose("review", str(draft.prop)):
+            answer = self._complete(system, user)
+        return parse_findings(answer)

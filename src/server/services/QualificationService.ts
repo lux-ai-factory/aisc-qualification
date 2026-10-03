@@ -5,6 +5,8 @@ import {
   repositoryFor,
   type QualificationWithAnswers,
   type RepositoryFor,
+  type CreateQualificationInput,
+  type Tx,
 } from "@/server/repositories/QualificationRepository";
 import {
   FormValidationError,
@@ -35,6 +37,9 @@ function postedId(formData: FormData, name: string): string | null {
  * read from and written to that project's own database. The pages call this
  * behind the middleware's door, the actions after their own.
  */
+/** What a new card's ledger event says: its id and what it was made from. */
+export type CreatedCard = { id: string; input: CreateQualificationInput };
+
 export class QualificationService {
   private readonly repos: RepositoryFor;
 
@@ -63,7 +68,12 @@ export class QualificationService {
    * opened before the rename posts `formVersionId`; it is read when the new name
    * is absent (D20).
    */
-  async createFromForm(project: string, formData: FormData): Promise<{ id: string; projectId: string }> {
+  async createFromForm(
+    project: string,
+    formData: FormData,
+    /** The caller's ledger event, written in the card's own transaction (ledger phase 5). */
+    record: (tx: Tx, card: CreatedCard) => Promise<unknown> = async () => undefined,
+  ): Promise<{ id: string; projectId: string }> {
     const id = postedId(formData, "questionnaireVersionId") ?? postedId(formData, "formVersionId");
     const form = await (await this.formsFor(project)).resolve(id);
     if (!form) {
@@ -90,11 +100,11 @@ export class QualificationService {
       description: parsed.description === "" ? null : parsed.description,
     });
     const repo = await this.repos(project);
-    const made = await repo.create({
-      ...parsed,
-      systemComponents,
-      questionnaireVersionId: form.versionId,
-      systemId: version.pid,
+    const input = { ...parsed, systemComponents, questionnaireVersionId: form.versionId, systemId: version.pid };
+    const made = await repo.transaction(async (r, tx) => {
+      const created = await r.create(input);
+      await record(tx, { id: created.id, input });
+      return created;
     });
     // the assessment targets follow the card's components; never a reason to fail the save
     await Promise.resolve()

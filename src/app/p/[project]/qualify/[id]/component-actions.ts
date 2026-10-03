@@ -7,6 +7,7 @@ import { projectDbForAction } from "@/lib/projectDb";
 import { REFUSED } from "@/server/access/projectAccess";
 import { engineClient } from "@/server/services/EngineClient";
 import { partOfLink, propertyOptions } from "@/domain/cardComponents";
+import { emitEvent } from "@/server/ledger/emit";
 
 export type ComponentActionState = { ok: true } | { ok: false; error: string };
 
@@ -33,6 +34,18 @@ async function latestCard(
   if (!q) return { error: REFUSED[404] };
   await assertLatestCard(project, q.systemId);
   return { repo };
+}
+
+/** What a link says, as the card's history and the ledger keep it. */
+function snapshotOf(link: {
+  airoProperty: string;
+  name: string;
+  componentType: string;
+  objectName: string;
+  componentKey: string | null;
+}) {
+  const { airoProperty, name, componentType, objectName, componentKey } = link;
+  return { airoProperty, name, componentType, objectName, componentKey };
 }
 
 function refreshCardPage(project: string, qualificationId: string): void {
@@ -63,13 +76,35 @@ export async function linkComponent(
       new Set(componentKey ? await repo.componentKeys(qualificationId) : []),
     );
     if (!part.ok) return { ok: false, error: part.error };
-    await repo.linkComponent(qualificationId, {
+    const link = {
       componentPid,
       airoProperty,
       componentKey: part.componentKey,
       name: component.name,
       componentType: component.component_type,
       objectName: component.data ?? "",
+    };
+    // The link, what it replaced and its ledger event, in one transaction (ledger phase 5).
+    await repo.transaction(async (r, tx) => {
+      const old = await r.findLink(qualificationId, componentPid);
+      await r.linkComponent(qualificationId, link);
+      const before = old ? snapshotOf(old) : null;
+      const after = snapshotOf({ ...link, componentKey: link.componentKey ?? null });
+      await r.recordHistory({
+        qualificationId,
+        kind: old ? "component_relinked" : "component_linked",
+        subject: componentPid,
+        before,
+        after,
+      });
+      await emitEvent(tx, {
+        action: "card.component_linked",
+        itemType: "qualification",
+        itemId: qualificationId,
+        details: { component: componentPid, property: airoProperty },
+        before: before ?? undefined,
+        after,
+      });
     });
     refreshCardPage(project, qualificationId);
     return { ok: true };
@@ -88,7 +123,19 @@ export async function unlinkComponent(
     const card = await latestCard(project, qualificationId);
     if ("error" in card) return { ok: false, error: card.error };
     const { repo } = card;
-    await repo.unlinkComponent(qualificationId, componentPid);
+    await repo.transaction(async (r, tx) => {
+      const old = await r.findLink(qualificationId, componentPid);
+      if (!old) return; // nothing linked: nothing changes, nothing to record
+      await r.unlinkComponent(qualificationId, componentPid);
+      await r.recordHistory({ qualificationId, kind: "component_unlinked", subject: componentPid, before: snapshotOf(old) });
+      await emitEvent(tx, {
+        action: "card.component_unlinked",
+        itemType: "qualification",
+        itemId: qualificationId,
+        details: { component: componentPid, property: old.airoProperty },
+        before: snapshotOf(old),
+      });
+    });
     refreshCardPage(project, qualificationId);
     return { ok: true };
   } catch (err) {

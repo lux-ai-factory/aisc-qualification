@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { transactional } from "../support/ledgerRepo";
 
 // WP3 (pipeline 2026-09-23). Only the latest version's card may change.
 // S3.3: a reviewer patch, a reset or the filler's draft aimed at an older card
@@ -30,7 +31,7 @@ const BUILT = {
   view: { nodes: [], edges: [], counts: { nodes: 1, triples: 1 } },
 };
 
-const repo = {
+const repo = transactional({
   find: vi.fn(async (id: string) => CARDS[id] ?? null),
   cardSummary: vi.fn(async (id: string) => CARDS[id] ?? null),
   findBySystem: vi.fn(async () => null),
@@ -41,7 +42,7 @@ const repo = {
   knowledgeGraph: vi.fn(async () => null),
   saveKnowledgeGraph: vi.fn(async () => ({})),
   create: vi.fn(async () => ({ id: "new" })),
-};
+});
 const platform = {
   latestVersion: vi.fn(async () => version(2)),
   listVersions: vi.fn(async () => [version(2), version(1)]),

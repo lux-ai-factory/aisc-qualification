@@ -1,5 +1,10 @@
 import type { PrismaClient, Prisma, Questionnaire } from "@prisma/client";
-import { QuestionSetRepository, writeQuestionnaireVersion, type QuestionnaireVersionInsert } from "./QuestionSetRepository";
+import {
+  QuestionSetRepository,
+  writeQuestionnaireVersion,
+  type OnWrite,
+  type QuestionnaireVersionInsert,
+} from "./QuestionSetRepository";
 
 export type { QuestionnaireVersionInsert } from "./QuestionSetRepository";
 
@@ -59,12 +64,18 @@ export class QuestionnaireRepository extends QuestionSetRepository {
   }
 
   /** The questionnaire (when new), the version and its items: one transaction. */
-  async insertQuestionnaireVersion(plan: QuestionnaireVersionInsert): Promise<void> {
-    await this.db.$transaction((tx) => writeQuestionnaireVersion(tx, plan));
+  async insertQuestionnaireVersion(plan: QuestionnaireVersionInsert, onWrite?: OnWrite): Promise<void> {
+    await this.db.$transaction(async (tx) => {
+      await writeQuestionnaireVersion(tx, plan);
+      if (onWrite) await onWrite(tx);
+    });
   }
 
   /** The only update the triggers allow on a questionnaire: retired_at, once. */
-  async retireQuestionnaire(id: string, at: Date): Promise<void> {
-    await this.db.questionnaire.update({ where: { id }, data: { retiredAt: at } });
+  async retireQuestionnaire(id: string, at: Date, onWrite?: OnWrite): Promise<void> {
+    await this.db.$transaction(async (tx) => {
+      await tx.questionnaire.update({ where: { id }, data: { retiredAt: at } });
+      if (onWrite) await onWrite(tx);
+    });
   }
 }

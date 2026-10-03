@@ -199,6 +199,9 @@ async function shape(c: PrismaClient, live: boolean): Promise<string[]> {
   // by the VAIR block of systemComponents.db.test.ts.
   const vairLine = /^column qualification\.(system_type|purpose|provider_term|deployer_term) |^column qualification_risk\.(source_term|consequence_term|impact_term|control_term|follow_up_control_term) /;
   lines = lines.filter((l) => !vairLine.test(l));
+  // A card's history (20261003000000_ledger_history, ledger phase 5) came after it as well: its table,
+  // index, trigger and function are pinned by ledger.db.test.ts.
+  lines = lines.filter((l) => !/card_history/.test(l));
   if (!formsOnBranch) lines = lines.filter((l) => !formsLine.test(l) && !formsIndex.test(l));
   else lines = lines.filter((l) => !formsLine.test(l) && !twoLevelLine.test(l));
   if (live) {

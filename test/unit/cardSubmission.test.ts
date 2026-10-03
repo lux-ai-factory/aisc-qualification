@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { PlatformClient } from "@/server/services/PlatformClient";
 import { QualificationService } from "@/server/services/QualificationService";
+import { transactional } from "../support/ledgerRepo";
 
 // Saving an AI card makes the next card version (a row of core.system, which
 // the platform numbers) and then stores the card against it, so the card and
@@ -38,13 +39,13 @@ function service(opts: { version?: ReturnType<typeof version> }) {
       return opts.version ?? version(2);
     }),
   };
-  const repo = {
+  const repo = transactional({
     findBySystem: vi.fn(async () => null),
     create: vi.fn(async () => {
       calls.push("create");
       return { id: "card-2" };
     }),
-  };
+  });
   const parser = {
     parse: () => ({
       systemName: "MCAS", systemVersion: "1.3", company: "LIST", description: "Scores loans",

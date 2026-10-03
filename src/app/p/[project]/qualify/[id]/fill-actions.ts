@@ -6,6 +6,8 @@ import { assertLatestCard } from "@/server/services/cardLatest";
 import { projectDbForAction } from "@/lib/projectDb";
 import { REFUSED } from "@/server/access/projectAccess";
 import { requestFill } from "@/server/services/FillerClient";
+import { currentRequestId, emitEvent } from "@/server/ledger/emit";
+import { randomUUID } from "node:crypto";
 
 export type FillActionState = { ok: true } | { ok: false; error: string };
 
@@ -22,10 +24,17 @@ export async function rerunFill(project: string, qualificationId: string): Promi
   try {
     const d = await projectDbForAction(project, { write: true });
     if (d.error !== undefined) return { ok: false, error: d.error };
-    const q = await new QualificationRepository(d.db).cardSummary(qualificationId);
+    const repo = new QualificationRepository(d.db);
+    const q = await repo.cardSummary(qualificationId);
     if (!q) return { ok: false, error: REFUSED[404] };
     await assertLatestCard(project, q.systemId);
-    if (!(await requestFill(project, qualificationId))) {
+    // The run starts in the ledger before the agent is asked, so every event of the run has a start to
+    // cite (spec 4.4): the person who asked, the card, and the run's id.
+    const runId = randomUUID();
+    await repo.transaction((_r, tx) =>
+      emitEvent(tx, { action: "card.ai_refinement_requested", itemType: "qualification", itemId: qualificationId, runId }),
+    );
+    if (!(await requestFill(project, qualificationId, { runId, requestId: await currentRequestId() }))) {
       return { ok: false, error: "The card agent did not take the run: it is down or not configured here." };
     }
     revalidatePath(`/p/${project}/qualify/${qualificationId}`);

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { transactional } from "../support/ledgerRepo";
 
 // The card page's "Regenerate" button: the same filler run a save starts, asked
 // for again. It writes (the filler replaces the draft), so it takes the same
@@ -11,7 +12,7 @@ const cards: Record<string, { id: string; systemId: string }> = {
   old: { id: "old", systemId: "v1" },
 };
 
-const repo = { cardSummary: vi.fn(async (id: string) => cards[id] ?? null) };
+const repo = transactional({ cardSummary: vi.fn(async (id: string) => cards[id] ?? null) });
 const actionDoor = vi.fn(async (_p: string, _o: unknown) => ({ db: {} }) as { db?: object; error?: string });
 const requestFill = vi.fn(async (_p: string, _id: string) => true);
 const latestVersion = vi.fn(async () => ({ pid: "v2" }));

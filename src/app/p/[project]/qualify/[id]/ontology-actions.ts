@@ -6,6 +6,7 @@ import { projectDbForAction } from "@/lib/projectDb";
 import { REFUSED } from "@/server/access/projectAccess";
 import { QualificationRepository } from "@/server/repositories/QualificationRepository";
 import type { NodePatch, OntologyView } from "@/domain/OntologyView";
+import { emitEvent } from "@/server/ledger/emit";
 
 // A discriminated union on `ok`, so a truthiness check narrows in the client.
 export type OntologyState =
@@ -57,7 +58,17 @@ export async function patchOntologyNode(
   try {
     const refused = await cardIn(project, qualificationId, true);
     if (refused) return { ok: false, ...refused };
-    const built = await ontologyService.patchNode(project, qualificationId, nodeId, change);
+    const built = await ontologyService.patchNode(project, qualificationId, nodeId, change, (tx, c) =>
+      emitEvent(tx, {
+        action: "card.node_corrected",
+        itemType: "qualification",
+        itemId: qualificationId,
+        details: { node: c.node },
+        content: change,
+        before: c.before ?? undefined,
+        after: c.after ?? undefined,
+      }),
+    );
     revalidatePath(`/p/${project}/qualify/${qualificationId}`);
     return { ok: true, view: built.view, problems: built.problems };
   } catch (err) {
@@ -76,7 +87,15 @@ export async function resetOntology(
   try {
     const refused = await cardIn(project, qualificationId, true);
     if (refused) return { ok: false, ...refused };
-    const built = await ontologyService.resetPatch(project, qualificationId);
+    const built = await ontologyService.resetPatch(project, qualificationId, (tx, c) =>
+      emitEvent(tx, {
+        action: "card.corrections_discarded",
+        itemType: "qualification",
+        itemId: qualificationId,
+        before: c.before,
+        after: {},
+      }),
+    );
     revalidatePath(`/p/${project}/qualify/${qualificationId}`);
     return { ok: true, view: built.view, problems: built.problems };
   } catch (err) {

@@ -22,9 +22,10 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException
 
 from agent import fill_one
+from fill import ledger
 from service_token import ServiceTokens
 
 State = Literal["queued", "running", "done", "failed"]
@@ -54,21 +55,25 @@ def run_key(pid: str, qualification_id: str) -> str:
     return f"{pid}/{qualification_id}"
 
 
-def _run(pid: str, qualification_id: str) -> None:
-    """One run, with its outcome recorded either way."""
+def _run(pid: str, qualification_id: str, run_id: str | None = None, request_id: str | None = None) -> None:
+    """One run, with its outcome recorded either way: in RUNS for the app's status line, and in the
+    ledger for the record (agent.run_started, then agent.run_finished or agent.run_failed)."""
     key = run_key(pid, qualification_id)
     with _LOCK:
         RUNS[key] |= {"state": "running"}
-    try:
-        result = fill_one(pid, qualification_id)
-    except Exception as exc:  # the app must be able to read why
-        with _LOCK:
-            RUNS[key] |= {
-                "state": "failed",
-                "error": str(exc),
-                "finished": _now(),
-            }
-        return
+    with ledger.run(pid, qualification_id, run_id, request_id):
+        try:
+            result = fill_one(pid, qualification_id)
+        except Exception as exc:  # the app must be able to read why
+            ledger.emit("agent.run_failed", "agent_run", run_id, {"error": str(exc)[:500]})
+            with _LOCK:
+                RUNS[key] |= {
+                    "state": "failed",
+                    "error": str(exc),
+                    "finished": _now(),
+                }
+            return
+        ledger.emit("agent.run_finished", "agent_run", run_id, {"rounds": result.get("rounds"), "calls": result.get("calls")})
     with _LOCK:
         RUNS[key] |= {
             "state": "done",
@@ -78,7 +83,9 @@ def _run(pid: str, qualification_id: str) -> None:
 
 
 @app.post("/fill/{pid}/{qualification_id}", status_code=202)
-def start(pid: uuid.UUID, qualification_id: str, background: BackgroundTasks) -> dict[str, Any]:
+def start(pid: uuid.UUID, qualification_id: str, background: BackgroundTasks,
+          x_aisc_run_id: str | None = Header(default=None),
+          x_aisc_request_id: str | None = Header(default=None)) -> dict[str, Any]:
     """Start a run, unless one is already in flight for this card.
 
     The pid (a uuid, else 422) says which project database the card is read from; a
@@ -94,13 +101,23 @@ def start(pid: uuid.UUID, qualification_id: str, background: BackgroundTasks) ->
             RUNS[key] = {
                 "project": project,
                 "qualification": qualification_id,
+                "run_id": _uuid_or_none(x_aisc_run_id),
                 "state": "queued",
                 "started": _now(),
                 "finished": None,
             }
     if not in_flight:
-        background.add_task(_run, project, qualification_id)
+        background.add_task(_run, project, qualification_id, _uuid_or_none(x_aisc_run_id),
+                            _uuid_or_none(x_aisc_request_id))
     return RUNS[key]
+
+
+def _uuid_or_none(value: str | None) -> str | None:
+    """A run or request id the app sent, or None: anything else is never put in an event."""
+    try:
+        return str(uuid.UUID(value)) if value else None
+    except ValueError:
+        return None
 
 
 @app.get("/fill/{pid}/{qualification_id}")

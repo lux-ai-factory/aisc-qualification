@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { projectDbForRoute } from "@/lib/projectDb";
 import { QualificationRepository } from "@/server/repositories/QualificationRepository";
+import { emitEvent } from "@/server/ledger/emit";
 import { ontologyService } from "@/server/services/OntologyService";
 import {
   systemCardRendererClient,
@@ -10,7 +11,7 @@ import {
 import { cardFileName, systemCardPayload } from "@/domain/SystemCard";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ project: string; id: string }> },
 ) {
   const { project, id } = await params;
@@ -41,6 +42,13 @@ export async function GET(
 
   try {
     const pdf = await systemCardRendererClient.renderPdf(payload);
+    // A download is recorded (card.pdf_downloaded, ledger phase 5); a failure to record is logged only.
+    const format = new URL(req.url).pathname.endsWith("system-card.pdf") ? "system-card.pdf" : "ai-card.pdf";
+    await new QualificationRepository(db)
+      .transaction((_r, tx) =>
+        emitEvent(tx, { action: "card.pdf_downloaded", itemType: "qualification", itemId: id, details: { format } }),
+      )
+      .catch((e: unknown) => console.warn(`ledger: card.pdf_downloaded not recorded for ${id}: ${String(e)}`));
     return new NextResponse(pdf, {
       headers: {
         "Content-Type": "application/pdf",

@@ -8,6 +8,7 @@
  * latest version may change; the older ones are kept as they were.
  */
 import { callerToken, type CallerToken } from "@/server/services/callerToken";
+import { currentRequestId } from "@/server/ledger/emit";
 import { bearerHeaders, serviceUrl } from "@/server/services/http";
 
 export type SystemIdentity = {
@@ -50,9 +51,13 @@ export class PlatformClient {
         "PLATFORM_URL is not set: this app cannot name the system it is qualifying.",
       );
     }
+    // The request the gateway witnessed for this person travels on, so the platform's own event (a card
+    // version, a target sync) cites it, and in `enforce` the platform accepts the write (spec 4.3).
+    const requestId = await currentRequestId();
     const headers = {
       "Content-Type": "application/json",
       ...bearerHeaders(await this.callerToken()),
+      ...(requestId ? { "X-AISC-Request-Id": requestId } : {}),
     };
     let res: Response;
     try {

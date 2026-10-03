@@ -81,8 +81,72 @@ const WITH_ANSWERS = {
  * database, so every query is inside the project without naming it. A card id
  * from another project is simply not in this database.
  */
+/** One row of a card's history (ledger phase 5): what a change would otherwise overwrite. */
+export type CardHistoryInput = {
+  qualificationId: string;
+  kind:
+    | "component_linked"
+    | "component_relinked"
+    | "component_unlinked"
+    | "node_corrected"
+    | "corrections_discarded"
+    | "extracted_replaced";
+  subject?: string | null;
+  before?: Prisma.InputJsonValue | null;
+  after?: Prisma.InputJsonValue | null;
+  changedBy?: "person" | "agent";
+  runId?: string | null;
+};
+
+/** A transaction client: what Prisma hands an interactive transaction (and the ledger emitter takes). */
+export type Tx = Prisma.TransactionClient;
+
 export class QualificationRepository {
   constructor(private readonly db: PrismaClient) {}
+
+  /**
+   * Run `fn` in one transaction: a change, its history row and its ledger event
+   * commit together or not at all (spec R2.4). Inside, `repo` is bound to the
+   * transaction and `tx` is what the emitter writes on.
+   */
+  transaction<T>(fn: (repo: QualificationRepository, tx: Tx) => Promise<T>): Promise<T> {
+    return this.db.$transaction((tx) => fn(new QualificationRepository(tx as unknown as PrismaClient), tx));
+  }
+
+  /** Keep what a change would overwrite (append-only: card_history). */
+  async recordHistory(row: CardHistoryInput): Promise<void> {
+    await this.db.cardHistory.create({
+      data: {
+        qualificationId: row.qualificationId,
+        kind: row.kind,
+        subject: row.subject ?? null,
+        before: row.before ?? undefined,
+        after: row.after ?? undefined,
+        changedBy: row.changedBy ?? "person",
+        runId: row.runId ?? null,
+      },
+    });
+  }
+
+  /** The card's history, oldest first. */
+  history(qualificationId: string) {
+    return this.db.cardHistory.findMany({ where: { qualificationId }, orderBy: { id: "asc" } });
+  }
+
+  /** The card's link to one engine component, if any. */
+  findLink(qualificationId: string, componentPid: string) {
+    return this.db.cardComponent.findUnique({
+      where: { qualificationId_componentPid: { qualificationId, componentPid } },
+    });
+  }
+
+  /** The card's corrections and extracted draft as stored now (for what a change replaces). */
+  ontologyState(id: string) {
+    return this.db.qualification.findFirst({
+      where: { id },
+      select: { ontologyPatch: true, ontologyExtracted: true },
+    });
+  }
 
   create(input: CreateQualificationInput): Promise<{ id: string }> {
     const { answers, risks, systemComponents, ...rest } = input;

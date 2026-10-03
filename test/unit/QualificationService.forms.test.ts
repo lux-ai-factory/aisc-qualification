@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { QualificationService } from "@/server/services/QualificationService";
 import { FormValidationError } from "@/server/forms/QualificationFormParser";
 import { customQuestion, defaultVersionLiteral, formVersion } from "../support/forms";
+import { transactional } from "../support/ledgerRepo";
 
 // Saving a card stores the form version it was filled with, and the form's
 // definition always comes from the server, never from the request
@@ -60,11 +61,11 @@ function setup(opts: { resolved?: unknown; parsed?: Record<string, unknown>; car
     createVersion: vi.fn(async () => version(2)),
     listVersions: vi.fn(async () => [version(1)]),
   };
-  const repo = {
+  const repo = transactional({
     create: vi.fn(async () => ({ id: "card-2" })),
     list: vi.fn(async () => opts.cards ?? []),
     update: vi.fn(async () => ({ id: "card-1" })),
-  };
+  });
   const parser = { parse: vi.fn(() => parsed(opts.parsed)) };
   const forms = {
     resolve: vi.fn(async (id: string | null) =>

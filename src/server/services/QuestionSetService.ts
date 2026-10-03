@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import type { AnnexPointId } from "@/domain/forms/annexPoints";
 import { FORM_BLOCKS } from "@/domain/forms/blocks";
 import { ANNEX_SET_ID } from "@/domain/forms/legacy";
@@ -8,6 +8,7 @@ import { parseSetDraft, sameSetContent } from "@/domain/forms/questionSetDraft";
 import type { ResolvedQuestion, ResolvedSetVersion, VersionStamp } from "@/domain/forms/types";
 import {
   QuestionSetRepository,
+  type QuestionnaireVersionInsert,
   type SetVersionInsert,
   type SetVersionRow,
 } from "@/server/repositories/QuestionSetRepository";
@@ -27,7 +28,48 @@ export type SetListRow = {
   retiredAt: string | null;
 };
 
+/** What a forms save wrote, for its ledger events (ledger phase 5). `created` is a new set or
+ *  questionnaire; otherwise it is the next version of an existing one. */
+export type SetSaved = {
+  id: string;
+  number: number;
+  created: boolean;
+  added: number;
+  removed: number;
+  reworded: number;
+  content: unknown;
+};
+export type QuestionnaireSaved = {
+  id: string;
+  versionId: string;
+  number: number;
+  created: boolean;
+  listed: boolean;
+  items: number;
+  blocks: number;
+  content: unknown;
+};
+export type FormsSaved = { set?: SetSaved; questionnaire?: QuestionnaireSaved };
+/** The action's ledger events for a save, written in its transaction. */
+export type FormsRecorder = (tx: Prisma.TransactionClient, saved: FormsSaved) => Promise<unknown>;
+
+/** The summary of a questionnaire plan, for its ledger event. */
+export function questionnaireSaved(plan: QuestionnaireVersionInsert): QuestionnaireSaved {
+  return {
+    id: plan.version.questionnaireId,
+    versionId: plan.version.id,
+    number: plan.version.number,
+    created: plan.questionnaire !== undefined,
+    listed: plan.questionnaire?.listed ?? true,
+    items: plan.items.length,
+    blocks: plan.version.blocks.length,
+    content: { questionnaire: plan.questionnaire ?? null, version: plan.version, items: plan.items },
+  };
+}
+
 export type SaveSetOptions = {
+  /** The caller's ledger events, in the save's transaction (ledger phase 5). */
+  record?: FormsRecorder;
   /** The set to save the next version of; absent for a new set. */
   setId?: string;
   origin?: "builder" | "import";
@@ -230,17 +272,20 @@ export class QuestionSetService {
 
   /** Saves a new set, or the next version of `opts.setId` (T14, T15, T49). */
   async saveDraft(input: unknown, opts: SaveSetOptions): Promise<SaveSetResult> {
-    if (opts.setId !== undefined) return this.saveNextVersion(input, opts.setId, opts.createdBy);
+    if (opts.setId !== undefined) return this.saveNextVersion(input, opts.setId, opts.createdBy, opts.record);
     return this.saveNewSet(input, opts);
   }
 
   /** Retires a set: hidden from lists and pickers, still resolvable (T19). */
-  async retire(setId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  async retire(
+    setId: string,
+    record?: (tx: Prisma.TransactionClient) => Promise<unknown>,
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
     const set = await this.repository.findSet(setId);
     if (set?.origin === "builtin") return { ok: false, error: "Annex IV cannot be retired." };
     if (!set || set.retiredAt !== null) return { ok: false, error: "That question set cannot be retired." };
     try {
-      await this.repository.retireSet(setId, this.now());
+      await this.repository.retireSet(setId, this.now(), record);
     } catch (err) {
       if (retireRace(err) === "retiredTwice") return { ok: false, error: "That question set cannot be retired." };
       throw err;
@@ -305,14 +350,18 @@ export class QuestionSetService {
       };
     }
 
+    const plan: SetVersionInsert = {
+      set: { id: setId, name: value.name, description: value.description ?? "", origin, createdBy: opts.createdBy },
+      version: { id: versionId, setId, number: 1, createdBy: opts.createdBy },
+      newQuestions,
+      items,
+      ...(questionnaire ? { questionnaire } : {}),
+    };
     try {
-      await this.repository.insertSetVersion({
-        set: { id: setId, name: value.name, description: value.description ?? "", origin, createdBy: opts.createdBy },
-        version: { id: versionId, setId, number: 1, createdBy: opts.createdBy },
-        newQuestions,
-        items,
-        ...(questionnaire ? { questionnaire } : {}),
-      });
+      await this.repository.insertSetVersion(plan, opts.record && ((tx) => opts.record!(tx, {
+        set: { id: setId, number: 1, created: true, added: items.length, removed: 0, reworded: 0, content: plan },
+        ...(questionnaire ? { questionnaire: questionnaireSaved(questionnaire) } : {}),
+      })));
     } catch (err) {
       const conflict = uniqueConflict(err);
       if (conflict === "questionnaireName") {
@@ -331,7 +380,12 @@ export class QuestionSetService {
     };
   }
 
-  private async saveNextVersion(input: unknown, setId: string, createdBy: string): Promise<SaveSetResult> {
+  private async saveNextVersion(
+    input: unknown,
+    setId: string,
+    createdBy: string,
+    record?: FormsRecorder,
+  ): Promise<SaveSetResult> {
     const set = await this.repository.findSet(setId);
     if (!set || set.origin === "builtin" || set.retiredAt !== null) {
       return { ok: false, error: "That question set cannot be changed." };
@@ -385,12 +439,19 @@ export class QuestionSetService {
     });
     const number = (latestRow?.number ?? 0) + 1;
     const versionId = this.newId();
+    // What changed against the latest version, for the ledger (question_set.version_created)
+    const was = new Map((latestRow?.items ?? []).map((i) => [i.questionId, i.text]));
+    const now = new Set(items.map((i) => i.questionId));
+    const change = {
+      added: items.filter((i) => !was.has(i.questionId)).length,
+      removed: [...was.keys()].filter((id) => !now.has(id)).length,
+      reworded: items.filter((i) => was.has(i.questionId) && was.get(i.questionId) !== i.text).length,
+    };
+    const plan: SetVersionInsert = { version: { id: versionId, setId, number, createdBy }, newQuestions, items };
     try {
-      await this.repository.insertSetVersion({
-        version: { id: versionId, setId, number, createdBy },
-        newQuestions,
-        items,
-      });
+      await this.repository.insertSetVersion(plan, record && ((tx) => record(tx, {
+        set: { id: setId, number, created: false, ...change, content: plan },
+      })));
     } catch (err) {
       if (uniqueConflict(err) !== null) return { ok: false, error: RACED };
       if (retireRace(err) === "saveAfterRetire") return { ok: false, error: "That question set cannot be changed." };

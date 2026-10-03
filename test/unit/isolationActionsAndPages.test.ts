@@ -241,7 +241,7 @@ describe("I16.5 I18.3 the card page's actions act on the card in the database of
     access = { [A]: MEMBER };
     const result = await (await ontologyActions()).patchOntologyNode(A, CARD, "n1", { label: "x" });
     expect(result.ok).toBe(true);
-    expect(calls.build).toEqual([["patchNode", A, CARD, "n1", { label: "x" }]]);
+    expect(calls.build).toEqual([["patchNode", A, CARD, "n1", { label: "x" }, expect.any(Function)]]);
   });
 });
 
@@ -285,7 +285,7 @@ describe("I3.4 I3.6 I3.8 wiring that is only visible in the source", () => {
     const save = read(join(SRC, "app", "p", "[project]", "qualify", "new", "actions.ts"));
     expect(save).not.toMatch(/requestFill/);
     const refine = read(join(SRC, "app", "p", "[project]", "qualify", "[id]", "fill-actions.ts"));
-    expect(refine).toMatch(/requestFill\(\s*project\s*,\s*qualificationId\s*\)/);
+    expect(refine).toMatch(/requestFill\(\s*project\s*,\s*qualificationId\s*[,)]/);   // + the run (phase 5)
   });
 
   it("I3.6 scripts/migrate-projects.mjs exists and names only ^project_[0-9a-f]{32}$ databases", () => {

@@ -3,6 +3,7 @@ import { QualificationService } from "@/server/services/QualificationService";
 import { FormValidationError } from "@/server/forms/QualificationFormParser";
 import { toExport } from "@/server/services/QualificationExporter";
 import { defaultVersionLiteral } from "../support/forms";
+import { transactional } from "../support/ledgerRepo";
 
 // Saving the Components block (targets plan v2, QL2 and QL5 input): keys come from the card the
 // save starts from, never from the browser; the graph builder gets the rows and the links' parts.
@@ -21,7 +22,7 @@ function setup(posted: unknown[], cards: unknown[]) {
     listVersions: vi.fn(async () => [version(1)]),
     syncTargets: vi.fn(async () => undefined),
   };
-  const repo = { create: vi.fn(async () => ({ id: "card-2" })), list: vi.fn(async () => cards) };
+  const repo = transactional({ create: vi.fn(async () => ({ id: "card-2" })), list: vi.fn(async () => cards) });
   const parser = {
     parse: vi.fn(() => ({
       systemName: "MCAS", systemVersion: "1.2.0", company: "LIST", description: "", targetUseCase: "",

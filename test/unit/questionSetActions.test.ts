@@ -180,8 +180,8 @@ describe("retireQuestionSet (T18, T19)", () => {
     questionSetService.retire.mockResolvedValue({ ok: true });
     const { retireQuestionSet } = await actions();
     const { redirected } = await run(retireQuestionSet("mcas", "acme"));
-    expect(questionSetService.retire).toHaveBeenCalledWith("acme");
-    expect(questionSetService.retire.mock.calls[0]).toHaveLength(1);
+    expect(questionSetService.retire).toHaveBeenCalledWith("acme", expect.any(Function));   // + its ledger event
+    expect(questionSetService.retire.mock.calls[0]).toHaveLength(2);           // the id, and its ledger recorder
     expect(redirected).toBe("/p/mcas/question-sets");
   });
 

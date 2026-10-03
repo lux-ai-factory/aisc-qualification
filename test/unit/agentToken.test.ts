@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { transactional } from "../support/ledgerRepo";
 
 // API auth WP2 (2026-09-25), inventory finding 9. The card agent reads the form
 // from GET /p/{pid}/api/qualifications/:id/extracted and publishes its draft with PUT on
@@ -21,12 +22,12 @@ const notFound = () => new Response("Not found", { status: 404 });
 const personDoor = vi.fn(async (_pid: string, _o: { write: boolean }): Promise<unknown> => notFound());
 /** The agent's door (its token already checked): the project's database. */
 const serviceDoor = vi.fn(async (_pid: string): Promise<unknown> => db);
-const repo = {
+const repo = transactional({
   find: vi.fn(async (id: string): Promise<unknown> => ({ id, ontologyExtracted: null })),
   cardSummary: vi.fn(async (id: string): Promise<unknown> => ({ id, systemId: "v2" })),
   saveOntologyExtracted: vi.fn(async () => ({})),
   isLatest: vi.fn(async (_systemId: string) => true),
-};
+});
 const opened: unknown[] = [];
 const platformLatest = vi.fn(async () => ({ pid: "v2" }));
 

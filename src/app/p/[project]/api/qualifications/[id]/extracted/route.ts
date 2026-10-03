@@ -8,6 +8,8 @@ import { ontologyService } from "@/server/services/OntologyService";
 import { questionnairesOn } from "@/server/services/QuestionnaireService";
 import { parseExtracted } from "@/server/forms/ExtractedParser";
 import { NOT_LATEST, isLatestCard } from "@/server/services/cardLatest";
+import { emitEvent } from "@/server/ledger/emit";
+import type { Prisma } from "@prisma/client";
 
 /**
  * The card agent, when the request carries its token.
@@ -114,7 +116,40 @@ export async function PUT(
     return NextResponse.json({ error: parsed.error }, { status: 422 });
   }
 
-  await repo.saveOntologyExtracted(id, parsed.value);
+  const flagged = Object.keys(parsed.value.flags ?? {}).length;
+  // The draft, the one it replaces (card_history) and the ledger's event, in one transaction (ledger
+  // phase 5). A person's draft cites the request the gateway witnessed; the agent's cites the person's
+  // refinement request and its run (X-AISC-Run-Id), whose start event the platform checks (spec 4.4).
+  const runId = agent ? req.headers.get("x-aisc-run-id") : null;
+  await repo.transaction(async (r, tx) => {
+    const old = await r.ontologyState(id);
+    await r.saveOntologyExtracted(id, parsed.value);
+    await r.recordHistory({
+      qualificationId: id,
+      kind: "extracted_replaced",
+      before: (old?.ontologyExtracted ?? null) as Prisma.InputJsonValue | null,
+      changedBy: agent ? "agent" : "person",
+      runId,
+    });
+    if (agent) {
+      await emitEvent(tx, {
+        action: "card.augmented_by_ai",
+        itemType: "qualification",
+        itemId: id,
+        details: { flagged },
+        content: parsed.value,
+        runId,
+        model: req.headers.get("x-aisc-model"),
+      });
+    } else {
+      await emitEvent(tx, {
+        action: "card.extracted_replaced_by_user",
+        itemType: "qualification",
+        itemId: id,
+        content: parsed.value,
+      });
+    }
+  });
   // Rebuild so the stored knowledge graph reflects this draft.
   try {
     await ontologyService.build(project, id);
@@ -127,7 +162,7 @@ export async function PUT(
   const counts = {
     techniques: parsed.value.techniques?.length ?? 0,
     components: parsed.value.components?.length ?? 0,
-    flagged: Object.keys(parsed.value.flags ?? {}).length,
+    flagged,
   };
   return NextResponse.json({ ok: true, ...counts });
 }

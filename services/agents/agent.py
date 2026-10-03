@@ -21,7 +21,7 @@ import argparse
 import json
 import sys
 
-from fill import baf_llm, clients
+from fill import baf_llm, clients, ledger
 from fill.workflow import MAX_ROUNDS, build_agent, run_fill
 
 
@@ -48,13 +48,17 @@ def fill_one(pid: str, qualification_id: str, dry_run: bool = False) -> dict:
         )
     config = baf_llm.config_for(project, "card_agent")
     llm = baf_llm.build_llm(config, agent_name="ontology_filler_llm")
+    run = ledger.RUN.get()
+    if run is not None:                                               # the run's model, on every event
+        run["model"] = f"{config.provider}/{config.model}"
+    ledger.emit("agent.run_started", "agent_run", run and run.get("run_id"), {"model": f"{config.provider}/{config.model}"})
 
     terms = clients.vocabularies()
 
     result = run_fill(
         qualification,
         terms=terms,
-        complete=baf_llm.completer(llm),
+        complete=ledger.recording(baf_llm.completer(llm)),
         publish=(lambda qid, payload: None)
         if dry_run
         else (lambda qid, payload: clients.publish(pid, qid, payload)),

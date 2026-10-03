@@ -59,6 +59,9 @@ export async function writeQuestionnaireVersion(tx: Tx, plan: QuestionnaireVersi
   }
 }
 
+/** Written in a forms transaction after its rows: the caller's ledger event (ledger phase 5). */
+export type OnWrite = (tx: Tx) => Promise<unknown>;
+
 export class QuestionSetRepository {
   /** `db` is one project's database: the forms a project makes are its own. */
   constructor(protected readonly db: PrismaClient) {}
@@ -103,7 +106,7 @@ export class QuestionSetRepository {
   }
 
   /** The new set (when new), its new questions, the version and its items, and a questionnaire: one transaction. */
-  async insertSetVersion(plan: SetVersionInsert): Promise<void> {
+  async insertSetVersion(plan: SetVersionInsert, onWrite?: OnWrite): Promise<void> {
     await this.db.$transaction(async (tx) => {
       if (plan.set) await tx.questionSet.create({ data: plan.set });
       if (plan.newQuestions.length > 0) await tx.question.createMany({ data: plan.newQuestions });
@@ -114,11 +117,15 @@ export class QuestionSetRepository {
         });
       }
       if (plan.questionnaire) await writeQuestionnaireVersion(tx, plan.questionnaire);
+      if (onWrite) await onWrite(tx);
     });
   }
 
   /** The only update the triggers allow on a set: retired_at, once. */
-  async retireSet(id: string, at: Date): Promise<void> {
-    await this.db.questionSet.update({ where: { id }, data: { retiredAt: at } });
+  async retireSet(id: string, at: Date, onWrite?: OnWrite): Promise<void> {
+    await this.db.$transaction(async (tx) => {
+      await tx.questionSet.update({ where: { id }, data: { retiredAt: at } });
+      if (onWrite) await onWrite(tx);
+    });
   }
 }

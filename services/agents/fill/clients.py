@@ -32,13 +32,13 @@ class ServiceError(RuntimeError):
     """A service answered with something unusable, or not at all."""
 
 
-def _post(url: str, payload: dict, token: str, method: str = "POST") -> Any:
+def _post(url: str, payload: dict, token: str, method: str = "POST", extra: dict | None = None) -> Any:
     body = json.dumps(payload).encode("utf-8")
     req = request.Request(
         url,
         data=body,
         method=method,
-        headers={"Content-Type": "application/json", **_token_headers(token)},
+        headers={"Content-Type": "application/json", **_token_headers(token), **(extra or {})},
     )
     try:
         with request.urlopen(req, timeout=TIMEOUT) as res:
@@ -96,9 +96,14 @@ def qualification(pid: str, qualification_id: str) -> dict:
 
 def publish(pid: str, qualification_id: str, extracted: dict) -> dict:
     """Write the reviewed draft where the card reads it from."""
+    from fill import ledger
+
+    # the run's id, the person's request and the model go with the draft: the app records it as the
+    # run's card.augmented_by_ai, in the same transaction as the change (ledger phase 5)
     return _post(
         _extracted_url(pid, qualification_id),
         extracted,
         APP_TOKEN_VAR,
         method="PUT",
+        extra=ledger.headers(),
     )

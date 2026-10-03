@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { transactional } from "../support/ledgerRepo";
 
 // API auth WP2 (2026-09-25), inventory findings 6 and 7, under isolation (Q1).
 //
@@ -135,13 +136,15 @@ type ActionDoor = { db: unknown; error?: undefined } | { status: 403 | 404 | 503
 const actionDoor = vi.fn(async (_pid: string, _o: { write: boolean }): Promise<ActionDoor> => ({ db: DB }));
 const REFUSED_403: ActionDoor = { status: 403, error: "403: you can read this project but not change it." };
 const REFUSED_404: ActionDoor = { status: 404, error: "Qualification not found." };
-const repo = {
+const repo = transactional({
   find: vi.fn(async (id: string) => ({ id, systemId: "v2" })),
   cardSummary: vi.fn(async (id: string) => ({ id, systemId: "v2" })),
+  // an unlink removes a link that is there (ledger phase 5: nothing linked, nothing changes)
+  findLink: vi.fn(async () => ({ airoProperty: "hasModel", name: "m", componentType: "model", objectName: "", componentKey: null })),
   saveOntologyExtracted: vi.fn(async () => ({})),
   linkComponent: vi.fn(async () => ({})),
   unlinkComponent: vi.fn(async () => ({})),
-};
+});
 const opened: unknown[] = [];
 const BUILT = { view: { nodes: [] }, problems: [] };
 const ontology = {
@@ -235,7 +238,8 @@ describe("F7: the card page's actions open the project they name, after the plat
     const state = await patchOntologyNode(OTHER, "q1", "purpose", { label: "x" });
     expect(state.ok).toBe(true);
     expect(actionDoor).toHaveBeenCalledWith(OTHER, { write: true });
-    expect(ontology.patchNode).toHaveBeenCalledWith(OTHER, "q1", "purpose", { label: "x" });
+    // the fifth argument writes the ledger event in the save's transaction (ledger phase 5)
+    expect(ontology.patchNode).toHaveBeenCalledWith(OTHER, "q1", "purpose", { label: "x" }, expect.any(Function));
   });
 
   it("patchOntologyNode by a viewer of the project it names writes nothing", async () => {
@@ -251,7 +255,7 @@ describe("F7: the card page's actions open the project they name, after the plat
   it("resetOntology does the same", async () => {
     const { resetOntology } = await import("@/app/p/[project]/qualify/[id]/ontology-actions");
     expect((await resetOntology(OTHER, "q1")).ok).toBe(true);
-    expect(ontology.resetPatch).toHaveBeenCalledWith(OTHER, "q1");
+    expect(ontology.resetPatch).toHaveBeenCalledWith(OTHER, "q1", expect.any(Function));
 
     actionDoor.mockResolvedValueOnce(REFUSED_404);
     ontology.resetPatch.mockClear();

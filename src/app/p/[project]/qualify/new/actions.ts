@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { qualificationService } from "@/server/services/QualificationService";
 import { FormValidationError } from "@/server/forms/QualificationFormParser";
 import { projectDbForAction } from "@/lib/projectDb";
+import { emitEvent } from "@/server/ledger/emit";
 
 export type SubmitState = { error?: string } | undefined;
 
@@ -22,7 +23,19 @@ export async function submitQualification(
   if (door.error !== undefined) return { error: door.error };
   let id: string;
   try {
-    ({ id } = await qualificationService.createFromForm(project, formData));
+    ({ id } = await qualificationService.createFromForm(project, formData, (tx, card) =>
+      emitEvent(tx, {
+        action: "qualification.created",
+        itemType: "qualification",
+        itemId: card.id,
+        details: {
+          questionnaire_version: card.input.questionnaireVersionId,
+          risks: card.input.risks.length,
+          components: (card.input.systemComponents ?? []).length,
+        },
+        content: card.input,
+      }),
+    ));
   } catch (err) {
     if (err instanceof FormValidationError) return { error: err.message };
     // The platform did not answer: no version was made, so nothing was saved.

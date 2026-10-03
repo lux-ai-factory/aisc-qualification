@@ -13,6 +13,8 @@ import { questionnairesFor } from "@/server/services/QuestionnaireService";
 import { newerVersion } from "@/domain/forms/moveCard";
 import { annexDefaultVersion } from "@/domain/forms/legacy";
 import FormLine from "../../FormLine";
+import { repositoryFor } from "@/server/repositories/QualificationRepository";
+import { emitEvent } from "@/server/ledger/emit";
 
 export default async function QualificationDetailPage({
   params,
@@ -37,6 +39,21 @@ export default async function QualificationDetailPage({
     .standing(project, { systemId: q.systemId })
     .catch(() => null);
   const readOnly = !standing?.current;
+
+  // Who opened which card version is recorded (qualification.opened, ledger phase 5). A read: the
+  // page never fails for it, and a failure to record is logged, not shown.
+  await repositoryFor(project)
+    .then((repo) =>
+      repo.transaction((_r, tx) =>
+        emitEvent(tx, {
+          action: "qualification.opened",
+          itemType: "qualification",
+          itemId: q.id,
+          details: { version: q.systemVersion, read_only: readOnly },
+        }),
+      ),
+    )
+    .catch((err: unknown) => console.warn(`ledger: qualification.opened not recorded for ${q.id}: ${String(err)}`));
 
 
   // The ontology IS the card: built on read from the form, the agent's

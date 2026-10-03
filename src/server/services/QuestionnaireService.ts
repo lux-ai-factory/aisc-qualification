@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { projectDbPastDoor } from "@/lib/projectDb";
 import { inBlockOrder, type FormBlock } from "@/domain/forms/blocks";
 import { annexDefaultVersion, DEFAULT_QUESTIONNAIRE_ID } from "@/domain/forms/legacy";
@@ -23,8 +23,10 @@ import {
 import type { SetVersionInsert, SetVersionRow } from "@/server/repositories/QuestionSetRepository";
 import {
   libraryOrder,
+  questionnaireSaved,
   QuestionSetService,
   retireRace,
+  type FormsRecorder,
   stampOf,
   toResolvedQuestion,
   uniqueConflict,
@@ -53,6 +55,8 @@ export type QuestionnaireLibraryRow = {
 export type QuestionnaireChooserOption = QuestionnaireLibraryRow & { versionIds: string[] };
 
 export type SaveQuestionnaireOptions = {
+  /** The caller's ledger events, in the save's transaction (ledger phase 5). */
+  record?: FormsRecorder;
   /** The questionnaire to save the next version of; absent for a new one. */
   questionnaireId?: string;
   /** false for "Use once": a new, unlisted questionnaire named after the system and the day. */
@@ -223,11 +227,15 @@ export class QuestionnaireService implements QuestionnaireResolver {
       }
       const number = (latest?.number ?? 0) + 1;
       const versionId = this.newId();
+      const plan: QuestionnaireVersionInsert = {
+        version: { id: versionId, questionnaireId: existing.id, number, blocks, createdBy: opts.createdBy },
+        items,
+      };
       try {
-        await this.repository.insertQuestionnaireVersion({
-          version: { id: versionId, questionnaireId: existing.id, number, blocks, createdBy: opts.createdBy },
-          items,
-        });
+        await this.repository.insertQuestionnaireVersion(
+          plan,
+          opts.record && ((tx) => opts.record!(tx, { questionnaire: questionnaireSaved(plan) })),
+        );
       } catch (err) {
         if (uniqueConflict(err) !== null) return { ok: false, error: RACED };
         if (retireRace(err) === "saveAfterRetire") return { ok: false, error: "That questionnaire cannot be changed." };
@@ -241,19 +249,23 @@ export class QuestionnaireService implements QuestionnaireResolver {
       : oneUseFormName(opts.systemName ?? value.name, this.now(), all.map((q) => q.name));
     const questionnaireId = this.newId();
     const versionId = this.newId();
+    const plan: QuestionnaireVersionInsert = {
+      questionnaire: {
+        id: questionnaireId,
+        name,
+        description: value.description ?? "",
+        origin: opts.origin ?? "builder",
+        listed: opts.listed,
+        createdBy: opts.createdBy,
+      },
+      version: { id: versionId, questionnaireId, number: 1, blocks, createdBy: opts.createdBy },
+      items,
+    };
     try {
-      await this.repository.insertQuestionnaireVersion({
-        questionnaire: {
-          id: questionnaireId,
-          name,
-          description: value.description ?? "",
-          origin: opts.origin ?? "builder",
-          listed: opts.listed,
-          createdBy: opts.createdBy,
-        },
-        version: { id: versionId, questionnaireId, number: 1, blocks, createdBy: opts.createdBy },
-        items,
-      });
+      await this.repository.insertQuestionnaireVersion(
+        plan,
+        opts.record && ((tx) => opts.record!(tx, { questionnaire: questionnaireSaved(plan) })),
+      );
     } catch (err) {
       if (uniqueConflict(err) !== null) return { ok: false, error: `A questionnaire called ${name} already exists.` };
       throw err;
@@ -262,14 +274,17 @@ export class QuestionnaireService implements QuestionnaireResolver {
   }
 
   /** Retires a listed questionnaire: hidden from lists and the chooser, still resolvable (T35). */
-  async retire(questionnaireId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  async retire(
+    questionnaireId: string,
+    record?: (tx: Prisma.TransactionClient) => Promise<unknown>,
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
     const q = await this.repository.findQuestionnaire(questionnaireId);
     if (q?.id === DEFAULT_QUESTIONNAIRE_ID || q?.origin === "builtin") {
       return { ok: false, error: "The Annex IV default cannot be retired." };
     }
     if (!q || !q.listed || q.retiredAt !== null) return { ok: false, error: "That questionnaire cannot be retired." };
     try {
-      await this.repository.retireQuestionnaire(questionnaireId, this.now());
+      await this.repository.retireQuestionnaire(questionnaireId, this.now(), record);
     } catch (err) {
       if (retireRace(err) === "retiredTwice") return { ok: false, error: "That questionnaire cannot be retired." };
       throw err;
@@ -316,7 +331,7 @@ export class QuestionnaireService implements QuestionnaireResolver {
    */
   async importSelfContained(
     file: SelfContainedFile,
-    opts: { setName: string; questionnaireName: string; createdBy: string },
+    opts: { setName: string; questionnaireName: string; createdBy: string; record?: FormsRecorder },
   ): Promise<{ ok: true; setId: string; questionnaireId: string; versionId: string } | { ok: false; error: string }> {
     // The file comes back from the browser: every item and its groupLabel are checked
     // again here, with T51's messages (the prefill service checked them once), so a
@@ -396,20 +411,24 @@ export class QuestionnaireService implements QuestionnaireResolver {
       },
       items: items.map((i) => ({ position: i.position, setVersionId, questionId: i.questionId })),
     };
+    const plan: SetVersionInsert = {
+      set: {
+        id: setId,
+        name: setDraft.value.name,
+        description: setDraft.value.description ?? "",
+        origin: "import",
+        createdBy: opts.createdBy,
+      },
+      version: { id: setVersionId, setId, number: 1, createdBy: opts.createdBy },
+      newQuestions,
+      items,
+      questionnaire,
+    };
     try {
-      await this.repository.insertSetVersion({
-        set: {
-          id: setId,
-          name: setDraft.value.name,
-          description: setDraft.value.description ?? "",
-          origin: "import",
-          createdBy: opts.createdBy,
-        },
-        version: { id: setVersionId, setId, number: 1, createdBy: opts.createdBy },
-        newQuestions,
-        items,
-        questionnaire,
-      });
+      await this.repository.insertSetVersion(plan, opts.record && ((tx) => opts.record!(tx, {
+        set: { id: setId, number: 1, created: true, added: items.length, removed: 0, reworded: 0, content: plan },
+        questionnaire: questionnaireSaved(questionnaire),
+      })));
     } catch (err) {
       const conflict = uniqueConflict(err);
       if (conflict === "questionnaireName") {

@@ -3,6 +3,7 @@ import {
   repositoryFor,
   type QualificationRepository,
   type RepositoryFor,
+  type Tx,
 } from "@/server/repositories/QualificationRepository";
 import type {
   OntologyExtracted,
@@ -74,6 +75,8 @@ export class OntologyService {
     qualificationId: string,
     nodeId: string,
     change: NodePatch,
+    /** The caller's ledger event, written in the save's own transaction (ledger phase 5). */
+    record: Recorder<{ node: string; before: NodePatch | null; after: NodePatch | null }> = async () => undefined,
   ): Promise<OntologyBuild> {
     const { repo, q } = await this.findChangeable(projectId, qualificationId);
 
@@ -91,23 +94,45 @@ export class OntologyService {
       (q.ontologyExtracted as OntologyExtracted | null) ?? undefined,
       patch,
     );
-    await repo.saveOntologyPatch(
-      qualificationId,
-      patch as unknown as Prisma.InputJsonValue,
-    );
+    const before = ((q.ontologyPatch as OntologyPatch | null) ?? {})[nodeId] ?? null;
+    const after = patch[nodeId] ?? null;
+    await repo.transaction(async (r, tx) => {
+      await r.saveOntologyPatch(qualificationId, patch as unknown as Prisma.InputJsonValue);
+      await r.recordHistory({
+        qualificationId,
+        kind: "node_corrected",
+        subject: nodeId,
+        before: before as Prisma.InputJsonValue | null,
+        after: after as Prisma.InputJsonValue | null,
+      });
+      await record(tx, { node: nodeId, before, after });
+    });
     await this.graphsFor(repo).save(qualificationId, built);
     return built;
   }
 
   /** Drop every correction and go back to the generated graph.
    *
-   * The corrected states stay in the archive: discarding an edit is a decision,
-   * and the record should show that it was made. */
-  async resetPatch(projectId: string, qualificationId: string): Promise<OntologyBuild> {
+   * The corrected states stay in the card's history (card_history) and the
+   * ledger: discarding an edit is a decision, and the record shows that it was
+   * made. */
+  async resetPatch(
+    projectId: string,
+    qualificationId: string,
+    record: Recorder<{ before: OntologyPatch }> = async () => undefined,
+  ): Promise<OntologyBuild> {
     // Read first, so a qualification of another project is refused before
     // anything is written rather than after.
-    const { repo } = await this.findChangeable(projectId, qualificationId);
-    await repo.saveOntologyPatch(qualificationId, {});
+    const { repo, q } = await this.findChangeable(projectId, qualificationId);
+    const before = (q.ontologyPatch as OntologyPatch | null) ?? {};
+    if (Object.keys(before).length > 0) {
+      // The discarded corrections are kept (card_history), with the ledger's event (ledger phase 5).
+      await repo.transaction(async (r, tx) => {
+        await r.saveOntologyPatch(qualificationId, {});
+        await r.recordHistory({ qualificationId, kind: "corrections_discarded", before: before as Prisma.InputJsonValue });
+        await record(tx, { before });
+      });
+    }
     return this.build(projectId, qualificationId);
   }
 
@@ -123,3 +148,7 @@ export class OntologyService {
 }
 
 export const ontologyService = new OntologyService();
+
+/** A caller's ledger event for a change, run inside the change's transaction. */
+export type Recorder<T> = (tx: Tx, change: T) => Promise<unknown>;
+

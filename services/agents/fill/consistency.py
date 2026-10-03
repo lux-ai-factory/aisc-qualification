@@ -6,8 +6,10 @@ the model could not ground never reaches the card. Nothing here changes a node.
 """
 from __future__ import annotations
 
+
 from typing import Callable
 
+from . import ledger
 from .agents import _json_object
 from .prompts import consistency_prompt
 from .view_nodes import nodes_of
@@ -36,7 +38,9 @@ def check(view: dict, answers: list[dict], complete: Callable[..., str]) -> tupl
     if not nodes or not texts:
         return {}, []
     system, user = consistency_prompt(list(nodes.values()), answers)
-    raw = _json_object(complete(system, user)).get("findings")
+    with ledger.purpose("consistency"):
+        answer = complete(system, user)
+    raw = _json_object(answer).get("findings")
     notes: dict[str, list[dict]] = {}
     dropped: list[dict] = []
     for finding in raw if isinstance(raw, list) else []:

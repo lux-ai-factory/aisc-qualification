@@ -6,6 +6,21 @@ import { projectDbForAction } from "@/lib/projectDb";
 import { questionnairesOn } from "@/server/services/QuestionnaireService";
 import { platformClient } from "@/server/services/PlatformClient";
 import { parseQuestionnaireDraft, type QuestionnaireDraft } from "@/domain/forms/questionnaireDraft";
+import type { FormsRecorder } from "@/server/services/QuestionSetService";
+import { emitEvent } from "@/server/ledger/emit";
+
+/** The ledger's event for a questionnaire save, in its transaction (ledger phase 5). */
+const recordQuestionnaire: FormsRecorder = async (tx, saved) => {
+  const q = saved.questionnaire;
+  if (!q) return;
+  if (q.created) {
+    await emitEvent(tx, { action: "questionnaire.created", itemType: "questionnaire", itemId: q.id,
+      details: { version: q.number }, content: q.content });
+  } else {
+    await emitEvent(tx, { action: "questionnaire.version_created", itemType: "questionnaire", itemId: q.id,
+      itemVersion: q.number, details: { version: q.number, items: q.items, blocks: q.blocks }, content: q.content });
+  }
+};
 
 type Origin = "builder" | "import";
 
@@ -43,6 +58,7 @@ export async function saveQuestionnaire(
     listed: true,
     origin: origin ?? "builder",
     createdBy: await callerName(),
+    record: recordQuestionnaire,
   });
   if (!saved.ok) return { error: saved.error };
   redirect(`/p/${project}/system/edit?questionnaire=${encodeURIComponent(saved.questionnaireId)}`);
@@ -69,6 +85,7 @@ export async function useQuestionnaireOnce(
     origin: origin ?? "builder",
     createdBy: await callerName(),
     systemName: latest?.name ?? project,
+    record: recordQuestionnaire,
   });
   if (!saved.ok) return { error: saved.error };
   redirect(`/p/${project}/system/edit?questionnaireVersion=${encodeURIComponent(saved.versionId)}`);
@@ -78,7 +95,9 @@ export async function useQuestionnaireOnce(
 export async function retireQuestionnaire(project: string, questionnaireId: string): Promise<{ error?: string }> {
   const door = await projectDbForAction(project, { write: true });
   if (door.error !== undefined) return { error: door.error };
-  const result = await questionnairesOn(door.db).retire(questionnaireId);
+  const result = await questionnairesOn(door.db).retire(questionnaireId, (tx) =>
+    emitEvent(tx, { action: "questionnaire.retired", itemType: "questionnaire", itemId: questionnaireId }),
+  );
   if (!result.ok) return { error: result.error };
   redirect(`/p/${project}/questionnaires`);
 }

@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { PlatformClient } from "@/server/services/PlatformClient";
 import { QualificationService } from "@/server/services/QualificationService";
 import * as cardVersions from "@/domain/cardVersions";
+import { transactional } from "../support/ledgerRepo";
 
 // WP3 (pipeline 2026-09-23). The project has one AI system, not versioned;
 // only its AI card is. Saving the card makes the next card version, a row of
@@ -150,7 +151,7 @@ function service(opts: { platformDown?: boolean; versions?: ReturnType<typeof ro
     aiSystem: vi.fn(async () => { calls.push("aiSystem"); return null; }),
   };
   const created: Record<string, unknown>[] = [];
-  const repo = {
+  const repo = transactional({
     findBySystem: vi.fn(async () => null),
     list: vi.fn(async () => opts.cards ?? []),
     create: vi.fn(async (input: Record<string, unknown>) => {
@@ -158,7 +159,7 @@ function service(opts: { platformDown?: boolean; versions?: ReturnType<typeof ro
       created.push(input);
       return { id: `card-${created.length}` };
     }),
-  };
+  });
   const parser = { parse: () => PARSED };
   const svc = new QualificationService(repo as never, parser as never, platform as never);
   return { svc, platform, repo, calls, created };
