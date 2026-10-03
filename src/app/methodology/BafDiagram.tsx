@@ -141,8 +141,8 @@ export default function BafDiagram() {
         className="method-diagram-edge method-diagram-edge--loop"
         markerEnd="url(#baf-arrow)"
       />
-      {/* Beside the cycle, not beside the review-to-publish edge: at the old
-          position it read as a condition on leaving the loop. */}
+      {/* Beside the cycle, not beside the review-to-publish edge, where it would
+          read as a condition on leaving the loop. */}
       <text x={REVISE.x + W + 72} y={REVISE.y + 22} className="method-diagram-cond">
         while a finding is open,
       </text>

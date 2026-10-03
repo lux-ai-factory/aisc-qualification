@@ -8,7 +8,7 @@ import type { QuestionnaireFile } from "@/server/services/QuestionnaireFileClien
 import QuestionnaireBuilder from "../QuestionnaireBuilder";
 import { importSelfContained, readQuestionnaireFile } from "./actions";
 
-// Importing a questionnaire file (T53, T54). A references file whose set
+// Importing a questionnaire file. A references file whose set
 // versions are all here opens the builder (the page turns wide); one naming
 // what this install lacks lists what is missing. A self-contained file shows
 // its questions and creates a new question set and a questionnaire.

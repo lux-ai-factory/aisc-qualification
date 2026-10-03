@@ -6,8 +6,8 @@ export const metadata: Metadata = {
   description: "Describe the project's AI system and keep its AI card, version by version",
 };
 
-// Pages read from the database per-request, so render dynamically — this also
-// keeps `next build` (for the Docker image) from prerendering and hitting the DB.
+// Pages read from the database on every request, so they render dynamically. This
+// also keeps `next build` (for the Docker image) from prerendering them against the DB.
 export const dynamic = "force-dynamic";
 
 export default function RootLayout({

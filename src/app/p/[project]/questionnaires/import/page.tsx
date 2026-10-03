@@ -4,13 +4,13 @@ import { projectDbPastDoor } from "@/lib/projectDb";
 import { builderData } from "../libraryData";
 
 // Import a questionnaire file: by reference it opens the builder, a
-// self-contained one creates a question set and a questionnaire (T53, T54).
+// self-contained one creates a question set and a questionnaire.
 export default async function ImportQuestionnairePage({ params }: { params: Promise<{ project: string }> }) {
   const { project } = await params;
   const { groups } = await builderData(await projectDbPastDoor(project));
 
   // QuestionnaireImport renders the page's main: a form's width while
-  // uploading, wide once the builder mounts (T32).
+  // uploading, wide once the builder mounts.
   const header = (
     <header className="qualify-header">
       <p className="qf-crumb">

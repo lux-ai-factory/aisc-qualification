@@ -23,8 +23,8 @@ export default async function QualificationDetailPage({
 }) {
   const { project, id } = await params;
 
-  // Raw <a href> links are not rewritten by Next's basePath — prefix explicitly
-  // (same pattern as SiteHeader) so the downloads work when served under a subpath.
+  // Raw <a href> links are not rewritten by Next's basePath, so prefix them here
+  // (as SiteHeader does) for the downloads to work when served under a subpath.
   const basePath = process.env.NEXT_BASE_PATH || "";
 
   // Looked up in this project's own database: a card of another project is not
@@ -40,9 +40,9 @@ export default async function QualificationDetailPage({
     .catch(() => null);
   const readOnly = !standing?.current;
 
-  // Who opened which card version is recorded (qualification.opened, ledger phase 5). A read: the
-  // page never fails for it, and a failure to record is logged, not shown. A server action re-renders
-  // this page in its own POST (Next-Action): that is the action, not an opening (phase 5 review M2).
+  // Who opened which card version is recorded in the ledger as qualification.opened. It is a read:
+  // the page never fails for it, and a failure to record is logged, not shown. A server action
+  // re-renders this page in its own POST (Next-Action): that is the action, not an opening.
   if (!(await isServerAction())) await repositoryFor(project)
     .then((repo) =>
       repo.transaction((_r, tx) =>
@@ -74,7 +74,7 @@ export default async function QualificationDetailPage({
 
   // The questionnaire version the card was filled with; a card from before
   // questionnaires is the default version, and so is one whose version cannot
-  // be found. Only the current card is offered a newer version to move to (T42).
+  // be found. Only the current card is offered a newer version to move to.
   const questionnaires = await questionnairesFor(project);
   const form = (await questionnaires.resolve(q.questionnaireVersionId ?? null)) ?? annexDefaultVersion();
   const newer = standing?.current

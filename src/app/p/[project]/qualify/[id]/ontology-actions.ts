@@ -16,7 +16,7 @@ export type OntologyState =
 // Every action here acts on the card in the database of the project it is
 // given. That project comes from the browser, so it is not trusted: the
 // platform is asked about the caller in THAT project before its database is
-// opened, and a card of another project is simply not in it.
+// opened, and a card of another project is not in it.
 
 /** The card, if it is in this project's database and the caller may (read or) write it. */
 async function cardIn(
@@ -64,7 +64,7 @@ export async function patchOntologyNode(
         itemType: "qualification",
         itemId: qualificationId,
         details: { node: c.node },
-        // one node's states: content, not before/after, which are the whole item's (review m1)
+        // This node's states go in content: before/after describe the whole item.
         content: { change, before: c.before, after: c.after },
       }),
     );

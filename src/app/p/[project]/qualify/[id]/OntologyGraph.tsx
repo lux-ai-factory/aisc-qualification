@@ -60,8 +60,8 @@ export default function OntologyGraph({
         ...n,
         data: { ...n.data, vocabularies, setEditing, onToggleExpand },
         // Declared so React Flow can place edges without waiting to measure the
-        // DOM, and so the figure's columns line up. The editor is a pop-up now,
-        // so nothing has to grow.
+        // DOM, and so the figure's columns line up. The editor is a pop-up, so a
+        // node never grows.
         style: { width: NODE_W },
         // The node being edited paints above its neighbours.
         zIndex: editing === n.id ? 10 : 0,
@@ -98,7 +98,7 @@ export default function OntologyGraph({
         fitView
         // A floor on the initial fit: without it a tall graph opens at 0.4 and
         // everything is unreadable in the middle of the canvas. Above the floor
-        // the content simply overflows and you pan to it.
+        // the content overflows and you pan to it.
         fitViewOptions={{ padding: 0.08, minZoom: 0.78, maxZoom: 1 }}
         minZoom={0.1}
         maxZoom={1.8}

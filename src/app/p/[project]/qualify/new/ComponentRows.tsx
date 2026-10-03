@@ -4,7 +4,7 @@ import { useState } from "react";
 import { COMPONENT_BLOCK, COMPONENT_NAME_MAX, COMPONENT_PROVIDERS, COMPONENT_TYPES } from "@/data/componentFields";
 import type { ComponentExample } from "@/data/examples";
 
-// The Components block (targets plan v2): one row per part of the system. Field names are
+// The Components block: one row per part of the system. Field names are
 // `component:<row>:<field>`; <row> is the row's place on the page, not its identity. The identity
 // is `component:<row>:key`, the key the card before gave it (empty for a new row or a
 // suggestion): the server keeps it, gives a new row a fresh one, and refuses a key it did not
@@ -13,7 +13,7 @@ type Row = { id: number; provider: string; values: ComponentExample };
 
 const blank = (): ComponentExample => ({ key: "", name: "", role: "", type: "", provider: "in_house", providerName: "" });
 
-// One Type list (2026-09-30): VAIR's AIComponent terms, then ours only for what VAIR has no term for.
+// One Type list: VAIR's AIComponent terms, then ours only for what VAIR has no term for.
 const VAIR_TYPES = COMPONENT_TYPES.filter((t) => t.vair);
 const OWN_TYPES = COMPONENT_TYPES.filter((t) => !t.vair);
 

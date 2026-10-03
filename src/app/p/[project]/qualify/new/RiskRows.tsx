@@ -9,7 +9,7 @@ import type { RiskExample } from "@/data/examples";
 // Question 15: one row per risk. Field names are `risk:<key>:<field>`; the key
 // is the row's stable id (not its position), so removing a middle row leaves a
 // gap the parser tolerates and renumbers. A field VAIR can type has one VAIR
-// select, `risk:<key>:<field>Term` (2026-09-30); the harm is only that select.
+// select, `risk:<key>:<field>Term`; the harm is only that select.
 
 /** The one VAIR select of a risk field. Required where VAIR always has a term that fits; the
  *  follow-up's only when there is a follow-up, which the server checks. */

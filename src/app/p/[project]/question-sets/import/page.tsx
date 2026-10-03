@@ -2,7 +2,7 @@ import Link from "next/link";
 import QuestionSetImport from "./QuestionSetImport";
 
 // Import a question set from a CSV, Markdown or Word file, then finish it in
-// the set editor (T49).
+// the set editor.
 export default async function ImportQuestionSetPage({ params }: { params: Promise<{ project: string }> }) {
   const { project } = await params;
 

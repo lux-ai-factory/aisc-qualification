@@ -22,7 +22,7 @@ import {
 // useQuestionnaireOnce is a server action, not a hook: renamed so the hook rules do not apply to it.
 import { saveQuestionnaire, useQuestionnaireOnce as saveQuestionnaireForOnce } from "./actions";
 
-// The questionnaire builder (T27 to T33): the question sets on the left, the
+// The questionnaire builder: the question sets on the left, the
 // questionnaire being assembled on the right. A questionnaire only picks
 // questions from question-set versions; questions are written in the set
 // editor. Every change is one builderReducer action (src/domain/forms); this
@@ -64,9 +64,9 @@ export default function QuestionnaireBuilder({ project, groups, initial }: Props
     setFocus(null);
   }, [focus, state.rows]);
 
-  // Retired sets are not offered, but still count for "Update available" (T19, T29).
+  // Retired sets are not offered, but still count for "Update available".
   const offered = useMemo(() => groups.filter((g) => !g.retired), [groups]);
-  // The selected sets' groups, in the order they were selected (R76).
+  // The selected sets' groups, in the order they were selected.
   const shownGroups = useMemo(
     () => state.selected.flatMap((id) => offered.filter((g) => g.setId === id)),
     [state.selected, offered],

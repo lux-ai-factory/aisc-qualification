@@ -11,7 +11,7 @@ import { questionnaireFileClient, type QuestionnaireFile } from "@/server/servic
 import type { FormsRecorder } from "@/server/services/QuestionSetService";
 import { emitEvent } from "@/server/ledger/emit";
 
-/** The ledger's events for an import: the set and the questionnaire it makes (ledger phase 5). */
+/** The ledger's events for an import: the set and the questionnaire it makes. */
 const recordImport: FormsRecorder = async (tx, saved) => {
   if (saved.set) {
     await emitEvent(tx, { action: "question_set.created", itemType: "question_set", itemId: saved.set.id,
@@ -42,7 +42,7 @@ export type ReadQuestionnaireResult =
   | { ok: false; error: string; missing?: string[] };
 
 /**
- * Read a questionnaire file (T53, T54). Nothing is stored here: a references
+ * Read a questionnaire file. Nothing is stored here: a references
  * file whose set versions are all in this project opens the builder with its
  * picks; a self-contained file goes back for the create-both preview.
  */
@@ -67,7 +67,7 @@ export async function readQuestionnaireFile(project: string, formData: FormData)
 
 /**
  * Create the question set and the questionnaire a self-contained file holds,
- * in one transaction, then open the card form on the questionnaire (T54).
+ * in one transaction, then open the card form on the questionnaire.
  */
 export async function importSelfContained(
   project: string,

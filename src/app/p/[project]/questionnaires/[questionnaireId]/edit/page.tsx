@@ -5,7 +5,7 @@ import { questionnairesOn } from "@/server/services/QuestionnaireService";
 import QuestionnaireBuilder from "../../QuestionnaireBuilder";
 import { builderData } from "../../libraryData";
 
-// Edit a questionnaire: saving makes its next version (T31). The Annex IV
+// Edit a questionnaire: saving makes its next version. The Annex IV
 // default, use-once and retired questionnaires are not edited.
 export default async function EditQuestionnairePage({
   params,

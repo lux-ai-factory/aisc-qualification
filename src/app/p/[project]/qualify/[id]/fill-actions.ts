@@ -29,7 +29,7 @@ export async function rerunFill(project: string, qualificationId: string): Promi
     if (!q) return { ok: false, error: REFUSED[404] };
     await assertLatestCard(project, q.systemId);
     // The run starts in the ledger before the agent is asked, so every event of the run has a start to
-    // cite (spec 4.4): the person who asked, the card, and the run's id.
+    // cite: the person who asked, the card, and the run's id.
     const runId = randomUUID();
     await repo.transaction((_r, tx) =>
       emitEvent(tx, { action: "card.ai_refinement_requested", itemType: "qualification", itemId: qualificationId, runId }),

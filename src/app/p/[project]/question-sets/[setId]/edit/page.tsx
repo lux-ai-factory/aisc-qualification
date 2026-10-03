@@ -4,7 +4,7 @@ import { projectDbPastDoor } from "@/lib/projectDb";
 import { questionSetsOn } from "@/server/services/QuestionSetService";
 import QuestionSetEditor from "../../QuestionSetEditor";
 
-// Edit a question set: saving makes its next version (T15, T17). Annex IV and
+// Edit a question set: saving makes its next version. Annex IV and
 // retired sets are not edited.
 export default async function EditQuestionSetPage({
   params,

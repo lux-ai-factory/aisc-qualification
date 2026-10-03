@@ -10,7 +10,7 @@ const MADE_BY: Record<string, string> = { builtin: "Built in", builder: "Questio
 /** YYYY-MM-DD of an ISO 8601 time, in UTC. */
 const day = (iso: string | null) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
 
-// The project's questionnaires (T34): what an AI card is filled with, kept in the
+// The project's questionnaires: what an AI card is filled with, kept in the
 // project's own database. The builtin Annex IV default is in every project.
 export default async function QuestionnairesPage({
   params,

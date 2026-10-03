@@ -7,7 +7,7 @@ import type { ImportedQuestion } from "@/server/services/FormImportClient";
 import QuestionSetEditor from "../QuestionSetEditor";
 import { readQuestionSetFile } from "./actions";
 
-// Importing a question-set file (T49): upload it, check and correct what was
+// Importing a question-set file: upload it, check and correct what was
 // read, then go on in the set editor. Nothing is stored before the editor's
 // save. The page stays a form's width throughout.
 

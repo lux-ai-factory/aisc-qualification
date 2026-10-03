@@ -1,6 +1,6 @@
 import { permanentRedirect } from "next/navigation";
 
-// The old "edit form" page: a migrated questionnaire keeps its form's id (D1, T62).
+// Redirect for old "edit form" links: a form migrated to a questionnaire keeps its id.
 export default async function EditFormPage({
   params,
 }: {

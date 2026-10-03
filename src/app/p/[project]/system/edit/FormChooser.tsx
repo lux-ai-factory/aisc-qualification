@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { ChooserPick } from "@/domain/forms/chooser";
 
 // "Which questionnaire?": shown on the edit page until a questionnaire is
-// named (T36, T38). Which option starts checked is decided by preselect()
+// named. Which option starts checked is decided by preselect()
 // (src/domain/forms/chooser.ts); this only renders the choice and goes to the
 // questionnaire picked.
 

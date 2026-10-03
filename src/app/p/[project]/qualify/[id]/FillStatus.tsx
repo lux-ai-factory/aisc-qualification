@@ -6,7 +6,7 @@ import { rerunFill } from "./fill-actions";
 
 // Refine with AI, and its progress.
 //
-// The card is built from the form alone (2026-09-30). The filler runs only when
+// The card is built from the form alone. The filler runs only when
 // a person presses Refine with AI, and reads only the answers to the questions:
 // the form's structured fields are VAIR terms their author chose, so what is left
 // is the techniques answer 2(a) describes. A run takes a minute or several on a reasoning

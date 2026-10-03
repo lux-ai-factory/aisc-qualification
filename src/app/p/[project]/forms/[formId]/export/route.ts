@@ -1,8 +1,8 @@
 /**
  * GET /p/<project>/forms/<formId>/export?...
  *
- * The old form export: a 308 to the questionnaire export of the same id (D1,
- * T62), with the query passed on as it came; the new route judges it.
+ * Redirect for old form export links: a 308 to the questionnaire export of the
+ * same id, with the query passed on unchanged for that route to judge.
  */
 export async function GET(
   request: Request,

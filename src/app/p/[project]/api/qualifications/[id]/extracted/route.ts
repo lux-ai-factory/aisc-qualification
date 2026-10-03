@@ -117,9 +117,9 @@ export async function PUT(
   }
 
   const flagged = Object.keys(parsed.value.flags ?? {}).length;
-  // The draft, the one it replaces (card_history) and the ledger's event, in one transaction (ledger
-  // phase 5). A person's draft cites the request the gateway witnessed; the agent's cites the person's
-  // refinement request and its run (X-AISC-Run-Id), whose start event the platform checks (spec 4.4).
+  // The draft, the one it replaces (card_history) and the ledger event, in one transaction. A
+  // person's draft cites the request the gateway witnessed; the agent's cites the person's
+  // refinement request and its run (X-AISC-Run-Id), whose start event the platform checks.
   const runId = agent ? req.headers.get("x-aisc-run-id") : null;
   await repo.transaction(async (r, tx) => {
     const old = await r.ontologyState(id);

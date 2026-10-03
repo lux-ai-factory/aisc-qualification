@@ -28,7 +28,7 @@ export type AnsweredFormProps = {
     /** VAIR operator terms for the provider and the deployer; absent or null when left open. */
     providerTerm?: string | null;
     deployerTerm?: string | null;
-    /** VAIR terms (2026-09-30); absent or null when left open. */
+    /** VAIR terms; absent or null when left open. */
     systemType?: string | null;
     purpose?: string | null;
     targetSystemTags: string[];
@@ -58,7 +58,7 @@ export type AnsweredFormProps = {
     followUpControl: string | null;
     followUpControlTerm?: string | null;
   }[];
-  /** The Components block's rows, in order (targets plan v2); absent or empty on older cards. */
+  /** The Components block's rows, in order; absent or empty on older cards. */
   systemComponents?: {
     id: string;
     name: string;
@@ -153,7 +153,7 @@ export default function AnsweredForm({
   return (
     <div className="qf-read">
       {/* No heading over the metadata: the tab says "Answered form" and this is
-          simply where it starts. The question groups below keep theirs. */}
+          where it starts. The question groups below keep theirs. */}
       <section className="qf-section">
         <dl className="qf-read-list">
           <Field id="systemName">{metadata.systemName}</Field>

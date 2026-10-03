@@ -1,7 +1,7 @@
 /**
  * GET /p/<project>/questionnaires/<id>/export?format=json|csv|md[&bundle=self-contained][&version=<n>]
  *
- * A questionnaire version as a file to download (T48). `json` is the
+ * A questionnaire version as a file to download. `json` is the
  * questionnaire file (references by default, the wording bundled with
  * `bundle=self-contained`); `csv` and `md` flatten its questions into one
  * question list named after it. Every member may export (the route door lets a
@@ -20,7 +20,7 @@ import { formExportClient } from "@/server/services/FormExportClient";
 const text = (status: number, body: string) =>
   new Response(body, { status, headers: { "Content-Type": "text/plain; charset=utf-8" } });
 
-/** The version as the questionnaire file's input (T50): every item with its wording. */
+/** The version as the questionnaire file's input: every item with its wording. */
 function fileInput(v: ResolvedQuestionnaireVersion): QuestionnaireFileInput {
   return {
     name: v.questionnaireName,

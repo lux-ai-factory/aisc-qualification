@@ -3,8 +3,8 @@
 import { useId, useState, type ReactNode } from "react";
 
 // A compiled qualification has two faces: what was answered, and what was made
-// of it. They used to stack down one page, which meant the card and its source
-// competed for the same scroll. As tabs, each gets the whole page.
+// of it. As tabs, each gets the whole page instead of the card and its source
+// competing for one scroll.
 //
 // Both panels are rendered on the server and handed in as props, so switching
 // tabs costs nothing and the card's graph keeps its state while you read the

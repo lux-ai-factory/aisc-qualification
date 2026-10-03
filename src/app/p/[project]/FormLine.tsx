@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
 
-// The "Questionnaire:" line of the card and edit pages (T42): which
+// The "Questionnaire:" line of the card and edit pages: which
 // questionnaire version the card is filled with, and links that export that
 // very version as a file. Plain <a download> links (Next's Link would navigate
 // instead), so they do not get Next's basePath: the page passes it in. With

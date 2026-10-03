@@ -13,8 +13,7 @@ export type NodeChange = {
 export const FLAG_LABEL: Record<string, string> = { inconsistent: "check" };
 
 // One AIRO individual, as a chip. Clicking it asks the page to open NodeEditor,
-// which is a pop-up: the editor used to expand in place here, which grew the
-// node, clipped against its neighbours and could paint behind them.
+// a pop-up, so editing never grows the node or clips it against its neighbours.
 export default function NodeChip({
   node,
   vocabularies,

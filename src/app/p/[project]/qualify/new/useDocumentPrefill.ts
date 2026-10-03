@@ -10,7 +10,7 @@ import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
 
 /** The prefill server action, as the upload steps call it. For a form other
  *  than the default, the action is also told the form's fields and questions;
- *  for the default it is asked exactly what it was asked before forms existed. */
+ *  for the default it is sent only the document, the mode and the current answers. */
 const readWithAction =
   (form: ResolvedQuestionnaireVersion | undefined): Reader =>
   async (file, mode, current, rows, parts) => {

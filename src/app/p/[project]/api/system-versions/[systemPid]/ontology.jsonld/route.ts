@@ -11,7 +11,7 @@ import { knowledgeGraphStore } from "@/server/services/KnowledgeGraphStore";
  * `{project}` is the platform project pid and `{systemPid}` the card version
  * (a row of project.system in that project's own database). The caller must be
  * in the project; the card is looked up in the project's database, so a version
- * of another project is simply not found. The bytes are exactly those of
+ * of another project is not found. The bytes are exactly those of
  * /p/{project}/api/qualifications/{id}/ontology.jsonld (the knowledge graph
  * store's).
  */

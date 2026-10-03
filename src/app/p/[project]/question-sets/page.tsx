@@ -10,7 +10,7 @@ const MADE_BY: Record<string, string> = { builtin: "Built in", builder: "Questio
 /** YYYY-MM-DD of an ISO 8601 time, in UTC. */
 const day = (iso: string | null) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
 
-// The project's question sets (T20): where questions are written, kept in the
+// The project's question sets: where questions are written, kept in the
 // project's own database next to its cards. The builtin Annex IV set is in every project.
 export default async function QuestionSetsPage({
   params,

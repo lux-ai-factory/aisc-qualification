@@ -1,6 +1,6 @@
 import { permanentRedirect } from "next/navigation";
 
-// The old "new form" page: the questionnaire builder now (T62). ?from is kept.
+// Redirect for old "new form" links to the questionnaire builder, keeping ?from.
 export default async function NewFormPage({
   params,
   searchParams,

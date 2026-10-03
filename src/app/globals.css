@@ -74,7 +74,7 @@ a:hover {
   color: var(--accent);
 }
 
-/* Site header — full-width, logo flush left, nav flush right */
+/* Site header: full width, logo flush left, nav flush right */
 .site-header {
   background: #ffffff;
   border-bottom: 1px solid var(--border);
@@ -448,8 +448,8 @@ a:hover {
 
 /* Risk rows on the detail page */
 /* A risk is a labelled group of the same rows as everything else; only the
-   heading is its own. The block used to declare a second grid of its own,
-   which is what made it read as a different kind of thing. */
+   heading is its own. A second grid here would make it read as a different
+   kind of thing. */
 .qf-risk-view {
   margin-bottom: 22px;
 }
@@ -716,7 +716,7 @@ a:hover {
   padding: 11px 22px;
 }
 
-/* ── Ontology view on the system card ─────────────────────────────────────── */
+/* Ontology view on the system card */
 .onto-head {
   display: flex;
   /* Two groups: what the card gives you on the left, how you look at it on the
@@ -1120,10 +1120,9 @@ a:hover {
   padding: 0;
 }
 
-/* The two dashed frames of AIRO Figure 3 */
-/* The figure's dashed frames. No fill: they are drawn behind the graph (see the
-   zIndex in OntologyGraph), and a translucent fill over the top was what made
-   the whole canvas look washed out. */
+/* The two dashed frames of AIRO Figure 3. No fill: they are drawn behind the
+   graph (see the zIndex in OntologyGraph), and a translucent fill would make the
+   whole canvas look washed out. */
 .onto-band {
   position: absolute;
   top: 0;
@@ -1227,10 +1226,7 @@ a:hover {
   padding: 10px 12px;
 }
 
-/* ── The ontology canvas ──────────────────────────────────────────────────
-   The page is wide, so the canvas only needs its height. It used to compute a
-   breakout width here, which was scoped to a direct child of .qualify-page and
-   silently stopped applying when the card moved into the tab panel. */
+/* The ontology canvas. The page is wide, so the canvas only needs its height. */
 .qualify-page--wide .onto-canvas {
   height: min(78vh, 940px);
 }
@@ -1278,7 +1274,7 @@ a:hover {
   color: var(--muted);
 }
 
-/* ── The compiled list: one clickable row per qualification ──────────────── */
+/* The compiled list: one clickable row per qualification */
 .qf-rows {
   list-style: none;
   margin: 0;
@@ -1338,7 +1334,7 @@ a:hover {
   color: var(--graph-muted);
 }
 
-/* ── The two tabs of one qualification ──────────────────────────────────── */
+/* The two tabs of one qualification */
 .qf-tabs {
   display: flex;
   gap: 0;
@@ -1377,7 +1373,7 @@ a:hover {
   color: var(--primary);
 }
 
-/* ── The answered form, read back ───────────────────────────────────────── */
+/* The answered form, read back */
 .qf-read-list {
   margin: 0;
   display: grid;
@@ -1409,7 +1405,7 @@ a:hover {
 }
 /* Section headings inside the answered form, matching the small-caps group
    labels on the form that collected the answers. The metadata needs none: it is
-   simply where the form starts. */
+   where the form starts. */
 .qf-read .qf-section {
   margin-bottom: 26px;
 }
@@ -1453,7 +1449,7 @@ a:hover {
   font-size: 12px;
 }
 
-/* ── The vertical card's downloads ──────────────────────────────────────── */
+/* The vertical card's downloads */
 
 .onto-downloads {
   display: flex;
@@ -1466,7 +1462,7 @@ a:hover {
   font-size: 13px;
 }
 
-/* ── A node the filler agent flagged ────────────────────────────────────── */
+/* A node the filler agent flagged */
 .onto-flag {
   display: inline-block;
   background: var(--pink-soft);
@@ -1508,7 +1504,7 @@ a:hover {
   font-size: 12px;
 }
 
-/* ── Methodology: a procedure, laid out like one ────────────────────────── */
+/* Methodology: a procedure, laid out like one */
 .site-nav {
   margin-left: auto;
   display: flex;
@@ -1911,7 +1907,7 @@ a:hover {
   font-family: inherit;
 }
 
-/* ── Submitting: the answers becoming an AI card ────────────────────────── */
+/* Submitting: the answers becoming an AI card */
 .submit-overlay {
   position: fixed;
   inset: 0;
@@ -2161,8 +2157,8 @@ a:hover {
 /* The card page's header buttons: editing the system, beside its versions. */
 .qf-header-actions { display: flex; gap: 0.5rem; align-items: center; }
 
-/* ── Form assembly: library, builder, import, chooser, form line ───────── */
-/* 10-ui-plan.md. Every rule reuses a pattern of the pages around it: panels,
+/* Form assembly: library, builder, import, chooser, form line */
+/* Every rule reuses a pattern of the pages around it: panels,
    group heads, chips and tags from the qualify form, the notice box from
    .qf-prefilled, the warning palette from .onto-flag. */
 
@@ -2744,7 +2740,7 @@ a:hover {
   margin-left: auto;
 }
 
-/* The "Form: <name> vN" line under a card page's intro, with its export links
+/* The "Questionnaire: <name> vN" line under a card page's intro, with its export links
    as small chips. The dots stay in the text for copy and paste; the gap does
    the spacing on screen. */
 .qualify-header p:has(+ .qf-row-form) {
@@ -2780,8 +2776,8 @@ a:hover {
   border-color: var(--primary);
 }
 
-/* Multi-form select (addendum 06 R75): the library's forms as toggle chips,
-   the look of the block chips; the builder takes more of a wide page (R74). */
+/* Multi-form select: the library's forms as toggle chips, with the look of the
+   block chips; the builder takes more of a wide page. */
 .qf-builder-forms {
   border: 0;
   margin: 0 0 14px;

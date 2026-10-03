@@ -11,7 +11,7 @@ import {
 } from "@/domain/forms/setEditorState";
 import { saveQuestionSet } from "./actions";
 
-// The question-set editor (T17): where questions are written. Every change is
+// The question-set editor: where questions are written. Every change is
 // one setEditorReducer action (src/domain/forms); this file keeps only what is
 // on screen now: the open question editor, the button to focus after a move,
 // and the save's error. No blocks and no "Use once": those belong to

@@ -5,7 +5,7 @@ import QuestionnaireBuilder from "../QuestionnaireBuilder";
 import { builderData } from "../libraryData";
 
 // A new questionnaire, empty or (`?from=<questionnaire id>`) started from a
-// listed, current questionnaire's latest version, pinned as it is (T31).
+// listed, current questionnaire's latest version, pinned as it is.
 export default async function NewQuestionnairePage({
   params,
   searchParams,

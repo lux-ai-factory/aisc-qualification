@@ -21,7 +21,7 @@ function failed(err: unknown, fallback: string): ComponentActionState {
  *
  * The project comes from the browser, so it is not trusted: the platform is
  * asked about the caller in that project before its database is opened, and a
- * card of another project is simply not in it.
+ * card of another project is not in it.
  */
 async function latestCard(
   project: string,
@@ -58,7 +58,7 @@ export async function linkComponent(
   qualificationId: string,
   componentPid: string,
   airoProperty: string,
-  /** Which of the card's components the item is (targets plan v2); none when absent. */
+  /** Which of the card's components the item is; none when absent. */
   componentKey: string | null = null,
 ): Promise<ComponentActionState> {
   try {
@@ -84,7 +84,7 @@ export async function linkComponent(
       componentType: component.component_type,
       objectName: component.data ?? "",
     };
-    // The link, what it replaced and its ledger event, in one transaction (ledger phase 5).
+    // The link, what it replaced and its ledger event, in one transaction.
     await repo.transaction(async (r, tx) => {
       const old = await r.findLink(qualificationId, componentPid);
       await r.linkComponent(qualificationId, link);
@@ -102,7 +102,7 @@ export async function linkComponent(
         itemType: "qualification",
         itemId: qualificationId,
         details: { component: componentPid, property: airoProperty },
-        // one link's states: content, not before/after, which are the whole item's (review m1)
+        // This link's states go in content: before/after describe the whole item.
         content: { before, after },
       });
     });

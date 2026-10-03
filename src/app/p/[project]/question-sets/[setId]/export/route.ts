@@ -1,7 +1,7 @@
 /**
  * GET /p/<project>/question-sets/<setId>/export?format=csv|md[&version=<n>]
  *
- * A question-set version as a file to download (T47). Every member of the
+ * A question-set version as a file to download. Every member of the
  * project may export (the route door lets a reader through); the set is read
  * from the project's own database, so another project's sets are not found.
  * Without a version it is the set's latest. Builtin and retired sets export.

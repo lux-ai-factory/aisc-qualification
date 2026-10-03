@@ -7,7 +7,7 @@ import { questionSetsOn } from "@/server/services/QuestionSetService";
 /** YYYY-MM-DD of an ISO 8601 time, in UTC. */
 const day = (iso: string) => new Date(iso).toISOString().slice(0, 10);
 
-// One question set (T21): every version with who saved it and when, one
+// One question set: every version with who saved it and when, one
 // version's questions (the latest, or ?version=<n>), Edit and the exports.
 export default async function QuestionSetPage({
   params,

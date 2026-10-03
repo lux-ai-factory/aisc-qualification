@@ -9,7 +9,7 @@ import { parseQuestionnaireDraft, type QuestionnaireDraft } from "@/domain/forms
 import type { FormsRecorder } from "@/server/services/QuestionSetService";
 import { emitEvent } from "@/server/ledger/emit";
 
-/** The ledger's event for a questionnaire save, in its transaction (ledger phase 5). */
+/** The ledger's event for a questionnaire save, in its transaction. */
 const recordQuestionnaire: FormsRecorder = async (tx, saved) => {
   const q = saved.questionnaire;
   if (!q) return;
@@ -41,7 +41,7 @@ function readDraft(
 
 /**
  * Save the builder's questionnaire: a new listed one, or the next version of
- * `questionnaireId` (T30). Then open the card form on it.
+ * `questionnaireId`. Then open the card form on it.
  */
 export async function saveQuestionnaire(
   project: string,
@@ -91,7 +91,7 @@ export async function useQuestionnaireOnce(
   redirect(`/p/${project}/system/edit?questionnaireVersion=${encodeURIComponent(saved.versionId)}`);
 }
 
-/** Retire a questionnaire: hidden from the chooser, still resolvable (T35). */
+/** Retire a questionnaire: hidden from the chooser, still resolvable. */
 export async function retireQuestionnaire(project: string, questionnaireId: string): Promise<{ error?: string }> {
   const door = await projectDbForAction(project, { write: true });
   if (door.error !== undefined) return { error: door.error };

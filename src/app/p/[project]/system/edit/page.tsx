@@ -33,7 +33,7 @@ export default async function EditSystemPage({
 
   // `?questionnaireVersion=<id>` fills that very version, and wins over
   // `?questionnaire=<id>`, which fills that questionnaire's latest version. The
-  // old names ?formVersion and ?form are aliases (T39). An unknown one never
+  // old names ?formVersion and ?form are aliases. An unknown one never
   // falls back to the other. None: the person picks a questionnaire first.
   const lookup = pickQuestionnaireParams({ example, questionnaire, questionnaireVersion, form, formVersion });
   const worked = lookup.lookup === "example" ? findExample(example) : undefined;
@@ -91,7 +91,7 @@ export default async function EditSystemPage({
   }
 
   // Moving the card to another questionnaire version: QualifyForm says so and
-  // flags reworded questions (T41). The same version: nothing to say.
+  // flags reworded questions. The same version: nothing to say.
   const moving = start && from && from.versionId !== version.versionId ? from : null;
   const initial = worked ?? start?.initial ?? null;
 

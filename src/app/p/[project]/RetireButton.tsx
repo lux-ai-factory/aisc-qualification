@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 /**
- * Retire a question set or a questionnaire (T56). Asks once; the action's
+ * Retire a question set or a questionnaire. Asks once; the action's
  * {error} shows under the buttons. Retiring hides the thing from pickers; what
  * already uses it keeps it.
  */

@@ -35,12 +35,12 @@ type Props = {
    *  Absent is the default version. */
   form?: ResolvedQuestionnaireVersion;
   /** The version the previous card was filled with, when this card moves to
-   *  another one (T41): the move is announced, reworded questions flagged. */
+   *  another one: the move is announced, reworded questions flagged. */
   previous?: ResolvedQuestionnaireVersion | null;
   /** The previous card's version number, for "Reworded since v<N>". */
   cardNumber?: number;
-  /** No longer read: the questions come from `form`. Kept so older mounts
-   *  still type-check. */
+  /** Unused: the questions come from `form`. Still accepted so existing
+   *  callers type-check. */
   keyQuestions?: KeyQuestion[];
   /** A worked example to open the form on, for reading and correcting rather
    *  than typing from scratch. Every field stays editable. */
@@ -66,7 +66,7 @@ export default function QualifyForm({
 }: Props) {
   const v = useMemo(() => form ?? annexDefaultVersion(), [form]);
   // A card moving to another questionnaire version: what the notice says, and
-  // which carried answers sit under a question worded differently now (T41).
+  // which carried answers sit under a question worded differently now.
   const carried = initial?.answers ?? {};
   const moving =
     previous && previous.versionId !== v.versionId
@@ -78,7 +78,7 @@ export default function QualifyForm({
   );
   const has = (block: FormBlock) => v.blocks.includes(block);
   const meta = initial?.metadata;
-  // The tag sets are VAIR terms (2026-09-30), held here because they are chips, not fields.
+  // The tag sets are VAIR terms, held here because they are chips, not fields.
   const [targetTags, setTargetTags] = useState<Set<string>>(
     new Set(meta?.targetSystemTags ?? []),
   );
@@ -112,7 +112,7 @@ export default function QualifyForm({
     undefined,
   );
 
-  // A document's VAIR picks (2026-09-30), by the rule the text fields follow: "only the empty ones"
+  // A document's VAIR picks, by the rule the text fields follow: "only the empty ones"
   // fills a pick the author has not made, "replace" puts the document's in place of theirs. A tag set
   // the form does not have takes nothing.
   const applyPicks: PicksApplier = (picks, mode, formEl) => {
@@ -166,7 +166,7 @@ export default function QualifyForm({
 
       {/* Submitted through onSubmit, not action={formAction}: React resets a form whose
           action finishes, even when the save was refused, and these fields are uncontrolled
-          (the document prefill writes onto them), so a refusal erased everything filled in. */}
+          (the document prefill writes onto them), so a refusal would erase everything filled in. */}
       <form
         ref={formRef}
         onSubmit={(e) => {
@@ -387,9 +387,9 @@ export default function QualifyForm({
           </section>
         )}
 
-        {/* on every card, whatever its questionnaire: the parts of the system (targets plan v2) */}
+        {/* on every card, whatever its questionnaire: the parts of the system */}
         {/* The keys restart each block from an upload's rows. They are siblings, so each needs its own
-            prefix: two children keyed "1" is what showed the Components block three times. */}
+            prefix: two children keyed "1" make React render one block's rows more than once. */}
         <ComponentRows key={`components-${componentRows.version}`} initial={componentRows.rows} />
 
         {has("risks") && <RiskRows key={`risks-${riskRows.version}`} initial={riskRows.rows} />}

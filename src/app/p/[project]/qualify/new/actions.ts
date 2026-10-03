@@ -50,7 +50,7 @@ export async function submitQualification(
     throw err;
   }
 
-  // The card is built from the form alone (2026-09-30). The filler runs only
+  // The card is built from the form alone. The filler runs only
   // when a person asks for it on the card: Refine with AI, fill-actions.ts.
   redirect(`/p/${project}/qualify/${id}`);
 }

@@ -23,9 +23,9 @@ export async function GET(
 
   const q = await new QualificationRepository(db).cardSummary(id);
   if (!q) return new NextResponse("Not found", { status: 404 });
-  // The filled graph IS the card, so the PDF is a rendering of it. There is no
-  // prose path any more: the app makes no LLM calls at all, and the only model
-  // in the system is the one the filler service configures through BAF.
+  // The filled graph is the card, so the PDF is a rendering of it. The app makes
+  // no LLM calls; the only model in the system is the one the filler service
+  // configures through BAF.
   let ontology: unknown = undefined;
   try {
     ontology = (await ontologyService.build(project, id)).view;
@@ -42,7 +42,7 @@ export async function GET(
 
   try {
     const pdf = await systemCardRendererClient.renderPdf(payload);
-    // A download is recorded (card.pdf_downloaded, ledger phase 5); a failure to record is logged only.
+    // A download is recorded in the ledger as card.pdf_downloaded; a failure to record is only logged.
     const format = new URL(req.url).pathname.endsWith("system-card.pdf") ? "system-card.pdf" : "ai-card.pdf";
     await new QualificationRepository(db)
       .transaction((_r, tx) =>
