@@ -1,9 +1,9 @@
 """Which VAIR terms we offer, and for which AIRO class.
 
 VAIR nests: vair:Police is a subclass of vair:EmergencyServiceProvider, which is a
-subclass of airo:AIOperator. Reading only an AIRO class's direct children offered
-136 of the 331 terms that sit under our schema's classes. The gaps were not
-cosmetic: Purpose showed 27 of 122, hiding vair:AssessingCreditworthiness and
+subclass of airo:AIOperator. Reading only an AIRO class's direct children would
+offer 136 of the 331 terms that sit under our schema's classes. The gaps are not
+cosmetic: Purpose would show 27 of 122, hiding vair:AssessingCreditworthiness and
 vair:DeterminingCreditScore, which is exactly what a credit-scoring system does.
 
 The counts below are an inventory of VAIR 1.0 as vendored. They are asserted so a
@@ -144,9 +144,9 @@ class TestPrecision:
 
 
 class TestTheBuilderIsExact:
-    """A term names one kind of thing. The builder used to accept any name in the
-    VAIR namespace for any class, so a Purpose node could be typed vair:Police,
-    and one of VAIR's 101 dangling names could be written into a graph."""
+    """A term names one kind of thing. Accepting any name in the VAIR namespace
+    for any class would let a Purpose node be typed vair:Police, and one of
+    VAIR's 101 dangling names be written into a graph."""
 
     def _parts(self):
         import json

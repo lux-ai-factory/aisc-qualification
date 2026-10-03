@@ -56,7 +56,7 @@ def slug(name: str) -> str:
 def _guard(cell: str) -> str:
     r"""One leading ' before a cell matching ^'*[=+\-@]: a formula, or a run of
     ' before one. Guarding every run (not only one ') makes the importer's
-    strip-one rule an exact inverse (addendum R50, finding G1)."""
+    strip-one rule an exact inverse."""
     if cell.lstrip("'").startswith(_FORMULA_FIRST):
         return "'" + cell
     return cell

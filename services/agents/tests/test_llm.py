@@ -1,8 +1,8 @@
 """The model, configured BAF's way.
 
 One mechanism: a BAF LLM wrapper, chosen and configured through BAF properties,
-holding the credential itself. The service no longer has an LLM client of its
-own, and there is no second place to name a model.
+holding the credential itself. The service has no LLM client of its own, and
+there is no second place to name a model.
 """
 import pytest
 
@@ -38,7 +38,7 @@ class TestTheCompleter:
         assert llm.calls[0]["parameters"]["temperature"] == 0.0
 
     def test_it_is_the_shape_the_loop_expects(self):
-        # fill/loop.py takes any (system, user, temperature=...) -> str
+        # the writer and critic take any (system, user, temperature=...) -> str
         from fill.agents import LlmWriter
 
         draft = LlmWriter(complete=completer(FakeLlm())).draft(
@@ -74,9 +74,9 @@ class TestProviders:
         assert PROVIDERS["ollama"][1] is None
 
     def test_no_two_providers_share_a_key_variable(self):
-        # `compatible` used to read OPENAI_API_KEY, which meant pointing at your
-        # own vLLM required a variable named for OpenAI, and using both
-        # providers collided on one value.
+        # `compatible` reads BAF_LLM_API_KEY, not OPENAI_API_KEY, so pointing at
+        # your own vLLM needs no variable named for OpenAI and the two providers
+        # never collide on one value.
         seen: dict[str, str] = {}
         for name, (_, _, env_var) in PROVIDERS.items():
             if env_var is None:

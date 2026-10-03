@@ -45,8 +45,8 @@ def test_a_missing_file_says_where_it_looked(tmp_path, monkeypatch):
 def test_the_container_layout_has_no_app_root_above_it():
     """In the image the package is /app/airo_min, with nothing three levels up.
 
-    Asking for it by index raised IndexError at import time, which took the
-    whole service down on start: the vocabulary sits beside the package there,
+    Asking for it by index would raise IndexError at import time and stop the
+    service from starting: the vocabulary sits beside the package there,
     so the missing app root is an ordinary absence, not an error.
     """
     from airo_min.pickers import app_root_for

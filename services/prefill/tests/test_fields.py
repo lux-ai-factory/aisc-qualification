@@ -120,12 +120,12 @@ def test_the_shared_file_is_what_it_reads():
 
 def test_the_container_layout_has_no_repo_above_the_package(monkeypatch):
     """In the image the package is /app/prefill, with no src/data three levels
-    up. Asking for that parent by index raised IndexError while the list of
-    places to look was still being built, which took the service down at start
-    before it could look in the right one. (services/ontology learned this.)
+    up. Asking for that parent by index would raise IndexError while the list
+    of places to look is still being built, and the service would fail at start
+    before looking in the right one.
 
-    The image sets no PREFILL_FIELDS_PATH, so neither does this: an explicit
-    path goes first, and verify.sh sets one."""
+    The image sets no PREFILL_FIELDS_PATH, so neither does this test: an
+    explicit path goes first."""
     from pathlib import Path
 
     monkeypatch.delenv("PREFILL_FIELDS_PATH", raising=False)
@@ -149,8 +149,7 @@ def test_the_repo_layout_still_finds_the_shared_file():
     assert "/w/apps/qualification/src/data/prefillFields.json" in places
 
 
-# ── Form assembly: the default form through the custom-form reader ──────────
-# (docs/superpowers/form-assembly-2026-09-24/01-spec.md, R38, R39)
+# The default form through the custom-form reader.
 
 
 def _default_questions():
@@ -164,7 +163,7 @@ def test_r38_the_default_questions_propose_what_the_annex_headings_do():
 
     try:
         from prefill.fields import proposals_for_questions
-    except ImportError as exc:  # the spec's new function
+    except ImportError as exc:
         raise AssertionError(f"prefill.fields.proposals_for_questions is missing: {exc}")
     text = (
         "Annex IV(1)(a)\nThis release replaces 1.1.0. The scoring model was retrained.\n\n"
@@ -175,7 +174,7 @@ def test_r38_the_default_questions_propose_what_the_annex_headings_do():
     assert proposals_for_questions(text, _default_questions()) == annex_sections(text)
 
 
-# ── Addendum 06, R53: the 14 point ids in the prefill service ───────────────
+# The 14 Annex IV point ids in the prefill service.
 
 
 def test_r53_annex_point_ids_equal_the_repo_json_in_order():
@@ -184,7 +183,7 @@ def test_r53_annex_point_ids_equal_the_repo_json_in_order():
 
     try:
         from prefill.fields import ANNEX_POINT_IDS
-    except ImportError as exc:  # the addendum's new constant
+    except ImportError as exc:
         raise AssertionError(f"prefill.fields.ANNEX_POINT_IDS is missing: {exc}")
     points = Path(__file__).resolve().parents[1] / ".." / ".." / "src" / "data" / "annexPoints.json"
     ids = [p["id"] for p in json.loads(points.read_text(encoding="utf-8"))["points"]]

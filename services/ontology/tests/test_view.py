@@ -32,7 +32,7 @@ def graph(parts):
     return build_graph(q, e)
 
 
-# ── provenance is stamped at build time ─────────────────────────────────────
+# Provenance is stamped at build time
 
 
 def test_form_fed_nodes_are_marked_as_coming_from_the_form(graph):
@@ -45,7 +45,7 @@ def test_prose_fed_nodes_are_marked_as_extracted(graph):
     assert str(graph.value(tech, QUAL.provenance)) == "extracted"
 
 
-# ── the patch layer ─────────────────────────────────────────────────────────
+# The patch layer
 
 
 def test_a_patch_changes_the_label_and_marks_the_node_reviewed(graph):
@@ -104,7 +104,7 @@ def test_a_patch_cannot_change_the_airo_class(graph):
         apply_patch(graph, {"purpose": {"cls": "Risk"}})
 
 
-# ── the view model ──────────────────────────────────────────────────────────
+# The view model
 
 
 def test_the_view_has_a_system_half_and_a_risk_half(graph):
@@ -161,7 +161,7 @@ def test_the_only_untyped_nodes_left_are_ones_vair_cannot_type(graph):
                 untyped_classes.add(n["cls"])
     # Risk, Vulnerability, AIUser and Data have zero VAIR specialisations; AIOperator's
     # 17 terms are Annex III public bodies, none of which is a commercial bank. A part of
-    # one of our own types says itself that no VAIR term applies (2026-09-30).
+    # one of our own types says itself that no VAIR term applies.
     assert untyped_classes <= {"Risk", "Vulnerability", "AIUser", "AIOperator", "Data"}, (
         untyped_classes
     )
@@ -207,9 +207,8 @@ class TestPartialVocabularies:
     All 17 AIOperator terms are Annex III public bodies: authorities, EU bodies,
     judicial and law-enforcement agents, education and vocational training
     providers. A commercial provider or a retail bank therefore has no term to
-    take. The card used to flag both as "no term", which reads as a gap someone
-    could close by picking from the list; it cannot be closed, because the term
-    does not exist.
+    take. Flagging both as "no term" would read as a gap someone could close by
+    picking from the list; it cannot be closed, because the term does not exist.
     """
 
     def test_the_operator_vocabulary_is_marked_partial(self):
@@ -269,7 +268,7 @@ class TestPartialVocabularies:
         assert deployer["vair"] == "PublicAuthority"
 
 
-# ── "no term applies": a reviewer's judgment, recorded ──────────────────────
+# "no term applies": a reviewer's judgment, recorded
 
 
 def test_a_reviewer_can_record_that_no_term_applies(graph):

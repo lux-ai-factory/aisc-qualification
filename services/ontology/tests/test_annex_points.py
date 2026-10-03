@@ -1,6 +1,5 @@
 """The 14 Annex IV points, shared with the app as src/data/annexPoints.json.
 
-Form-assembly spec (docs/superpowers/form-assembly-2026-09-24/01-spec.md), R2.
 The loader has the same three places as airo_min/pickers.py: $ANNEX_POINTS_PATH,
 the repo layout, then a copy beside the package (the image's Dockerfile COPY).
 """
@@ -18,7 +17,7 @@ SHARED = APP / "src" / "data" / "annexPoints.json"
 
 @pytest.fixture()
 def ap():
-    """airo_min.annex_points, imported per test: until it exists each test fails
+    """airo_min.annex_points, imported per test: if it is missing, each test fails
     on the ImportError and the rest of the suite still runs."""
     return importlib.import_module("airo_min.annex_points")
 

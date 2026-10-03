@@ -29,7 +29,7 @@ BUNDLES = ("references", "self-contained")
 CONTENT_TYPE = "application/json; charset=utf-8"
 EXTENSION = "json"
 
-#: at most this many items in one questionnaire (as a form, 06 R53)
+#: at most this many items in one questionnaire (the same limit as a form)
 MAX_ITEMS = 200
 MAX_NAME = 120
 MAX_DESCRIPTION = 500
@@ -61,9 +61,6 @@ def collapse(s: str) -> str:
 
 def _positive_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value >= 1
-
-
-# ── writing ────────────────────────────────────────────────────────────────
 
 
 def check_bundle(bundle: Any) -> None:
@@ -100,9 +97,6 @@ def write_questionnaire(q: dict, bundle: str) -> ExportedFile:
         content_type=CONTENT_TYPE,
         content=json.dumps(doc, ensure_ascii=False, indent=2) + "\n",
     )
-
-
-# ── reading ────────────────────────────────────────────────────────────────
 
 
 def _extension(filename: str) -> str:
@@ -159,7 +153,7 @@ def _read_wording(n: int, it: dict) -> dict:
 
 
 def read_questionnaire(raw: bytes, filename: str) -> dict:
-    """The normalised document of a questionnaire file, or QuestionnaireFileError (spec T51)."""
+    """The normalised document of a questionnaire file, or QuestionnaireFileError."""
     ext = _extension(filename)
     if ext != EXTENSION:
         raise QuestionnaireFileError(f"{ext} is not a questionnaire file format: {EXTENSION}")

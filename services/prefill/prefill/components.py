@@ -1,4 +1,4 @@
-"""The Components block: one row per part of the system (targets plan v2).
+"""The Components block: one row per part of the system.
 
 A document lists its parts under a Components heading, one block per part,
 each field on a labelled line, the way it lists its risks:
@@ -11,11 +11,10 @@ each field on a labelled line, the way it lists its risks:
     Provider: In-house
     Role: Estimates the probability of default.
 
-The type is one entry of the form's one Type list (2026-09-30, src/data/
-componentFields.ts): a VAIR AIComponent term, matched by its id or label, and
+The type is one entry of the form's Type list (src/data/componentFields.ts): a VAIR AIComponent term, matched by its id or label, and
 ours only for what VAIR has no term for, matched by id or by the words below.
-A word that matches none is left for the person to choose. "Kind:" still reads,
-for documents written for the earlier form. Only the Components section is
+A word that matches none is left for the person to choose. "Kind:" is also read,
+for documents written for an earlier version of the form. Only the Components section is
 read: "Name:" elsewhere is the system's, not a part's.
 """
 from __future__ import annotations
@@ -45,7 +44,7 @@ OWN_TYPES: dict[str, tuple[str, ...]] = {
     "other": ("other",),
 }
 
-#: Our old words for a VAIR term, so a document written for the earlier form still reads.
+#: Older words for a VAIR term, so a document written for an earlier version of the form is still read.
 _VAIR_WORDS = {"predictive model": "Model"}
 
 _LABELS: dict[str, tuple[str, ...]] = {

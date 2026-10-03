@@ -68,9 +68,6 @@ def _plural(n: int, word: str) -> str:
     return f"{n} {word}" if n == 1 else f"{n} {word}s"
 
 
-# ── the header rules, shared by CSV and tables ────────────────────────────
-
-
 def _cell(row: list[str], i: int | None) -> str:
     return row[i] if i is not None and i < len(row) else ""
 
@@ -80,7 +77,7 @@ _FORMULA_FIRST = ("=", "+", "-", "@")
 
 def _unguarded(cell: str) -> str:
     r"""The exact inverse of the exporter's formula guard: a cell matching
-    ^'+[=+\-@] loses exactly one leading ' (addendum R53, finding G1)."""
+    ^'+[=+\-@] loses exactly one leading '."""
     if cell.startswith("'") and cell.lstrip("'").startswith(_FORMULA_FIRST):
         return cell[1:]
     return cell
@@ -129,11 +126,8 @@ def _table_rows(rows: list[tuple[list[str], int]], *, unguard: bool = False) -> 
     return out
 
 
-# ── CSV ─────────────────────────────────────────────────────────────────
-
-
-# csv.reader refuses a field over 131072 characters by default, which made a
-# long cell a 500 instead of the "longer than 2000 characters" warning. The
+# csv.reader refuses a field over 131072 characters by default, which would turn a
+# long cell into a 500 instead of the "longer than 2000 characters" warning. The
 # whole file is already in memory and bounded by the upload cap, so the csv
 # module's own limit protects nothing here; lift it once for the process.
 _CSV_FIELD_LIMIT = 2**31 - 1
@@ -147,8 +141,6 @@ def _from_csv(text: str) -> tuple[list[Candidate], int]:
     rows = [(cells, reader.line_num) for cells in reader]
     return _table_rows(rows, unguard=True), 0
 
-
-# ── Markdown ────────────────────────────────────────────────────────────
 
 _RULE = re.compile(r"^\s*([-*_])(\s*\1){2,}\s*$")
 _LIST_MARKER = re.compile(r"^(?:[-*+]|\d+[.)])\s+")
@@ -245,9 +237,6 @@ def _from_markdown(text: str) -> tuple[list[Candidate], int]:
     return candidates, headings
 
 
-# ── Word ────────────────────────────────────────────────────────────────
-
-
 def _from_docx(raw: bytes) -> tuple[list[Candidate], int]:
     check_docx_expansion(raw)
     import docx
@@ -276,9 +265,6 @@ def _from_docx(raw: bytes) -> tuple[list[Candidate], int]:
             rows.append(([cell.text for cell in row.cells], number))
         candidates.extend(_table_rows(rows))
     return candidates, headings
-
-
-# ── the limits ──────────────────────────────────────────────────────────
 
 
 def _collapse(s: str) -> str:

@@ -10,7 +10,7 @@ import pytest
 
 from fill import clients
 
-#: the card's project: its database is where the app finds it (isolation Q1)
+#: the card's project: its database is where the app finds it
 PID = str(uuid.uuid4())
 
 
@@ -54,8 +54,7 @@ def test_publishing_puts_to_the_app(sent):
     assert sent[0]["method"] == "PUT"
 
 
-# ── API auth WP2 (2026-09-25): a token per service it calls ──────────────────
-# The app accepts the agent's own token on /p/{pid}/api/qualifications/{id}/extracted,
+# A token per service it calls. The app accepts the agent's own token on /p/{pid}/api/qualifications/{id}/extracted,
 # and the ontology service accepts the agent's own token (not the app's). Each
 # call carries the token of the service it goes to and never the other one.
 

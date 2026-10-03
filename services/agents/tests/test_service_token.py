@@ -1,4 +1,4 @@
-"""API auth WP2 (2026-09-25), inventory findings 8 and 11: the service-token door.
+"""The service-token door.
 
 The card agent is called by qualification-web only (POST /fill on save, GET /fill for the card). Each caller has a token of its own, sent in X-AISC-Service-Token.
 /health stays open; everything else (the API, /docs and /openapi.json) is 401
@@ -18,7 +18,7 @@ DOOR_TEST = True  # conftest gives this module's clients no token of their own
 HEADER = "X-AISC-Service-Token"
 NAMES = ('QUALIFICATION_WEB_TO_AGENTS_TOKEN',)
 #: (method, path, body) for each kind of route; the body is only there to get past the door
-PID = str(uuid.uuid4())  # runs are addressed by project and card (isolation Q1)
+PID = str(uuid.uuid4())  # runs are addressed by project and card
 PROBES = [['GET', f'/fill/{PID}/q1', None], ['GET', '/docs', None], ['GET', '/openapi.json', None]]
 
 

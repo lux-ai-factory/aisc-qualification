@@ -119,7 +119,7 @@ def build_view(
 
     With the form version the card was filled with (and its answers), the view
     also says how much of Annex IV it covers and what it documents beyond it.
-    Without one it is exactly the view it always was.
+    Without one, the view has neither.
     """
     system = next(g.subjects(RDF.type, URIRef(AIRO + "AISystem")))
 

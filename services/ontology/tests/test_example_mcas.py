@@ -35,8 +35,7 @@ def _a(name: str) -> URIRef:
     return URIRef(AIRO + name)
 
 
-# ── the export itself: every new form element is actually filled ─────────────
-# (an earlier seed wrote these as empty arrays, which this catches)
+# The export itself: every form element is actually filled, not an empty array.
 
 
 def test_the_export_fills_every_new_form_element(qualification):
@@ -44,7 +43,7 @@ def test_the_export_fills_every_new_form_element(qualification):
     assert qualification["localityTags"], "locality picker is empty"
     assert qualification["intendedDeployers"], "intended deployers is empty"
     assert len(qualification["risks"]) >= 3
-    assert len(qualification["answers"]) == 14  # every sub-item answered (addendum 06, R72)
+    assert len(qualification["answers"]) == 14  # every sub-item answered
 
 
 def test_the_risk_rows_exercise_both_stakeholders_and_the_optional_fields(qualification):
@@ -57,7 +56,7 @@ def test_the_risk_rows_exercise_both_stakeholders_and_the_optional_fields(qualif
     assert all(r["impactAreas"] for r in rows)
 
 
-# ── the graph ────────────────────────────────────────────────────────────────
+# The graph
 
 
 def test_the_graph_is_valid_airo(graph):
@@ -101,7 +100,7 @@ def test_each_answer_is_labelled_with_its_annex_iv_citation(graph):
     assert "Annex IV(1)(d)-(e)" in citations  # the merged sub-item
     assert "Annex IV(1)(g)-(h)" in citations
     assert "Annex IV(2)(h)" in citations
-    assert "Annex IV(1)(f)" in citations  # addendum 06, R72
+    assert "Annex IV(1)(f)" in citations
     assert len(citations) == 14
 
 
@@ -135,7 +134,7 @@ def test_nothing_is_left_untyped_that_could_have_been_typed(graph, extracted):
     untyped_but_typeable = []
     for node in {s for s in graph.subjects() if isinstance(s, URIRef)}:
         has_vair = any(str(o).startswith(VAIR) for o in graph.objects(node, RDF.type))
-        # a part of one of our own types says itself that VAIR has no term for it (2026-09-30)
+        # a part of one of our own types says itself that VAIR has no term for it
         if has_vair or graph.value(node, QUAL.termNotApplicable) is not None:
             continue
         cls = next(
@@ -225,14 +224,13 @@ def test_the_committed_jsonld_is_the_same_graph():
     assert len(jsonld) == len(ttl)
 
 
-# ── Addendum 06, R72: the example answers 1(f) ─────────────────────────────
+# The example answers 1(f)
 
 
 def test_the_graph_is_456_triples_and_the_view_62_nodes(graph):
-    """2026-09-30: the form speaks VAIR. Four VAIR capabilities where six of our tags were, and no
-    "Other" locality (VAIR has none), so three nodes fewer than R72's 59; the example's nine
-    Components rows add five in the view (the data and model rows hang off their own properties);
-    and nothing the form fills is left for an agent to type."""
+    """The form speaks VAIR: four VAIR capabilities and no "Other" locality (VAIR has none); the
+    example's nine Components rows add five nodes in the view (the data and model rows hang off
+    their own properties); and nothing the form fills is left for an agent to type."""
     from airo_min.view import build_view
 
     assert len(graph) == 456

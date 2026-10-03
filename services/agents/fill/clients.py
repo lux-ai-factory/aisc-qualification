@@ -98,8 +98,8 @@ def publish(pid: str, qualification_id: str, extracted: dict) -> dict:
     """Write the reviewed draft where the card reads it from."""
     from fill import ledger
 
-    # the run's id, the person's request and the model go with the draft: the app records it as the
-    # run's card.augmented_by_ai, in the same transaction as the change (ledger phase 5)
+    # The run id, the request id and the model go with the draft: the app records the change as the
+    # run's card.augmented_by_ai event, in the same transaction as the change.
     return _post(
         _extracted_url(pid, qualification_id),
         extracted,

@@ -25,8 +25,8 @@ def _union_members(g, node):
 
 
 def test_exactly_the_figure_3_subset_with_the_collapse():
-    # 19 + AIModel and Data, + AISubject back (1.1); 19 + the four hasComponent sub-properties (WP6),
-    # + hasAISubject (1.1)
+    # 19 + AIModel, Data and AISubject; 19 + the four hasComponent sub-properties
+    # + hasAISubject
     assert len(CLASSES) == 22
     assert len(PROPERTIES) == 24
     for removed in ("AIProvider", "AIDeployer"):

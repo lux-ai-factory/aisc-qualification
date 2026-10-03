@@ -1,6 +1,5 @@
 """Prefilling a custom form: its questions are matched by their own wording.
 
-Form-assembly spec (docs/superpowers/form-assembly-2026-09-24/01-spec.md), R39.
 proposals_for_questions(text, questions) -> {field: answer}, where each
 question is {"field", "text", "citation", "annexPoint"}. Deterministic: the
 question's text or citation named on a line, or the Annex heading of its tag.
@@ -9,7 +8,7 @@ import pytest
 
 try:
     from prefill.fields import proposals_for_questions
-except ImportError as _missing:  # the spec's new function: until it exists each test fails, the suite runs
+except ImportError as _missing:  # if the function is missing, each test fails instead of the whole suite
     def proposals_for_questions(*_args, _error=_missing, **_kwargs):
         raise _error
 

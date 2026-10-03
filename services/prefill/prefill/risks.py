@@ -9,7 +9,7 @@ neither is left for the person to choose rather than guessed.
 Only the Risks section is read: "Control:" in the middle of an Annex answer is
 prose, not a row.
 
-The form speaks VAIR (2026-09-30): the cause, the result, the control and the
+The form speaks VAIR: the cause, the result, the control and the
 follow-up each have one VAIR term beside their text ("Source term:"), the harm is
 a VAIR term alone ("Kind of harm:"), and the areas are VAIR's. A term is matched
 by its VAIR id or label (prefill.vair); a word that names none is left open.
@@ -85,7 +85,7 @@ _AFFECTED = (
     ("operator", ("operator", "provider", "deployer", "company", "bank", "organisation", "organization")),
     ("user", ("user", "applicant", "customer", "people", "person", "citizen", "resident", "consumer")),
 )
-#: Our old words for VAIR's areas, so a document written for the earlier form still reads.
+#: Older words for VAIR's areas, so a document written for an earlier version of the form is still read.
 _AREA_WORDS = {"fundamental rights": "Right", "rights": "Right", "non-discrimination": "RightToNondiscrimination"}
 
 

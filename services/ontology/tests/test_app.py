@@ -87,7 +87,7 @@ def test_a_qualification_missing_a_required_field_is_a_client_error(client):
 def test_the_vocabularies_endpoint_lists_the_terms_the_ui_offers(client):
     body = client.get("/vocabularies").json()
     # VAIR nests, so a class's terms include its grandchildren: reading only the
-    # direct children offered 5 techniques out of 17 and hid DeepLearning.
+    # direct children would offer 5 techniques out of 17 and hide DeepLearning.
     assert body["AITechnique"] == [
         "BayesianEstimation",
         "BayesianOptimisation",
@@ -131,11 +131,11 @@ def test_the_build_response_carries_the_graphs_identity(client, payload):
     assert first["turtle"] != second["turtle"], "blank nodes are relabelled"
 
 
-# ── Form assembly (docs/superpowers/form-assembly-2026-09-24/01-spec.md) ─────
+# Forms that leave blocks out
 
 
 def test_r33_description_use_case_and_users_are_optional_now(client, payload):
-    """A form may leave those blocks out; the request then omits them (R33)."""
+    """A form may leave those blocks out; the request then omits them."""
     q = {
         k: v
         for k, v in payload["qualification"].items()

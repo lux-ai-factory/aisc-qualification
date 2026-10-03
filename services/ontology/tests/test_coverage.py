@@ -1,7 +1,6 @@
 """Coverage and "Additional documentation", computed once, in Python.
 
-Form-assembly spec (docs/superpowers/form-assembly-2026-09-24/01-spec.md),
-R34 and R35. The card, the JSON export and the PDF all read this one view, so
+The card, the JSON export and the PDF all read this one view, so
 they cannot disagree about how much of Annex IV a card covers.
 
   coverage(form, answers) -> {"annex": {...}, "forms": [...], "summary": "..."}
@@ -17,7 +16,7 @@ from fastapi.testclient import TestClient
 from airo_min.build import build_graph
 try:
     from airo_min.coverage import coverage
-except ImportError as _missing:  # the spec's new module: until it exists each test fails, the suite runs
+except ImportError as _missing:  # if the module is missing, each test fails instead of the whole suite
     def coverage(*_args, _error=_missing, **_kwargs):
         raise _error
 from airo_min.view import build_view
@@ -79,14 +78,14 @@ def policy_only():
     return form, answers
 
 
-# ── R34 ───────────────────────────────────────────────────────────────────
+# Coverage
 
 
 def test_r34_the_shape():
     form, answers = policy_only()
     out = coverage(form, answers)
     assert set(out) == {"annex", "forms", "summary"}
-    # addendum 06 (R65): annex gains optionalBlank; points keep their shape
+    # annex has optionalBlank; points keep their shape
     assert set(out["annex"]) == {"covered", "total", "points", "optionalBlank"}
     assert out["annex"]["total"] == 14
     assert [p["id"] for p in out["annex"]["points"]] == IDS
@@ -104,7 +103,7 @@ def test_r34_a_policy_only_form_with_three_tagged_questions():
 
 
 def test_r34_the_mcas_example_as_the_form_has_it_covers_all_14():
-    """The committed JSON answers 1(f) too, as src/data/examples/mcas.ts does (addendum 06, R72)."""
+    """The committed JSON answers 1(f) too, as src/data/examples/mcas.ts does."""
     q = json.loads((EXAMPLES / "mcas.qualification.json").read_text(encoding="utf-8"))
     out = coverage(DEFAULT_FORM, tagged(q))
     assert out["summary"] == "Annex IV coverage: 14 of 14 points."
@@ -113,8 +112,8 @@ def test_r34_the_mcas_example_as_the_form_has_it_covers_all_14():
 
 def test_r34_a16_the_mcas_export_without_1f_covers_13_with_one_optional_blank(mcas):
     """MCAS with its optional 1(f) answer removed (a copy): a skipped optional
-    Annex question lowers the Annex count (A16), and the summary says it was
-    optional (addendum 06, R65, R72)."""
+    Annex question lowers the Annex count, and the summary says it was
+    optional."""
     without_1f = [a for a in tagged(mcas) if a["questionId"] != "1f"]
     assert len(without_1f) == 13
     out = coverage(DEFAULT_FORM, without_1f)
@@ -172,7 +171,7 @@ def test_r34_with_a_form_the_view_carries_form_and_coverage(mcas):
     assert view["coverage"]["summary"] == "Annex IV coverage: 14 of 14 points."
 
 
-# ── R35 ───────────────────────────────────────────────────────────────────
+# Additional documentation
 
 
 def test_r35_the_mcas_default_card_has_no_additional_documentation(mcas):
@@ -236,7 +235,7 @@ def test_r35_a_policy_only_card_through_the_service():
     assert body["view"]["form"] == {"name": "Acme AI policy", "version": 2}
 
 
-# ── R41 no model ───────────────────────────────────────────────────────────
+# No model
 
 
 def test_r41_coverage_imports_only_the_standard_library_and_this_package():
@@ -255,8 +254,8 @@ def test_r41_coverage_imports_only_the_standard_library_and_this_package():
     assert outside == set()
 
 
-# ── Addendum 06 (docs/superpowers/form-assembly-2026-09-24/06-spec-addendum.md) ──
-# R65: optional points left blank; R66: legacy cards; R69: grouping by owner id.
+# Optional points left blank, cards exported with the default version, and
+# grouping by owner id.
 
 OPTIONAL = {"1b", "1f", "2d", "2f"}
 
@@ -272,7 +271,7 @@ def test_r65_default_form_all_answered():
 
 
 def test_r65_r66_default_form_with_the_four_optional_points_blank():
-    """Also the legacy card of R66: exported with the default version."""
+    """Also a card exported with the default version."""
     out = coverage(DEFAULT_FORM, default_answers(OPTIONAL))
     assert out["summary"] == "Annex IV coverage: 10 of 14 points (4 optional left blank)."
     assert out["annex"]["optionalBlank"] == 4

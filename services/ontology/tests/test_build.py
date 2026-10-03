@@ -183,7 +183,7 @@ def test_annotations_use_our_namespace_so_the_airo_structure_is_untouched():
 
 
 def test_a_full_qualification_exercises_every_property():
-    """Every property of the schema, the four component properties of 2026-09-23 included: the
+    """Every property of the schema, the four component properties included: the
     Components block gives the model and the data the system is built on, and a test set the card
     links from the engine gives hasTestingData (a test set is not a component)."""
     rows = [
@@ -228,7 +228,7 @@ def test_areas_of_impact_are_shared_across_risks_not_duplicated():
     assert len(list(g.subject_objects(_a("hasImpactOnArea")))) == 3
 
 
-# ── the label rule: names on nodes, prose in qual:text ──────────────────────
+# The label rule: names on nodes, prose in qual:text
 
 
 def _labels(g):
@@ -337,7 +337,7 @@ def test_an_unknown_name_key_is_ignored_rather_than_crashing():
     assert validate(g) == []
 
 
-# ── the extracted shape the drafting prompt asks for ────────────────────────
+# The extracted shape the drafting prompt asks for
 
 
 SKILL_SHAPED = {
@@ -376,7 +376,7 @@ def test_a_vair_term_that_is_not_a_real_term_is_refused():
         build_graph(_qualification(), bad)
 
 
-# ── labels the builder generates itself must also be names ──────────────────
+# Labels the builder generates itself must also be names
 
 
 def test_the_impact_node_is_named_after_the_risk_not_prefixed_prose():
@@ -402,7 +402,7 @@ def test_no_label_in_a_realistic_graph_ends_in_an_ellipsis():
     assert truncated == set(), truncated
 
 
-# ── extracted.types: VAIR terms for nodes no mapping can reach ──────────────
+# Extracted.types: VAIR terms for nodes no mapping can reach
 
 
 def test_types_map_assigns_vair_terms_to_risk_half_nodes():

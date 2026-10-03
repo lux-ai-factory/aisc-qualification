@@ -1,11 +1,11 @@
-"""WP6 (pipeline 2026-09-23): the card's components link to the engine's real ones.
+"""The card's components link to the engine's real ones.
 
 A card lists, in its export shape, the engine components a person linked on the
 card's page (`engineComponents`), each with the AIRO property that says what it
 is to the system. The graph must carry them as AIRO edges from the system node to
 one node per engine component, named by its engine pid, so a reader can join the
 card to what the engine tests. The free-text components the filler drafts stay
-`hasComponent` nodes, as before.
+`hasComponent` nodes.
 """
 import json
 from pathlib import Path
@@ -62,27 +62,23 @@ def _system(g: Graph) -> URIRef:
     return systems[0]
 
 
-# S6.1
 def test_s6_1_linked_components_are_airo_edges_from_the_system(graph):
     system = _system(graph)
     assert (system, _a("hasModel"), _node(MODEL_PID)) in graph
     assert (system, _a("hasTestingData"), _node(DATASET_PID)) in graph
 
 
-# S6.1
 def test_s6_1_each_component_node_is_typed_by_the_property_range(graph):
     assert (_node(MODEL_PID), RDF.type, _a("AIModel")) in graph
     assert (_node(DATASET_PID), RDF.type, _a("Data")) in graph
 
 
-# S6.1
 def test_s6_1_each_component_node_carries_its_name_and_object_name(graph):
     assert (_node(MODEL_PID), RDFS.label, Literal("MCAS scorer")) in graph
     assert (_node(MODEL_PID), QUAL.objectName, Literal("models/mcas-gbdt.pkl")) in graph
     assert (_node(DATASET_PID), QUAL.objectName, Literal("datasets/holdout-2025.csv")) in graph
 
 
-# S6.1
 def test_s6_1_the_jsonld_parses_back_to_the_same_triples(graph):
     rebuilt = Graph().parse(data=graph.serialize(format="json-ld"), format="json-ld")
     assert set(rebuilt) == set(graph)
@@ -91,7 +87,6 @@ def test_s6_1_the_jsonld_parses_back_to_the_same_triples(graph):
     assert (system, _a("hasTestingData"), _node(DATASET_PID)) in rebuilt
 
 
-# S6.1
 def test_s6_1_other_component_types_map_to_their_range():
     q = json.loads((EXAMPLES / "mcas.qualification.json").read_text(encoding="utf-8"))
     q["engineComponents"] = [
@@ -112,7 +107,6 @@ def test_s6_1_other_component_types_map_to_their_range():
     assert (_node("p-shape"), RDF.type, _a("AIComponent")) in g
 
 
-# S6.1
 def test_s6_1_without_engine_components_the_graph_is_unchanged():
     q = json.loads((EXAMPLES / "mcas.qualification.json").read_text(encoding="utf-8"))
     e = json.loads((EXAMPLES / "mcas.extracted.json").read_text(encoding="utf-8"))
@@ -122,7 +116,7 @@ def test_s6_1_without_engine_components_the_graph_is_unchanged():
     assert isomorphic(build_graph(q, e), plain)
 
 
-# S6.1 (schema.py adds the four sub-properties, cross-checked against airo.ttl)
+# schema.py adds the four sub-properties, cross-checked against airo.ttl
 @pytest.mark.parametrize(
     "prop,rng",
     [

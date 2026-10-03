@@ -1,6 +1,4 @@
-"""WP5 (pipeline 2026-09-23), S5.3 (option B, DEFAULT user to confirm).
-
-The prefill never writes the literal "no term" into a term field: an unmatched
+"""The prefill never writes the literal "no term" into a term field: an unmatched
 term (who is affected, the impact areas) is left empty for the person to choose.
 """
 from prefill.fields import proposals_from_text

@@ -68,7 +68,7 @@ class TestReadingRisks:
         assert second["followUpControl"] == ""
 
     def test_areas_are_matched_to_the_vocabulary(self):
-        # VAIR's areas (2026-09-30); "Fundamental rights" is our old word for vair:Right
+        # VAIR's areas; "Fundamental rights" is the older word for vair:Right
         assert risks_from_text(TWO_RISKS)[1]["areas"] == ["Right", "Safety"]
 
     def test_the_follow_up_is_not_read_as_the_control(self):

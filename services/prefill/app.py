@@ -135,7 +135,7 @@ async def prefill(
     found_parts = components_from_text(text)
     parts, parts_kept = merge_components(parts_now, found_parts, mode)
 
-    # The VAIR picks (2026-09-30): what the document names; the form applies them by the same rule.
+    # The VAIR picks the document names; the form applies them by the same rule.
     picks = picks_from_text(text)
 
     return {

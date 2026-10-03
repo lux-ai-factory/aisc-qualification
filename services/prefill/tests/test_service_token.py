@@ -1,4 +1,4 @@
-"""API auth WP2 (2026-09-25), inventory findings 8 and 11: the service-token door.
+"""The service-token door.
 
 The prefill service is called by qualification-web only. Each caller has a token of its own, sent in X-AISC-Service-Token.
 /health stays open; everything else (the API, /docs and /openapi.json) is 401

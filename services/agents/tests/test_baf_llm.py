@@ -1,8 +1,7 @@
-"""The shared LLM building module, baf_llm.py (pipeline 2026-09-24-llm-keys, 01-specs.md section 3).
+"""The shared LLM building module, baf_llm.py.
 
-Proves S3.2 to S3.5, S3.11 and S5.3 (build, repr). The same cases run in
-apps/control-objectives/tests/test_baf_llm.py against B's copy; only MODULE and LEGACY
-differ between the two files. The module is imported inside a fixture so a missing
+The same cases run in apps/control-objectives/tests/test_baf_llm.py against the risk
+mapper's copy; only MODULE and LEGACY differ between the two files. The module is imported inside a fixture so a missing
 module fails each test rather than stopping collection of the suite.
 
 No network: the platform and the model endpoint are fake servers on 127.0.0.1.
@@ -59,7 +58,7 @@ def answer(platform, system, body, status=200, delay=0.0):
     platform.reply(f"/internal/projects/{PID}/llm/{system}", body, status=status, delay=delay)
 
 
-# ── S3.2 what the module defines ─────────────────────────────────────────────
+# What the module defines.
 
 
 def test_s3_2_providers_and_optional_key_moved_unchanged(m):
@@ -124,7 +123,7 @@ def test_s3_2_resolve_error_is_a_runtime_error(m):
     assert issubclass(m.ResolveError, RuntimeError)
 
 
-# ── S3.3 build_llm(config) ───────────────────────────────────────────────────
+# build_llm(config)
 
 
 def test_s3_3_an_unknown_provider_lists_the_providers(m):
@@ -219,7 +218,7 @@ def test_the_completer_leaves_temperature_to_the_model_unless_asked(m):
     assert fake.calls == [("usr", "sys", None)]
 
 
-# ── S3.4 resolve ─────────────────────────────────────────────────────────────
+# resolve
 
 
 @pytest.mark.parametrize("project", [None, ""])
@@ -290,7 +289,7 @@ def test_s3_4_a_platform_that_is_down_fails_closed(m):
     assert TOKEN not in str(err.value)
 
 
-# ── S3.5 config_for ──────────────────────────────────────────────────────────
+# config_for
 
 
 def test_s3_5_the_platform_choice_wins(m, platform):
@@ -318,7 +317,7 @@ def test_s3_5_d4_a_failing_platform_is_never_replaced_by_the_environment(m, plat
                      fallback=m.LlmConfig("ollama", "local"))
 
 
-# ── S3.11 the resolved config reaches the model; S5.3 no key in logs ─────────
+# The resolved config reaches the model, and no key reaches the logs.
 
 
 def _serve_chat(model_server, content="hello"):

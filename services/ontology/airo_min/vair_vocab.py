@@ -1,4 +1,4 @@
-"""The VAIR lists the form offers, generated from the vendored vair.ttl (2026-09-30).
+"""The VAIR lists the form offers, generated from the vendored vair.ttl.
 
 The form uses VAIR wherever VAIR has a vocabulary for a field, and our own list only where it has
 none. This module writes those lists to src/data/vair_vocab.json, which the TypeScript form and

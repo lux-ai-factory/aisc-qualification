@@ -1,4 +1,4 @@
-"""The VAIR picks a document names (2026-09-30): the system's type and purpose, the kind of provider and deployer, and the four tag sets.
+"""The VAIR picks a document names: the system's type and purpose, the kind of provider and deployer, and the four tag sets.
 
 The form offers VAIR's own lists for these (src/data/vair_vocab.json), so a document names them on a
 labelled line, each value a VAIR id or label, several separated by commas:

@@ -1,4 +1,4 @@
-"""Q4: an agent run is in the ledger (spec 4.4). The app opens the run (card.ai_refinement_requested,
+"""An agent run is in the ledger. The app opens the run (card.ai_refinement_requested,
 with a run id) and hands the agent the run id and the person's request id; every event of the run
 cites both, the model is on each, the person never is. A post that fails is retried, then logged:
 it never fails the run."""
@@ -25,7 +25,7 @@ def sent(monkeypatch):
     def fake_send(url, body, hdrs, timeout=None):
         event = json.loads(body)
         out.append({"url": url, "event": event, "headers": hdrs})
-        return 202 if event.get("model") else 422                     # as the real route (review M4)
+        return 202 if event.get("model") else 422                     # as the real route does
     monkeypatch.setattr(ledger, "_send", fake_send)
     monkeypatch.setattr(ledger.time, "sleep", lambda _s: None)
     monkeypatch.setenv("LEDGER_MODE", "record")
@@ -73,13 +73,13 @@ def test_a_failed_run_records_why(client, sent, monkeypatch):
         raise RuntimeError("the model is down")
     monkeypatch.setattr(service, "fill_one", boom)
     start(client, **{"X-AISC-Run-Id": RUN_ID, "X-AISC-Request-Id": REQUEST_ID})
-    # a code from a closed list, never the text (review M5), and a model even before one is known (M4)
+    # a code from a closed list, never the text, and a model even before one is known
     assert [(s["event"]["action"], s["event"]["details"], s["event"]["model"]) for s in sent] == [
         ("agent.run_failed", {"error": "error"}, "unknown")]
 
 
 def test_without_a_run_id_or_with_the_ledger_off_nothing_is_sent(client, sent, monkeypatch):
-    start(client)                                                     # an app from before the ledger
+    start(client)                                                     # an app that sends no run id
     assert sent == []
     monkeypatch.setenv("LEDGER_MODE", "off")
     service.RUNS.clear()
@@ -132,12 +132,12 @@ def test_the_published_draft_carries_the_run(monkeypatch, sent):
     (ValueError("the answer was 'The system scores Jane Doe, born 1980'"), "parse_error"),
 ])
 def test_a_failure_is_recorded_as_a_code_never_its_text(exc, code):
-    """Review M5: immudb keeps what it is given for ever; an error's text can hold a key or a person."""
+    """immudb keeps what it is given for ever; an error's text can hold a key or a person."""
     assert ledger.error_code(exc) == code
 
 
 def test_a_model_call_never_waits_on_the_ledger(monkeypatch):
-    """Review m6: one short try per ai.llm_call."""
+    """One short try per ai.llm_call."""
     tries = []
     monkeypatch.setenv("LEDGER_MODE", "record")
     monkeypatch.setenv("PLATFORM_URL", "http://platform:8000")

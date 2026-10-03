@@ -1,16 +1,14 @@
 """Owner keys of a question set, in the export's form.
 
-Two-level forms spec (docs/superpowers/two-level-forms-2026-09-25/01-spec.md):
-
-* T11: the per-question owner keys of the export change from ownerForm /
-  ownerFormId to ownerSet / ownerSetId. Which ones a card sends changes
-  nothing: the same graph (digest, Turtle) and the same whole view.
-* T43: coverage and "Additional documentation" group by question set.
+* The per-question owner keys of the export are ownerSet / ownerSetId, or the
+  older ownerForm / ownerFormId. Which ones a card sends changes nothing: the
+  same graph (digest, Turtle) and the same whole view.
+* Coverage and "Additional documentation" group by question set.
   `_owner_key(q)` is ("id", ownerSetId) when present, else ("id", ownerFormId),
   else ("name", ownerSet or ownerForm); the name shown is ownerSet, else
   ownerForm. The output keys (forms, form, additionalDocumentation) and the
-  summary strings are unchanged, and every test_coverage.py test keeps passing
-  with the old keys.
+  summary strings are the same with either key style, and test_coverage.py
+  uses the older keys.
 """
 import copy
 import json
@@ -98,7 +96,7 @@ def build(client: TestClient, q: dict) -> dict:
     return response.json()
 
 
-# ── T11 the graph and the view do not depend on the owner keys ─────────────
+# The graph and the view do not depend on the owner keys
 
 
 def test_t11_the_mcas_card_builds_the_same_graph_with_old_and_new_owner_keys(client, mcas):
@@ -153,7 +151,7 @@ def test_t11_two_sets_give_the_same_additional_documentation_with_either_key_sty
     assert [s["form"] for s in new["additionalDocumentation"]] == ["Acme AI policy", "Beta rules"]
 
 
-# ── T43 grouped by question set ────────────────────────────────────────────
+# Grouped by question set
 
 
 def test_t43_owner_key_is_the_set_id_first():

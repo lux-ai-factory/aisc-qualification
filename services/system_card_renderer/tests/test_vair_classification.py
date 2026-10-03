@@ -1,4 +1,4 @@
-"""The card's classification is VAIR's (2026-09-30): capabilities are flat terms, not our old
+"""The card's classification is VAIR's: capabilities are flat terms, not the older
 category / subcategory pairs, and the sectors are VAIR's application domains."""
 import copy
 

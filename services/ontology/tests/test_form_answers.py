@@ -1,13 +1,11 @@
 """Answers from custom forms, in the graph.
 
-Form-assembly spec (docs/superpowers/form-assembly-2026-09-24/01-spec.md):
-
-* R7: the default form's answers, now exported with `citation` and
-  `annexPoint` and a `form`, build the very same graph as the legacy export
-  (same digest): cards handed over before and after describe the same graph.
-* R31: an answer tagged with an Annex point becomes a qual:answer under that
+* The default form's answers, exported with `citation`, `annexPoint` and a
+  `form`, build the same graph (same digest) as an export without them.
+* An answer tagged with an Annex point becomes a qual:answer under that
   point's citation; an untagged one (annexPoint null) is not in the graph at
-  all (A17); an answer with no annexPoint key (legacy, the CLI) is as today.
+  all; an answer with no annexPoint key (an export without a form, or the CLI)
+  gets the citation rebuilt from its id.
 """
 import copy
 import json
@@ -37,7 +35,7 @@ def extracted() -> dict:
 
 
 def default_form() -> dict:
-    """The default version as toExport sends it (spec 5.3)."""
+    """The default version as toExport sends it."""
     return {
         "name": "Annex IV default",
         "version": 1,
@@ -57,7 +55,7 @@ def default_form() -> dict:
 
 
 def as_new_export(q: dict) -> dict:
-    """What the new toExport(q, defaultVersion) produces for a legacy card."""
+    """What toExport(q, defaultVersion) produces for a card filled with the default form."""
     out = copy.deepcopy(q)
     for a in out["answers"]:
         a["citation"] = _annex_citation({"questionId": a["questionId"]})
@@ -77,7 +75,7 @@ def answer_nodes(g):
     return out
 
 
-# ── R7: the default form builds the legacy graph ──────────────────────────
+# The default form builds the same graph as an export without a form
 
 
 def test_r7_the_default_form_export_builds_the_same_graph_as_the_legacy_export(mcas, extracted):
@@ -96,7 +94,7 @@ def test_r7_default_answers_keep_their_citation_and_question_id(mcas, extracted)
         assert "sourceCitation" not in props
 
 
-# ── R31: tagged, untagged, legacy ─────────────────────────────────────────
+# Tagged, untagged, and no annexPoint key
 
 
 def custom(mcas: dict, *answers: dict) -> dict:

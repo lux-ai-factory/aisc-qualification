@@ -165,8 +165,8 @@ def _html(**over) -> str:
 
 
 def test_a_version_that_already_says_v_is_not_prefixed_again():
-    # The form stores what the provider typed, and providers type "v1.2.0".
-    # The cover used to render that as "vv1.2.0".
+    # The form stores what the provider typed, and providers type "v1.2.0",
+    # which must not become "vv1.2.0" on the cover.
     html = _html(system_version="v1.2.0")
     assert "vv1.2.0" not in html
     assert "Creditum AI SARL \u00b7 v1.2.0" in subtitle(html)
@@ -183,7 +183,7 @@ def subtitle(html: str) -> str:
     return " ".join(html[start : html.index("</p>", start)].split())
 
 
-# ── an AI-drafted name is shown as one (D4) ──────────────────────────────────
+# An AI-drafted name is shown as one
 
 # The ontology builder's own view of the MCAS example (kept current by the ontology suite).
 MCAS_VIEW = json.loads(

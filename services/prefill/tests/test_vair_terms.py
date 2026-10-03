@@ -1,4 +1,4 @@
-"""A document's VAIR terms (2026-09-30): the form speaks VAIR, so the upload reads VAIR too.
+"""A document's VAIR terms: the form speaks VAIR, so the upload reads VAIR too.
 
 A term is matched by its VAIR id or its VAIR label, whatever the case and spacing; a word that is
 neither is left for the person to choose, never guessed. The lists are the form's own, read from
@@ -113,4 +113,4 @@ def test_a_vair_label_wins_over_our_words():
     [row] = components_from_text("Components\n\nComponent 1\nName: m\nType: Model\n")
     assert row["type"] == "Model"
     [old] = components_from_text("Components\n\nComponent 1\nName: m\nKind: Predictive model\n")
-    assert old["type"] == "Model"  # our old word for it names VAIR's term
+    assert old["type"] == "Model"  # the older word for it names VAIR's term

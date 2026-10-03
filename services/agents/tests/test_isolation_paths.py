@@ -1,4 +1,4 @@
-"""The card agent under isolation (isolation-2026-09-25 01-specs.md I3.4, I18.1, I18.4).
+"""The card agent under per-project isolation.
 
 Every card lives in its project's own database, so the agent is told the project in the
 path: qualification-web calls ``POST /fill/{pid}/{qualificationId}`` and polls
@@ -8,8 +8,7 @@ whose model it uses is the ``projectId`` the app returns for that card (the data
 card was found in), never one a caller names.
 
 Everything runs against fakes: the app is a FakeServer on 127.0.0.1, the model and the
-ontology service are monkeypatched, as in test_project_llm.py. Written before the change:
-these fail until WP Q1 moves the paths.
+ontology service are monkeypatched, as in test_project_llm.py.
 """
 from __future__ import annotations
 

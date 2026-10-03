@@ -1,4 +1,4 @@
-"""The card agent's ledger events (docs/superpowers/ledger-2026-10-02/02-spec.md 4.4).
+"""The card agent's ledger events.
 
 A refinement run is opened by the app (`card.ai_refinement_requested`, with a run id) before the agent
 is asked. Everything the agent does in that run cites it: `agent.run_started`, one `ai.llm_call` per
@@ -7,7 +7,7 @@ in the PUT that publishes the draft, which records `card.augmented_by_ai` in its
 
 Events go to the platform's internal route with this service's own token (PLATFORM_LEDGER_AGENTS_TOKEN):
 the agent never names a person, the platform takes the person from the run's start. Nothing is sent
-while LEDGER_MODE is off, or for a run with no run id (an app from before the ledger). A post that
+while LEDGER_MODE is off, or for a run with no run id (an app that sends none). A post that
 fails is retried, then logged; it never fails the run.
 """
 from __future__ import annotations
@@ -70,13 +70,13 @@ def headers() -> dict[str, str]:
 
 
 #: The model of a run before it is known (a run can fail before: the app down, no model chosen, a bad
-#: key). The platform requires one on every AI event (review M4).
+#: key). The platform requires one on every AI event.
 UNKNOWN_MODEL = "unknown"
 
 
 def error_code(exc: BaseException) -> str:
     """What a failure was, from a closed list: never its text, which can hold a key in a URL or a card's
-    personal data, and immudb keeps what it is given for ever (review M5)."""
+    personal data, and immudb keeps what it is given for ever."""
     name = type(exc).__name__
     if name == "ServiceError":
         return "service_unreachable"
@@ -135,15 +135,15 @@ def _send(url: str, body: bytes, hdrs: dict, timeout: float = TIMEOUT) -> int:
 
 
 def recording(complete: Callable[..., str]) -> Callable[..., str]:
-    """The completer, each call timed and recorded as `ai.llm_call` (spec 4.4)."""
+    """The completer, each call timed and recorded as `ai.llm_call`."""
     def recorded(system: str, user: str, *args, **kwargs) -> str:
         started = time.monotonic()
         try:
             return complete(system, user, *args, **kwargs)
         finally:
             what = PURPOSE.get() or {}
-            # one short try: a model call never waits on the ledger (review m6); the run's own start and
-            # end are retried
+            # One short try: a model call never waits on the ledger. The run's own start and end
+            # events are retried.
             emit("ai.llm_call", "llm_call", str(uuid.uuid4()),
                  {"purpose": what.get("purpose") or "unknown", "property": what.get("property"),
                   "round": what.get("round"), "latency_ms": int((time.monotonic() - started) * 1000)},

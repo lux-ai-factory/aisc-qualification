@@ -1,8 +1,8 @@
-"""The Components block: one row per part of the system (targets plan v2).
+"""The Components block: one row per part of the system.
 
 A document lists them under a Components heading, one block per part, each
 field on a labelled line, the way it lists its risks. The type is matched to
-the form's one Type list (2026-09-30): VAIR's AIComponent terms first, ours only
+the form's Type list: VAIR's AIComponent terms first, ours only
 where VAIR has none; a word that matches none is left for the person to choose.
 """
 from prefill.components import components_from_text, merge_components
@@ -54,7 +54,7 @@ class TestReadingComponents:
             "key": "",
             "name": "Scoring model",
             "role": "Estimates the probability of default and maps it to a score.",
-            "type": "Model",  # our old word "Predictive model" names VAIR's term
+            "type": "Model",  # the older word "Predictive model" names VAIR's term
             "provider": "in_house",
             "providerName": "",
         }

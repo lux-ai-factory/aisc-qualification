@@ -6,9 +6,9 @@
                          ▼                 │
                       publish ──► done ◄───┘
 
-`draft`, `review` and `revise` are the review loop from fill/loop.py, one
-property at a time; the state machine is what makes the rounds legible from
-outside, and BAF's monitoring database is what records them.
+`draft`, `review` and `revise` are the review loop, run one property at a time.
+The state machine makes the rounds visible from outside, and BAF's monitoring
+database records them.
 
 `run_fill` runs the same steps without a platform, which is what the tests and
 the HTTP entry point use: a state machine is a good way to describe a flow and a
@@ -40,9 +40,9 @@ STATE_NAMES = ("load", "draft", "review", "revise", "publish", "done")
 
 MAX_ROUNDS = 3
 
-#: The properties this workflow drafts: only what the answers to the questions say and no form field
-#: does (2026-09-30). The form speaks VAIR, so the Components block and every risk field are typed by
-#: their author; what is left is the techniques of Annex IV 2(a).
+#: The properties this workflow drafts: only what the answers say and no form field holds. The form
+#: speaks VAIR, so the author types the Components block and every risk field; what is left is the
+#: techniques of Annex IV 2(a).
 DRAFTED: tuple[Property, ...] = ("techniques",)
 
 
@@ -169,8 +169,7 @@ class FillRun:
     """One qualification's fill, as an object the steps operate on.
 
     The steps are methods rather than a loop body so that the plain function and
-    the BAF state machine drive the same code. They used to be two descriptions
-    of the same work, one of which did nothing.
+    the BAF state machine drive the same code.
     """
 
     qualification: dict
@@ -192,8 +191,6 @@ class FillRun:
     @property
     def rounds_done(self) -> int:
         return len(self.rounds)
-
-    # ── the steps ────────────────────────────────────────────────────────────
 
     def load(self) -> None:
         """Plan which properties this qualification can fill."""
@@ -269,7 +266,7 @@ class FillRun:
             self.payload["record"]["names"] = "ontology unreachable"
             return
         except Exception:
-            # names are optional: a malformed answer must not cost the techniques
+            # Names are optional: a malformed answer must not lose the techniques.
             self.payload["record"]["names"] = "naming failed"
             return
         try:
@@ -300,7 +297,7 @@ class FillRun:
         if dropped:
             record["notes_dropped"] = dropped
 
-    # ── the conditions the state machine branches on ─────────────────────────
+    # The conditions the state machine branches on.
 
     def needs_revision(self) -> bool:
         """A finding is open, a round remains, and the last two differ."""
@@ -310,8 +307,6 @@ class FillRun:
 
     def more_to_draft(self) -> bool:
         return bool(self.queue)
-
-    # ── internals ────────────────────────────────────────────────────────────
 
     def _stop_reason(self) -> str:
         if not self.findings:

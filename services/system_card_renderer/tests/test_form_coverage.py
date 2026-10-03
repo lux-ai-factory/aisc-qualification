@@ -1,10 +1,9 @@
 """The PDF card of a card filled with a custom form.
 
-Form-assembly spec (docs/superpowers/form-assembly-2026-09-24/01-spec.md), R36.
-Ontology gains `coverage` (the summary line) and `additionalDocumentation` (one
+The ontology carries `coverage` (the summary line) and `additionalDocumentation` (one
 section per owner form); the Overview's description, use case and users rows
 are left out when the form did not ask for them. A payload without coverage
-renders as before (tests/test_ontology_only_card.py, unchanged).
+renders as tests/test_ontology_only_card.py expects.
 """
 from pathlib import Path
 
@@ -119,7 +118,7 @@ def test_r36_no_coverage_means_no_summary_line_and_the_card_as_before():
     assert "<dt>Description</dt>" in html
 
 
-# ── Addendum 06, R65: optionalBlank on the coverage annex ────────────────────
+# optionalBlank on the coverage annex
 
 
 def test_r65_a_payload_with_optional_blank_validates_and_keeps_it():

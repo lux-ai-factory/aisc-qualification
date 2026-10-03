@@ -1,8 +1,8 @@
-"""Refine with AI reads only the answers to the questions (2026-09-30).
+"""Refine with AI reads only the answers to the questions.
 
 The form speaks VAIR: every structured field, the Components block included, is typed by the author
 from VAIR's own lists, so the card is built from the form alone. What is left for the filler is what
-only prose says: the techniques of Annex IV 2(a). It no longer drafts components, which the
+only prose says: the techniques of Annex IV 2(a). It does not draft components, which the
 Components block states.
 """
 from fill.workflow import DRAFTED, run_fill

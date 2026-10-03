@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-{# A label, and the web card's "AI name" badge while the AI drafted it (D4). #}
+{# A label, and the web card's "AI name" badge while the AI drafted it. #}
 {% macro named(n) %}{{ n.label }}{% if n.nameDrafted %} <span class="ai-name">(AI name)</span>{% endif %}{% endmacro %}
 
 <header class="cover">
@@ -14,8 +14,8 @@
   <h1>{{ card.system_name }}</h1>
   <p class="subtitle">
     {{ card.provider }} ·
-    {# Providers type the "v" themselves about half the time; without this the
-       cover read "vv1.2.0". Done here, not on the model, because the renderer
+    {# Providers often type the "v" themselves; without this the
+       cover would read "vv1.2.0". Done here, not on the model, because the renderer
        passes the card as a plain dict. #}
     {% if card.system_version[:1] in ["v", "V"] %}{{ card.system_version }}{% else %}v{{ card.system_version }}{% endif %}
     {% if card.generated_at %}

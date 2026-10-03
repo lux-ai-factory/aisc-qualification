@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 
 import service
 
-#: runs are addressed by project and card (isolation Q1: /fill/{pid}/{id})
+#: runs are addressed by project and card: /fill/{pid}/{id}
 PID = str(uuid.uuid4())
 
 

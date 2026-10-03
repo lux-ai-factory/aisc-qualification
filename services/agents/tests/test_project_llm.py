@@ -1,9 +1,9 @@
-"""The card agent works for a project, with that project's model (01-specs.md S3.7).
+"""The card agent works for a project, with that project's model.
 
 The project is never the caller's to name: `fill_one` reads it from the qualification it
 works on (`projectId` in the app's export) and builds its completer from
 `baf_llm.config_for(<that project>, "card_agent")`. `POST /fill/{pid}/{id}` names only the
-project database the card is read from (isolation Q1), and a `?project=` a caller adds
+project database the card is read from, and a `?project=` a caller adds
 changes nothing. The platform and the model are fake servers on
 127.0.0.1; the ontology service and the app (`fill.clients`) are monkeypatched, as in
 test_service.py.
@@ -79,7 +79,7 @@ def choose(platform, body, status=200):
     platform.reply(f"/internal/projects/{PID}/llm/card_agent", body, status=status)
 
 
-# ── the HTTP entry point ─────────────────────────────────────────────────────
+# The HTTP entry point.
 
 
 @pytest.fixture
@@ -114,7 +114,7 @@ def test_s3_7_the_run_records_the_project_it_used(client):
     assert client.get(f"/fill/{PID}/q1").json()["result"]["project"] == PID
 
 
-# ── fill_one with a project ──────────────────────────────────────────────────
+# fill_one with a project.
 
 
 def test_s3_7_fill_one_uses_the_projects_resolved_model(platform, model_server, no_services, monkeypatch):
@@ -153,7 +153,7 @@ def test_s3_7_a_project_with_no_choice_uses_the_environment(platform, model_serv
     assert agent.fill_one(PID, "q1")["model"] == "compatible/env-model"
 
 
-# ── failures are the run's, never a key's ────────────────────────────────────
+# Failures are the run's, never a key's.
 
 
 def _run_through_service():
@@ -184,7 +184,7 @@ def test_s3_7_s5_3_a_build_error_fails_the_run_without_the_key(platform, no_serv
 
 def test_s3_7_fill_one_takes_no_project_from_its_caller():
     """Its `pid` names only the database the card is read from; the model's project is
-    the card's `projectId` (isolation Q1). No parameter lets a caller choose it."""
+    the card's `projectId`. No parameter lets a caller choose it."""
     import inspect
     assert "project" not in inspect.signature(agent.fill_one).parameters
 

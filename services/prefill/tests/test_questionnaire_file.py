@@ -1,10 +1,9 @@
 """A questionnaire as a file: JSON, by reference or self-contained, and reading it back.
 
-Two-level forms spec (docs/superpowers/two-level-forms-2026-09-25/01-spec.md),
-T50 (the exact file), T51 (reading it, with exact errors), T52 (round trip),
-T61 (no model: standard library and this package only).
+The tests pin the exact file, reading it back with exact errors, the round trip,
+and that no model is used (standard library and this package only).
 
-Interface (spec T50, T51):
+Interface:
   write_questionnaire(q: dict, bundle: str) -> ExportedFile  (filename, content_type, content)
   read_questionnaire(raw: bytes, filename: str) -> dict       the normalised document
   QuestionnaireFileError(detail)                              raised by read_questionnaire
@@ -12,8 +11,7 @@ Interface (spec T50, T51):
        "items": [{"setId", "setName", "setVersion", "scope", "localId",
                   "text", "citation", "required", "annexPoint", "groupLabel"}]}
 
-Names chosen here where the spec is silent: the error's detail is str(error); the
-normalised document carries "bundle" (the app needs it to tell the two kinds apart),
+The error's detail is str(error); the normalised document carries "bundle" (the app needs it to tell the two kinds apart),
 and the round trip compares the fields of q.
 """
 import json
@@ -23,7 +21,7 @@ import pytest
 
 try:
     from prefill.questionnaire_file import QuestionnaireFileError, read_questionnaire, write_questionnaire
-except ImportError as _missing:  # the spec's new module: until it exists each test fails, the suite runs
+except ImportError as _missing:  # if the module is missing, each test fails instead of the whole suite
 
     class QuestionnaireFileError(Exception):  # stand-in so pytest.raises can name it
         pass
@@ -50,7 +48,7 @@ def collapse(s: str) -> str:
 
 
 def annex_default() -> dict:
-    """The Annex IV default v1 as T50's input: the committed 14 questions, set "Annex IV" v1."""
+    """The Annex IV default v1 as an export input: the committed 14 questions, set "Annex IV" v1."""
     fixture = json.loads((FIXTURES / "annex_iv_default_form.json").read_text(encoding="utf-8"))
     items = []
     for q in fixture["questions"]:
@@ -96,7 +94,7 @@ def item(set_id="acme", set_name="Acme AI policy", version=1, local="q1", **word
 
 
 def expected_doc(q: dict, bundle: str) -> dict:
-    """The document T50 prescribes, key order included."""
+    """The expected document, key order included."""
     keys = ["setId", "setName", "setVersion", "scope", "localId"] + (WORDING if bundle == "self-contained" else [])
     return {
         "format": "aisc-questionnaire",
@@ -114,7 +112,7 @@ def dumped(doc: dict) -> str:
     return json.dumps(doc, ensure_ascii=False, indent=2) + "\n"
 
 
-# ── T50 the file, exactly ──────────────────────────────────────────────────
+# The file, exactly
 
 
 class TestWrite:
@@ -211,7 +209,7 @@ class TestWrite:
         assert isinstance(out.filename, str) and isinstance(out.content_type, str) and isinstance(out.content, str)
 
 
-# ── T51 reading, exact errors in check order ───────────────────────────────
+# Reading, with exact errors in check order
 
 
 def ref_doc(**over) -> dict:
@@ -412,7 +410,7 @@ class TestRead:
         assert out["items"] == [] and out["blocks"] == []
 
 
-# ── T52 round trip ─────────────────────────────────────────────────────────
+# The round trip
 
 
 def normalised(q: dict, bundle: str) -> dict:
@@ -476,7 +474,7 @@ def test_t52_write_then_read_is_the_same_questionnaire(case, bundle):
     assert fields_of_q(back) == normalised(q, bundle)
 
 
-# ── T61 no model ───────────────────────────────────────────────────────────
+# No model
 
 
 def test_t61_questionnaire_file_imports_only_the_standard_library_and_this_package():

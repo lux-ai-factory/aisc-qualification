@@ -98,6 +98,6 @@ def test_the_rebuilt_graph_keeps_the_annex_iv_answers(source):
     from airo_min.build import QUAL
 
     texts = {str(o) for _s, o in rebuilt.subject_objects(QUAL.text)}
-    # addendum 06 (R72): 1(f) answered too, 9697 + 299 characters
+    # 1(f) answered too, 9697 + 299 characters
     assert len(texts) == 14
     assert sum(len(t) for t in texts) == 9996

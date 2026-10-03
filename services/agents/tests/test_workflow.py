@@ -106,7 +106,7 @@ class TestARunEndToEnd:
             "Gradient-boosted decision tree",
             "Policy eligibility rules",
         ]
-        # only what the answers say and no form field does (2026-09-30): the Components block states the parts
+        # only what the answers say and no form field holds: the Components block states the parts
         assert "components" not in payload
         assert result.stop_reasons["techniques"] == "clean"
 
@@ -169,8 +169,7 @@ class TestNothingIsLostOnPublish:
 
     `uncovered` is about a property, not a node: there is no node to flag,
     because the point is that one is missing. The builder skips a flag whose node
-    id does not exist, so publishing it as a node flag dropped it silently. A run
-    that raises five findings and publishes four is a run that lies about itself.
+    id does not exist, so publishing it as a node flag would drop it silently.
     """
 
     def test_a_property_level_finding_is_kept_in_the_record(self):
@@ -221,10 +220,8 @@ class TestNothingIsLostOnPublish:
 class TestTheStatesDoTheWork:
     """Each state body performs its step, rather than describing one.
 
-    The machine was drawn before it was wired: draft, review and revise had
-    docstrings and empty bodies while run_fill did the work beside them. A state
-    that names a step it does not take is worse than no state at all, because
-    the diagram, the documentation and the monitoring all report it as real.
+    A state that names a step it does not take is worse than no state at all,
+    because the diagram, the documentation and the monitoring all report it as real.
     """
 
     def session(self, qualification=QUALIFICATION):
@@ -356,8 +353,7 @@ class TestTheMachineAndTheFunctionAreOneImplementation:
             load._body(session)
 
 
-# ── Form assembly: the filler drafts from tagged answers ─────────────────────
-# (docs/superpowers/form-assembly-2026-09-24/01-spec.md, R32)
+# Form assembly: the filler drafts from answers tagged with their Annex IV point.
 
 from fill.workflow import answer_for  # noqa: E402
 

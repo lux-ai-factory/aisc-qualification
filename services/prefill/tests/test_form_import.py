@@ -1,9 +1,8 @@
 """Reading a form's questions out of a file: .csv, .md or .docx.
 
-Form-assembly spec (docs/superpowers/form-assembly-2026-09-24/01-spec.md),
-R24 to R27. Text rules only, no model (R41).
+Text rules only, no model.
 
-Interface chosen here (the spec names parse_form_file):
+Interface:
   parse_form_file(raw: bytes, filename: str) -> result with
     .format     "csv" | "md" | "docx"
     .questions  list of items with .text, .citation, .required
@@ -19,7 +18,7 @@ from prefill.documents import DocumentUnreadable
 
 try:
     from prefill.form_import import parse_form_file
-except ImportError as _missing:  # the spec's new module: until it exists each test fails, the suite runs
+except ImportError as _missing:  # if the module is missing, each test fails instead of the whole suite
     def parse_form_file(*_args, _error=_missing, **_kwargs):
         raise _error
 
@@ -36,7 +35,7 @@ ACME_CSV = (
 )
 
 
-# ── R24 CSV ────────────────────────────────────────────────────────────────
+# CSV
 
 
 class TestCsv:
@@ -112,7 +111,7 @@ class TestCsv:
         assert result.questions[0].text == "Who signs off the café’s model?"
 
 
-# ── R25 Markdown ───────────────────────────────────────────────────────────
+# Markdown
 
 ACME_MD = """# Acme AI policy questionnaire
 
@@ -185,11 +184,11 @@ class TestMarkdown:
         ]
 
 
-# ── R26 Word ───────────────────────────────────────────────────────────────
+# Word
 
 
 def acme_docx() -> bytes:
-    """Built here with python-docx, as the existing prefill tests build theirs."""
+    """Built here with python-docx."""
     docx = pytest.importorskip("docx")
     document = docx.Document()
     document.add_paragraph("Acme questionnaire", style="Title")
@@ -234,7 +233,7 @@ class TestWord:
             parse_form_file(b"PK\x03\x04 not really a zip", "f.docx")
 
 
-# ── R27 limits and errors ──────────────────────────────────────────────────
+# Limits and errors
 
 
 class TestLimits:
@@ -260,7 +259,7 @@ class TestLimits:
         assert "Question on line 3 is longer than 2000 characters and was skipped." in result.warnings
 
     def test_r27_a_csv_cell_over_the_csv_module_limit_is_skipped_not_an_error(self):
-        # Verification F2: csv.reader's default field limit is 131072 characters;
+        # csv.reader's default field limit is 131072 characters;
         # a cell over it must follow the same rule as any question over 2000.
         huge = "z" * 200_000
         text = f"question,citation\nWho signs off?,§1\n{huge},§2\nWho audits?,§3\n"
@@ -309,7 +308,7 @@ class TestLimits:
         assert result.warnings == ["Skipped 1 heading."]
 
 
-# ── R41 no model ───────────────────────────────────────────────────────────
+# No model
 
 
 def test_r41_form_import_imports_only_the_standard_library_docx_and_this_package():
@@ -329,9 +328,8 @@ def test_r41_form_import_imports_only_the_standard_library_docx_and_this_package
     assert outside == set()
 
 
-# ── Addendum 06 (docs/superpowers/form-assembly-2026-09-24/06-spec-addendum.md) ──
-# R53: the importer reads what the exporter writes (the Annex column, the CSV
-# formula guard, Markdown escapes); R70: the .docx expansion cap.
+# The importer reads what the exporter writes: the Annex column, the CSV
+# formula guard, Markdown escapes.
 
 
 def annexed(result):
@@ -478,7 +476,7 @@ class TestMarkdownEscapes:
         assert rows(parse_form_file(text.encode(), "f.md")) == [("ends in a backslash\\", "x", False)]
 
 
-# ── R70 .docx expansion cap ────────────────────────────────────────────────
+# The .docx expansion cap
 
 
 def docx_bomb(total_mib: int = 51) -> bytes:

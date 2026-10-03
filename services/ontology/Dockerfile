@@ -11,7 +11,8 @@ COPY services/ontology/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY services/ontology/ ./
-# The shared vocabulary, next to the package where vocab.py looks for it last.
+# The shared vocabulary and Annex IV points, beside the package, where
+# pickers.py and annex_points.py look for them last.
 COPY src/data/airo_vocab.json ./airo_min/airo_vocab.json
 COPY src/data/annexPoints.json ./airo_min/annex_points.json
 

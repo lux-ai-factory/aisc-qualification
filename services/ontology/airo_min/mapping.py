@@ -18,7 +18,7 @@ class FieldMapping:
 
 
 FORM_MAPPING: list[FieldMapping] = [
-    # ── AI system and its use ────────────────────────────────────────────────
+    # AI system and its use
     FieldMapping("targetSystemTags", "Art 3(1); Annex IV 2(b)", "hasCapability", "AISystem", "AICapability"),
     FieldMapping("q:annex-2:2a", "Annex IV 2(a)", "usesTechnique", "AISystem", "AITechnique"),
     FieldMapping("marketFormTags", "Annex IV 1(d); Art 6(1)", "hasModality", "AISystem", "Modality"),
@@ -29,12 +29,12 @@ FORM_MAPPING: list[FieldMapping] = [
     FieldMapping("company", "Annex IV 1(a); Art 3(3)", "isProvidedBy", "AISystem", "AIOperator"),
     FieldMapping("intendedDeployers", "Art 3(4); Annex IV 1(h)", "isDeployedBy", "AISystem", "AIOperator"),
     FieldMapping("targetUsers", "Annex IV 2(b); Annex IV 1(g)", "hasAIUser", "AISystem", "AIUser"),
-    # ── engine components a card links on its page (WP6), not a form field ──
+    # Engine components a card links on its page, not a form field
     FieldMapping("card:engineComponents", "Annex IV 2(c)", "hasModel", "AISystem", "AIModel"),
     FieldMapping("card:engineComponents", "Annex IV 2(d)", "hasTrainingData", "AISystem", "Data"),
     FieldMapping("card:engineComponents", "Annex IV 2(g)", "hasTestingData", "AISystem", "Data"),
     FieldMapping("card:engineComponents", "Annex IV 2(g)", "hasValidationData", "AISystem", "Data"),
-    # ── risk block (question 15) ────────────────────────────────────────────
+    # Risk block (question 15)
     FieldMapping("risk:*:risk", "Art 9(2)(a); Art 3(2)", "hasRisk", "AISystem", "Risk"),
     FieldMapping("risk:*:source", "Art 9(2)(a)-(b)", "isRiskSourceFor", "RiskSource", "Risk"),
     FieldMapping("risk:*:vulnerability", "Art 15(5)", "exploitsVulnerability", "RiskSource", "Vulnerability"),

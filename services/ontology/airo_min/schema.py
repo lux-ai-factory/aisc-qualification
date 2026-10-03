@@ -4,9 +4,9 @@ Subset of airo.ttl 1.0: 22 classes / 20 properties in the figure, minus the user
 simplification of stakeholders to Operator and User:
   - AIProvider and AIDeployer are dropped; isProvidedBy / isDeployedBy range over
     AIOperator (both were already subClassOf AIOperator in AIRO).
-  - AISubject is kept (2026-10-01) for the people a risk affects, typed by VAIR's 19 subject terms;
+  - AISubject is kept for the people a risk affects, typed by VAIR's 19 subject terms;
     hasAISubject links them to the system.
-Added for the engine components an AI card links (pipeline 2026-09-23, WP6): AIModel
+Added for the engine components an AI card links: AIModel
 and Data (both subClassOf AIComponent) and hasModel, hasTrainingData, hasTestingData,
 hasValidationData (sub-properties of hasComponent).
 Everything here is cross-checked against the vendored airo.ttl by tests/test_schema.py.
@@ -29,7 +29,7 @@ CLASSES: dict[str, str | None] = {
     "Domain": None,
     "LocalityOfUse": None,  # the kind of setting: workplace, school, public space
     "AIComponent": None,
-    # what an engine component is to the system, for the links a card makes (WP6)
+    # what an engine component is to the system, for the links a card makes
     "AIModel": "AIComponent",
     "Data": "AIComponent",
     "Stakeholder": None,

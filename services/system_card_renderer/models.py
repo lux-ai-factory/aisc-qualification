@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 
 class TargetSystem(BaseModel):
-    # A VAIR capability (2026-09-30) is a flat term: no category, its label in `subcategory`.
+    # A VAIR capability is a flat term: no category, its label in `subcategory`.
     category: str = ""
     subcategory: str
 
@@ -38,7 +38,7 @@ class OntologyNode(BaseModel):
     # instead of flagging a gap that cannot be closed.
     termExpected: Optional[bool] = None
     termNotApplicable: Optional[bool] = None
-    # The label is a name the AI drafted from the author's text (D4): the card marks it
+    # The label is a name the AI drafted from the author's text: the card marks it
     # as one until a person edits or keeps it, which clears this.
     nameDrafted: Optional[bool] = None
     generatedLabel: Optional[str] = None

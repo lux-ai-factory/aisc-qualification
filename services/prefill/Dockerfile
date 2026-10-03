@@ -16,7 +16,8 @@ COPY services/prefill/app.py services/prefill/service_token.py ./
 # The shared field mapping, beside the package where fields.py looks for it
 # before falling back to the repo layout.
 COPY src/data/prefillFields.json ./prefill/prefill_fields.json
-# The form's VAIR lists (2026-09-30), beside the package where vair.py looks for them first.
+# The form's VAIR lists, beside the package, where vair.py looks for them after
+# $PREFILL_VAIR_VOCAB_PATH.
 COPY src/data/vair_vocab.json ./prefill/vair_vocab.json
 
 EXPOSE 8012

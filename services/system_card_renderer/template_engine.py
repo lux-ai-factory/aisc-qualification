@@ -13,8 +13,8 @@ class TemplateEngine:
         self._env = Environment(
             loader=FileSystemLoader(str(templates_dir)),
             # Always on: the only template is `*.html.j2`, which
-            # select_autoescape(["html", "xml"]) did not match, so card text
-            # (answers, form names, citations) reached the PDF as raw HTML.
+            # select_autoescape(["html", "xml"]) does not match, so card text
+            # (answers, form names, citations) would reach the PDF as raw HTML.
             autoescape=True,
             trim_blocks=True,
             lstrip_blocks=True,

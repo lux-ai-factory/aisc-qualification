@@ -1,4 +1,4 @@
-"""The form speaks VAIR (2026-09-30): every structured field arrives as a VAIR term.
+"""The form speaks VAIR: every structured field arrives as a VAIR term.
 
 VAIR has precedence: wherever it has a vocabulary for a field, the form offers only VAIR's terms,
 and the builder types the node with the term the author chose and names it with VAIR's label. The
@@ -80,7 +80,7 @@ def test_the_graph_is_valid():
     assert validate(build_graph(base())) == []
 
 
-# ── system type and purpose ──────────────────────────────────────────────────
+# System type and purpose
 
 
 def test_the_system_type_types_the_system_node():
@@ -122,7 +122,7 @@ def test_a_term_of_another_class_is_refused(field, term):
         build_graph(q)
 
 
-# ── the four tag sets ────────────────────────────────────────────────────────
+# The four tag sets
 
 
 @pytest.mark.parametrize(
@@ -146,9 +146,9 @@ def test_each_tag_is_a_node_typed_with_its_term_and_named_by_vair(field, prop, c
 @pytest.mark.parametrize(
     "field,value",
     [
-        ("targetSystemTags", "natural-language-processing:question-answering"),  # our old tag
-        ("sectorTags", "finance-and-insurance"),  # our old sector
-        ("marketFormTags", "software"),  # our old id
+        ("targetSystemTags", "natural-language-processing:question-answering"),  # an older tag
+        ("sectorTags", "finance-and-insurance"),  # an older sector
+        ("marketFormTags", "software"),  # an older id
         ("localityTags", "other"),  # ours, VAIR has no "other"
         ("sectorTags", "Workplace"),  # a VAIR term, of another class
     ],
@@ -160,7 +160,7 @@ def test_anything_but_a_term_of_the_field_s_class_is_refused(field, value):
         build_graph(q)
 
 
-# ── the Components block ─────────────────────────────────────────────────────
+# The Components block
 
 
 COMPONENT_KEY = URIRef("https://lux-ai-factory.github.io/qualification/ns#componentKey")
@@ -205,7 +205,7 @@ def test_a_kind_that_disagrees_with_its_vair_type_is_refused(kind, vair_type):
         build_graph(q)
 
 
-# ── the risk chain ───────────────────────────────────────────────────────────
+# The risk chain
 
 
 @pytest.mark.parametrize(
@@ -257,7 +257,7 @@ def test_an_old_area_id_is_refused():
         build_graph(q)
 
 
-# ── the point of it all ──────────────────────────────────────────────────────
+# Nothing is left untyped
 
 
 def test_every_form_node_of_a_class_vair_types_has_its_term():
@@ -295,7 +295,7 @@ def test_one_of_our_own_types_says_that_no_vair_term_applies():
     assert build_view(g)["counts"]["needsTerm"] == 0
 
 
-# ── the operators and the people a risk affects ──────────────────────────────
+# The operators and the people a risk affects
 
 
 def node_of(g, local):

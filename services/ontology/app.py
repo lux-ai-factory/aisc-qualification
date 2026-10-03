@@ -41,12 +41,12 @@ class Qualification(BaseModel):
     systemName: str
     systemVersion: str
     company: str
-    # A form may leave these blocks out (R33).
+    # A form may leave these blocks out.
     description: str = ""
     targetUseCase: str = ""
     targetUsers: str = ""
     intendedDeployers: str | None = None
-    # The VAIR terms the author chose (2026-09-30): the builder types each node with its term.
+    # The VAIR terms the author chose: the builder types each node with its term.
     systemType: str | None = None
     purpose: str | None = None
     #: The operators' terms. Declared, or pydantic drops them and the provider and the
@@ -62,8 +62,8 @@ class Qualification(BaseModel):
     #: The form version the card was filled with, as toExport sends it. Declared,
     #: or pydantic would drop it without a word and the view would lose coverage.
     form: dict[str, Any] | None = None
-    #: The engine components the card links, and the card's Components block rows (targets
-    #: plan v2). Declared for the same reason: undeclared, pydantic drops them and the graph
+    #: The engine components the card links, and the card's Components block rows.
+    #: Declared for the same reason: undeclared, pydantic drops them and the graph
     #: would lose the engine items and the parts of the system.
     engineComponents: list[dict[str, Any]] = Field(default_factory=list)
     systemComponents: list[dict[str, Any]] = Field(default_factory=list)

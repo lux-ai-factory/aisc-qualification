@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 
-#: The heading that opens the Components block's rows (targets plan v2).
+#: The heading that opens the Components block's rows.
 COMPONENTS_HEADING = re.compile(
     r"^\s*#*\s*(?:components|system components|components of the system)\s*:?\s*$",
     re.IGNORECASE,

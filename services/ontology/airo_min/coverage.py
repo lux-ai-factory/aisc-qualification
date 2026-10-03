@@ -6,7 +6,7 @@ view, cannot disagree.
 
 `form` is the export's form: {"name", "version", "questions": [{"key", "text",
 "citation", "required", "annexPoint", "ownerSet", "ownerSetId", "ownerBuiltin"}]},
-in version order. Older callers send "ownerForm" and "ownerFormId" (optional)
+in version order. Older callers may send "ownerForm" and "ownerFormId" (optional)
 instead; both key styles are accepted. Questions are grouped by owner set id
 (else owner form id) when they carry one (two sets or forms may share a name),
 else by owner name. `answers` are the export's answers ({"toolId", "questionId",

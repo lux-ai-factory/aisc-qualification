@@ -1,7 +1,6 @@
-"""The card's Components block (targets plan v2, 2026-09-29, QL5 to QL7): each row is a part of
-the system with a stable key carried across card versions, so assessments and their results can
-name it. With rows, the component nodes come from them (one per key); without rows, the graph is
-built exactly as before, from the extraction."""
+"""The card's Components block: each row is a part of the system with a stable key carried
+across card versions, so assessments and their results can name it. With rows, the component
+nodes come from them (one per key); without rows, they come from the extraction."""
 from rdflib import RDF, RDFS, Graph, Literal, URIRef
 
 from airo_min.build import build_graph
@@ -106,7 +105,7 @@ def test_ql7_an_unknown_component_key_on_a_link_is_refused():
         raise AssertionError("an unknown component key was accepted")
 
 
-# ── through the service: /build keeps what the builder reads (pydantic drops undeclared fields) ──
+# Through the service: /build keeps what the builder reads (pydantic drops undeclared fields)
 
 def test_ql5_the_build_endpoint_passes_the_rows_and_the_links_to_the_builder():
     from fastapi.testclient import TestClient

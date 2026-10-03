@@ -123,7 +123,7 @@ class TestAGraphHasAStableIdentity:
 
     Answers hang off blank nodes, which rdflib labels afresh on every build, so
     serialising twice gives two different documents for one graph. Hashing the
-    text therefore reported a new state on every page view. The identity of a
+    text would report a new state on every page view. The identity of a
     graph is its triples up to blank-node renaming, which is what rdflib's
     canonical form computes.
     """

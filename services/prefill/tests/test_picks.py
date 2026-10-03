@@ -1,4 +1,4 @@
-"""The VAIR picks a document names (2026-09-30): the system's type and purpose, and the four tag sets.
+"""The VAIR picks a document names: the system's type and purpose, and the four tag sets.
 
 The form offers VAIR's own lists for these, so a document can name them the way it names a risk's
 terms: a labelled line, each value a VAIR id or label, several separated by commas. A value that names

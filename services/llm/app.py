@@ -1,9 +1,9 @@
 """LiteLLM-backed completion service.
 
-A thin FastAPI wrapper around the `litellm` Python library so the platform has a
-single, provider-agnostic LLM endpoint. Apps point at LLM_SERVICE_URL and POST to
-/generate; provider credentials (e.g. ANTHROPIC_API_KEY) live HERE, not in the
-calling apps. This replaces the old direct-Anthropic-SDK path.
+A thin FastAPI wrapper around the `litellm` library, so the app has one
+provider-agnostic LLM endpoint. The app points LLM_SERVICE_URL here and POSTs to
+/generate; the provider credentials (e.g. ANTHROPIC_API_KEY) are set on this
+service, not on the app.
 
 Run locally:
     python3 -m venv .venv && source .venv/bin/activate
@@ -65,7 +65,7 @@ def generate(req: GenerateRequest) -> GenerateResponse:
 
     try:
         completion = litellm.completion(model=model, messages=messages, **kwargs)
-    except Exception as exc:  # noqa: BLE001 — surface any provider/litellm error
+    except Exception as exc:  # noqa: BLE001  surface any provider or litellm error
         raise HTTPException(status_code=502, detail=f"LLM call failed: {exc}")
 
     text = completion["choices"][0]["message"]["content"] or ""

@@ -1,7 +1,6 @@
 """The PDF renderer never trusts card text as HTML and never fetches outside its templates.
 
-Verification finding F1 (docs/superpowers/form-assembly-2026-09-24/05-verification.md):
-form names, question text and citations come from an install-wide form library,
+Form names, question text and citations come from an install-wide form library,
 so a writer in one project could plant markup that another project's PDF would
 render. Two guards: the template escapes every value, and WeasyPrint gets a
 url_fetcher that serves only the bundled templates folder and data: URIs.

@@ -1,8 +1,7 @@
 """The graph builds when a form leaves blocks out.
 
-Form-assembly spec (docs/superpowers/form-assembly-2026-09-24/01-spec.md), R33.
 A form may drop the description, the use case, the users, the deployers, the
-pickers and the risk block (identity only is a valid form, A7). An absent block
+pickers and the risk block (identity only is a valid form). An absent block
 arrives as "" (or null for the deployers, [] for the lists) and must add
 nothing rather than an empty node or an exception.
 """
@@ -42,7 +41,7 @@ def test_r33_an_empty_description_adds_no_description_triple(mcas):
 
 
 def test_r33_an_empty_use_case_adds_no_purpose(mcas):
-    # Without the use-case block and without a VAIR purpose (a fixed field, 2026-09-30).
+    # Without the use-case block and without a VAIR purpose (a fixed field).
     mcas["targetUseCase"] = ""
     mcas["purpose"] = None
     g = build_graph(mcas)
@@ -69,7 +68,7 @@ def test_r33_a_risk_affecting_users_when_the_form_has_no_users_builds_without_a_
     mcas["targetUsers"] = ""
     user_risks = [i for i, r in enumerate(mcas["risks"]) if r["affected"] == "user"]
     assert user_risks, "the example has a risk affecting users"
-    # with no users block there is no hasAIUser node for the chain to take (spec 1.1: next(iter(...)))
+    # with no users block there is no hasAIUser node for the chain to take (the builder's next(iter(...)))
     g = build_graph(mcas)
     view = build_view(g)
     for i in user_risks:

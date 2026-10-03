@@ -54,7 +54,7 @@ def candidate_paths(module_file: pathlib.Path | None = None) -> list[pathlib.Pat
     Beside the package is where the image puts it. The repo layout is a
     fallback for running the tests from a checkout, and it is built only when
     there are enough directories above to build it: in the image there are not,
-    and asking for that parent by index took the service down at start.
+    and asking for a missing parent by index raises at start.
     """
     here = (module_file or pathlib.Path(__file__)).resolve()
     places = []
@@ -189,7 +189,7 @@ def proposals_from_text(text: str) -> dict[str, str]:
     return {field: value for field, value in found.items() if value}
 
 
-# ── a custom form: questions matched by their own wording ──────────────────
+# Custom forms: questions matched by their own wording.
 #
 # A form built or imported by the install asks its own questions. The document
 # names one the way it names a metadata field: a line that is the question's
@@ -270,7 +270,7 @@ def annex_sections_by_point(text: str) -> dict[str, tuple[str, int]]:
 
 #: The default form's citations. They name a question only through its Annex
 #: heading (annex_sections_by_point), never as a label of their own, so the
-#: default form proposes exactly what the Annex headings do (R38).
+#: default form proposes exactly what the Annex headings do.
 _ANNEX_CITATIONS = frozenset(
     norm(f"Annex IV({point})({letter})") for point, letter in ANNEX_FIELDS
 ) | frozenset({norm("Annex IV(1)(d)-(e)"), norm("Annex IV(1)(g)-(h)")})

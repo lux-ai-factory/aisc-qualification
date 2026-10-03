@@ -3,9 +3,8 @@
 One mechanism for the whole app. BAF ships a wrapper per provider and a property
 store for their credentials, so that is what this uses: no HTTP client of our
 own, no second place a model is named. The provider table and the building
-itself live in `fill/baf_llm.py`, which the risk mapper shares byte for byte;
-this module keeps the environment-only API the rest of the code and its tests
-already use.
+itself live in `fill/baf_llm.py`, which the risk mapper shares; this module is
+the environment-only entry point the rest of this service uses.
 
 Switching model is two environment variables:
 
@@ -24,7 +23,7 @@ from __future__ import annotations
 import os
 
 from fill import baf_llm
-from fill.baf_llm import (  # noqa: F401  re-exported: today's names keep working
+from fill.baf_llm import (  # noqa: F401  re-exported for callers of fill.llm
     DEFAULT_MODEL,
     DEFAULT_PROVIDER,
     OPTIONAL_KEY,
@@ -37,6 +36,6 @@ from fill.baf_llm import (  # noqa: F401  re-exported: today's names keep workin
 
 
 def build_llm(provider: str | None = None, model: str | None = None, agent=None):
-    """A BAF LLM, configured from the environment (the behaviour before per-project models)."""
+    """A BAF LLM, configured from the environment only (no per-project choice)."""
     config = config_from_env(os.environ, provider, model)
     return baf_llm.build_llm(config, agent=agent, agent_name="ontology_filler_llm")

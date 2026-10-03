@@ -1,10 +1,10 @@
 """Writing a form's questions to a file: CSV or Markdown, and reading it back.
 
-Addendum 06 (docs/superpowers/form-assembly-2026-09-24/06-spec-addendum.md),
-R50 to R52 (the exact formats and the file name), R54 (export then import is
-the same form), R73 (no model: standard library and this package only).
+The tests pin the exact formats and the file name, check that export then
+import gives back the same form, and that no model is used (standard library
+and this package only).
 
-Interface (addendum 4.C):
+Interface:
   export_form(form: dict, fmt: str) -> ExportedFile
   ExportedFile: dataclass (filename: str, content_type: str, content: str)
   form = {"name": str, "version": int,
@@ -20,7 +20,7 @@ from prefill.documents import DocumentUnreadable  # noqa: F401  (the family the 
 
 try:
     from prefill.form_export import ExportedFile, export_form
-except ImportError as _missing:  # the addendum's new module: until it exists each test fails, the suite runs
+except ImportError as _missing:  # if the module is missing, each test fails instead of the whole suite
     ExportedFile = None
 
     def export_form(*_args, _error=_missing, **_kwargs):
@@ -44,7 +44,7 @@ def collapse(s: str) -> str:
     return " ".join(s.split())
 
 
-# ── R50 CSV ────────────────────────────────────────────────────────────────
+# CSV
 
 
 class TestCsv:
@@ -105,7 +105,7 @@ class TestCsv:
         assert lines[1:] == ["B?,,yes,1de", "A?,,no,", ""]
 
 
-# ── R51 Markdown ───────────────────────────────────────────────────────────
+# Markdown
 
 
 class TestMarkdown:
@@ -145,7 +145,7 @@ class TestMarkdown:
         assert out.content.endswith("|\n") and not out.content.endswith("\n\n")
 
 
-# ── R52 file name ──────────────────────────────────────────────────────────
+# The file name
 
 
 class TestFileName:
@@ -177,7 +177,7 @@ class TestFileName:
         assert out.filename == "ca-marche-v1.csv"
 
 
-# ── R54 the round trip ─────────────────────────────────────────────────────
+# The round trip
 
 
 def fixture_default() -> dict:
@@ -275,9 +275,8 @@ class TestRoundTrip:
         assert [x["annexPoint"] for x in form["questions"]] == IDS
 
 
-# ── G1: the CSV formula guard is an exact inverse (R50 and R53 amended) ─────
-# Export guards any cell matching ^'*[=+\-@] with one more '; import strips one
-# ' from a cell matching ^'+[=+\-@]. Round trip: 09-verification-round2.md G1.
+# The CSV formula guard is an exact inverse. Export guards any cell matching
+# ^'*[=+\-@] with one more '; import strips one ' from a cell matching ^'+[=+\-@].
 
 import random
 import re
@@ -343,7 +342,7 @@ class TestG1ExactCsvGuard:
             head = "".join(rng.choice("'" + FORMULA_FIRST + "ab") for _ in range(rng.randint(0, 8)))
             tail = "".join(rng.choice(tails) for _ in range(rng.randint(0, 12)))
             pairs.append((f"{head}{tail} random {i}?", head + tail))
-        # Pairwise distinct texts, as R54's precondition requires.
+        # Pairwise distinct texts, as the round trip requires.
         assert len({collapse(t).lower() for t, _ in pairs}) == len(pairs)
         for start in range(0, len(pairs), 150):
             chunk = pairs[start : start + 150]
@@ -354,7 +353,7 @@ class TestG1ExactCsvGuard:
                 assert not re.match(r"[=+\-@]", cell), cell
 
 
-# ── R73 no model ───────────────────────────────────────────────────────────
+# No model
 
 
 def test_r73_form_export_imports_only_the_standard_library_and_this_package():

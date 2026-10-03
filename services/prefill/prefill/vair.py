@@ -1,4 +1,4 @@
-"""The form's VAIR lists (2026-09-30), for reading a document's terms.
+"""The form's VAIR lists, for reading a document's terms.
 
 The form offers VAIR wherever VAIR has a vocabulary for a field. A document names a term by its VAIR
 id ("DataPoisoning") or its label ("Data Poisoning"); either is matched whatever the case and spacing,

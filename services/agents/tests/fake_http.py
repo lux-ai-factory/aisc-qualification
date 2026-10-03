@@ -1,4 +1,4 @@
-"""A fake HTTP server for the LLM-keys tests (pipeline 2026-09-24-llm-keys, 01-specs.md section 8).
+"""A fake HTTP server for the per-project LLM key tests.
 
 Not a test module. Serves canned answers on 127.0.0.1 and records every request, so no
 test reaches the platform, a provider or the internet, and no real key is used. Test

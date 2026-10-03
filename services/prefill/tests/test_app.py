@@ -118,8 +118,6 @@ def test_it_says_how_many_risks_the_document_has_even_when_it_keeps_the_form_s()
     assert upload().json()["risksProposed"] == 0
 
 
-# ── Form assembly (docs/superpowers/form-assembly-2026-09-24/01-spec.md) ─────
-
 import re
 from pathlib import Path
 
@@ -133,7 +131,7 @@ def form_file(content: bytes, name: str):
 
 
 class TestFormImportEndpoint:
-    """POST /forms/import (R27, section 5.3)."""
+    """POST /forms/import."""
 
     def test_r27_a_csv_comes_back_as_questions(self):
         r = form_file(b"question,citation,required\nWho signs off?,Acme \xc2\xa74.2,yes\nWho audits?,,\n", "acme.csv")
@@ -141,7 +139,7 @@ class TestFormImportEndpoint:
         body = r.json()
         assert set(body) == {"format", "found", "questions", "warnings"}
         assert body["format"] == "csv"
-        # addendum 06 (R53): each question also carries annexPoint
+        # each question also carries annexPoint
         assert body["questions"] == [
             {"text": "Who signs off?", "citation": "Acme §4.2", "required": True, "annexPoint": None},
             {"text": "Who audits?", "citation": "", "required": False, "annexPoint": None},
@@ -150,7 +148,7 @@ class TestFormImportEndpoint:
         assert body["warnings"] == []
 
     def test_r27_a_csv_cell_over_128_kb_is_a_warning_not_a_500(self):
-        # Verification F2: well under the 10 MB cap, over csv's 131072-character field limit.
+        # Well under the 10 MB cap, over csv's 131072-character field limit.
         content = b"question\nWho signs off?\n" + b"z" * 200_000 + b"\n"
         r = form_file(content, "acme.csv")
         assert r.status_code == 200, r.text
@@ -227,7 +225,7 @@ ANNEX_DOC = (
 
 
 class TestPrefillWithAForm:
-    """/prefill with the form's fields and questions (R38, R40)."""
+    """/prefill with the form's fields and questions."""
 
     def test_r38_the_default_form_prefills_exactly_as_the_legacy_call(self):
         legacy = upload(text=ANNEX_DOC, name="doc.md").json()
@@ -281,11 +279,9 @@ class TestPrefillWithAForm:
         assert r.json()["detail"].startswith(f"{name}:")
 
 
-# ── Addendum 06 (docs/superpowers/form-assembly-2026-09-24/06-spec-addendum.md) ──
-
 
 class TestFormImportAnnexPoint:
-    """R53: /forms/import returns each question's annexPoint."""
+    """/forms/import returns each question's annexPoint."""
 
     def test_r53_the_annex_column_comes_back_as_annex_point(self):
         r = form_file(b"question,required,annex_point\nWho signs off?,yes,2A\nWho audits?,no,3a\n", "acme.csv")
@@ -315,7 +311,7 @@ R50_FORM = {
 
 
 class TestFormExportEndpoint:
-    """R55: POST /forms/export."""
+    """POST /forms/export."""
 
     def test_r55_csv_comes_back_as_filename_content_type_and_content(self):
         r = export({"format": "csv", "form": R50_FORM})
@@ -391,7 +387,7 @@ class TestFormExportEndpoint:
 
 
 class TestDocxExpansionEndpoints:
-    """R70: both endpoints answer 422 with the expansion message."""
+    """Both endpoints answer 422 with the expansion message."""
 
     def test_r70_forms_import_refuses_a_docx_bomb_with_422(self, monkeypatch):
         from tests.test_form_import import EXPANDS, docx_bomb
@@ -409,8 +405,6 @@ class TestDocxExpansionEndpoints:
         assert r.status_code == 422
         assert r.json()["detail"] == EXPANDS.format(52428800)
 
-
-# ── Two-level forms (docs/superpowers/two-level-forms-2026-09-25/01-spec.md), T50, T51 ──
 
 
 def questionnaire_export(payload: dict):
@@ -444,7 +438,7 @@ T50_Q = {"name": "Acme questionnaire", "description": "", "version": 2, "blocks"
 
 
 class TestQuestionnaireEndpoints:
-    """T50, T51: POST /questionnaires/export and POST /questionnaires/import."""
+    """POST /questionnaires/export and POST /questionnaires/import."""
 
     def test_t50_export_comes_back_as_filename_content_type_and_content(self):
         r = questionnaire_export({"bundle": "references", "questionnaire": T50_Q})

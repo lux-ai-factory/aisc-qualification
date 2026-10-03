@@ -66,8 +66,7 @@ def test_a_pdf_that_is_not_a_pdf_is_refused_not_crashed():
         read_document(b"not a pdf", "broken.pdf")
 
 
-# ── Addendum 06, R70: a .docx may expand to at most 50 MiB ──────────────────
-# (docs/superpowers/form-assembly-2026-09-24/06-spec-addendum.md)
+# A .docx may expand to at most 50 MiB.
 
 from tests.test_form_import import EXPANDS, docx_bomb, small_docx  # noqa: E402
 
@@ -75,7 +74,7 @@ from tests.test_form_import import EXPANDS, docx_bomb, small_docx  # noqa: E402
 def _check():
     try:
         from prefill.documents import check_docx_expansion
-    except ImportError as exc:  # the addendum's new helper
+    except ImportError as exc:
         raise AssertionError(f"prefill.documents.check_docx_expansion is missing: {exc}")
     return check_docx_expansion
 

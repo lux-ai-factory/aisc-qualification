@@ -1,4 +1,4 @@
-"""Refine with AI works on top of the card (2026-09-30).
+"""Refine with AI works on top of the card.
 
 The card is built from the form alone; the filler only runs when a person asks
 it to, and it starts from what the card already holds. The card's own
@@ -63,9 +63,9 @@ def test_the_critic_does_not_count_them_as_missing():
     assert critic_prompt(draft, "src") == critic_prompt(draft, "src", known=[])
 
 
-# Since 2026-09-30 the filler drafts techniques only (tests/test_questions_only.py): the Components
-# block states the parts. The mechanism below stays for any property drafted on top of the card's
-# own rows, so these two tests switch components back on to exercise it.
+# The filler drafts techniques only (tests/test_questions_only.py): the Components block states the
+# parts. The mechanism below serves any property drafted on top of the card's own rows, so these two
+# tests switch components back on to exercise it.
 import pytest
 
 

@@ -1,4 +1,4 @@
-"""Phase 5 drill: the card agent killed mid-run (SIGKILL). What it sent before is kept, the run has no
+"""Drill: the card agent killed mid-run (SIGKILL). What it sent before is kept, the run has no
 end (the ledger shows it open, never "finished"), and after a restart the next run, with its own run id,
 is whole. The platform is a stub that records what reaches its internal route."""
 import json

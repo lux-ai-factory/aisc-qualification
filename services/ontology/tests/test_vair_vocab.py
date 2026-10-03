@@ -1,4 +1,4 @@
-"""The form's VAIR lists (2026-09-30): one file, generated from vair.ttl, read by the form.
+"""The form's VAIR lists: one file, generated from vair.ttl, read by the form.
 
 The form offers VAIR wherever VAIR has a vocabulary for a field, so what it offers must be
 exactly what the builder accepts. The file is generated, and this test fails when it drifts.

@@ -4,7 +4,7 @@ Two kinds of input, kept apart on purpose:
 
   * Structured form fields (tags, pickers, risk rows) map deterministically onto
     AIRO properties. No judgment, no model. Wherever VAIR has a vocabulary for a field the
-    form offers only VAIR's terms (2026-09-30), so the node is typed with the term the author
+    form offers only VAIR's terms, so the node is typed with the term the author
     chose and, where the field has no text of its own, named with VAIR's label.
   * Two properties live inside prose: `usesTechnique` in answer 2(a) and
     `hasComponent` in 2(c). They come from the `extracted` argument, which is the
@@ -26,8 +26,8 @@ from .vair_terms import VAIR, every_vair_term, is_term_for
 from .vair_vocab import MODEL_TERMS, label_of
 from .annex_points import annex_citation
 
-#: The seeded questions' scopes. Their answers get no triple beyond today's, so a
-#: card filled with the default form builds the very graph it built before forms.
+#: The seeded questions' scopes. Their answers add no triples of their own, so a
+#: card filled with the default form builds the same graph as a card with no form.
 _SEEDED_SCOPES = frozenset({"annex-1", "annex-2"})
 
 # Our own vocabulary, for what AIRO does not model: the source answers and their
@@ -42,7 +42,7 @@ _AFFECTED_CLASS = {"operator": "isProvidedBy", "user": "hasAIUser"}
 LABEL_MAX = 60
 
 
-#: Kept for callers that only need "does VAIR name this at all"; use
+#: For callers that only need "does VAIR name this at all"; use
 #: vair_terms.is_term_for to decide whether a term fits a particular node.
 VAIR_TERMS = every_vair_term()
 
@@ -180,7 +180,7 @@ COMPONENT_RANGE = {
 
 
 #: A row of the card's Components block, by its kind: the AIRO class of its node and the property
-#: the system has it by (targets plan v2). Data the system is built on is a component (it can be
+#: the system has it by. Data the system is built on is a component (it can be
 #: what an assessment is about); a test set is not a kind: it is what an assessment uses.
 COMPONENT_KINDS = {
     "model": ("AIModel", "hasModel"),
@@ -229,7 +229,7 @@ def build_graph(
     # The system's own type, when the author chose one.
     _typed(g, system, qualification.get("systemType"))
 
-    # ── the four tag sets: one node per VAIR term, named by VAIR ─────────────
+    # The four tag sets: one node per VAIR term, named by VAIR
     for field, prop, cls, prefix in (
         ("targetSystemTags", "hasCapability", "AICapability", "capability"),
         ("sectorTags", "isAppliedWithinDomain", "Domain", "domain"),
@@ -242,7 +242,7 @@ def build_graph(
             g.add((node, QUAL.formTag, Literal(term)))
             link(g, system, prop, node)
 
-    # ── purpose, operators, users ────────────────────────────────────────────
+    # Purpose, operators, users
     # One Purpose node: named by the use case the author wrote, typed with the VAIR purpose they
     # chose. A form without the use-case block still has the purpose, named by VAIR.
     purpose_term = qualification.get("purpose")
@@ -277,7 +277,7 @@ def build_graph(
             named(g, ex.users, "AIUser", qualification["targetUsers"], names.get("users")),
         )
 
-    # ── the Components block: one node per row, named by its stable key ──────
+    # The Components block: one node per row, named by its stable key
     # A card with rows says what its parts are; the extraction's guesses then give way to them.
     rows = qualification.get("systemComponents") or []
     component_nodes: dict[str, URIRef] = {}
@@ -303,7 +303,7 @@ def build_graph(
         link(g, system, prop, node)
         component_nodes[row["key"]] = node
 
-    # ── prose-derived, supplied by an agent ──────────────────────────────────
+    # Prose-derived, supplied by an agent
     for prop, key, cls, prefix, citation in (
         ("usesTechnique", "techniques", "AITechnique", "technique", "Annex IV(2)(a)"),
         ("hasComponent", "components", "AIComponent", "component", "Annex IV(2)(c)"),
@@ -312,7 +312,7 @@ def build_graph(
             continue
         for i, entry in enumerate(extracted.get(key, [])):
             # The drafting prompt asks for {"label": ..., "vair": ...}; a plain string is
-            # accepted so earlier extractions keep working.
+            # accepted so extractions in the older shape still work.
             label = entry["label"] if isinstance(entry, dict) else entry
             term = entry.get("vair") if isinstance(entry, dict) else None
             node = named(g, ex[f"{prefix}{i}"], cls, label)
@@ -321,7 +321,7 @@ def build_graph(
             g.add((node, QUAL.derivedFrom, Literal(citation)))
             link(g, system, prop, node)
 
-    # ── engine components the card links, each by its AIRO property ──────────
+    # Engine components the card links, each by its AIRO property
     # One node per engine component, named by its engine pid, so the card joins
     # what the engine tests. The free-text components above stay as they are.
     for entry in qualification.get("engineComponents") or []:
@@ -342,14 +342,14 @@ def build_graph(
                                  " which is not on this card")
             g.add((node, QUAL.implements, component_nodes[entry["componentKey"]]))
 
-    # ── risk rows: one full chain each ───────────────────────────────────────
+    # Risk rows: one full chain each
     # AreaOfImpact nodes are shared across risks, exactly as the stakeholder
     # nodes are: "Fundamental rights" is one concept however many risks cite it.
     areas: dict[str, URIRef] = {}
     for row in qualification.get("risks", []):
         _add_risk(g, ex, system, row, areas, names)
 
-    # ── VAIR terms for nodes no mapping can reach ────────────────────────────
+    # VAIR terms for nodes no mapping can reach
     # The risk half has terms available but the choice depends on the row's text,
     # so it arrives through `extracted`, the same slot the agent fills. Applied
     # last, once every node exists.
@@ -359,7 +359,7 @@ def build_graph(
             continue  # a stale entry, e.g. after the form changed
         _typed(g, node, term)
 
-    # ── the draft's own review findings ──────────────────────────────────────
+    # The draft's own review findings
     # The filler agent reviews its draft before anyone sees it and publishes
     # whatever it could not settle. A flag rides on the node, next to its
     # provenance, because that is where the person clearing it is looking.
@@ -397,15 +397,16 @@ def build_graph(
             body = json.dumps({"why": note["why"], "quote": note["quote"]}, ensure_ascii=False)
             g.add((node, QUAL.flagNote, Literal(body)))
 
-    # ── what built this graph, so an exported file can be checked ────────────
+    # What built this graph, so an exported file can be checked
     for stamp in _build_stamp():
         g.add((system, QUAL.builtWith, Literal(stamp)))
 
-    # ── the Annex IV answers, verbatim ───────────────────────────────────────
+    # The Annex IV answers, verbatim
     # An answer exported with a form carries its question's `annexPoint`. Tagged,
     # it is an answer under that point's citation; untagged (None), it is not
-    # Annex IV documentation and stays out of the graph (A17): the card lists it
-    # under "Additional documentation" instead. No key at all is a legacy export.
+    # Annex IV documentation and stays out of the graph: the card lists it
+    # under "Additional documentation" instead. An answer with no annexPoint key
+    # (an export made without a form) gets the citation rebuilt from its id.
     for answer in qualification.get("answers", []):
         if "annexPoint" in answer and answer["annexPoint"] is None:
             continue
