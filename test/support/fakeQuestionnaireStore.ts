@@ -113,16 +113,33 @@ export type QuestionnaireVersionInsert = {
     listed: boolean;
     createdBy: string;
   };
-  version: { id: string; questionnaireId: string; number: number; blocks: string[]; createdBy: string };
+  version: {
+    id: string;
+    questionnaireId: string;
+    number: number;
+    blocks: string[];
+    createdBy: string;
+  };
   items: Array<{ position: number; setVersionId: string; questionId: string }>;
 };
 
 /** A set version and what it needs that does not exist yet, written together. */
 export type SetVersionInsert = {
   /** Present when the set is new. */
-  set?: { id: string; name: string; description: string; origin: string; createdBy: string };
+  set?: {
+    id: string;
+    name: string;
+    description: string;
+    origin: string;
+    createdBy: string;
+  };
   version: { id: string; setId: string; number: number; createdBy: string };
-  newQuestions: Array<{ id: string; setId: string; scope: string; localId: string }>;
+  newQuestions: Array<{
+    id: string;
+    setId: string;
+    scope: string;
+    localId: string;
+  }>;
   items: Array<Omit<SetItemRow, "setVersionId">>;
   /** The questionnaire made in the same transaction ("Also make a questionnaire", or the self-contained import). */
   questionnaire?: QuestionnaireVersionInsert;
@@ -144,9 +161,15 @@ type SeedSetQuestion = {
 type Stamp = { createdBy?: string; createdAt?: Date };
 
 const p2002 = (what: string) =>
-  Object.assign(new Error(`Unique constraint failed on the fields: (${what})`), { code: "P2002" });
+  Object.assign(
+    new Error(`Unique constraint failed on the fields: (${what})`),
+    { code: "P2002" },
+  );
 const p2003 = (what: string) =>
-  Object.assign(new Error(`Foreign key constraint failed on the field: ${what}`), { code: "P2003" });
+  Object.assign(
+    new Error(`Foreign key constraint failed on the field: ${what}`),
+    { code: "P2003" },
+  );
 
 export class FakeQuestionnaireStore {
   sets: QuestionSetRow[] = [];
@@ -183,27 +206,63 @@ export class FakeQuestionnaireStore {
   seedAnnex(): this {
     const at = this.tick();
     this.sets.push({
-      id: "annex-iv", name: "Annex IV", description: ANNEX_DESCRIPTION, origin: "builtin",
-      retiredAt: null, createdAt: at, createdBy: "system",
+      id: "annex-iv",
+      name: "Annex IV",
+      description: ANNEX_DESCRIPTION,
+      origin: "builtin",
+      retiredAt: null,
+      createdAt: at,
+      createdBy: "system",
     });
-    this.setVersions.push({ id: "annex-iv-v1", setId: "annex-iv", number: 1, createdAt: at, createdBy: "system" });
+    this.setVersions.push({
+      id: "annex-iv-v1",
+      setId: "annex-iv",
+      number: 1,
+      createdAt: at,
+      createdBy: "system",
+    });
     this.questionnaires.push({
-      id: "annex-iv-default", name: "Annex IV default", description: ANNEX_DESCRIPTION, origin: "builtin",
-      listed: true, retiredAt: null, createdAt: at, createdBy: "system",
+      id: "annex-iv-default",
+      name: "Annex IV default",
+      description: ANNEX_DESCRIPTION,
+      origin: "builtin",
+      listed: true,
+      retiredAt: null,
+      createdAt: at,
+      createdBy: "system",
     });
     this.questionnaireVersions.push({
-      id: "annex-iv-default-v1", questionnaireId: "annex-iv-default", number: 1, blocks: [...ALL_BLOCKS],
-      createdAt: at, createdBy: "system",
+      id: "annex-iv-default-v1",
+      questionnaireId: "annex-iv-default",
+      number: 1,
+      blocks: [...ALL_BLOCKS],
+      createdAt: at,
+      createdBy: "system",
     });
     KEY_QUESTIONS.forEach((k, position) => {
       const id = `annex-iv-${k.id}`;
-      this.questions.push({ id, setId: "annex-iv", scope: k.group, localId: k.id, createdAt: at });
+      this.questions.push({
+        id,
+        setId: "annex-iv",
+        scope: k.group,
+        localId: k.id,
+        createdAt: at,
+      });
       this.setItems.push({
-        setVersionId: "annex-iv-v1", questionId: id, position, text: k.text, citation: k.citation,
-        required: !k.optional, annexPoint: k.id, groupLabel: k.groupLabel,
+        setVersionId: "annex-iv-v1",
+        questionId: id,
+        position,
+        text: k.text,
+        citation: k.citation,
+        required: !k.optional,
+        annexPoint: k.id,
+        groupLabel: k.groupLabel,
       });
       this.questionnaireItems.push({
-        questionnaireVersionId: "annex-iv-default-v1", position, setVersionId: "annex-iv-v1", questionId: id,
+        questionnaireVersionId: "annex-iv-default-v1",
+        position,
+        setVersionId: "annex-iv-v1",
+        questionId: id,
       });
     });
     return this;
@@ -236,19 +295,32 @@ export class FakeQuestionnaireStore {
     spec.versions.forEach((v, i) => {
       const versionId = `${spec.id}-v${i + 1}`;
       this.setVersions.push({
-        id: versionId, setId: spec.id, number: i + 1,
-        createdAt: v.createdAt ?? this.tick(), createdBy: v.createdBy ?? spec.createdBy ?? "alice",
+        id: versionId,
+        setId: spec.id,
+        number: i + 1,
+        createdAt: v.createdAt ?? this.tick(),
+        createdBy: v.createdBy ?? spec.createdBy ?? "alice",
       });
       v.questions.forEach((q, position) => {
         const id = q.id ?? `${spec.id}-${q.localId}`;
         if (!this.questions.some((row) => row.id === id)) {
           this.questions.push({
-            id, setId: spec.id, scope: q.scope ?? `s-${spec.id}`, localId: q.localId, createdAt: this.tick(),
+            id,
+            setId: spec.id,
+            scope: q.scope ?? `s-${spec.id}`,
+            localId: q.localId,
+            createdAt: this.tick(),
           });
         }
         this.setItems.push({
-          setVersionId: versionId, questionId: id, position, text: q.text, citation: q.citation ?? "",
-          required: q.required ?? true, annexPoint: q.annexPoint ?? null, groupLabel: q.groupLabel ?? null,
+          setVersionId: versionId,
+          questionId: id,
+          position,
+          text: q.text,
+          citation: q.citation ?? "",
+          required: q.required ?? true,
+          annexPoint: q.annexPoint ?? null,
+          groupLabel: q.groupLabel ?? null,
         });
       });
     });
@@ -268,7 +340,12 @@ export class FakeQuestionnaireStore {
     retiredAt?: Date | null;
     createdBy?: string;
     createdAt?: Date;
-    versions: Array<Stamp & { blocks?: string[]; items: Array<{ setVersionId: string; questionId: string }> }>;
+    versions: Array<
+      Stamp & {
+        blocks?: string[];
+        items: Array<{ setVersionId: string; questionId: string }>;
+      }
+    >;
   }): this {
     this.questionnaires.push({
       id: spec.id,
@@ -283,14 +360,24 @@ export class FakeQuestionnaireStore {
     spec.versions.forEach((v, i) => {
       const versionId = `${spec.id}-v${i + 1}`;
       this.questionnaireVersions.push({
-        id: versionId, questionnaireId: spec.id, number: i + 1, blocks: v.blocks ?? [],
-        createdAt: v.createdAt ?? this.tick(), createdBy: v.createdBy ?? spec.createdBy ?? "alice",
+        id: versionId,
+        questionnaireId: spec.id,
+        number: i + 1,
+        blocks: v.blocks ?? [],
+        createdAt: v.createdAt ?? this.tick(),
+        createdBy: v.createdBy ?? spec.createdBy ?? "alice",
       });
       v.items.forEach((it, position) => {
         if (!this.setItem(it.setVersionId, it.questionId)) {
-          throw new Error(`seed: ${it.setVersionId}/${it.questionId} is not a set item`);
+          throw new Error(
+            `seed: ${it.setVersionId}/${it.questionId} is not a set item`,
+          );
         }
-        this.questionnaireItems.push({ questionnaireVersionId: versionId, position, ...it });
+        this.questionnaireItems.push({
+          questionnaireVersionId: versionId,
+          position,
+          ...it,
+        });
       });
     });
     return this;
@@ -302,7 +389,11 @@ export class FakeQuestionnaireStore {
     return this.sets.find((s) => s.id === id) ?? null;
   }
   private setItem(setVersionId: string, questionId: string) {
-    return this.setItems.find((i) => i.setVersionId === setVersionId && i.questionId === questionId) ?? null;
+    return (
+      this.setItems.find(
+        (i) => i.setVersionId === setVersionId && i.questionId === questionId,
+      ) ?? null
+    );
   }
   private question(id: string) {
     return this.questions.find((q) => q.id === id) ?? null;
@@ -323,7 +414,9 @@ export class FakeQuestionnaireStore {
     return {
       ...v,
       blocks: [...v.blocks],
-      questionnaire: { ...this.questionnaires.find((q) => q.id === v.questionnaireId)! },
+      questionnaire: {
+        ...this.questionnaires.find((q) => q.id === v.questionnaireId)!,
+      },
       items: this.questionnaireItems
         .filter((i) => i.questionnaireVersionId === v.id)
         .sort((a, b) => a.position - b.position)
@@ -377,7 +470,9 @@ export class FakeQuestionnaireStore {
 
   async questionsOf(setId: string) {
     this.calls.push("questionsOf");
-    return this.questions.filter((q) => q.setId === setId).map((q) => ({ ...q }));
+    return this.questions
+      .filter((q) => q.setId === setId)
+      .map((q) => ({ ...q }));
   }
 
   async insertSetVersion(plan: SetVersionInsert) {
@@ -390,38 +485,65 @@ export class FakeQuestionnaireStore {
     else if (race.name) throw p2002("lower(name)");
     if (!plan.set) {
       const existing = this.set(plan.version.setId)!;
-      if (existing.origin === "builtin" && this.setVersions.some((v) => v.setId === existing.id)) {
-        throw new Error(`question set ${existing.id} is builtin: it has one version, made by a migration`);
+      if (
+        existing.origin === "builtin" &&
+        this.setVersions.some((v) => v.setId === existing.id)
+      ) {
+        throw new Error(
+          `question set ${existing.id} is builtin: it has one version, made by a migration`,
+        );
       }
       if (existing.retiredAt !== null) {
-        throw new Error(`question set ${existing.id} is retired: it gets no new version`);
+        throw new Error(
+          `question set ${existing.id} is retired: it gets no new version`,
+        );
       }
     }
-    if (race.number || this.setVersions.some((v) => v.setId === plan.version.setId && v.number === plan.version.number)) {
+    if (
+      race.number ||
+      this.setVersions.some(
+        (v) =>
+          v.setId === plan.version.setId && v.number === plan.version.number,
+      )
+    ) {
       throw p2002("`set_id`,`number`");
     }
     for (const q of plan.newQuestions) {
-      if (this.questions.some((x) => x.id === q.id || (x.scope === q.scope && x.localId === q.localId))) {
+      if (
+        this.questions.some(
+          (x) =>
+            x.id === q.id || (x.scope === q.scope && x.localId === q.localId),
+        )
+      ) {
         throw p2002("`scope`,`local_id`");
       }
     }
     for (const it of plan.items) {
-      const q = this.question(it.questionId) ?? plan.newQuestions.find((n) => n.id === it.questionId);
+      const q =
+        this.question(it.questionId) ??
+        plan.newQuestions.find((n) => n.id === it.questionId);
       if (!q) throw p2003("question_set_version_item_question_id_fkey");
       if (q.setId !== plan.version.setId) {
-        throw new Error(`question ${it.questionId} is not a question of the set of version ${plan.version.id}`);
+        throw new Error(
+          `question ${it.questionId} is not a question of the set of version ${plan.version.id}`,
+        );
       }
     }
     const positions = plan.items.map((i) => i.position);
-    if (new Set(positions).size !== positions.length) throw p2002("`set_version_id`,`position`");
-    if (plan.questionnaire) this.checkQuestionnairePlan(plan.questionnaire, false, plan);
+    if (new Set(positions).size !== positions.length)
+      throw p2002("`set_version_id`,`position`");
+    if (plan.questionnaire)
+      this.checkQuestionnairePlan(plan.questionnaire, false, plan);
 
     this.inserted.push(plan);
     const at = this.tick();
-    if (plan.set) this.sets.push({ ...plan.set, retiredAt: null, createdAt: at });
-    for (const q of plan.newQuestions) this.questions.push({ ...q, createdAt: at });
+    if (plan.set)
+      this.sets.push({ ...plan.set, retiredAt: null, createdAt: at });
+    for (const q of plan.newQuestions)
+      this.questions.push({ ...q, createdAt: at });
     this.setVersions.push({ ...plan.version, createdAt: at });
-    for (const it of plan.items) this.setItems.push({ ...it, setVersionId: plan.version.id });
+    for (const it of plan.items)
+      this.setItems.push({ ...it, setVersionId: plan.version.id });
     if (plan.questionnaire) this.writeQuestionnairePlan(plan.questionnaire, at);
   }
 
@@ -429,9 +551,14 @@ export class FakeQuestionnaireStore {
     this.calls.push("retireSet");
     const s = this.set(id);
     if (!s) return;
-    if (s.origin === "builtin") throw new Error('new row violates check constraint "question_set_builtin_is_annex_iv"');
+    if (s.origin === "builtin")
+      throw new Error(
+        'new row violates check constraint "question_set_builtin_is_annex_iv"',
+      );
     if (s.retiredAt !== null) {
-      throw new Error(`question set ${id} keeps its name, origin and author; it can only be retired, once`);
+      throw new Error(
+        `question set ${id} keeps its name, origin and author; it can only be retired, once`,
+      );
     }
     s.retiredAt = at;
   }
@@ -476,10 +603,14 @@ export class FakeQuestionnaireStore {
     const q = this.questionnaires.find((x) => x.id === id);
     if (!q) return;
     if (q.origin === "builtin") {
-      throw new Error('new row violates check constraint "questionnaire_builtin_is_the_default"');
+      throw new Error(
+        'new row violates check constraint "questionnaire_builtin_is_the_default"',
+      );
     }
     if (q.retiredAt !== null) {
-      throw new Error(`questionnaire ${id} keeps its name, origin, listing and author; it can only be retired, once`);
+      throw new Error(
+        `questionnaire ${id} keeps its name, origin, listing and author; it can only be retired, once`,
+      );
     }
     q.retiredAt = at;
   }
@@ -496,7 +627,12 @@ export class FakeQuestionnaireStore {
 
   private checkSetName(name: string, raced: boolean) {
     const lower = name.toLowerCase();
-    if (raced || this.sets.some((s) => s.retiredAt === null && s.name.toLowerCase() === lower)) {
+    if (
+      raced ||
+      this.sets.some(
+        (s) => s.retiredAt === null && s.name.toLowerCase() === lower,
+      )
+    ) {
       throw p2002("lower(name)");
     }
   }
@@ -507,38 +643,60 @@ export class FakeQuestionnaireStore {
     withSet?: SetVersionInsert,
     nameRaced = false,
   ) {
-    const q = plan.questionnaire ?? this.questionnaires.find((x) => x.id === plan.version.questionnaireId);
+    const q =
+      plan.questionnaire ??
+      this.questionnaires.find((x) => x.id === plan.version.questionnaireId);
     if (!q) throw p2003("questionnaire_version_questionnaire_id_fkey");
     if (plan.questionnaire) {
       const lower = plan.questionnaire.name.toLowerCase();
       if (
         nameRaced ||
         (plan.questionnaire.listed &&
-          this.questionnaires.some((x) => x.listed && x.retiredAt === null && x.name.toLowerCase() === lower))
+          this.questionnaires.some(
+            (x) =>
+              x.listed &&
+              x.retiredAt === null &&
+              x.name.toLowerCase() === lower,
+          ))
       ) {
         throw p2002("lower(name)");
       }
     } else {
-      const existing = this.questionnaires.find((x) => x.id === plan.version.questionnaireId)!;
-      if (existing.origin === "builtin" && this.questionnaireVersions.some((v) => v.questionnaireId === existing.id)) {
-        throw new Error(`questionnaire ${existing.id} is builtin: it has one version, made by a migration`);
+      const existing = this.questionnaires.find(
+        (x) => x.id === plan.version.questionnaireId,
+      )!;
+      if (
+        existing.origin === "builtin" &&
+        this.questionnaireVersions.some(
+          (v) => v.questionnaireId === existing.id,
+        )
+      ) {
+        throw new Error(
+          `questionnaire ${existing.id} is builtin: it has one version, made by a migration`,
+        );
       }
       if (existing.retiredAt !== null) {
-        throw new Error(`questionnaire ${existing.id} is retired: it gets no new version`);
+        throw new Error(
+          `questionnaire ${existing.id} is retired: it gets no new version`,
+        );
       }
     }
     if (
       raced ||
       this.questionnaireVersions.some(
-        (v) => v.questionnaireId === plan.version.questionnaireId && v.number === plan.version.number,
+        (v) =>
+          v.questionnaireId === plan.version.questionnaireId &&
+          v.number === plan.version.number,
       )
     ) {
       throw p2002("`questionnaire_id`,`number`");
     }
     const ids = plan.items.map((i) => i.questionId);
-    if (new Set(ids).size !== ids.length) throw p2002("`questionnaire_version_id`,`question_id`");
+    if (new Set(ids).size !== ids.length)
+      throw p2002("`questionnaire_version_id`,`question_id`");
     const positions = plan.items.map((i) => i.position);
-    if (new Set(positions).size !== positions.length) throw p2002("`questionnaire_version_id`,`position`");
+    if (new Set(positions).size !== positions.length)
+      throw p2002("`questionnaire_version_id`,`position`");
     for (const it of plan.items) {
       const inPlan =
         withSet !== undefined &&
@@ -551,9 +709,22 @@ export class FakeQuestionnaireStore {
   }
 
   private writeQuestionnairePlan(plan: QuestionnaireVersionInsert, at: Date) {
-    if (plan.questionnaire) this.questionnaires.push({ ...plan.questionnaire, retiredAt: null, createdAt: at });
-    this.questionnaireVersions.push({ ...plan.version, blocks: [...plan.version.blocks], createdAt: at });
-    for (const it of plan.items) this.questionnaireItems.push({ ...it, questionnaireVersionId: plan.version.id });
+    if (plan.questionnaire)
+      this.questionnaires.push({
+        ...plan.questionnaire,
+        retiredAt: null,
+        createdAt: at,
+      });
+    this.questionnaireVersions.push({
+      ...plan.version,
+      blocks: [...plan.version.blocks],
+      createdAt: at,
+    });
+    for (const it of plan.items)
+      this.questionnaireItems.push({
+        ...it,
+        questionnaireVersionId: plan.version.id,
+      });
   }
 }
 

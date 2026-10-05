@@ -23,10 +23,12 @@ export function identityFromToken(token: string | null): string | null {
   } catch {
     return null;
   }
-  if (payload === null || typeof payload !== "object" || Array.isArray(payload)) return null;
+  if (payload === null || typeof payload !== "object" || Array.isArray(payload))
+    return null;
   for (const claim of CLAIMS) {
     const value = (payload as Record<string, unknown>)[claim];
-    if (typeof value === "string" && value.trim() !== "") return value.trim().slice(0, MAX);
+    if (typeof value === "string" && value.trim() !== "")
+      return value.trim().slice(0, MAX);
   }
   return null;
 }

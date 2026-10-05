@@ -109,8 +109,12 @@ export class QualificationRepository {
    * commit together or not at all. Inside, `repo` is bound to the
    * transaction and `tx` is what the emitter writes on.
    */
-  transaction<T>(fn: (repo: QualificationRepository, tx: Tx) => Promise<T>): Promise<T> {
-    return this.db.$transaction((tx) => fn(new QualificationRepository(tx as unknown as PrismaClient), tx));
+  transaction<T>(
+    fn: (repo: QualificationRepository, tx: Tx) => Promise<T>,
+  ): Promise<T> {
+    return this.db.$transaction((tx) =>
+      fn(new QualificationRepository(tx as unknown as PrismaClient), tx),
+    );
   }
 
   /** Keep what a change would overwrite (append-only: card_history). */
@@ -130,13 +134,18 @@ export class QualificationRepository {
 
   /** The card's history, oldest first. */
   history(qualificationId: string) {
-    return this.db.cardHistory.findMany({ where: { qualificationId }, orderBy: { id: "asc" } });
+    return this.db.cardHistory.findMany({
+      where: { qualificationId },
+      orderBy: { id: "asc" },
+    });
   }
 
   /** The card's link to one engine component, if any. */
   findLink(qualificationId: string, componentPid: string) {
     return this.db.cardComponent.findUnique({
-      where: { qualificationId_componentPid: { qualificationId, componentPid } },
+      where: {
+        qualificationId_componentPid: { qualificationId, componentPid },
+      },
     });
   }
 
@@ -183,16 +192,32 @@ export class QualificationRepository {
 
   /** The AI card of one version of the project's system, if it has one. One
    *  card per version: the database holds that too (system_id is unique). */
-  findBySystem(
-    systemId: string,
-  ): Promise<{ id: string; systemId: string; systemName: string; systemVersion: string } | null> {
+  findBySystem(systemId: string): Promise<{
+    id: string;
+    systemId: string;
+    systemName: string;
+    systemVersion: string;
+  } | null> {
     return this.db.qualification.findFirst({
       where: { systemId },
-      select: { id: true, systemId: true, systemName: true, systemVersion: true },
+      select: {
+        id: true,
+        systemId: true,
+        systemName: true,
+        systemVersion: true,
+      },
     });
   }
 
   /** The qualifications of this project, newest first. */
+  /** Each card's id and the version it belongs to: what card standing needs, without the cards. */
+  cardRefs(): Promise<{ id: string; systemId: string }[]> {
+    return this.db.qualification.findMany({
+      orderBy: { createdAt: "desc" },
+      select: { id: true, systemId: true },
+    });
+  }
+
   list(): Promise<QualificationWithAnswers[]> {
     return this.db.qualification.findMany({
       orderBy: { createdAt: "desc" },
@@ -204,7 +229,9 @@ export class QualificationRepository {
   linkComponent(qualificationId: string, link: ComponentLinkInput) {
     const { componentPid, ...snapshot } = link;
     return this.db.cardComponent.upsert({
-      where: { qualificationId_componentPid: { qualificationId, componentPid } },
+      where: {
+        qualificationId_componentPid: { qualificationId, componentPid },
+      },
       create: { qualificationId, ...link },
       update: snapshot,
     });
@@ -212,44 +239,43 @@ export class QualificationRepository {
 
   /** The keys of the card's components (its Components block). */
   async componentKeys(qualificationId: string): Promise<string[]> {
-    const rows = await this.db.qualificationComponent.findMany({ where: { qualificationId }, select: { key: true } });
+    const rows = await this.db.qualificationComponent.findMany({
+      where: { qualificationId },
+      select: { key: true },
+    });
     return rows.map((r) => r.key);
   }
 
   /** Remove the card's link to one engine component. */
   unlinkComponent(qualificationId: string, componentPid: string) {
-    return this.db.cardComponent.deleteMany({ where: { qualificationId, componentPid } });
+    return this.db.cardComponent.deleteMany({
+      where: { qualificationId, componentPid },
+    });
   }
 
   /** Everything an AI card needs that is not in the graph: the facts the
-   *  form collects, plus the generated prose if any exists. */
+   *  form collects. */
   cardSummary(
     id: string,
-  ): Promise<
-    | (Pick<
-        Qualification,
-        | "id"
-        | "systemId"
-        | "systemName"
-        | "systemVersion"
-        | "company"
-        | "description"
-        | "targetUseCase"
-        | "targetUsers"
-        | "targetSystemTags"
-        | "sectorTags"
-        | "questionnaireVersionId"
-      > & {
-        systemCardJson: Prisma.JsonValue | null;
-      })
-    | null
-  > {
+  ): Promise<Pick<
+    Qualification,
+    | "id"
+    | "systemId"
+    | "systemName"
+    | "systemVersion"
+    | "company"
+    | "description"
+    | "targetUseCase"
+    | "targetUsers"
+    | "targetSystemTags"
+    | "sectorTags"
+    | "questionnaireVersionId"
+  > | null> {
     return this.db.qualification.findFirst({
       where: { id },
       select: {
         id: true,
         systemId: true,
-        systemCardJson: true,
         systemName: true,
         systemVersion: true,
         company: true,
@@ -300,16 +326,6 @@ export class QualificationRepository {
     });
   }
 
-  saveSystemCard(
-    id: string,
-    json: Prisma.InputJsonValue,
-  ): Promise<Qualification> {
-    return this.db.qualification.update({
-      where: { id },
-      data: { systemCardJson: json, systemCardAt: new Date() },
-    });
-  }
-
   /**
    * Whether this card version is the latest in this project's database: the
    * rule the only-latest triggers enforce (qualification.card_is_latest). It is
@@ -324,7 +340,9 @@ export class QualificationRepository {
 }
 
 /** Opens the repository of one project. */
-export type RepositoryFor = (project: string) => Promise<QualificationRepository>;
+export type RepositoryFor = (
+  project: string,
+) => Promise<QualificationRepository>;
 
 /**
  * The repository of a project whose door has already been passed (a page under

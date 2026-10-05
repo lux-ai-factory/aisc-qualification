@@ -12,7 +12,7 @@ from rdflib import Graph, RDF, RDFS, URIRef
 from .build import QUAL
 from .coverage import additional_documentation, coverage
 from .mapping import FORM_MAPPING
-from .schema import AIRO, CLASSES
+from .schema import AIRO
 from .vair_terms import typeable_classes
 from .vair_terms import VAIR
 from .vair_vocab import form_vocab

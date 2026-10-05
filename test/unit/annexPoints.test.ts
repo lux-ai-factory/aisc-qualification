@@ -13,14 +13,17 @@ import {
 // default form is made of.
 
 const FILE = "src/data/annexPoints.json";
-const read = () => JSON.parse(readFileSync(FILE, "utf8")) as {
-  _comment: string;
-  points: { id: string; citation: string }[];
-};
+const read = () =>
+  JSON.parse(readFileSync(FILE, "utf8")) as {
+    _comment: string;
+    points: { id: string; citation: string }[];
+  };
 
 describe("src/data/annexPoints.json (R2)", () => {
   it("R2 has exactly the 14 KEY_QUESTIONS ids, in order", () => {
-    expect(read().points.map((p) => p.id)).toEqual(KEY_QUESTIONS.map((q) => q.id));
+    expect(read().points.map((p) => p.id)).toEqual(
+      KEY_QUESTIONS.map((q) => q.id),
+    );
   });
 
   it("R2 each point's citation is its question's citation", () => {
@@ -31,7 +34,8 @@ describe("src/data/annexPoints.json (R2)", () => {
 
   it("R2 has only the points and a comment", () => {
     expect(Object.keys(read()).sort()).toEqual(["_comment", "points"]);
-    for (const p of read().points) expect(Object.keys(p).sort()).toEqual(["citation", "id"]);
+    for (const p of read().points)
+      expect(Object.keys(p).sort()).toEqual(["citation", "id"]);
   });
 });
 

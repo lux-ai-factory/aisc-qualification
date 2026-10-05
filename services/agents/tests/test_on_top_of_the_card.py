@@ -6,7 +6,8 @@ Components rows are already on the card: the writer is told not to propose
 them again, the critic not to report them as missing, and a node that repeats
 one anyway is dropped before the draft is published.
 """
-from fill.agents import LlmCritic
+import pytest
+
 from fill.models import Draft, Node
 from fill.prompts import critic_prompt, writer_prompt
 from fill.workflow import known_parts, payload_of, run_fill
@@ -66,7 +67,6 @@ def test_the_critic_does_not_count_them_as_missing():
 # The filler drafts techniques only (tests/test_questions_only.py): the Components block states the
 # parts. The mechanism below serves any property drafted on top of the card's own rows, so these two
 # tests switch components back on to exercise it.
-import pytest
 
 
 @pytest.fixture

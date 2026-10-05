@@ -47,21 +47,30 @@ export default function ComponentsPanel({
     <section className="qf-section">
       <h2>Components</h2>
       {engineError ? (
-        <p className="qf-help">The engine did not answer: its components cannot be linked now.</p>
+        <p className="qf-help">
+          The engine did not answer: its components cannot be linked now.
+        </p>
       ) : engine.length === 0 ? (
-        <p className="qf-help">The engine has no components for this project yet.</p>
+        <p className="qf-help">
+          The engine has no components for this project yet.
+        </p>
       ) : (
         <ul className="qf-rows">
           {engine.map((c) => {
             const link = linkOf.get(c.pid);
-            const property = chosen[c.pid] ?? link?.airoProperty ?? defaultProperty(c.component_type);
+            const property =
+              chosen[c.pid] ??
+              link?.airoProperty ??
+              defaultProperty(c.component_type);
             return (
               <li key={c.pid}>
                 <strong>{c.name}</strong> ({c.component_type}){" "}
                 <select
                   value={property}
                   disabled={pending}
-                  onChange={(e) => setChosen({ ...chosen, [c.pid]: e.target.value })}
+                  onChange={(e) =>
+                    setChosen({ ...chosen, [c.pid]: e.target.value })
+                  }
                   aria-label={`AIRO property of ${c.name}`}
                 >
                   {propertyOptions(c.component_type).map((p) => (
@@ -74,7 +83,9 @@ export default function ComponentsPanel({
                   <select
                     value={partOf[c.pid] ?? link?.componentKey ?? ""}
                     disabled={pending}
-                    onChange={(e) => setPartOf({ ...partOf, [c.pid]: e.target.value })}
+                    onChange={(e) =>
+                      setPartOf({ ...partOf, [c.pid]: e.target.value })
+                    }
                     aria-label={`Which component ${c.name} is`}
                   >
                     <option value="">not a component</option>
@@ -91,8 +102,16 @@ export default function ComponentsPanel({
                   disabled={pending}
                   onClick={() =>
                     run(() =>
-                      linkComponent(projectId, qualificationId, c.pid, property,
-                        property === "hasTestingData" ? null : (partOf[c.pid] ?? link?.componentKey ?? null) || null),
+                      linkComponent(
+                        projectId,
+                        qualificationId,
+                        c.pid,
+                        property,
+                        property === "hasTestingData"
+                          ? null
+                          : (partOf[c.pid] ?? link?.componentKey ?? null) ||
+                              null,
+                      ),
                     )
                   }
                 >
@@ -103,7 +122,11 @@ export default function ComponentsPanel({
                     type="button"
                     className="btn ghost"
                     disabled={pending}
-                    onClick={() => run(() => unlinkComponent(projectId, qualificationId, c.pid))}
+                    onClick={() =>
+                      run(() =>
+                        unlinkComponent(projectId, qualificationId, c.pid),
+                      )
+                    }
                   >
                     Unlink
                   </button>

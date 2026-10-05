@@ -94,7 +94,8 @@ export default function FillStatus({
       <div className="fill-rerun">
         {state === "failed" && (
           <p className="fill-status" role="status" aria-live="polite">
-            The AI refinement could not finish. The card below is built from your answers.
+            The AI refinement could not finish. The card below is built from
+            your answers.
           </p>
         )}
         {state !== "failed" && places > 0 && (
@@ -102,7 +103,12 @@ export default function FillStatus({
             {places === 1 ? "1 place to check" : `${places} places to check`}
           </p>
         )}
-        <button type="button" className="btn ghost qf-header-btn" onClick={regenerate} disabled={starting}>
+        <button
+          type="button"
+          className="btn ghost qf-header-btn"
+          onClick={regenerate}
+          disabled={starting}
+        >
           {starting ? "Starting..." : "Refine with AI"}
         </button>
         {error && (
@@ -117,8 +123,9 @@ export default function FillStatus({
   return (
     <div className="fill-status" role="status" aria-live="polite">
       <span className="fill-status-spinner" aria-hidden="true" />
-      Refining the card with AI: proposing what your answers support beyond what the
-      card already lists, and reviewing it. This card will fill in by itself.
+      Refining the card with AI: proposing what your answers support beyond what
+      the card already lists, and reviewing it. This card will fill in by
+      itself.
     </div>
   );
 }

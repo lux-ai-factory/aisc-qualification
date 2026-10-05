@@ -39,6 +39,15 @@ app.add_middleware(ServiceTokens, names=("QUALIFICATION_WEB_TO_PREFILL_TOKEN",))
 MAX_BYTES = int(os.environ.get("PREFILL_MAX_BYTES", 10 * 1024 * 1024))
 
 
+async def read_upload(file: UploadFile) -> bytes:
+    """The uploaded file, read up to one byte past MAX_BYTES and refused (413) past it: a file
+    larger than the limit is never read whole into memory."""
+    raw = await file.read(MAX_BYTES + 1)
+    if len(raw) > MAX_BYTES:
+        raise HTTPException(status_code=413, detail=f"the file is larger than {MAX_BYTES} bytes")
+    return raw
+
+
 def _form_json(name: str, value: str, expected: type, wrong_type: str):
     """A JSON form field, or a 422 that names the field and what was wrong."""
     try:
@@ -74,9 +83,7 @@ async def prefill(
     #: the form's questions, [{field, text, citation, annexPoint}], as a JSON list
     questions: str | None = Form(None),
 ) -> dict:
-    raw = await file.read()
-    if len(raw) > MAX_BYTES:
-        raise HTTPException(status_code=413, detail=f"the file is larger than {MAX_BYTES} bytes")
+    raw = await read_upload(file)
     # A malformed value is refused, not ignored: ignoring it would quietly turn
     # "fill the empty ones" into "fill all of them".
     answers = _form_json("current", current or "{}", dict, "the form's current answers are not an object")
@@ -169,9 +176,7 @@ async def forms_import(file: UploadFile = File(...)) -> dict:
     Stores nothing and asks no model: the questions are read by text rules
     (prefill/form_import.py) and handed back with what was skipped or changed.
     """
-    raw = await file.read()
-    if len(raw) > MAX_BYTES:
-        raise HTTPException(status_code=413, detail=f"the file is larger than {MAX_BYTES} bytes")
+    raw = await read_upload(file)
     try:
         result = parse_form_file(raw, file.filename or "")
     except DocumentUnreadable as exc:
@@ -294,9 +299,7 @@ async def questionnaires_import(file: UploadFile = File(...)) -> dict:
     Stores nothing and asks no model: the file is checked by text rules
     (prefill/questionnaire_file.py).
     """
-    raw = await file.read()
-    if len(raw) > MAX_BYTES:
-        raise HTTPException(status_code=413, detail=f"the file is larger than {MAX_BYTES} bytes")
+    raw = await read_upload(file)
     try:
         return read_questionnaire(raw, file.filename or "")
     except QuestionnaireFileError as exc:

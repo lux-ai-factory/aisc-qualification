@@ -63,7 +63,9 @@ const wording = (v: QuestionValues): QuestionValues => ({
   annexPoint: v.annexPoint,
 });
 
-export function initialSetEditorState(init: SetEditorInit = {}): SetEditorState {
+export function initialSetEditorState(
+  init: SetEditorInit = {},
+): SetEditorState {
   if (init.edit) {
     const set = init.edit;
     const rows: SetRow[] = set.questions.map((q, i) => ({
@@ -82,7 +84,11 @@ export function initialSetEditorState(init: SetEditorInit = {}): SetEditorState 
       nextRow: rows.length,
     };
   }
-  const rows: SetRow[] = (init.rows ?? []).map((v, i) => ({ rowKey: `r${i}`, ...wording(v), groupLabel: null }));
+  const rows: SetRow[] = (init.rows ?? []).map((v, i) => ({
+    rowKey: `r${i}`,
+    ...wording(v),
+    groupLabel: null,
+  }));
   return {
     setId: null,
     name: init.name ?? "",
@@ -94,12 +100,22 @@ export function initialSetEditorState(init: SetEditorInit = {}): SetEditorState 
   };
 }
 
-export function setEditorReducer(state: SetEditorState, action: SetEditorAction): SetEditorState {
+export function setEditorReducer(
+  state: SetEditorState,
+  action: SetEditorAction,
+): SetEditorState {
   switch (action.type) {
     case "add":
       return {
         ...state,
-        rows: [...state.rows, { rowKey: `r${state.nextRow}`, ...wording(action.values), groupLabel: null }],
+        rows: [
+          ...state.rows,
+          {
+            rowKey: `r${state.nextRow}`,
+            ...wording(action.values),
+            groupLabel: null,
+          },
+        ],
         nextRow: state.nextRow + 1,
       };
     case "edit": {
@@ -112,7 +128,8 @@ export function setEditorReducer(state: SetEditorState, action: SetEditorAction)
     case "move": {
       const { from, to } = action;
       const n = state.rows.length;
-      if (from < 0 || from >= n || to < 0 || to >= n || from === to) return state;
+      if (from < 0 || from >= n || to < 0 || to >= n || from === to)
+        return state;
       const rows = [...state.rows];
       const [row] = rows.splice(from, 1);
       rows.splice(to, 0, row);
@@ -120,7 +137,10 @@ export function setEditorReducer(state: SetEditorState, action: SetEditorAction)
     }
     case "remove":
       if (!state.rows[action.index]) return state;
-      return { ...state, rows: state.rows.filter((_, i) => i !== action.index) };
+      return {
+        ...state,
+        rows: state.rows.filter((_, i) => i !== action.index),
+      };
     case "setName":
       return { ...state, name: action.name };
     case "setDescription":
@@ -137,8 +157,11 @@ export function toSetDraft(state: SetEditorState): SetDraft {
   return {
     name: state.name,
     description: state.description,
-    questions: state.rows.map((r): SetDraftQuestion =>
-      r.questionId === undefined ? wording(r) : { questionId: r.questionId, ...wording(r) },
+    questions: state.rows.map(
+      (r): SetDraftQuestion =>
+        r.questionId === undefined
+          ? wording(r)
+          : { questionId: r.questionId, ...wording(r) },
     ),
   };
 }

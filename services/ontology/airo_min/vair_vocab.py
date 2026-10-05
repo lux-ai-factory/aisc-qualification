@@ -63,7 +63,7 @@ def label_of(term: str) -> str:
     """The term's English label. Two terms carry a second, untagged label that is a source
     citation, so the language-tagged one wins; a term with none is spelled out from its name."""
     labels = list(_graph().objects(URIRef(VAIR + term), RDFS.label))
-    english = [str(l) for l in labels if getattr(l, "language", None) == "en"]
+    english = [str(label) for label in labels if getattr(label, "language", None) == "en"]
     if english:
         return " ".join(english[0].split())
     return _spaced(term)

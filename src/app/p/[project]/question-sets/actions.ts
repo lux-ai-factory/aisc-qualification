@@ -11,22 +11,41 @@ import { emitEvent } from "@/server/ledger/emit";
 /** The ledger's events for a forms save, in its transaction. */
 const recordForms: FormsRecorder = async (tx, saved) => {
   if (saved.set?.created) {
-    await emitEvent(tx, { action: "question_set.created", itemType: "question_set", itemId: saved.set.id,
-      details: { version: saved.set.number }, content: saved.set.content });
+    await emitEvent(tx, {
+      action: "question_set.created",
+      itemType: "question_set",
+      itemId: saved.set.id,
+      details: { version: saved.set.number },
+      content: saved.set.content,
+    });
   } else if (saved.set) {
     const { number, added, removed, reworded } = saved.set;
-    await emitEvent(tx, { action: "question_set.version_created", itemType: "question_set", itemId: saved.set.id,
-      itemVersion: number, details: { version: number, added, removed, reworded }, content: saved.set.content });
+    await emitEvent(tx, {
+      action: "question_set.version_created",
+      itemType: "question_set",
+      itemId: saved.set.id,
+      itemVersion: number,
+      details: { version: number, added, removed, reworded },
+      content: saved.set.content,
+    });
   }
   if (saved.questionnaire) {
-    await emitEvent(tx, { action: "questionnaire.created", itemType: "questionnaire", itemId: saved.questionnaire.id,
-      details: { version: saved.questionnaire.number }, content: saved.questionnaire.content });
+    await emitEvent(tx, {
+      action: "questionnaire.created",
+      itemType: "questionnaire",
+      itemId: saved.questionnaire.id,
+      details: { version: saved.questionnaire.number },
+      content: saved.questionnaire.content,
+    });
   }
 };
 
 export type QuestionSetActionState = { error?: string };
 
-type SaveOptions = { origin?: "builder" | "import"; alsoQuestionnaire?: boolean };
+type SaveOptions = {
+  origin?: "builder" | "import";
+  alsoQuestionnaire?: boolean;
+};
 
 /**
  * Save the set editor's draft: a new question set, or the next version of
@@ -58,15 +77,24 @@ export async function saveQuestionSet(
   });
   if (!saved.ok) return { error: saved.error };
   const unchanged = saved.created ? "" : "&unchanged=1";
-  redirect(`/p/${project}/question-sets/${encodeURIComponent(saved.setId)}?version=${saved.number}${unchanged}`);
+  redirect(
+    `/p/${project}/question-sets/${encodeURIComponent(saved.setId)}?version=${saved.number}${unchanged}`,
+  );
 }
 
 /** Retire a question set: hidden from pickers, still resolvable. */
-export async function retireQuestionSet(project: string, setId: string): Promise<QuestionSetActionState> {
+export async function retireQuestionSet(
+  project: string,
+  setId: string,
+): Promise<QuestionSetActionState> {
   const door = await projectDbForAction(project, { write: true });
   if (door.error !== undefined) return { error: door.error };
   const result = await questionSetsOn(door.db).retire(setId, (tx) =>
-    emitEvent(tx, { action: "question_set.retired", itemType: "question_set", itemId: setId }),
+    emitEvent(tx, {
+      action: "question_set.retired",
+      itemType: "question_set",
+      itemId: setId,
+    }),
   );
   if (!result.ok) return { error: result.error };
   redirect(`/p/${project}/question-sets`);

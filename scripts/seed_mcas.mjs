@@ -32,7 +32,13 @@ const QUALIFICATION = {
 };
 
 // Question 15 rows: one full AIRO risk chain each. The areas and the VAIR terms are the fixture's.
-const TERM_FIELDS = ["sourceTerm", "consequenceTerm", "impactTerm", "controlTerm", "followUpControlTerm"];
+const TERM_FIELDS = [
+  "sourceTerm",
+  "consequenceTerm",
+  "impactTerm",
+  "controlTerm",
+  "followUpControlTerm",
+];
 const RISK_TEXT = [
   {
     position: 0,
@@ -116,7 +122,9 @@ const RISK_TEXT = [
 const RISKS = RISK_TEXT.map((r, i) => ({
   ...r,
   impactAreas: example.risks[i].impactAreas,
-  ...Object.fromEntries(TERM_FIELDS.map((f) => [f, example.risks[i][f] ?? null])),
+  ...Object.fromEntries(
+    TERM_FIELDS.map((f) => [f, example.risks[i][f] ?? null]),
+  ),
 }));
 
 // Answers keyed by Annex IV point (toolId) and sub-item id (questionId), matching
@@ -174,19 +182,29 @@ async function platformCall(what, url, init, fetchImpl) {
       ...init,
     });
   } catch (cause) {
-    throw new Error(`Could not ${what}: the platform did not answer.`, { cause });
+    throw new Error(`Could not ${what}: the platform did not answer.`, {
+      cause,
+    });
   }
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
-    throw new Error(`Could not ${what}: the platform answered ${response.status}. ${detail}`.trim());
+    throw new Error(
+      `Could not ${what}: the platform answered ${response.status}. ${detail}`.trim(),
+    );
   }
   return response.json();
 }
 
 function platformBase(options) {
-  const platformUrl = (options.platformUrl ?? process.env.PLATFORM_URL ?? "").replace(/\/+$/, "");
+  const platformUrl = (
+    options.platformUrl ??
+    process.env.PLATFORM_URL ??
+    ""
+  ).replace(/\/+$/, "");
   if (!platformUrl) {
-    throw new Error("PLATFORM_URL is not set: MCAS's system cannot be named without the platform.");
+    throw new Error(
+      "PLATFORM_URL is not set: MCAS's system cannot be named without the platform.",
+    );
   }
   return platformUrl;
 }
@@ -207,15 +225,20 @@ export async function systemForProject(project, options = {}) {
     );
   }
   const url = `${platformBase(options)}/projects/${encodeURIComponent(project)}/system-versions`;
-  const version = await platformCall("name MCAS's system", url, {
-    method: "POST",
-    body: JSON.stringify({
-      name: QUALIFICATION.systemName,
-      version: QUALIFICATION.systemVersion,
-      provider: QUALIFICATION.company,
-      description: QUALIFICATION.description,
-    }),
-  }, fetchImpl);
+  const version = await platformCall(
+    "name MCAS's system",
+    url,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        name: QUALIFICATION.systemName,
+        version: QUALIFICATION.systemVersion,
+        provider: QUALIFICATION.company,
+        description: QUALIFICATION.description,
+      }),
+    },
+    fetchImpl,
+  );
   return { projectId: version.project_id, systemId: version.pid };
 }
 
@@ -235,7 +258,10 @@ export async function systemForProject(project, options = {}) {
  *        `platform` is the answer the platform would give, for a caller that
  *        already has it (the tests); otherwise it is asked for.
  */
-export async function seedMcas(prisma, { force = false, project, platform } = {}) {
+export async function seedMcas(
+  prisma,
+  { force = false, project, platform } = {},
+) {
   const existing = await prisma.qualification.findUnique({
     where: { id: MCAS_ID },
     select: { id: true },
@@ -301,7 +327,10 @@ if (
   }
   // The project's own database, from PROJECT_DATABASE_URL.
   const prisma = new PrismaClient({
-    datasourceUrl: projectDatabaseUrl(project, process.env.PROJECT_DATABASE_URL ?? ""),
+    datasourceUrl: projectDatabaseUrl(
+      project,
+      process.env.PROJECT_DATABASE_URL ?? "",
+    ),
   });
   console.log(`Seeding MCAS qualification into project ${project}`);
   seedMcas(prisma, { force: process.env.SEED_FORCE === "1", project })

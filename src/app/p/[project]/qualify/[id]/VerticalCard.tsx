@@ -1,6 +1,10 @@
 "use client";
 
-import type { OntologyChain, OntologyNode, OntologyView } from "@/domain/OntologyView";
+import type {
+  OntologyChain,
+  OntologyNode,
+  OntologyView,
+} from "@/domain/OntologyView";
 import NodeChip from "./NodeChip";
 
 // The AI card read top to bottom: the system's properties as rows, then one
@@ -83,7 +87,9 @@ export default function VerticalCard({
               <div className="qf-read-field" key={entry.key}>
                 <dt>
                   {entry.question}
-                  {entry.citation !== "" && <span className="qf-citation">{entry.citation}</span>}
+                  {entry.citation !== "" && (
+                    <span className="qf-citation">{entry.citation}</span>
+                  )}
                 </dt>
                 <dd>{entry.answer}</dd>
               </div>

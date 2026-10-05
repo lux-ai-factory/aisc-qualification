@@ -5,7 +5,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({ headers: new Headers() }));
 vi.mock("next/headers", () => ({ headers: async () => state.headers }));
 
-import { eventBody, isServerAction, withoutAuthors } from "@/server/ledger/emit";
+import {
+  eventBody,
+  isServerAction,
+  withoutAuthors,
+} from "@/server/ledger/emit";
 import { FillerClient } from "@/server/services/FillerClient";
 import { PlatformClient } from "@/server/services/PlatformClient";
 
@@ -20,7 +24,10 @@ function recorder() {
   const calls: { url: string; init: RequestInit }[] = [];
   const fetchImpl = (async (url: string, init: RequestInit) => {
     calls.push({ url, init });
-    return new Response(JSON.stringify({ pid: "p", number: 1, project_id: "x" }), { status: 200 });
+    return new Response(
+      JSON.stringify({ pid: "p", number: 1, project_id: "x" }),
+      { status: 200 },
+    );
   }) as unknown as typeof fetch;
   return { calls, fetchImpl };
 }
@@ -29,36 +36,75 @@ describe("the witnessed request travels on", () => {
   it("to the platform, so its card_version.created cites the person's request", async () => {
     state.headers = new Headers({ "x-aisc-request-id": REQUEST });
     const { calls, fetchImpl } = recorder();
-    await new PlatformClient("http://platform", fetchImpl).createVersion("p1", { name: "MCAS", version: "1" } as never);
-    expect(new Headers(calls[0].init.headers).get("x-aisc-request-id")).toBe(REQUEST);
+    await new PlatformClient("http://platform", fetchImpl).createVersion("p1", {
+      name: "MCAS",
+      version: "1",
+    } as never);
+    expect(new Headers(calls[0].init.headers).get("x-aisc-request-id")).toBe(
+      REQUEST,
+    );
   });
 
   it("and nothing is invented outside a request", async () => {
     const { calls, fetchImpl } = recorder();
-    await new PlatformClient("http://platform", fetchImpl).createVersion("p1", { name: "MCAS", version: "1" } as never);
-    expect(new Headers(calls[0].init.headers).has("x-aisc-request-id")).toBe(false);
+    await new PlatformClient("http://platform", fetchImpl).createVersion("p1", {
+      name: "MCAS",
+      version: "1",
+    } as never);
+    expect(new Headers(calls[0].init.headers).has("x-aisc-request-id")).toBe(
+      false,
+    );
   });
 
   it("to the agent, with the run it opened", async () => {
     const { calls, fetchImpl } = recorder();
-    await new FillerClient("http://agents", fetchImpl, "t").request("p1", "q1", { runId: RUN, requestId: REQUEST });
+    await new FillerClient("http://agents", fetchImpl, "t").request(
+      "p1",
+      "q1",
+      { runId: RUN, requestId: REQUEST },
+    );
     const sent = new Headers(calls[0].init.headers);
-    expect([sent.get("x-aisc-run-id"), sent.get("x-aisc-request-id")]).toEqual([RUN, REQUEST]);
+    expect([sent.get("x-aisc-run-id"), sent.get("x-aisc-request-id")]).toEqual([
+      RUN,
+      REQUEST,
+    ]);
   });
 });
 
 describe("an event never names who acted (review M6)", () => {
   it("drops author fields at any depth", () => {
-    expect(withoutAuthors({ set: { name: "A", createdBy: "ada@x" }, versions: [{ createdBy: "ada@x", n: 1 }] }))
-      .toEqual({ set: { name: "A" }, versions: [{ n: 1 }] });
-    const body = JSON.parse(eventBody({ action: "question_set.created", itemType: "question_set", itemId: "s1",
-      content: { set: { createdBy: "ada@x" } } }, null));
+    expect(
+      withoutAuthors({
+        set: { name: "A", createdBy: "ada@x" },
+        versions: [{ createdBy: "ada@x", n: 1 }],
+      }),
+    ).toEqual({ set: { name: "A" }, versions: [{ n: 1 }] });
+    const body = JSON.parse(
+      eventBody(
+        {
+          action: "question_set.created",
+          itemType: "question_set",
+          itemId: "s1",
+          content: { set: { createdBy: "ada@x" } },
+        },
+        null,
+      ),
+    );
     expect(JSON.stringify(body)).not.toContain("ada@x");
   });
 
   it("keeps what JSON keeps: an undefined field is dropped, not refused (review m7)", () => {
-    expect(() => eventBody({ action: "a", itemType: "t", itemId: "1", content: { a: 1, b: undefined } }, null))
-      .not.toThrow();
+    expect(() =>
+      eventBody(
+        {
+          action: "a",
+          itemType: "t",
+          itemId: "1",
+          content: { a: 1, b: undefined },
+        },
+        null,
+      ),
+    ).not.toThrow();
   });
 });
 
@@ -72,7 +118,12 @@ describe("a server action's re-render is no page view (review M2)", () => {
 
   it("the card page records an opening only outside a server action", async () => {
     const { readFileSync } = await import("node:fs");
-    const page = readFileSync("src/app/p/[project]/qualify/[id]/page.tsx", "utf8");
-    expect(page).toMatch(/if \(!\(await isServerAction\(\)\)\)[\s\S]{0,200}qualification\.opened/);
+    const page = readFileSync(
+      "src/app/p/[project]/qualify/[id]/page.tsx",
+      "utf8",
+    );
+    expect(page).toMatch(
+      /if \(!\(await isServerAction\(\)\)\)[\s\S]{0,200}qualification\.opened/,
+    );
   });
 });

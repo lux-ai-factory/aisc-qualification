@@ -4,7 +4,8 @@
 // schema=qualification and connection_limit=2.
 
 /** A project id (pid): a UUID. */
-export const PROJECT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const PROJECT_ID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function projectDatabaseName(pid) {
   if (typeof pid !== "string" || !PROJECT_ID.test(pid)) {

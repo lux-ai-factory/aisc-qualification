@@ -7,5 +7,7 @@ export default async function EditFormPage({
   params: Promise<{ project: string; formId: string }>;
 }) {
   const { project, formId } = await params;
-  permanentRedirect(`/p/${project}/questionnaires/${encodeURIComponent(formId)}/edit`);
+  permanentRedirect(
+    `/p/${project}/questionnaires/${encodeURIComponent(formId)}/edit`,
+  );
 }

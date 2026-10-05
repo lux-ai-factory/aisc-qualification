@@ -23,9 +23,18 @@ type Props = {
 const FORM_PAGE = "qualify-page qualify-page--form qf-forms-page";
 const WIDE_PAGE = "qualify-page qualify-page--wide qf-forms-page";
 
-type SelfContained = { file: QuestionnaireFile; fileName: string; setName: string; questionnaireName: string };
+type SelfContained = {
+  file: QuestionnaireFile;
+  fileName: string;
+  setName: string;
+  questionnaireName: string;
+};
 
-export default function QuestionnaireImport({ project, groups, header }: Props) {
+export default function QuestionnaireImport({
+  project,
+  groups,
+  header,
+}: Props) {
   const [reading, setReading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +47,11 @@ export default function QuestionnaireImport({ project, groups, header }: Props) 
     return (
       <main className={WIDE_PAGE}>
         {header}
-        <QuestionnaireBuilder project={project} groups={groups} initial={builder} />
+        <QuestionnaireBuilder
+          project={project}
+          groups={groups}
+          initial={builder}
+        />
       </main>
     );
 
@@ -122,16 +135,25 @@ export default function QuestionnaireImport({ project, groups, header }: Props) 
             <h2 className="qf-import-found">{`Found ${preview.file.items.length} questions in ${preview.fileName}`}</h2>
             <ol className="qf-builder-rows">
               {preview.file.items.map((item, i) => (
-                <li key={`${item.scope}:${item.localId}:${i}`} className="qf-builder-row">
+                <li
+                  key={`${item.scope}:${item.localId}:${i}`}
+                  className="qf-builder-row"
+                >
                   <span className="qf-builder-pos">{i + 1}</span>
                   <div className="qf-builder-row-body">
                     <span className="qf-question-text">{item.text}</span>
                     <div className="qf-builder-chips">
-                      {item.citation && <span className="qf-citation">{item.citation}</span>}
-                      {isAnnexPoint(item.annexPoint) && (
-                        <span className="qf-overlap">{annexCitation(item.annexPoint)}</span>
+                      {item.citation && (
+                        <span className="qf-citation">{item.citation}</span>
                       )}
-                      <span className="qf-tag">{item.required ? "Required" : "Optional"}</span>
+                      {isAnnexPoint(item.annexPoint) && (
+                        <span className="qf-overlap">
+                          {annexCitation(item.annexPoint)}
+                        </span>
+                      )}
+                      <span className="qf-tag">
+                        {item.required ? "Required" : "Optional"}
+                      </span>
                     </div>
                   </div>
                 </li>
@@ -146,24 +168,39 @@ export default function QuestionnaireImport({ project, groups, header }: Props) 
                   id={`${ids}-set`}
                   value={preview.setName}
                   maxLength={120}
-                  onChange={(e) => setPreview({ ...preview, setName: e.target.value })}
+                  onChange={(e) =>
+                    setPreview({ ...preview, setName: e.target.value })
+                  }
                 />
               </div>
               <div className="field">
-                <label className="qf-field-label" htmlFor={`${ids}-questionnaire`}>
+                <label
+                  className="qf-field-label"
+                  htmlFor={`${ids}-questionnaire`}
+                >
                   Questionnaire name
                 </label>
                 <input
                   id={`${ids}-questionnaire`}
                   value={preview.questionnaireName}
                   maxLength={120}
-                  onChange={(e) => setPreview({ ...preview, questionnaireName: e.target.value })}
+                  onChange={(e) =>
+                    setPreview({
+                      ...preview,
+                      questionnaireName: e.target.value,
+                    })
+                  }
                 />
               </div>
             </div>
             {error && <div className="error">{error}</div>}
             <div className="qf-actions">
-              <button type="button" className="btn" disabled={creating} onClick={create}>
+              <button
+                type="button"
+                className="btn"
+                disabled={creating}
+                onClick={create}
+              >
                 Create question set and questionnaire
               </button>
             </div>

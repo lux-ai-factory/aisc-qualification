@@ -90,6 +90,18 @@ describe("OntologyClient", () => {
     await expect(client.build(qualification)).rejects.toThrow(/500/);
   });
 
+  it("keeps a plain-text error body: a real Response's body can be read once", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response("Internal Server Error from the proxy", { status: 500 }),
+      );
+    const client = new OntologyClient("http://ontology:8010", fetchMock);
+    await expect(client.build(qualification)).rejects.toThrow(
+      "Ontology service error 500: Internal Server Error from the proxy",
+    );
+  });
+
   it("fromEnv refuses to run unconfigured", () => {
     const saved = process.env.ONTOLOGY_SERVICE_URL;
     delete process.env.ONTOLOGY_SERVICE_URL;

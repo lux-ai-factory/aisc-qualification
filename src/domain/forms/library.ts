@@ -19,7 +19,12 @@ export type SetGroup = {
 
 /** What "Update available" offers for one picked row. */
 export type SetUpdate =
-  | { kind: "reworded"; question: ResolvedQuestion; versionId: string; versionNumber: number }
+  | {
+      kind: "reworded";
+      question: ResolvedQuestion;
+      versionId: string;
+      versionNumber: number;
+    }
   | { kind: "removed"; setName: string; versionNumber: number };
 
 /**
@@ -35,14 +40,18 @@ function normalise(s: string): string {
 }
 
 /** Groups with at least one question whose text or citation holds the query; order kept. */
-export function filterLibrary<G extends { questions: ResolvedQuestion[] }>(groups: G[], query: string): G[] {
+export function filterLibrary<G extends { questions: ResolvedQuestion[] }>(
+  groups: G[],
+  query: string,
+): G[] {
   const q = normalise(query);
   if (q === "") return groups;
   return groups
     .map((g) => ({
       ...g,
       questions: g.questions.filter(
-        (x) => normalise(x.text).includes(q) || normalise(x.citation).includes(q),
+        (x) =>
+          normalise(x.text).includes(q) || normalise(x.citation).includes(q),
       ),
     }))
     .filter((g) => g.questions.length > 0);
@@ -62,7 +71,9 @@ export function overlapHints(
   for (const q of [...selected, ...candidates]) {
     const p = q.annexPoint;
     if (p === null) continue;
-    if (selected.some((s) => s.questionId !== q.questionId && s.annexPoint === p)) {
+    if (
+      selected.some((s) => s.questionId !== q.questionId && s.annexPoint === p)
+    ) {
       hints[q.questionId] = p;
     }
   }
@@ -73,7 +84,13 @@ export function overlapLabel(point: AnnexPointId): string {
   return `≈ overlaps ${annexCitation(point)}`;
 }
 
-const WORDING_FIELDS = ["text", "citation", "required", "annexPoint", "groupLabel"] as const;
+const WORDING_FIELDS = [
+  "text",
+  "citation",
+  "required",
+  "annexPoint",
+  "groupLabel",
+] as const;
 
 /**
  * Row index -> the update its set offers, for every pick whose set (the pick's
@@ -82,7 +99,10 @@ const WORDING_FIELDS = ["text", "citation", "required", "annexPoint", "groupLabe
  * wording fields, "removed" when it does not have the question. The same wording
  * in a newer version is no update: a pin is never bumped silently. Pure.
  */
-export function updatesAvailable(rows: BuilderRow[], groups: SetGroup[]): Record<number, SetUpdate> {
+export function updatesAvailable(
+  rows: BuilderRow[],
+  groups: SetGroup[],
+): Record<number, SetUpdate> {
   const updates: Record<number, SetUpdate> = {};
   rows.forEach((row, i) => {
     if (row.kind !== "pick") return;
@@ -90,11 +110,20 @@ export function updatesAvailable(rows: BuilderRow[], groups: SetGroup[]): Record
     if (!group || group.versionId === row.setVersionId) return;
     const latest = group.questions.find((q) => q.questionId === row.questionId);
     if (!latest) {
-      updates[i] = { kind: "removed", setName: group.setName, versionNumber: group.versionNumber };
+      updates[i] = {
+        kind: "removed",
+        setName: group.setName,
+        versionNumber: group.versionNumber,
+      };
       return;
     }
     if (WORDING_FIELDS.some((f) => latest[f] !== row.source[f])) {
-      updates[i] = { kind: "reworded", question: latest, versionId: group.versionId, versionNumber: group.versionNumber };
+      updates[i] = {
+        kind: "reworded",
+        question: latest,
+        versionId: group.versionId,
+        versionNumber: group.versionNumber,
+      };
     }
   });
   return updates;

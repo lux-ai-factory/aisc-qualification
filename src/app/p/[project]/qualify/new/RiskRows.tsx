@@ -13,7 +13,15 @@ import type { RiskExample } from "@/data/examples";
 
 /** The one VAIR select of a risk field. Required where VAIR always has a term that fits; the
  *  follow-up's only when there is a follow-up, which the server checks. */
-function TermSelect({ f, name, initial }: { f: RiskField; name: string; initial: string }) {
+function TermSelect({
+  f,
+  name,
+  initial,
+}: {
+  f: RiskField;
+  name: string;
+  initial: string;
+}) {
   const terms = vairTerms(f.vair!);
   return (
     <select
@@ -24,7 +32,11 @@ function TermSelect({ f, name, initial }: { f: RiskField; name: string; initial:
       required={!f.termOptional && !f.optional}
       defaultValue={initial}
     >
-      <option value="">{f.termOptional || f.optional ? "Matching term (none fits)" : "Choose the matching term…"}</option>
+      <option value="">
+        {f.termOptional || f.optional
+          ? "Matching term (none fits)"
+          : "Choose the matching term…"}
+      </option>
       {terms.map((t) => (
         <option key={t.id} value={t.id} title={t.definition || undefined}>
           {t.label}
@@ -90,10 +102,16 @@ export default function RiskRows({ initial }: { initial?: RiskExample[] }) {
           {RISK_FIELDS.map((f) => {
             const name = `risk:${row.key}:${f.id}`;
             const termName = `${name}Term`;
-            const termValue = (row.values?.[`${f.id}Term` as keyof RiskExample] as string | undefined) ?? "";
+            const termValue =
+              (row.values?.[`${f.id}Term` as keyof RiskExample] as
+                | string
+                | undefined) ?? "";
             return (
               <div key={f.id} className="field">
-                <label className="qf-question" htmlFor={f.kind === "term" ? termName : name}>
+                <label
+                  className="qf-question"
+                  htmlFor={f.kind === "term" ? termName : name}
+                >
                   <span className="qf-citation">{f.citation}</span>
                   {f.optional && (
                     <span className="qf-optional">where applicable</span>
@@ -112,7 +130,9 @@ export default function RiskRows({ initial }: { initial?: RiskExample[] }) {
                     placeholder={f.placeholder}
                   />
                 )}
-                {f.vair && <TermSelect f={f} name={termName} initial={termValue} />}
+                {f.vair && (
+                  <TermSelect f={f} name={termName} initial={termValue} />
+                )}
                 {f.kind === "affected" && (
                   <select
                     id={name}
@@ -125,7 +145,11 @@ export default function RiskRows({ initial }: { initial?: RiskExample[] }) {
                     </option>
                     <optgroup label="Standard groups">
                       {SUBJECTS.map((t) => (
-                        <option key={t.id} value={t.id} title={t.definition || undefined}>
+                        <option
+                          key={t.id}
+                          value={t.id}
+                          title={t.definition || undefined}
+                        >
                           {t.label}
                         </option>
                       ))}
@@ -141,7 +165,11 @@ export default function RiskRows({ initial }: { initial?: RiskExample[] }) {
                 )}
                 {f.kind === "areas" && (
                   <>
-                    <div className="qf-picker-options" id={name} data-field={name}>
+                    <div
+                      className="qf-picker-options"
+                      id={name}
+                      data-field={name}
+                    >
                       {IMPACT_AREAS.map((a) => {
                         const active = row.areas.has(a.id);
                         return (

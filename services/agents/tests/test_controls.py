@@ -4,7 +4,6 @@ Each is a pure function over (draft, source text, term list). They are the part
 of the workflow that must hold when the model misbehaves, so they are tested
 without one.
 """
-import pytest
 
 from fill.controls import run_controls
 from fill.models import Draft, Node

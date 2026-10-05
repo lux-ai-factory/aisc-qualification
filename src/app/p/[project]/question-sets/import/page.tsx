@@ -3,7 +3,11 @@ import QuestionSetImport from "./QuestionSetImport";
 
 // Import a question set from a CSV, Markdown or Word file, then finish it in
 // the set editor.
-export default async function ImportQuestionSetPage({ params }: { params: Promise<{ project: string }> }) {
+export default async function ImportQuestionSetPage({
+  params,
+}: {
+  params: Promise<{ project: string }>;
+}) {
   const { project } = await params;
 
   // QuestionSetImport renders the page's main, a form's width at every step.
@@ -14,8 +18,8 @@ export default async function ImportQuestionSetPage({ params }: { params: Promis
       </p>
       <h1>Import a question set</h1>
       <p>
-        One question per row or line. Headings are skipped, and a citation in [brackets] after a
-        question is kept as its citation.
+        One question per row or line. Headings are skipped, and a citation in
+        [brackets] after a question is kept as its citation.
       </p>
     </header>
   );

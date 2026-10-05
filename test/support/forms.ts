@@ -29,7 +29,8 @@ export const ALL_BLOCKS = [
 ] as const;
 
 /** The builtin set's description (migration 20260925090000, carried by the two-level migration). */
-export const ANNEX_DESCRIPTION = "EU AI Act Annex IV points 1 and 2, as 14 questions.";
+export const ANNEX_DESCRIPTION =
+  "EU AI Act Annex IV points 1 and 2, as 14 questions.";
 
 /**
  * One custom question of set `setId`, keyed f-<setId>:<localId>: the scope of a question made
@@ -107,7 +108,9 @@ export function seededQuestion(id: string): ResolvedQuestion {
  * A resolved questionnaire version. Defaults: a listed builder questionnaire "Acme AI policy"
  * with no blocks and no questions.
  */
-export function formVersion(over: Partial<ResolvedQuestionnaireVersion> = {}): ResolvedQuestionnaireVersion {
+export function formVersion(
+  over: Partial<ResolvedQuestionnaireVersion> = {},
+): ResolvedQuestionnaireVersion {
   return {
     questionnaireId: "acme",
     questionnaireName: "Acme AI policy",
@@ -127,7 +130,9 @@ export function formVersion(over: Partial<ResolvedQuestionnaireVersion> = {}): R
 export const questionnaireVersion = formVersion;
 
 /** A resolved set version. Defaults: set "Acme AI policy" (acme) v1, builder, no questions. */
-export function setVersion(over: Partial<ResolvedSetVersion> = {}): ResolvedSetVersion {
+export function setVersion(
+  over: Partial<ResolvedSetVersion> = {},
+): ResolvedSetVersion {
   return {
     setId: "acme",
     setName: "Acme AI policy",

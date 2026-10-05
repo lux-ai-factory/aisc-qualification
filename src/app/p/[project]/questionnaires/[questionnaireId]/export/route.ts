@@ -18,7 +18,10 @@ import {
 import { formExportClient } from "@/server/services/FormExportClient";
 
 const text = (status: number, body: string) =>
-  new Response(body, { status, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  new Response(body, {
+    status,
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
+  });
 
 /** The version as the questionnaire file's input: every item with its wording. */
 function fileInput(v: ResolvedQuestionnaireVersion): QuestionnaireFileInput {
@@ -51,7 +54,8 @@ export async function GET(
   if (db instanceof Response) return db;
   const query = new URL(request.url).searchParams;
   const format = query.get("format");
-  if (format !== "json" && format !== "csv" && format !== "md") return text(400, "format must be json, csv or md");
+  if (format !== "json" && format !== "csv" && format !== "md")
+    return text(400, "format must be json, csv or md");
 
   const bundle = query.get("bundle");
   if (bundle !== null && (format !== "json" || bundle !== "self-contained")) {
@@ -59,14 +63,21 @@ export async function GET(
   }
 
   const version = query.get("version");
-  if (version !== null && !/^[1-9]\d*$/.test(version)) return text(404, "Not found");
+  if (version !== null && !/^[1-9]\d*$/.test(version))
+    return text(404, "Not found");
 
-  const v = await questionnairesOn(db).exportable(questionnaireId, version === null ? undefined : Number(version));
+  const v = await questionnairesOn(db).exportable(
+    questionnaireId,
+    version === null ? undefined : Number(version),
+  );
   if (!v) return text(404, "Not found");
 
   const written =
     format === "json"
-      ? await questionnaireFileClient.write(fileInput(v), bundle === "self-contained" ? "self-contained" : "references")
+      ? await questionnaireFileClient.write(
+          fileInput(v),
+          bundle === "self-contained" ? "self-contained" : "references",
+        )
       : await formExportClient.write(
           {
             name: v.questionnaireName,

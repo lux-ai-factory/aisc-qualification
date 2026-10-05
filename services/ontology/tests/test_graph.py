@@ -150,7 +150,7 @@ class TestAGraphHasAStableIdentity:
         assert graph_digest(first) == graph_digest(second)
 
     def test_a_changed_graph_gets_a_different_digest(self):
-        from rdflib import Literal, RDFS, URIRef
+        from rdflib import Literal, RDFS
 
         from airo_min.graph import graph_digest
 

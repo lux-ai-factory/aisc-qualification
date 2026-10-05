@@ -105,6 +105,17 @@ describe("QualificationFormParser", () => {
     );
   });
 
+  it("keeps one answer per question when a field is posted twice (code review B4)", () => {
+    // two answers to one question break the unique (tool, question) only after the card's
+    // version was made, which leaves an empty latest version: the first value is kept, as get() does
+    const fd = fullySubmittable();
+    fd.append("q:annex-2:2d", "First.");
+    fd.append("q:annex-2:2d", "Second.");
+    const parsed = new QualificationFormParser().parse(fd);
+    const twoD = parsed.answers.filter((a) => a.questionId === "2d");
+    expect(twoD).toEqual([expect.objectContaining({ answer: "First." })]);
+  });
+
   it("rejects a submission missing a required Annex IV answer", () => {
     const fd = fullySubmittable();
     fd.set("q:annex-2:2g", "   ");
@@ -321,7 +332,9 @@ describe("metadata text fields follow the form's blocks (R11, A5)", () => {
       const parser = new QualificationFormParser();
       const fd = identity();
       fd.set(field, "  ");
-      expect(() => parser.parse(fd, formVersion({ blocks: [field] as never }))).toThrow(message);
+      expect(() =>
+        parser.parse(fd, formVersion({ blocks: [field] as never })),
+      ).toThrow(message);
     });
   }
 
@@ -338,9 +351,10 @@ describe("metadata text fields follow the form's blocks (R11, A5)", () => {
     const parser = new QualificationFormParser();
     const fd = identity();
     fd.set("description", "A vision system.");
-    expect(parser.parse(fd, formVersion({ blocks: ["description"] as never })).description).toBe(
-      "A vision system.",
-    );
+    expect(
+      parser.parse(fd, formVersion({ blocks: ["description"] as never }))
+        .description,
+    ).toBe("A vision system.");
   });
 });
 
@@ -358,7 +372,8 @@ describe("pickers follow the form's blocks (R12)", () => {
     it(`R12 ${block} in the blocks takes valid values${message ? ", at least one" : ", or none"}`, () => {
       const parser = new QualificationFormParser();
       const form = formVersion({ blocks: [block] as never });
-      if (message) expect(() => parser.parse(identity(), form)).toThrow(message);
+      if (message)
+        expect(() => parser.parse(identity(), form)).toThrow(message);
       else expect(parser.parse(identity(), form)[block]).toEqual([]);
       const fd = identity();
       fd.append(block, good);
@@ -377,9 +392,9 @@ describe("pickers follow the form's blocks (R12)", () => {
     const parser = new QualificationFormParser();
     const fd = identity();
     fd.append("marketFormTags", "hologram");
-    expect(() => parser.parse(fd, formVersion({ blocks: ["marketFormTags"] as never }))).toThrow(
-      /Unknown market form: hologram/,
-    );
+    expect(() =>
+      parser.parse(fd, formVersion({ blocks: ["marketFormTags"] as never })),
+    ).toThrow(/Unknown market form: hologram/);
   });
 });
 
@@ -387,13 +402,17 @@ describe("the risk block follows the form's blocks (R13)", () => {
   it('R13 with "risks" in the blocks, today\'s rules hold, including at least one risk', () => {
     const parser = new QualificationFormParser();
     const form = formVersion({ blocks: ["risks"] as never });
-    expect(() => parser.parse(identity(), form)).toThrow(/Add at least one risk\./);
+    expect(() => parser.parse(identity(), form)).toThrow(
+      /Add at least one risk\./,
+    );
     const fd = identity();
     addRisk(fd, 0);
     expect(parser.parse(fd, form).risks).toHaveLength(1);
     const bad = identity();
     addRisk(bad, 0, { affected: "subject" });
-    expect(() => parser.parse(bad, form)).toThrow(/Risk 1: who is affected is not one of the listed groups/);
+    expect(() => parser.parse(bad, form)).toThrow(
+      /Risk 1: who is affected is not one of the listed groups/,
+    );
   });
 
   it("R13 without it every risk field is ignored and there is no error", () => {
@@ -418,7 +437,9 @@ describe("questions come from the version (R14)", () => {
     const parser = new QualificationFormParser();
     const fd = identity();
     fd.set("q:f-acme:q1", "  ");
-    expect(() => parser.parse(fd, acme)).toThrow("Please answer all required questions (2 missing).");
+    expect(() => parser.parse(fd, acme)).toThrow(
+      "Please answer all required questions (2 missing).",
+    );
   });
 
   it("R14 a blank optional question gives no answer; answers are {toolId: scope, questionId: localId}, trimmed", () => {
@@ -441,19 +462,31 @@ describe("questions come from the version (R14)", () => {
     fd.set("q:annex-2:2a", "Not asked on this form.");
     fd.set("q:f-other:q1", "Another form's key.");
     fd.set("q:f-acme:q9", "Not in this version.");
-    const answers = parser.parse(fd, acme).answers.map((a) => `${a.toolId}:${a.questionId}`);
+    const answers = parser
+      .parse(fd, acme)
+      .answers.map((a) => `${a.toolId}:${a.questionId}`);
     expect(answers).toEqual(["f-acme:q1", "f-acme:q3"]);
   });
 
   it("R14 a mixed version reads seeded and custom questions alike", () => {
     const parser = new QualificationFormParser();
-    const mixed = formVersion({ questions: [seededQuestion("2a"), customQuestion("acme", "q1")] });
+    const mixed = formVersion({
+      questions: [seededQuestion("2a"), customQuestion("acme", "q1")],
+    });
     const fd = identity();
     fd.set("q:annex-2:2a", "Built from a pre-trained model.");
     fd.set("q:f-acme:q1", "The head of data science.");
     expect(parser.parse(fd, mixed).answers).toEqual([
-      { toolId: "annex-2", questionId: "2a", answer: "Built from a pre-trained model." },
-      { toolId: "f-acme", questionId: "q1", answer: "The head of data science." },
+      {
+        toolId: "annex-2",
+        questionId: "2a",
+        answer: "Built from a pre-trained model.",
+      },
+      {
+        toolId: "f-acme",
+        questionId: "q1",
+        answer: "The head of data science.",
+      },
     ]);
   });
 
@@ -464,7 +497,10 @@ describe("questions come from the version (R14)", () => {
     const parser = new QualificationFormParser();
     const legacy = parser.parse(fullySubmittable());
     const withForm = parser.parse(fullySubmittable(), form);
-    expect({ ...withForm, formVersionId: undefined }).toEqual({ ...legacy, formVersionId: undefined });
+    expect({ ...withForm, formVersionId: undefined }).toEqual({
+      ...legacy,
+      formVersionId: undefined,
+    });
     expect(withForm.formVersionId).toBe("annex-iv-default-v1");
     const missing = fullySubmittable();
     missing.set("q:annex-2:2g", "   ");

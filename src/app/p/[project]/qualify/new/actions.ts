@@ -19,22 +19,26 @@ export async function submitQualification(
   // middleware on the page the form was posted to: the platform is asked about
   // the caller in that project before its database is opened.
   const door = await projectDbForAction(project, { write: true });
-  if (door.error !== undefined && door.status === 503) return { error: PLATFORM_SILENT };
+  if (door.error !== undefined && door.status === 503)
+    return { error: PLATFORM_SILENT };
   if (door.error !== undefined) return { error: door.error };
   let id: string;
   try {
-    ({ id } = await qualificationService.createFromForm(project, formData, (tx, card) =>
-      emitEvent(tx, {
-        action: "qualification.created",
-        itemType: "qualification",
-        itemId: card.id,
-        details: {
-          questionnaire_version: card.input.questionnaireVersionId,
-          risks: card.input.risks.length,
-          components: (card.input.systemComponents ?? []).length,
-        },
-        content: card.input,
-      }),
+    ({ id } = await qualificationService.createFromForm(
+      project,
+      formData,
+      (tx, card) =>
+        emitEvent(tx, {
+          action: "qualification.created",
+          itemType: "qualification",
+          itemId: card.id,
+          details: {
+            questionnaire_version: card.input.questionnaireVersionId,
+            risks: card.input.risks.length,
+            components: (card.input.systemComponents ?? []).length,
+          },
+          content: card.input,
+        }),
     ));
   } catch (err) {
     if (err instanceof FormValidationError) return { error: err.message };
@@ -44,7 +48,10 @@ export async function submitQualification(
     }
     // The version could not be made for another reason: say so plainly rather
     // than storing a qualification nothing else can point at.
-    if (err instanceof Error && /could not name this system|PLATFORM_URL/i.test(err.message)) {
+    if (
+      err instanceof Error &&
+      /could not name this system|PLATFORM_URL/i.test(err.message)
+    ) {
       return { error: err.message };
     }
     throw err;

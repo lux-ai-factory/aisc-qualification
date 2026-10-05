@@ -22,7 +22,8 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
  * A project id (pid): a UUID, which is what names a project's database. Only a
  * pid is a project here; a slug or anything else is "not found".
  */
-export const PROJECT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const PROJECT_ID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const isProjectId = (x: string): boolean => PROJECT_ID.test(x);
 

@@ -142,9 +142,8 @@ export default function Methodology({ facts }: { facts: MethodologyFacts }) {
             title="Build the graph"
             what={
               <>
-                The answers become individuals and relations conforming to
-                AIRO: an{" "}
-                <code>AISystem</code> that <code>hasPurpose</code>,{" "}
+                The answers become individuals and relations conforming to AIRO:
+                an <code>AISystem</code> that <code>hasPurpose</code>,{" "}
                 <code>hasCapability</code>, <code>isProvidedBy</code> and{" "}
                 <code>hasRisk</code>; a <code>Risk</code> that{" "}
                 <code>hasConsequence</code>, which <code>hasImpact</code>, which{" "}

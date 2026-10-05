@@ -157,7 +157,8 @@ def test_bad_json_from_the_consistency_pass_is_no_notes():
 
 @pytest.mark.parametrize("odd", [["a"], float("nan")])
 def test_a_model_reply_with_an_odd_node_still_publishes_valid_json(odd):
-    reply_ = lambda s, u: json.dumps({"findings": [{"node": odd, "why": "w", "quote": QUOTE}]})
+    def reply_(s, u):
+        return json.dumps({"findings": [{"node": odd, "why": "w", "quote": QUOTE}]})
     payload = _run(_completer(reply_), lambda q, e: CVIEW)
     json.dumps(payload, allow_nan=False)
     assert payload["record"]["notes_dropped"] == [{"node": str(odd), "reason": "no such node"}]

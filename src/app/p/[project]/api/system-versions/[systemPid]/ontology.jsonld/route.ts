@@ -20,7 +20,8 @@ export async function GET(
   { params }: { params: Promise<{ project: string; systemPid: string }> },
 ) {
   const { project, systemPid } = await params;
-  if (!PROJECT_ID.test(systemPid)) return new NextResponse("Not found", { status: 404 });
+  if (!PROJECT_ID.test(systemPid))
+    return new NextResponse("Not found", { status: 404 });
   const db = await projectDbForRoute(project, { write: false });
   if (db instanceof Response) return db;
 
@@ -42,6 +43,9 @@ export async function GET(
     });
   } catch (err) {
     const detail = err instanceof Error ? err.message : "unavailable";
-    return new NextResponse(`Could not produce the knowledge graph: ${detail}`, { status: 502 });
+    return new NextResponse(
+      `Could not produce the knowledge graph: ${detail}`,
+      { status: 502 },
+    );
   }
 }

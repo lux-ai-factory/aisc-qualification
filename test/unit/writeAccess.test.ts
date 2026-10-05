@@ -35,7 +35,8 @@ vi.mock("node:child_process", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:child_process")>();
   const ok = (...args: unknown[]) => {
     const cb = args[args.length - 1];
-    if (typeof cb === "function") (cb as (e: null, out: string, err: string) => void)(null, "", "");
+    if (typeof cb === "function")
+      (cb as (e: null, out: string, err: string) => void)(null, "", "");
     return { on: () => undefined } as unknown;
   };
   return { ...actual, execFile: ok };
@@ -46,13 +47,19 @@ vi.mock("node:child_process", async (importOriginal) => {
 describe("projectDbForAction: write access to the project the action names", () => {
   type Door = typeof import("@/lib/projectDb");
   const door = async (answer: unknown) => {
-    vi.stubEnv("PROJECT_DATABASE_URL", "postgresql://q:q@postgres:5432/{database}?schema=qualification");
+    vi.stubEnv(
+      "PROJECT_DATABASE_URL",
+      "postgresql://q:q@postgres:5432/{database}?schema=qualification",
+    );
     vi.stubEnv("PLATFORM_URL", "http://platform:8000");
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => {
         if (answer === "silent") throw new Error("ECONNREFUSED");
-        return new Response(JSON.stringify(answer), { status: 200, headers: { "content-type": "application/json" } });
+        return new Response(JSON.stringify(answer), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
       }),
     );
     const mod = await vi.importActual<Door>("@/lib/projectDb");
@@ -70,7 +77,9 @@ describe("projectDbForAction: write access to the project the action names", () 
       const d = await mod.projectDbForAction(OWN, { write: true });
       expect(d.error).toBeUndefined();
       expect(d.db).toBeDefined();
-      expect(vi.mocked(fetch).mock.calls[0][0]).toBe(`http://platform:8000/authz/projects/${OWN}`);
+      expect(vi.mocked(fetch).mock.calls[0][0]).toBe(
+        `http://platform:8000/authz/projects/${OWN}`,
+      );
     } finally {
       afterEachDoor();
     }
@@ -79,7 +88,9 @@ describe("projectDbForAction: write access to the project the action names", () 
   it("a platform admin may write", async () => {
     try {
       const mod = await door(admin);
-      expect((await mod.projectDbForAction(OWN, { write: true })).db).toBeDefined();
+      expect(
+        (await mod.projectDbForAction(OWN, { write: true })).db,
+      ).toBeDefined();
     } finally {
       afterEachDoor();
     }
@@ -100,8 +111,13 @@ describe("projectDbForAction: write access to the project the action names", () 
   it("a stranger is 404, and a project that is not a pid is 404 without asking", async () => {
     try {
       const mod = await door(stranger);
-      expect(await mod.projectDbForAction(OWN, { write: true })).toEqual({ status: 404, error: "Qualification not found." });
-      expect(await mod.projectDbForAction("some-slug", { write: true })).toMatchObject({ status: 404 });
+      expect(await mod.projectDbForAction(OWN, { write: true })).toEqual({
+        status: 404,
+        error: "Qualification not found.",
+      });
+      expect(
+        await mod.projectDbForAction("some-slug", { write: true }),
+      ).toMatchObject({ status: 404 });
       expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
     } finally {
       afterEachDoor();
@@ -126,18 +142,41 @@ describe("projectDbForAction: write access to the project the action names", () 
 const DB = { database: "the project's own" };
 const refused = (status: 403 | 404) =>
   status === 403
-    ? Response.json({ error: "403: you can read this project but not change it." }, { status: 403 })
+    ? Response.json(
+        { error: "403: you can read this project but not change it." },
+        { status: 403 },
+      )
     : new Response("Not found", { status: 404 });
-const routeDoor = vi.fn(async (_pid: string, _o: { write: boolean }): Promise<unknown> => DB);
-type ActionDoor = { db: unknown; error?: undefined } | { status: 403 | 404 | 503; error: string };
-const actionDoor = vi.fn(async (_pid: string, _o: { write: boolean }): Promise<ActionDoor> => ({ db: DB }));
-const REFUSED_403: ActionDoor = { status: 403, error: "403: you can read this project but not change it." };
-const REFUSED_404: ActionDoor = { status: 404, error: "Qualification not found." };
+const routeDoor = vi.fn(
+  async (_pid: string, _o: { write: boolean }): Promise<unknown> => DB,
+);
+type ActionDoor =
+  | { db: unknown; error?: undefined }
+  | { status: 403 | 404 | 503; error: string };
+const actionDoor = vi.fn(
+  async (_pid: string, _o: { write: boolean }): Promise<ActionDoor> => ({
+    db: DB,
+  }),
+);
+const REFUSED_403: ActionDoor = {
+  status: 403,
+  error: "403: you can read this project but not change it.",
+};
+const REFUSED_404: ActionDoor = {
+  status: 404,
+  error: "Qualification not found.",
+};
 const repo = transactional({
   find: vi.fn(async (id: string) => ({ id, systemId: "v2" })),
   cardSummary: vi.fn(async (id: string) => ({ id, systemId: "v2" })),
   // an unlink removes a link that is there (with nothing linked, nothing changes and no event is written)
-  findLink: vi.fn(async () => ({ airoProperty: "hasModel", name: "m", componentType: "model", objectName: "", componentKey: null })),
+  findLink: vi.fn(async () => ({
+    airoProperty: "hasModel",
+    name: "m",
+    componentType: "model",
+    objectName: "",
+    componentKey: null,
+  })),
   saveOntologyExtracted: vi.fn(async () => ({})),
   linkComponent: vi.fn(async () => ({})),
   unlinkComponent: vi.fn(async () => ({})),
@@ -173,19 +212,27 @@ vi.mock("@/server/repositories/QualificationRepository", () => ({
   },
   repositoryFor: async () => repo,
 }));
-vi.mock("@/server/services/OntologyService", () => ({ ontologyService: ontology }));
+vi.mock("@/server/services/OntologyService", () => ({
+  ontologyService: ontology,
+}));
 vi.mock("@/server/services/EngineClient", () => ({ engineClient: engine }));
 vi.mock("@/server/services/cardLatest", () => ({
   NOT_LATEST: "403: not the latest",
   isLatestCard: vi.fn(async () => true),
   assertLatestCard: vi.fn(async () => undefined),
 }));
-vi.mock("@/server/services/QualificationExporter", () => ({ toExport: (q: { id: string }) => ({ id: q.id }) }));
-vi.mock("@/server/services/FormService", () => ({ formService: { resolve: async () => null } }));
+vi.mock("@/server/services/QualificationExporter", () => ({
+  toExport: (q: { id: string }) => ({ id: q.id }),
+}));
+vi.mock("@/server/services/FormService", () => ({
+  formService: { resolve: async () => null },
+}));
 vi.mock("@/server/services/QualificationService", () => ({
   qualificationService: { createFromForm },
 }));
-vi.mock("@/server/services/FillerClient", () => ({ requestFill: vi.fn(async () => true) }));
+vi.mock("@/server/services/FillerClient", () => ({
+  requestFill: vi.fn(async () => true),
+}));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -204,7 +251,8 @@ describe("F6: PUT /p/{pid}/api/qualifications/:id/extracted needs an editor of t
 
   it("a viewer is refused with 403 and nothing is stored", async () => {
     routeDoor.mockResolvedValueOnce(refused(403));
-    const { PUT } = await import("@/app/p/[project]/api/qualifications/[id]/extracted/route");
+    const { PUT } =
+      await import("@/app/p/[project]/api/qualifications/[id]/extracted/route");
     const res = await PUT(put(), ctx);
     expect(res.status).toBe(403);
     expect(repo.saveOntologyExtracted).not.toHaveBeenCalled();
@@ -212,37 +260,54 @@ describe("F6: PUT /p/{pid}/api/qualifications/:id/extracted needs an editor of t
 
   it("a stranger is told 404", async () => {
     routeDoor.mockResolvedValueOnce(refused(404));
-    const { PUT } = await import("@/app/p/[project]/api/qualifications/[id]/extracted/route");
+    const { PUT } =
+      await import("@/app/p/[project]/api/qualifications/[id]/extracted/route");
     const res = await PUT(put(), ctx);
     expect(res.status).toBe(404);
     expect(repo.saveOntologyExtracted).not.toHaveBeenCalled();
   });
 
   it("an editor stores the draft, in the project's own database", async () => {
-    const { PUT } = await import("@/app/p/[project]/api/qualifications/[id]/extracted/route");
+    const { PUT } =
+      await import("@/app/p/[project]/api/qualifications/[id]/extracted/route");
     const res = await PUT(put(), ctx);
     expect(res.status).toBe(200);
     expect(routeDoor).toHaveBeenCalledWith(OWN, { write: true });
     expect(opened).toEqual([DB]);
     expect(repo.cardSummary).toHaveBeenCalledWith("q1");
-    expect(repo.saveOntologyExtracted).toHaveBeenCalledWith("q1", expect.anything());
+    expect(repo.saveOntologyExtracted).toHaveBeenCalledWith(
+      "q1",
+      expect.anything(),
+    );
   });
 });
 
 describe("F7: the card page's actions open the project they name, after the platform confirms it", () => {
   it("patchOntologyNode by an editor of OTHER writes OTHER's card, as OTHER", async () => {
-    const { patchOntologyNode } = await import("@/app/p/[project]/qualify/[id]/ontology-actions");
-    const state = await patchOntologyNode(OTHER, "q1", "purpose", { label: "x" });
+    const { patchOntologyNode } =
+      await import("@/app/p/[project]/qualify/[id]/ontology-actions");
+    const state = await patchOntologyNode(OTHER, "q1", "purpose", {
+      label: "x",
+    });
     expect(state.ok).toBe(true);
     expect(actionDoor).toHaveBeenCalledWith(OTHER, { write: true });
     // the fifth argument writes the ledger event in the save's transaction
-    expect(ontology.patchNode).toHaveBeenCalledWith(OTHER, "q1", "purpose", { label: "x" }, expect.any(Function));
+    expect(ontology.patchNode).toHaveBeenCalledWith(
+      OTHER,
+      "q1",
+      "purpose",
+      { label: "x" },
+      expect.any(Function),
+    );
   });
 
   it("patchOntologyNode by a viewer of the project it names writes nothing", async () => {
     actionDoor.mockResolvedValueOnce(REFUSED_403);
-    const { patchOntologyNode } = await import("@/app/p/[project]/qualify/[id]/ontology-actions");
-    const state = await patchOntologyNode(OTHER, "q1", "purpose", { label: "x" });
+    const { patchOntologyNode } =
+      await import("@/app/p/[project]/qualify/[id]/ontology-actions");
+    const state = await patchOntologyNode(OTHER, "q1", "purpose", {
+      label: "x",
+    });
     expect(state.ok).toBe(false);
     if (!state.ok) expect(state.error).toMatch(/403/);
     expect(actionDoor).toHaveBeenCalledWith(OTHER, { write: true });
@@ -250,9 +315,14 @@ describe("F7: the card page's actions open the project they name, after the plat
   });
 
   it("resetOntology does the same", async () => {
-    const { resetOntology } = await import("@/app/p/[project]/qualify/[id]/ontology-actions");
+    const { resetOntology } =
+      await import("@/app/p/[project]/qualify/[id]/ontology-actions");
     expect((await resetOntology(OTHER, "q1")).ok).toBe(true);
-    expect(ontology.resetPatch).toHaveBeenCalledWith(OTHER, "q1", expect.any(Function));
+    expect(ontology.resetPatch).toHaveBeenCalledWith(
+      OTHER,
+      "q1",
+      expect.any(Function),
+    );
 
     actionDoor.mockResolvedValueOnce(REFUSED_404);
     ontology.resetPatch.mockClear();
@@ -262,7 +332,8 @@ describe("F7: the card page's actions open the project they name, after the plat
   });
 
   it("loadOntology reads with the caller's read access to the project it names", async () => {
-    const { loadOntology } = await import("@/app/p/[project]/qualify/[id]/ontology-actions");
+    const { loadOntology } =
+      await import("@/app/p/[project]/qualify/[id]/ontology-actions");
     expect((await loadOntology(OTHER, "q1")).ok).toBe(true);
     expect(actionDoor).toHaveBeenCalledWith(OTHER, { write: false });
     expect(ontology.build).toHaveBeenCalledWith(OTHER, "q1");
@@ -274,20 +345,23 @@ describe("F7: the card page's actions open the project they name, after the plat
   });
 
   it("linkComponent works in the project it names, and asks that project's engine", async () => {
-    const { linkComponent } = await import("@/app/p/[project]/qualify/[id]/component-actions");
+    const { linkComponent } =
+      await import("@/app/p/[project]/qualify/[id]/component-actions");
     const state = await linkComponent(OTHER, "q1", "c1", "hasModel");
     expect(actionDoor).toHaveBeenCalledWith(OTHER, { write: true });
     expect(repo.cardSummary).toHaveBeenCalledWith("q1");
     expect(engine.components).toHaveBeenCalledWith(OTHER);
     expect(engine.components).not.toHaveBeenCalledWith(OWN);
     expect(state.ok).toBe(true);
-    expect(repo.linkComponent).toHaveBeenCalledWith("q1", expect.objectContaining({ componentPid: "c1" }));
+    expect(repo.linkComponent).toHaveBeenCalledWith(
+      "q1",
+      expect.objectContaining({ componentPid: "c1" }),
+    );
   });
 
   it("linkComponent and unlinkComponent by a viewer write nothing", async () => {
-    const { linkComponent, unlinkComponent } = await import(
-      "@/app/p/[project]/qualify/[id]/component-actions"
-    );
+    const { linkComponent, unlinkComponent } =
+      await import("@/app/p/[project]/qualify/[id]/component-actions");
     actionDoor.mockResolvedValue(REFUSED_403);
     const linked = await linkComponent(OWN, "q1", "c1", "hasModel");
     const unlinked = await unlinkComponent(OWN, "q1", "c1");
@@ -299,7 +373,8 @@ describe("F7: the card page's actions open the project they name, after the plat
   });
 
   it("unlinkComponent writes in the project it names", async () => {
-    const { unlinkComponent } = await import("@/app/p/[project]/qualify/[id]/component-actions");
+    const { unlinkComponent } =
+      await import("@/app/p/[project]/qualify/[id]/component-actions");
     const state = await unlinkComponent(OTHER, "q1", "c1");
     expect(state.ok).toBe(true);
     expect(actionDoor).toHaveBeenCalledWith(OTHER, { write: true });
@@ -308,7 +383,8 @@ describe("F7: the card page's actions open the project they name, after the plat
   });
 
   it("submitQualification checks write access to the project it is given before saving", async () => {
-    const { submitQualification } = await import("@/app/p/[project]/qualify/new/actions");
+    const { submitQualification } =
+      await import("@/app/p/[project]/qualify/new/actions");
     actionDoor.mockResolvedValueOnce(REFUSED_403);
     const state = await submitQualification(OTHER, undefined, new FormData());
     expect(actionDoor).toHaveBeenCalledWith(OTHER, { write: true });

@@ -21,7 +21,9 @@ export default function SiteHeader({ project }: { project?: string }) {
   // render time on the server (same runtime NEXT_BASE_PATH next.config uses).
   const basePath = process.env.NEXT_BASE_PATH || "";
   const launcher = launcherUrl().replace(/\/+$/, "");
-  const projectPage = project ? `${launcher}/p/${encodeURIComponent(project)}` : null;
+  const projectPage = project
+    ? `${launcher}/p/${encodeURIComponent(project)}`
+    : null;
   return (
     <header className="site-header">
       <div className="inner">
@@ -43,7 +45,9 @@ export default function SiteHeader({ project }: { project?: string }) {
               <Link href={`/p/${project}/qualifications`}>Versions</Link>
               <NavMenu label="Framework">
                 <Link href={`/p/${project}/question-sets`}>Question sets</Link>
-                <Link href={`/p/${project}/questionnaires`}>Questionnaires</Link>
+                <Link href={`/p/${project}/questionnaires`}>
+                  Questionnaires
+                </Link>
                 <Link href="/methodology">Methodology</Link>
               </NavMenu>
             </>

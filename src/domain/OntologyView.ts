@@ -88,7 +88,12 @@ export type Coverage = {
 /** Answers to questions tagged with no Annex IV point, per owner form. */
 export type AdditionalSection = {
   form: string;
-  entries: Array<{ key: string; question: string; citation: string; answer: string }>;
+  entries: Array<{
+    key: string;
+    question: string;
+    citation: string;
+    answer: string;
+  }>;
 };
 
 export type OntologyView = {

@@ -48,21 +48,28 @@ export class Refused extends Error {
   }
 }
 
-export const PLATFORM_SILENT = "The platform is not answering, so who may be here cannot be established.";
+export const PLATFORM_SILENT =
+  "The platform is not answering, so who may be here cannot be established.";
 
 /**
  * How many project databases this process keeps a client open to.
  *
  * Each client holds up to connection_limit=2 connections, so this is the
- * connection budget: 2 × 20 = 40 at most. The least recently used client is
- * disconnected when a 21st project is opened, and reconnects (and migrates) if
- * it is needed again.
+ * connection budget: 2 × 20 = 40 at most, plus the clients evicted in the last
+ * EVICTION_GRACE_MS. The least recently used client leaves the map when a 21st
+ * project is opened; a new one is made (and migrates) if it is needed again.
  */
 export const MAX_OPEN_PROJECTS = 20;
 
+/** How long an evicted client stays connected: a request may still hold it, or be
+ *  waiting for its migration, and a disconnected Prisma client reconnects on its
+ *  next query, outside the map, where nothing would ever close it. */
+export const EVICTION_GRACE_MS = 60_000;
+
 /** `project_` + the lowercase pid without hyphens; anything else is refused. */
 export function projectDatabaseName(pid: string): string {
-  if (!PROJECT_ID.test(pid)) throw new NotAProject(`not a project id: ${JSON.stringify(pid)}`);
+  if (!PROJECT_ID.test(pid))
+    throw new NotAProject(`not a project id: ${JSON.stringify(pid)}`);
   return `project_${pid.toLowerCase().replace(/-/g, "")}`;
 }
 
@@ -94,30 +101,54 @@ export async function migrateProjectDatabase(url: string): Promise<void> {
 
 /** Postgres says the database is not there: the project was deleted, most likely. */
 export function isMissingDatabase(err: unknown): boolean {
-  const e = err as { code?: unknown; errorCode?: unknown; message?: unknown; stderr?: unknown } | null;
+  const e = err as {
+    code?: unknown;
+    errorCode?: unknown;
+    message?: unknown;
+    stderr?: unknown;
+  } | null;
   if (!e || typeof e !== "object") return false;
   if (e.code === "P1003" || e.errorCode === "P1003") return true;
   for (const text of [e.message, e.stderr]) {
-    if (typeof text === "string" && /database .* does not exist/i.test(text)) return true;
+    if (typeof text === "string" && /database .* does not exist/i.test(text))
+      return true;
   }
   return false;
 }
 
 /** The server went away mid-query: a dropped database's sessions are killed like this. */
 function isClosedConnection(err: unknown): boolean {
-  const e = err as { code?: unknown; errorCode?: unknown; message?: unknown } | null;
+  const e = err as {
+    code?: unknown;
+    errorCode?: unknown;
+    message?: unknown;
+  } | null;
   if (!e || typeof e !== "object") return false;
   if (e.code === "P1017" || e.errorCode === "P1017") return true;
-  return typeof e.message === "string" && /closed the connection/i.test(e.message);
+  return (
+    typeof e.message === "string" && /closed the connection/i.test(e.message)
+  );
 }
 
 type Entry = { client: PrismaClient; ready: Promise<void> };
-const store = globalThis as unknown as { qualificationProjectDatabases?: Map<string, Entry> };
+const store = globalThis as unknown as {
+  qualificationProjectDatabases?: Map<string, Entry>;
+};
 const open = (store.qualificationProjectDatabases ??= new Map<string, Entry>());
 
 function forget(url: string, entry: Entry) {
   if (open.get(url) === entry) open.delete(url);
   entry.client.$disconnect().catch(() => {});
+}
+
+/** Out of the map at once; disconnected once the requests that may hold it are done. */
+function evict(url: string, entry: Entry) {
+  if (open.get(url) === entry) open.delete(url);
+  const timer = setTimeout(
+    () => entry.client.$disconnect().catch(() => {}),
+    EVICTION_GRACE_MS,
+  );
+  timer.unref?.();
 }
 
 /**
@@ -130,7 +161,9 @@ function forget(url: string, entry: Entry) {
  */
 export async function prismaFor(
   pid: string,
-  deps: { migrate: (url: string) => Promise<void> } = { migrate: migrateProjectDatabase },
+  deps: { migrate: (url: string) => Promise<void> } = {
+    migrate: migrateProjectDatabase,
+  },
 ): Promise<PrismaClient> {
   const url = projectDatabaseUrl(pid);
   let entry = open.get(url);
@@ -143,7 +176,9 @@ export async function prismaFor(
     // Connect first: a database that is not there (a deleted project) fails here
     // with P1003, which the doors answer with 404. `prisma migrate deploy` would
     // instead try to create the database again.
-    const ready = client.$queryRawUnsafe("SELECT 1").then(() => deps.migrate(url));
+    const ready = client
+      .$queryRawUnsafe("SELECT 1")
+      .then(() => deps.migrate(url));
     // Set before the migration is awaited, so a request arriving meanwhile
     // waits for the same migration instead of starting its own.
     const created: Entry = { client, ready };
@@ -178,8 +213,11 @@ export async function prismaFor(
     });
     created.ready.catch(() => forget(url, created));
     while (open.size > MAX_OPEN_PROJECTS) {
-      const [oldestUrl, oldest] = open.entries().next().value as [string, Entry];
-      forget(oldestUrl, oldest);
+      const [oldestUrl, oldest] = open.entries().next().value as [
+        string,
+        Entry,
+      ];
+      evict(oldestUrl, oldest);
     }
   }
   await entry.ready;
@@ -196,7 +234,9 @@ export async function closeProjectDatabases(): Promise<void> {
 /** What the platform says the person behind this request may do in this
  *  project, or null when it does not answer. */
 export async function callerAccess(pid: string): Promise<Access | null> {
-  return fetchAccess(pid, await callerToken(), { platformUrl: process.env.PLATFORM_URL ?? "" });
+  return fetchAccess(pid, await callerToken(), {
+    platformUrl: process.env.PLATFORM_URL ?? "",
+  });
 }
 
 type Decision = { db: PrismaClient } | { status: 403 | 404 | 503 };
@@ -240,7 +280,10 @@ async function door(pid: string, write: boolean): Promise<Decision> {
  *
  * Nothing is connected to until the answer is "allow".
  */
-export async function projectDbFor(pid: string, { write }: { write: boolean }): Promise<PrismaClient> {
+export async function projectDbFor(
+  pid: string,
+  { write }: { write: boolean },
+): Promise<PrismaClient> {
   const d = await door(pid, write);
   if ("db" in d) return d.db;
   if (d.status === 403) throw new Refused(403, REFUSED[403]);
@@ -255,8 +298,10 @@ export async function projectDbForRoute(
 ): Promise<PrismaClient | Response> {
   const d = await door(pid, write);
   if ("db" in d) return d.db;
-  if (d.status === 403) return NextResponse.json({ error: REFUSED[403] }, { status: 403 });
-  if (d.status === 503) return NextResponse.json({ error: PLATFORM_SILENT }, { status: 503 });
+  if (d.status === 403)
+    return NextResponse.json({ error: REFUSED[403] }, { status: 403 });
+  if (d.status === 503)
+    return NextResponse.json({ error: PLATFORM_SILENT }, { status: 503 });
   return new NextResponse("Not found", { status: 404 });
 }
 
@@ -264,7 +309,10 @@ export async function projectDbForRoute(
 export async function projectDbForAction(
   pid: string,
   { write }: { write: boolean },
-): Promise<{ db: PrismaClient; error?: undefined } | { db?: undefined; status: 403 | 404 | 503; error: string }> {
+): Promise<
+  | { db: PrismaClient; error?: undefined }
+  | { db?: undefined; status: 403 | 404 | 503; error: string }
+> {
   const d = await door(pid, write);
   if ("db" in d) return { db: d.db };
   if (d.status === 403) return { status: 403, error: REFUSED[403] };
@@ -277,8 +325,11 @@ export async function projectDbForAction(
  * agent's token on /extracted): no platform question, since the agent is nobody
  * to the platform. Still only a pid opens a database, and a missing one is 404.
  */
-export async function projectDbForService(pid: string): Promise<PrismaClient | Response> {
-  if (!PROJECT_ID.test(pid)) return new NextResponse("Not found", { status: 404 });
+export async function projectDbForService(
+  pid: string,
+): Promise<PrismaClient | Response> {
+  if (!PROJECT_ID.test(pid))
+    return new NextResponse("Not found", { status: 404 });
   const d = await openOr404(pid);
   return "db" in d ? d.db : new NextResponse("Not found", { status: 404 });
 }

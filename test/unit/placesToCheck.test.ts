@@ -6,7 +6,10 @@ import type { OntologyNode, OntologyView } from "@/domain/OntologyView";
 
 // The ontology builder's own view of the MCAS example (kept current by the ontology suite).
 const MCAS: OntologyView = JSON.parse(
-  readFileSync(resolve(__dirname, "../../services/agents/tests/fixtures/mcas.view.json"), "utf-8"),
+  readFileSync(
+    resolve(__dirname, "../../services/agents/tests/fixtures/mcas.view.json"),
+    "utf-8",
+  ),
 );
 const NOTE = [{ why: "the answer says otherwise", quote: "a quote" }];
 
@@ -33,7 +36,11 @@ describe("the places a card asks a person to check", () => {
   });
 
   it("are the noted nodes of the rows, the system and the risk chains", () => {
-    expect(placesToCheck(noted(MCAS, ["system", "purpose", "risk0_source", "area_Right"]))).toBe(4);
+    expect(
+      placesToCheck(
+        noted(MCAS, ["system", "purpose", "risk0_source", "area_Right"]),
+      ),
+    ).toBe(4);
   });
 
   it("count a node the card shows in several places once", () => {

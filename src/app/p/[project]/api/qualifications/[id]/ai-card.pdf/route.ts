@@ -38,17 +38,28 @@ export async function GET(
     });
   }
 
-  const payload = systemCardPayload(q, null, ontology);
+  const payload = systemCardPayload(q, ontology);
 
   try {
     const pdf = await systemCardRendererClient.renderPdf(payload);
     // A download is recorded in the ledger as card.pdf_downloaded; a failure to record is only logged.
-    const format = new URL(req.url).pathname.endsWith("system-card.pdf") ? "system-card.pdf" : "ai-card.pdf";
+    const format = new URL(req.url).pathname.endsWith("system-card.pdf")
+      ? "system-card.pdf"
+      : "ai-card.pdf";
     await new QualificationRepository(db)
       .transaction((_r, tx) =>
-        emitEvent(tx, { action: "card.pdf_downloaded", itemType: "qualification", itemId: id, details: { format } }),
+        emitEvent(tx, {
+          action: "card.pdf_downloaded",
+          itemType: "qualification",
+          itemId: id,
+          details: { format },
+        }),
       )
-      .catch((e: unknown) => console.warn(`ledger: card.pdf_downloaded not recorded for ${id}: ${String(e)}`));
+      .catch((e: unknown) =>
+        console.warn(
+          `ledger: card.pdf_downloaded not recorded for ${id}: ${String(e)}`,
+        ),
+      );
     return new NextResponse(pdf, {
       headers: {
         "Content-Type": "application/pdf",

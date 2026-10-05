@@ -28,12 +28,19 @@ export const PREFILLABLE = new Set<string>([
 ]);
 
 /** The metadata text fields a form includes or leaves out as blocks. */
-const TEXT_BLOCKS = new Set<string>(["description", "targetUseCase", "targetUsers", "intendedDeployers"]);
+const TEXT_BLOCKS = new Set<string>([
+  "description",
+  "targetUseCase",
+  "targetUsers",
+  "intendedDeployers",
+]);
 
 /** What a document may propose for this questionnaire version: the identity, the
  *  included metadata text fields and every question. For the default version
  *  this is exactly PREFILLABLE. */
-export function prefillableFor(form: ResolvedQuestionnaireVersion): Set<string> {
+export function prefillableFor(
+  form: ResolvedQuestionnaireVersion,
+): Set<string> {
   return new Set<string>([
     ...IDENTITY_FIELDS,
     ...form.blocks.filter((b) => TEXT_BLOCKS.has(b)),
@@ -45,12 +52,23 @@ export function prefillableFor(form: ResolvedQuestionnaireVersion): Set<string> 
  *  fill ("risks" only when the form has the risk block) and the questions. */
 export type PrefillFormSpec = {
   fields: string[];
-  questions: { field: string; text: string; citation: string; annexPoint: string | null }[];
+  questions: {
+    field: string;
+    text: string;
+    citation: string;
+    annexPoint: string | null;
+  }[];
 };
 
-export function prefillFormSpec(form: ResolvedQuestionnaireVersion): PrefillFormSpec {
+export function prefillFormSpec(
+  form: ResolvedQuestionnaireVersion,
+): PrefillFormSpec {
   return {
-    fields: [...IDENTITY_FIELDS, ...form.blocks, ...form.questions.map((q) => q.field)],
+    fields: [
+      ...IDENTITY_FIELDS,
+      ...form.blocks,
+      ...form.questions.map((q) => q.field),
+    ],
     questions: form.questions.map((q) => ({
       field: q.field,
       text: q.text,
@@ -63,7 +81,10 @@ export function prefillFormSpec(form: ResolvedQuestionnaireVersion): PrefillForm
 export type Answers = Record<string, string>;
 
 /** What the form holds now, limited to what a document could propose. */
-export function currentAnswers(form: FormData, prefillable: Set<string> = PREFILLABLE): Answers {
+export function currentAnswers(
+  form: FormData,
+  prefillable: Set<string> = PREFILLABLE,
+): Answers {
   const found: Answers = {};
   for (const [name, value] of form.entries()) {
     if (typeof value !== "string") continue;
@@ -119,14 +140,17 @@ export function currentRisks(form: FormData): RiskExample[] {
       rows.set(key, row);
     }
     if (m[2] === "area") row.areas.push(value);
-    else if (m[2] in row && m[2] !== "areas") (row as Record<string, unknown>)[m[2]] = value;
+    else if (m[2] in row && m[2] !== "areas")
+      (row as Record<string, unknown>)[m[2]] = value;
   }
   return [...rows.values()];
 }
 
 /** Whether a row has anything written or chosen in it. */
 export function riskWritten(row: RiskExample): boolean {
-  return Object.values(row).some((v) => (Array.isArray(v) ? v.length > 0 : String(v).trim() !== ""));
+  return Object.values(row).some((v) =>
+    Array.isArray(v) ? v.length > 0 : String(v).trim() !== "",
+  );
 }
 
 /** The Components block's rows as the form holds them now, by index (`component:<i>:<field>`). */
@@ -138,11 +162,25 @@ export function currentComponents(form: FormData): ComponentExample[] {
     const index = Number(m[1]);
     let row = rows.get(index);
     if (!row) {
-      row = { key: "", name: "", role: "", type: "", provider: "in_house", providerName: "" };
+      row = {
+        key: "",
+        name: "",
+        role: "",
+        type: "",
+        provider: "in_house",
+        providerName: "",
+      };
       rows.set(index, row);
     }
-    if (m[2] === "provider") row.provider = value === "third_party" ? "third_party" : "in_house";
-    else if (m[2] === "key" || m[2] === "name" || m[2] === "role" || m[2] === "type" || m[2] === "providerName") {
+    if (m[2] === "provider")
+      row.provider = value === "third_party" ? "third_party" : "in_house";
+    else if (
+      m[2] === "key" ||
+      m[2] === "name" ||
+      m[2] === "role" ||
+      m[2] === "type" ||
+      m[2] === "providerName"
+    ) {
       row[m[2]] = value;
     }
   }
@@ -151,5 +189,7 @@ export function currentComponents(form: FormData): ComponentExample[] {
 
 /** Whether a component row has anything written or chosen in it; the provider has a default, so it does not count. */
 export function componentWritten(row: ComponentExample): boolean {
-  return [row.name, row.role, row.type, row.providerName].some((v) => v.trim() !== "");
+  return [row.name, row.role, row.type, row.providerName].some(
+    (v) => v.trim() !== "",
+  );
 }

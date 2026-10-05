@@ -9,7 +9,9 @@ const schema = () => readFileSync("prisma/schema.prisma", "utf8");
 
 /** The body of `model <name> { ... }`, or null. */
 function model(name: string): string | null {
-  const m = new RegExp(`^model ${name} \\{\\n([\\s\\S]*?)^\\}`, "m").exec(schema());
+  const m = new RegExp(`^model ${name} \\{\\n([\\s\\S]*?)^\\}`, "m").exec(
+    schema(),
+  );
   return m ? m[1] : null;
 }
 
@@ -18,7 +20,8 @@ function fields(body: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const raw of body.split("\n")) {
     const line = raw.replace(/\/\/.*$/, "").trim();
-    if (line === "" || line.startsWith("@@") || line.startsWith("///")) continue;
+    if (line === "" || line.startsWith("@@") || line.startsWith("///"))
+      continue;
     const m = /^(\w+)\s+(.*)$/.exec(line);
     if (m) out[m[1]] = m[2];
   }
@@ -37,7 +40,10 @@ function blockAttributes(body: string): string[] {
 type FieldSpec = { type: RegExp; map?: string };
 
 // Field by field: the type (with optionality or list) and the column it maps to.
-const MODELS: Record<string, { table: string; fields: Record<string, FieldSpec>; attributes: RegExp[] }> = {
+const MODELS: Record<
+  string,
+  { table: string; fields: Record<string, FieldSpec>; attributes: RegExp[] }
+> = {
   QuestionSet: {
     table: "question_set",
     fields: {
@@ -61,10 +67,14 @@ const MODELS: Record<string, { table: string; fields: Record<string, FieldSpec>;
       number: { type: /^Int\b/ },
       createdAt: { type: /^DateTime\s+@default\(now\(\)\)/, map: "created_at" },
       createdBy: { type: /^String\b/, map: "created_by" },
-      set: { type: /^QuestionSet\s+@relation\(fields: \[setId\], references: \[id\], onDelete: Restrict\)/ },
+      set: {
+        type: /^QuestionSet\s+@relation\(fields: \[setId\], references: \[id\], onDelete: Restrict\)/,
+      },
       items: { type: /^QuestionSetVersionItem\[\]/ },
     },
-    attributes: [/^@@unique\(\[setId, number\], map: "question_set_version_set_id_number_key"\)$/],
+    attributes: [
+      /^@@unique\(\[setId, number\], map: "question_set_version_set_id_number_key"\)$/,
+    ],
   },
   Question: {
     table: "question",
@@ -74,7 +84,9 @@ const MODELS: Record<string, { table: string; fields: Record<string, FieldSpec>;
       scope: { type: /^String\b/ },
       localId: { type: /^String\b/, map: "local_id" },
       createdAt: { type: /^DateTime\s+@default\(now\(\)\)/, map: "created_at" },
-      set: { type: /^QuestionSet\s+@relation\(fields: \[setId\], references: \[id\], onDelete: Restrict\)/ },
+      set: {
+        type: /^QuestionSet\s+@relation\(fields: \[setId\], references: \[id\], onDelete: Restrict\)/,
+      },
       items: { type: /^QuestionSetVersionItem\[\]/ },
     },
     attributes: [
@@ -96,7 +108,9 @@ const MODELS: Record<string, { table: string; fields: Record<string, FieldSpec>;
       setVersion: {
         type: /^QuestionSetVersion\s+@relation\(fields: \[setVersionId\], references: \[id\], onDelete: Restrict\)/,
       },
-      question: { type: /^Question\s+@relation\(fields: \[questionId\], references: \[id\], onDelete: Restrict\)/ },
+      question: {
+        type: /^Question\s+@relation\(fields: \[questionId\], references: \[id\], onDelete: Restrict\)/,
+      },
       usedBy: { type: /^QuestionnaireVersionItem\[\]/ },
     },
     attributes: [
@@ -142,7 +156,10 @@ const MODELS: Record<string, { table: string; fields: Record<string, FieldSpec>;
   QuestionnaireVersionItem: {
     table: "questionnaire_version_item",
     fields: {
-      questionnaireVersionId: { type: /^String\b/, map: "questionnaire_version_id" },
+      questionnaireVersionId: {
+        type: /^String\b/,
+        map: "questionnaire_version_id",
+      },
       position: { type: /^Int\b/ },
       setVersionId: { type: /^String\b/, map: "set_version_id" },
       questionId: { type: /^String\b/, map: "question_id" },
@@ -181,7 +198,10 @@ describe("the Prisma schema has the two levels (T1)", () => {
       const attrs = blockAttributes(body!);
       expect(attrs).toContain(`@@map("${spec.table}")`);
       for (const a of spec.attributes) {
-        expect(attrs.some((x) => a.test(x)), `${name}: ${a}`).toBe(true);
+        expect(
+          attrs.some((x) => a.test(x)),
+          `${name}: ${a}`,
+        ).toBe(true);
       }
     });
   }
@@ -189,23 +209,33 @@ describe("the Prisma schema has the two levels (T1)", () => {
   it("T1 every map name of the seven models fits Postgres' 63 bytes, and the questionnaire item position key is the migration's index", () => {
     const names: string[] = [];
     for (const name of Object.keys(MODELS)) {
-      for (const m of (model(name) ?? "").matchAll(/map: "([^"]+)"/g)) names.push(m[1]);
+      for (const m of (model(name) ?? "").matchAll(/map: "([^"]+)"/g))
+        names.push(m[1]);
     }
     expect(names.length).toBeGreaterThan(10);
     for (const n of names) expect(n.length, n).toBeLessThanOrEqual(63);
-    const key = /@@unique\(\[questionnaireVersionId, position\], map: "([^"]+)"\)/.exec(model("QuestionnaireVersionItem") ?? "")?.[1];
+    const key =
+      /@@unique\(\[questionnaireVersionId, position\], map: "([^"]+)"\)/.exec(
+        model("QuestionnaireVersionItem") ?? "",
+      )?.[1];
     expect(key).toBeDefined();
-    const migration = "prisma/migrations/20260925150000_two_level_forms/migration.sql";
+    const migration =
+      "prisma/migrations/20260925150000_two_level_forms/migration.sql";
     expect(existsSync(migration)).toBe(true);
     expect(readFileSync(migration, "utf8")).toMatch(
-      new RegExp(`CREATE UNIQUE INDEX ${key}\\s+ON qualification\\.questionnaire_version_item \\(questionnaire_version_id, position\\)`),
+      new RegExp(
+        `CREATE UNIQUE INDEX ${key}\\s+ON qualification\\.questionnaire_version_item \\(questionnaire_version_id, position\\)`,
+      ),
     );
   });
 
   it("T1 npx prisma validate passes (dummy DATABASE_URL)", () => {
     const r = spawnSync("npx", ["prisma", "validate"], {
       encoding: "utf8",
-      env: { ...process.env, DATABASE_URL: "postgresql://x:x@127.0.0.1:1/x?schema=qualification" },
+      env: {
+        ...process.env,
+        DATABASE_URL: "postgresql://x:x@127.0.0.1:1/x?schema=qualification",
+      },
     });
     expect(r.status, `${r.stdout}\n${r.stderr}`).toBe(0);
     // A child process: npx starting the Prisma CLI takes seconds, and under a full parallel run it
@@ -216,13 +246,19 @@ describe("the Prisma schema has the two levels (T1)", () => {
     for (const name of Object.keys(MODELS)) {
       const f = fields(model(name) ?? "");
       for (const field of ["createdAt", "retiredAt"]) {
-        if (f[field]) expect(f[field], `${name}.${field}`).toMatch(/@db\.Timestamptz\(3\)/);
+        if (f[field])
+          expect(f[field], `${name}.${field}`).toMatch(/@db\.Timestamptz\(3\)/);
       }
     }
   });
 
   it("T1 no model Form, FormVersion, FormQuestion or FormVersionQuestion remains", () => {
-    for (const name of ["Form", "FormVersion", "FormQuestion", "FormVersionQuestion"]) {
+    for (const name of [
+      "Form",
+      "FormVersion",
+      "FormQuestion",
+      "FormVersionQuestion",
+    ]) {
       expect(model(name), `model ${name}`).toBeNull();
     }
   });
@@ -233,12 +269,16 @@ describe("the Prisma schema has the two levels (T1)", () => {
     const f = fields(body!);
     expect(f.formVersionId).toBeUndefined();
     expect(f.formVersion).toBeUndefined();
-    expect(f.questionnaireVersionId?.replace(/\s+/g, " ")).toMatch(/^String\? @map\("questionnaire_version_id"\)$/);
+    expect(f.questionnaireVersionId?.replace(/\s+/g, " ")).toMatch(
+      /^String\? @map\("questionnaire_version_id"\)$/,
+    );
     expect(f.questionnaireVersion?.replace(/\s+/g, " ")).toMatch(
       /^QuestionnaireVersion\? @relation\(fields: \[questionnaireVersionId\], references: \[id\], onDelete: Restrict, map: "qualification_questionnaire_version_id_fkey"\)$/,
     );
     const attrs = blockAttributes(body!);
-    expect(attrs).toContain('@@index([questionnaireVersionId], map: "qualification_questionnaire_version_id_idx")');
+    expect(attrs).toContain(
+      '@@index([questionnaireVersionId], map: "qualification_questionnaire_version_id_idx")',
+    );
     expect(attrs.some((a) => a.includes("formVersionId"))).toBe(false);
   });
 
@@ -247,9 +287,13 @@ describe("the Prisma schema has the two levels (T1)", () => {
       const body = model(name);
       expect(body, `model ${name}`).not.toBeNull();
       for (const field of Object.keys(fields(body!))) {
-        expect(field.toLowerCase(), `${name}.${field}`).not.toContain("project");
+        expect(field.toLowerCase(), `${name}.${field}`).not.toContain(
+          "project",
+        );
       }
-      expect(body!.toLowerCase().replace(/\/\/\/.*$/gm, "")).not.toMatch(/project/);
+      expect(body!.toLowerCase().replace(/\/\/\/.*$/gm, "")).not.toMatch(
+        /project/,
+      );
     }
   });
 

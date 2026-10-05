@@ -47,8 +47,17 @@ describe("nothing committed carries a credential", () => {
     expect(trackedFiles()).not.toContain(".env");
   });
 
-  it("leaves the example env without real values", () => {
-    const example = readFileSync(".env.example", "utf8");
-    expect(example).not.toMatch(/=\s*"?[A-Za-z0-9]{20,}/);
+  // The standalone compose and env files described no app that could run (no platform, no project
+  // databases, no service tokens), committed database logins and published every port on all
+  // interfaces (security review 2026-10-05). The aisc repo's compose files are the only way to run it.
+  it("has no standalone compose or env files", () => {
+    for (const f of [
+      "docker-compose.yml",
+      "docker-compose.development.yml",
+      "env.development",
+      ".env.example",
+    ]) {
+      expect(trackedFiles(), f).not.toContain(f);
+    }
   });
 });

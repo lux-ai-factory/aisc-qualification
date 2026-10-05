@@ -22,9 +22,16 @@ const version = (number: number) => ({
 
 describe("PlatformClient and the card versions", () => {
   it("says so when the platform will not", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 403, text: async () => "editor" });
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      text: async () => "editor",
+    });
     await expect(
-      new PlatformClient("http://platform:8000", fetchImpl).createVersion("mcas", { name: "MCAS" }),
+      new PlatformClient("http://platform:8000", fetchImpl).createVersion(
+        "mcas",
+        { name: "MCAS" },
+      ),
     ).rejects.toThrow(/could not name this system.*403/i);
   });
 });
@@ -46,13 +53,27 @@ function service(opts: { version?: ReturnType<typeof version> }) {
   });
   const parser = {
     parse: () => ({
-      systemName: "MCAS", systemVersion: "1.3", company: "LIST", description: "Scores loans",
-      targetUseCase: "", targetUsers: "", intendedDeployers: "", targetSystemTags: [],
-      sectorTags: [], marketFormTags: [], localityTags: [], answers: [], risks: [],
+      systemName: "MCAS",
+      systemVersion: "1.3",
+      company: "LIST",
+      description: "Scores loans",
+      targetUseCase: "",
+      targetUsers: "",
+      intendedDeployers: "",
+      targetSystemTags: [],
+      sectorTags: [],
+      marketFormTags: [],
+      localityTags: [],
+      answers: [],
+      risks: [],
     }),
   };
   // the service only uses these methods of its collaborators
-  const svc = new QualificationService(repo as never, parser as never, platform as never);
+  const svc = new QualificationService(
+    repo as never,
+    parser as never,
+    platform as never,
+  );
   return { svc, platform, repo, calls };
 }
 
@@ -63,7 +84,11 @@ describe("submitting an AI card", () => {
     expect(id).toBe("card-2");
     expect(calls).toEqual(["version", "create"]);
     // the card is written into its project's own database and names no project
-    expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ systemId: "v2" }));
-    expect((repo.create.mock.calls[0] as unknown[])[0]).not.toHaveProperty("projectId");
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ systemId: "v2" }),
+    );
+    expect((repo.create.mock.calls[0] as unknown[])[0]).not.toHaveProperty(
+      "projectId",
+    );
   });
 });

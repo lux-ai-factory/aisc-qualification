@@ -37,15 +37,29 @@ export default function RetireButton({
           <span className="qf-retire-question">
             Retire {name}? Cards and questionnaires that use it keep it.
           </span>{" "}
-          <button type="button" className="btn ghost" onClick={confirm} disabled={busy}>
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={confirm}
+            disabled={busy}
+          >
             Retire
           </button>{" "}
-          <button type="button" className="btn ghost" onClick={() => setAsking(false)} disabled={busy}>
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => setAsking(false)}
+            disabled={busy}
+          >
             Cancel
           </button>
         </>
       ) : (
-        <button type="button" className="btn ghost" onClick={() => setAsking(true)}>
+        <button
+          type="button"
+          className="btn ghost"
+          onClick={() => setAsking(true)}
+        >
           Retire
         </button>
       )}

@@ -8,8 +8,8 @@ import pytest
 
 baf = pytest.importorskip("baf", reason="BAF is not installed in this environment")
 
-from fill.workflow import DRAFTED, STATE_NAMES, build_agent, run_fill
-from tests.views import MCAS_VIEW, in_a_row
+from fill.workflow import DRAFTED, STATE_NAMES, build_agent, run_fill  # noqa: E402 (after importorskip)
+from tests.views import MCAS_VIEW, in_a_row  # noqa: E402
 
 
 QUALIFICATION = {
@@ -202,7 +202,7 @@ class TestNothingIsLostOnPublish:
         assert all(u["detail"] for u in unattached)
 
     def test_the_record_says_what_the_run_did(self):
-        from fill.models import Draft, Finding, Node, Outcome, Round
+        from fill.models import Draft, Node, Outcome, Round
         from fill.workflow import payload_of
 
         outcome = Outcome(
@@ -311,7 +311,7 @@ class TestTheStatesDoTheWork:
         # descriptions of the same steps that can drift apart.
         import inspect
 
-        from fill.workflow import FillRun, run_fill
+        from fill.workflow import run_fill
 
         assert "FillRun" in inspect.getsource(run_fill)
 

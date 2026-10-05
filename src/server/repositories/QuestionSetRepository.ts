@@ -1,4 +1,10 @@
-import type { PrismaClient, Prisma, Question, QuestionSet, Questionnaire } from "@prisma/client";
+import type {
+  PrismaClient,
+  Prisma,
+  Question,
+  QuestionSet,
+  Questionnaire,
+} from "@prisma/client";
 
 /**
  * The question-set tables. Versions and their items are
@@ -17,22 +23,48 @@ export const SET_VERSION_INCLUDE = {
   items: { orderBy: { position: "asc" }, include: { question: true } },
 } as const satisfies Prisma.QuestionSetVersionInclude;
 
-export type SetVersionRow = Prisma.QuestionSetVersionGetPayload<{ include: typeof SET_VERSION_INCLUDE }>;
+export type SetVersionRow = Prisma.QuestionSetVersionGetPayload<{
+  include: typeof SET_VERSION_INCLUDE;
+}>;
 
 /** A questionnaire version and what it needs that does not exist yet, written together. */
 export type QuestionnaireVersionInsert = {
   /** Present when the questionnaire is new. */
-  questionnaire?: { id: string; name: string; description: string; origin: string; listed: boolean; createdBy: string };
-  version: { id: string; questionnaireId: string; number: number; blocks: string[]; createdBy: string };
+  questionnaire?: {
+    id: string;
+    name: string;
+    description: string;
+    origin: string;
+    listed: boolean;
+    createdBy: string;
+  };
+  version: {
+    id: string;
+    questionnaireId: string;
+    number: number;
+    blocks: string[];
+    createdBy: string;
+  };
   items: Array<{ position: number; setVersionId: string; questionId: string }>;
 };
 
 /** A set version and what it needs that does not exist yet, written together. */
 export type SetVersionInsert = {
   /** Present when the set is new. */
-  set?: { id: string; name: string; description: string; origin: string; createdBy: string };
+  set?: {
+    id: string;
+    name: string;
+    description: string;
+    origin: string;
+    createdBy: string;
+  };
   version: { id: string; setId: string; number: number; createdBy: string };
-  newQuestions: Array<{ id: string; setId: string; scope: string; localId: string }>;
+  newQuestions: Array<{
+    id: string;
+    setId: string;
+    scope: string;
+    localId: string;
+  }>;
   items: Array<{
     questionId: string;
     position: number;
@@ -49,12 +81,19 @@ export type SetVersionInsert = {
 type Tx = Prisma.TransactionClient;
 
 /** Writes one questionnaire version plan inside a transaction. */
-export async function writeQuestionnaireVersion(tx: Tx, plan: QuestionnaireVersionInsert): Promise<void> {
-  if (plan.questionnaire) await tx.questionnaire.create({ data: plan.questionnaire });
+export async function writeQuestionnaireVersion(
+  tx: Tx,
+  plan: QuestionnaireVersionInsert,
+): Promise<void> {
+  if (plan.questionnaire)
+    await tx.questionnaire.create({ data: plan.questionnaire });
   await tx.questionnaireVersion.create({ data: plan.version });
   if (plan.items.length > 0) {
     await tx.questionnaireVersionItem.createMany({
-      data: plan.items.map((i) => ({ ...i, questionnaireVersionId: plan.version.id })),
+      data: plan.items.map((i) => ({
+        ...i,
+        questionnaireVersionId: plan.version.id,
+      })),
     });
   }
 }
@@ -76,7 +115,10 @@ export class QuestionSetRepository {
   }
 
   findSetVersion(id: string): Promise<SetVersionRow | null> {
-    return this.db.questionSetVersion.findUnique({ where: { id }, include: SET_VERSION_INCLUDE });
+    return this.db.questionSetVersion.findUnique({
+      where: { id },
+      include: SET_VERSION_INCLUDE,
+    });
   }
 
   /** Every version of a set, oldest first. */
@@ -106,17 +148,25 @@ export class QuestionSetRepository {
   }
 
   /** The new set (when new), its new questions, the version and its items, and a questionnaire: one transaction. */
-  async insertSetVersion(plan: SetVersionInsert, onWrite?: OnWrite): Promise<void> {
+  async insertSetVersion(
+    plan: SetVersionInsert,
+    onWrite?: OnWrite,
+  ): Promise<void> {
     await this.db.$transaction(async (tx) => {
       if (plan.set) await tx.questionSet.create({ data: plan.set });
-      if (plan.newQuestions.length > 0) await tx.question.createMany({ data: plan.newQuestions });
+      if (plan.newQuestions.length > 0)
+        await tx.question.createMany({ data: plan.newQuestions });
       await tx.questionSetVersion.create({ data: plan.version });
       if (plan.items.length > 0) {
         await tx.questionSetVersionItem.createMany({
-          data: plan.items.map((i) => ({ ...i, setVersionId: plan.version.id })),
+          data: plan.items.map((i) => ({
+            ...i,
+            setVersionId: plan.version.id,
+          })),
         });
       }
-      if (plan.questionnaire) await writeQuestionnaireVersion(tx, plan.questionnaire);
+      if (plan.questionnaire)
+        await writeQuestionnaireVersion(tx, plan.questionnaire);
       if (onWrite) await onWrite(tx);
     });
   }

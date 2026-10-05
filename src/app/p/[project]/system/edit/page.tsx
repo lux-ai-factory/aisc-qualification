@@ -26,7 +26,8 @@ export default async function EditSystemPage({
   // `?example=mcas` opens the card form already filled, to be read and
   // corrected rather than typed. It writes nothing: the person still presses
   // the button. It is always the Annex IV default, so it skips the chooser.
-  const { example, questionnaire, questionnaireVersion, form, formVersion } = await searchParams;
+  const { example, questionnaire, questionnaireVersion, form, formVersion } =
+    await searchParams;
   const basePath = process.env.NEXT_BASE_PATH || "";
   // The questionnaires this card may be filled with are the project's own (and the builtin default).
   const questionnaires = questionnairesOn(await projectDbPastDoor(project));
@@ -35,14 +36,23 @@ export default async function EditSystemPage({
   // `?questionnaire=<id>`, which fills that questionnaire's latest version. The
   // old names ?formVersion and ?form are aliases. An unknown one never
   // falls back to the other. None: the person picks a questionnaire first.
-  const lookup = pickQuestionnaireParams({ example, questionnaire, questionnaireVersion, form, formVersion });
+  const lookup = pickQuestionnaireParams({
+    example,
+    questionnaire,
+    questionnaireVersion,
+    form,
+    formVersion,
+  });
   const worked = lookup.lookup === "example" ? findExample(example) : undefined;
   let version: ResolvedQuestionnaireVersion | null = null;
   let error: string | null = null;
   if (lookup.lookup === "example") version = annexDefaultVersion();
-  else if (lookup.lookup === "version") version = await questionnaires.resolve(lookup.id);
-  else if (lookup.lookup === "latest") version = await questionnaires.latestVersion(lookup.id);
-  if (!version && lookup.lookup !== "none") error = "That questionnaire was not found.";
+  else if (lookup.lookup === "version")
+    version = await questionnaires.resolve(lookup.id);
+  else if (lookup.lookup === "latest")
+    version = await questionnaires.latestVersion(lookup.id);
+  if (!version && lookup.lookup !== "none")
+    error = "That questionnaire was not found.";
 
   // Otherwise the card starts from the latest card, to be reviewed: every save
   // makes the next version, and the next version is mostly the last one again.
@@ -68,8 +78,13 @@ export default async function EditSystemPage({
     return (
       <main className="qualify-page qualify-page--form">
         <header className="qualify-header">
-          <h1>{start?.initial ? "Edit the AI system" : "Describe the AI system"}</h1>
-          <p>Choose the questionnaire to fill: its questions are what the AI card asks.</p>
+          <h1>
+            {start?.initial ? "Edit the AI system" : "Describe the AI system"}
+          </h1>
+          <p>
+            Choose the questionnaire to fill: its questions are what the AI card
+            asks.
+          </p>
         </header>
         <FormChooser
           project={project}
@@ -92,7 +107,8 @@ export default async function EditSystemPage({
 
   // Moving the card to another questionnaire version: QualifyForm says so and
   // flags reworded questions. The same version: nothing to say.
-  const moving = start && from && from.versionId !== version.versionId ? from : null;
+  const moving =
+    start && from && from.versionId !== version.versionId ? from : null;
   const initial = worked ?? start?.initial ?? null;
 
   return (
@@ -103,15 +119,21 @@ export default async function EditSystemPage({
         </h1>
         <p>
           {start
-            ? `Saving makes v${start.next.versionNumber} of the AI card; `
-              + "earlier versions stay as they were."
+            ? `Saving makes v${start.next.versionNumber} of the AI card; ` +
+              "earlier versions stay as they were."
             : "The project's one AI system: describe it and answer the questions below."}
         </p>
-        <FormLine project={project} questionnaireId={version.questionnaireId} questionnaireName={version.questionnaireName} versionNumber={version.versionNumber} basePath={basePath} />
+        <FormLine
+          project={project}
+          questionnaireId={version.questionnaireId}
+          questionnaireName={version.questionnaireName}
+          versionNumber={version.versionNumber}
+          basePath={basePath}
+        />
         {start?.initial && (
           <p className="qf-prefilled">
-            Filled in from v{start.next.fromVersionNumber}. Change what is no longer
-            true, then save: that makes v{start.next.versionNumber}.
+            Filled in from v{start.next.fromVersionNumber}. Change what is no
+            longer true, then save: that makes v{start.next.versionNumber}.
           </p>
         )}
         {worked && (
@@ -126,7 +148,9 @@ export default async function EditSystemPage({
         project={project}
         form={version}
         previous={moving}
-        cardNumber={moving ? (start?.next.fromVersionNumber ?? undefined) : undefined}
+        cardNumber={
+          moving ? (start?.next.fromVersionNumber ?? undefined) : undefined
+        }
         initial={initial ?? undefined}
       />
     </main>

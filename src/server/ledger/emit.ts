@@ -33,7 +33,10 @@ export type LedgerEvent = {
 
 /** Anything with Prisma's $executeRaw: the transaction client of `prisma.$transaction(async (tx) => ...)`. */
 export type RawExecutor = {
-  $executeRaw: (query: TemplateStringsArray, ...values: unknown[]) => Promise<number>;
+  $executeRaw: (
+    query: TemplateStringsArray,
+    ...values: unknown[]
+  ) => Promise<number>;
 };
 
 export function ledgerOn(): boolean {
@@ -62,7 +65,13 @@ export async function isServerAction(): Promise<boolean> {
 }
 
 /** Fields that would name who acted: the witness record says who did, an event never does. */
-const WHO_FIELDS = new Set(["createdBy", "created_by", "updatedBy", "updated_by", "savedBy"]);
+const WHO_FIELDS = new Set([
+  "createdBy",
+  "created_by",
+  "updatedBy",
+  "updated_by",
+  "savedBy",
+]);
 
 /** `value` without any field that names a person, at any depth. */
 export function withoutAuthors(value: unknown): unknown {
@@ -78,7 +87,10 @@ export function withoutAuthors(value: unknown): unknown {
 }
 
 /** The JSON the emitter writes; exported for the tests. Throws NotCanonical for a value the ledger can't keep. */
-export function eventBody(event: LedgerEvent, requestId: string | null): string {
+export function eventBody(
+  event: LedgerEvent,
+  requestId: string | null,
+): string {
   const body: Record<string, unknown> = {
     event_id: event.eventId ?? randomUUID(),
     request_id: event.requestId ?? requestId,
@@ -90,7 +102,8 @@ export function eventBody(event: LedgerEvent, requestId: string | null): string 
   if (event.content !== undefined) body.content = withoutAuthors(event.content);
   if (event.before !== undefined) body.before = withoutAuthors(event.before);
   if (event.after !== undefined) body.after = withoutAuthors(event.after);
-  if (event.itemVersion !== undefined && event.itemVersion !== null) body.item_version = String(event.itemVersion);
+  if (event.itemVersion !== undefined && event.itemVersion !== null)
+    body.item_version = String(event.itemVersion);
   if (event.runId) body.run_id = event.runId;
   if (event.model) body.model = event.model;
   const sent = JSON.stringify(body);
@@ -99,7 +112,10 @@ export function eventBody(event: LedgerEvent, requestId: string | null): string 
 }
 
 /** Queue one event on `tx`, inside the caller's transaction. Returns its event id, or null while the ledger is off. */
-export async function emitEvent(tx: RawExecutor, event: LedgerEvent): Promise<string | null> {
+export async function emitEvent(
+  tx: RawExecutor,
+  event: LedgerEvent,
+): Promise<string | null> {
   if (!ledgerOn()) return null;
   const body = eventBody(event, await currentRequestId());
   await tx.$executeRaw`SELECT ledger.emit(${body}::jsonb)`;

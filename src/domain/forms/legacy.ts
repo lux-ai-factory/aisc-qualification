@@ -6,7 +6,11 @@
 import { KEY_QUESTIONS, keyQuestionField } from "@/data/keyQuestions";
 import type { AnnexPointId } from "./annexPoints";
 import { FORM_BLOCKS } from "./blocks";
-import type { ResolvedQuestion, ResolvedQuestionnaireVersion, ResolvedSetVersion } from "./types";
+import type {
+  ResolvedQuestion,
+  ResolvedQuestionnaireVersion,
+  ResolvedSetVersion,
+} from "./types";
 
 export const ANNEX_SET_ID = "annex-iv";
 export const ANNEX_SET_VERSION_ID = "annex-iv-v1";
@@ -14,7 +18,8 @@ export const ANNEX_SET_NAME = "Annex IV";
 export const DEFAULT_QUESTIONNAIRE_ID = "annex-iv-default";
 export const DEFAULT_VERSION_ID = "annex-iv-default-v1";
 export const DEFAULT_QUESTIONNAIRE_NAME = "Annex IV default";
-export const ANNEX_DESCRIPTION = "EU AI Act Annex IV points 1 and 2, as 14 questions.";
+export const ANNEX_DESCRIPTION =
+  "EU AI Act Annex IV points 1 and 2, as 14 questions.";
 
 /** A card's questionnaire version: NULL means the default version 1. */
 export function resolveQuestionnaireVersionId(id: string | null): string {

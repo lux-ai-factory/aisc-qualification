@@ -18,16 +18,26 @@ const HEADER = "X-AISC-Service-Token";
 const db = { own: "database of OWN" };
 const notFound = () => new Response("Not found", { status: 404 });
 /** The person's door: a stranger (the tests' default) is 404. */
-const personDoor = vi.fn(async (_pid: string, _o: { write: boolean }): Promise<unknown> => notFound());
+const personDoor = vi.fn(
+  async (_pid: string, _o: { write: boolean }): Promise<unknown> => notFound(),
+);
 /** The agent's door (its token already checked): the project's database. */
 const serviceDoor = vi.fn(async (_pid: string): Promise<unknown> => db);
 const repo = transactional({
-  find: vi.fn(async (id: string): Promise<unknown> => ({ id, ontologyExtracted: null })),
-  cardSummary: vi.fn(async (id: string): Promise<unknown> => ({ id, systemId: "v2" })),
+  find: vi.fn(
+    async (id: string): Promise<unknown> => ({ id, ontologyExtracted: null }),
+  ),
+  cardSummary: vi.fn(
+    async (id: string): Promise<unknown> => ({ id, systemId: "v2" }),
+  ),
   saveOntologyExtracted: vi.fn(async () => ({})),
   isLatest: vi.fn(async (_systemId: string) => true),
 });
 const opened: unknown[] = [];
+/** The builder's check of a draft before it is stored (code review B1, 2026-10-05). */
+const checkExtracted = vi.fn(
+  async (..._a: unknown[]): Promise<void> => undefined,
+);
 const platformLatest = vi.fn(async () => ({ pid: "v2" }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -48,14 +58,24 @@ vi.mock("@/server/services/PlatformClient", () => ({
   PlatformClient: class {},
   platformClient: { latestVersion: platformLatest },
 }));
-vi.mock("@/server/services/OntologyService", () => ({ ontologyService: { build: vi.fn(async () => ({})) } }));
-vi.mock("@/server/services/QualificationExporter", () => ({ toExport: (q: { id: string }) => ({ id: q.id }) }));
-vi.mock("@/server/services/FormService", () => ({ formService: { resolve: async () => null } }));
+vi.mock("@/server/services/OntologyService", () => ({
+  ontologyService: { build: vi.fn(async () => ({})), checkExtracted },
+}));
+vi.mock("@/server/services/QualificationExporter", () => ({
+  toExport: (q: { id: string }) => ({ id: q.id }),
+}));
+vi.mock("@/server/services/FormService", () => ({
+  formService: { resolve: async () => null },
+}));
 
-const route = () => import("@/app/p/[project]/api/qualifications/[id]/extracted/route");
+const route = () =>
+  import("@/app/p/[project]/api/qualifications/[id]/extracted/route");
 const ctx = (id = "q1") => ({ params: Promise.resolve({ project: OWN, id }) });
 const get = (headers: Record<string, string> = {}) =>
-  new Request(`http://q/p/${OWN}/api/qualifications/q1/extracted?project=b0000000-0000-4000-8000-000000000009`, { headers });
+  new Request(
+    `http://q/p/${OWN}/api/qualifications/q1/extracted?project=b0000000-0000-4000-8000-000000000009`,
+    { headers },
+  );
 const put = (headers: Record<string, string> = {}) =>
   new Request(`http://q/p/${OWN}/api/qualifications/q1/extracted`, {
     method: "PUT",
@@ -70,9 +90,16 @@ beforeEach(() => {
   opened.length = 0;
   serviceDoor.mockResolvedValue(db);
   personDoor.mockResolvedValue(notFound());
-  repo.find.mockImplementation(async (id: string) => ({ id, ontologyExtracted: null }));
-  repo.cardSummary.mockImplementation(async (id: string) => ({ id, systemId: "v2" }));
+  repo.find.mockImplementation(async (id: string) => ({
+    id,
+    ontologyExtracted: null,
+  }));
+  repo.cardSummary.mockImplementation(async (id: string) => ({
+    id,
+    systemId: "v2",
+  }));
   repo.isLatest.mockResolvedValue(true);
+  checkExtracted.mockResolvedValue(undefined);
 });
 
 describe("the agent's token opens GET and PUT /extracted", () => {
@@ -98,7 +125,10 @@ describe("the agent's token opens GET and PUT /extracted", () => {
     expect(personDoor).not.toHaveBeenCalled();
     expect(serviceDoor).toHaveBeenCalledWith(OWN);
     expect(repo.cardSummary).toHaveBeenCalledWith("q1");
-    expect(repo.saveOntologyExtracted).toHaveBeenCalledWith("q1", expect.anything());
+    expect(repo.saveOntologyExtracted).toHaveBeenCalledWith(
+      "q1",
+      expect.anything(),
+    );
   });
 
   it("PUT with the token asks the database, not the platform, whether the card is the latest", async () => {
@@ -123,7 +153,9 @@ describe("the agent's token opens GET and PUT /extracted", () => {
 describe("the token fails closed", () => {
   it("a wrong token is 401 on both, and nothing is opened, read or stored", async () => {
     const r = await route();
-    expect((await r.GET(get({ [HEADER]: TOKEN + "x" }), ctx())).status).toBe(401);
+    expect((await r.GET(get({ [HEADER]: TOKEN + "x" }), ctx())).status).toBe(
+      401,
+    );
     expect((await r.PUT(put({ [HEADER]: "wrong" }), ctx())).status).toBe(401);
     expect(serviceDoor).not.toHaveBeenCalled();
     expect(personDoor).not.toHaveBeenCalled();
@@ -151,9 +183,12 @@ describe("the token fails closed", () => {
 
 describe("the token opens nothing else", () => {
   it("the fill route, given the token and no user, is still 404", async () => {
-    const { GET } = await import("@/app/p/[project]/api/qualifications/[id]/fill/route");
+    const { GET } =
+      await import("@/app/p/[project]/api/qualifications/[id]/fill/route");
     const res = await GET(
-      new Request(`http://q/p/${OWN}/api/qualifications/q1/fill`, { headers: { [HEADER]: TOKEN } }),
+      new Request(`http://q/p/${OWN}/api/qualifications/q1/fill`, {
+        headers: { [HEADER]: TOKEN },
+      }),
       ctx(),
     );
     expect(res.status).toBe(404);
@@ -169,11 +204,45 @@ describe("the token opens nothing else", () => {
       for (const name of readdirSync(dir)) {
         const path = join(dir, name);
         if (statSync(path).isDirectory()) walk(path);
-        else if (/\.tsx?$/.test(name) && readFileSync(path, "utf8").includes("QUALIFICATION_AGENTS_TO_WEB_TOKEN"))
+        else if (
+          /\.tsx?$/.test(name) &&
+          readFileSync(path, "utf8").includes(
+            "QUALIFICATION_AGENTS_TO_WEB_TOKEN",
+          )
+        )
           readers.push(path.replace(/\\/g, "/"));
       }
     };
     walk("src");
-    expect(readers).toEqual(["src/app/p/[project]/api/qualifications/[id]/extracted/route.ts"]);
+    expect(readers).toEqual([
+      "src/app/p/[project]/api/qualifications/[id]/extracted/route.ts",
+    ]);
+  });
+});
+
+describe("PUT /extracted stores only a draft the builder accepts (B1)", () => {
+  it("a draft the builder refuses is 422 with its message, and nothing is stored", async () => {
+    const { OntologyRejected } =
+      await import("@/server/services/OntologyClient");
+    checkExtracted.mockRejectedValueOnce(
+      new OntologyRejected("'Foo' is not a term VAIR defines"),
+    );
+    const res = await (await route()).PUT(put({ [HEADER]: TOKEN }), ctx());
+    expect(res.status).toBe(422);
+    expect((await res.json()).error).toMatch(/Foo/);
+    expect(checkExtracted).toHaveBeenCalledWith(OWN, "q1", { techniques: [] });
+    expect(repo.saveOntologyExtracted).not.toHaveBeenCalled();
+  });
+
+  it("an ontology service that does not answer does not lose the draft: it is stored", async () => {
+    checkExtracted.mockRejectedValueOnce(
+      new Error("Ontology service error 502: down"),
+    );
+    const res = await (await route()).PUT(put({ [HEADER]: TOKEN }), ctx());
+    expect(res.status).toBe(200);
+    expect(repo.saveOntologyExtracted).toHaveBeenCalledWith(
+      "q1",
+      expect.anything(),
+    );
   });
 });

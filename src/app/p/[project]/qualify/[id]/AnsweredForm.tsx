@@ -7,7 +7,10 @@ import { RISK_BLOCK, RISK_FIELDS } from "@/data/riskFields";
 import { COMPONENT_BLOCK, componentTypeLabel } from "@/data/componentFields";
 import { annexDefaultVersion } from "@/domain/forms/legacy";
 import type { FormBlock } from "@/domain/forms/blocks";
-import type { ResolvedQuestionnaireVersion, ResolvedQuestion } from "@/domain/forms/types";
+import type {
+  ResolvedQuestionnaireVersion,
+  ResolvedQuestion,
+} from "@/domain/forms/types";
 
 // The qualification as it was answered: the same fields, in the same order,
 // with the same AI Act citations as the form that collected them, but read-only.
@@ -98,13 +101,7 @@ function Row({
   );
 }
 
-function Field({
-  id,
-  children,
-}: {
-  id: MetadataFieldId;
-  children: ReactNode;
-}) {
+function Field({ id, children }: { id: MetadataFieldId; children: ReactNode }) {
   const field = METADATA_FIELDS[id];
   return (
     <Row label={field.label} citation={field.citation}>
@@ -165,7 +162,9 @@ export default function AnsweredForm({
             </Row>
           )}
           <Field id="systemType">
-            {metadata.systemType ? vairLabel("AISystem", metadata.systemType) : BLANK}
+            {metadata.systemType
+              ? vairLabel("AISystem", metadata.systemType)
+              : BLANK}
           </Field>
           <Field id="purpose">
             {metadata.purpose ? vairLabel("Purpose", metadata.purpose) : BLANK}
@@ -191,7 +190,9 @@ export default function AnsweredForm({
           )}
           {has("targetSystemTags") && (
             <Field id="targetSystemTags">
-              {tags(metadata.targetSystemTags, (t) => vairLabel("AICapability", t))}
+              {tags(metadata.targetSystemTags, (t) =>
+                vairLabel("AICapability", t),
+              )}
             </Field>
           )}
           {has("sectorTags") && (
@@ -206,7 +207,9 @@ export default function AnsweredForm({
           )}
           {has("localityTags") && (
             <Field id="localityTags">
-              {tags(metadata.localityTags, (t) => vairLabel("LocalityOfUse", t))}
+              {tags(metadata.localityTags, (t) =>
+                vairLabel("LocalityOfUse", t),
+              )}
             </Field>
           )}
         </dl>
@@ -245,8 +248,17 @@ export default function AnsweredForm({
           </h2>
           <dl className="qf-read-list">
             {systemComponents.map((c) => (
-              <Row key={c.id} label={c.name} citation={componentTypeLabel(c.kind, c.vairType)}>
-                {[c.role, c.provider === "third_party" ? `Provided by ${c.providerName}` : "In-house"]
+              <Row
+                key={c.id}
+                label={c.name}
+                citation={componentTypeLabel(c.kind, c.vairType)}
+              >
+                {[
+                  c.role,
+                  c.provider === "third_party"
+                    ? `Provided by ${c.providerName}`
+                    : "In-house",
+                ]
                   .filter(Boolean)
                   .join(". ")}
               </Row>
@@ -293,7 +305,10 @@ type AnsweredRisk = AnsweredFormProps["risks"][number];
 
 /** The stored value for one risk field, or null when it was left blank. A field VAIR types shows
  *  its text, then its term by VAIR's label; the harm has only its term. */
-function riskValue(row: AnsweredRisk, id: (typeof RISK_FIELDS)[number]["id"]): string | null {
+function riskValue(
+  row: AnsweredRisk,
+  id: (typeof RISK_FIELDS)[number]["id"],
+): string | null {
   const field = RISK_FIELDS.find((f) => f.id === id);
   const term = field?.vair ? termOf(row, id, field.vair) : null;
   switch (id) {
@@ -318,7 +333,9 @@ function riskValue(row: AnsweredRisk, id: (typeof RISK_FIELDS)[number]["id"]): s
 
 function termOf(row: AnsweredRisk, id: string, cls: VairClass): string | null {
   const value = row[`${id}Term` as keyof AnsweredRisk];
-  return typeof value === "string" && value !== "" ? vairLabel(cls, value) : null;
+  return typeof value === "string" && value !== ""
+    ? vairLabel(cls, value)
+    : null;
 }
 
 function withTerm(text: string, term: string | null): string {

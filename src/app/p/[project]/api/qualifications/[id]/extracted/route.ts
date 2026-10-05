@@ -5,11 +5,13 @@ import { revalidatePath } from "next/cache";
 import { QualificationRepository } from "@/server/repositories/QualificationRepository";
 import { toExport } from "@/server/services/QualificationExporter";
 import { ontologyService } from "@/server/services/OntologyService";
+import { OntologyRejected } from "@/server/services/OntologyClient";
 import { questionnairesOn } from "@/server/services/QuestionnaireService";
 import { parseExtracted } from "@/server/forms/ExtractedParser";
 import { NOT_LATEST, isLatestCard } from "@/server/services/cardLatest";
 import { emitEvent } from "@/server/ledger/emit";
 import type { Prisma } from "@prisma/client";
+import type { OntologyExtracted } from "@/domain/OntologyView";
 
 /**
  * The card agent, when the request carries its token.
@@ -20,16 +22,24 @@ import type { Prisma } from "@prisma/client";
  * It fails closed: a wrong token is 401, and an app with no token set is 503.
  */
 function agentCall(req: Request): "agent" | Response | null {
-  switch (serviceCall(req.headers, process.env.QUALIFICATION_AGENTS_TO_WEB_TOKEN)) {
+  switch (
+    serviceCall(req.headers, process.env.QUALIFICATION_AGENTS_TO_WEB_TOKEN)
+  ) {
     case "none":
       return null;
     case "valid":
       return "agent";
     case "wrong":
-      return NextResponse.json({ error: "That service token is not the card agent's." }, { status: 401 });
+      return NextResponse.json(
+        { error: "That service token is not the card agent's." },
+        { status: 401 },
+      );
     case "unset":
       return NextResponse.json(
-        { error: "The card agent's token is not set here, so no service may call this." },
+        {
+          error:
+            "The card agent's token is not set here, so no service may call this.",
+        },
         { status: 503 },
       );
   }
@@ -41,7 +51,9 @@ function agentCall(req: Request): "agent" | Response | null {
  * (the platform decides).
  */
 function database(agent: "agent" | null, project: string, write: boolean) {
-  return agent ? projectDbForService(project) : projectDbForRoute(project, { write });
+  return agent
+    ? projectDbForService(project)
+    : projectDbForRoute(project, { write });
 }
 
 // What the filler reads: the form in the same export shape the ontology service
@@ -62,7 +74,9 @@ export async function GET(
   const q = await new QualificationRepository(db).find(id);
   if (!q) return new NextResponse("Not found", { status: 404 });
   // Its form is read from the same database: the card's questionnaire is its project's.
-  const form = await questionnairesOn(db).resolve(q.questionnaireVersionId ?? null);
+  const form = await questionnairesOn(db).resolve(
+    q.questionnaireVersionId ?? null,
+  );
   return NextResponse.json({
     ...toExport(q, form ?? undefined),
     extracted: q.ontologyExtracted ?? null,
@@ -114,6 +128,21 @@ export async function PUT(
   const parsed = parseExtracted(body);
   if (!parsed.ok) {
     return NextResponse.json({ error: parsed.error }, { status: 422 });
+  }
+
+  // The builder reads the stored draft on every render: one it refuses (a VAIR term it does not
+  // know) would break the card until the next draft. So it is built first and refused here. A
+  // service that does not answer is not a refusal: the draft is stored, as before.
+  try {
+    await ontologyService.checkExtracted(
+      project,
+      id,
+      parsed.value as OntologyExtracted,
+    );
+  } catch (e) {
+    if (e instanceof OntologyRejected) {
+      return NextResponse.json({ error: e.message }, { status: 422 });
+    }
   }
 
   const flagged = Object.keys(parsed.value.flags ?? {}).length;

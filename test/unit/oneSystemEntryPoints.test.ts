@@ -10,7 +10,11 @@ import { join } from "node:path";
 function sources(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
-    return statSync(path).isDirectory() ? sources(path) : /\.tsx?$/.test(name) ? [path] : [];
+    return statSync(path).isDirectory()
+      ? sources(path)
+      : /\.tsx?$/.test(name)
+        ? [path]
+        : [];
   });
 }
 
@@ -22,7 +26,9 @@ describe("one AI system, edited", () => {
     const linking = sources("src").filter(
       (file) =>
         file !== OLD_FORM &&
-        /(href=|redirect\(|push\()[^\n]*qualify\/new/.test(readFileSync(file, "utf8")),
+        /(href=|redirect\(|push\()[^\n]*qualify\/new/.test(
+          readFileSync(file, "utf8"),
+        ),
     );
     expect(linking).toEqual([]);
   });

@@ -8,7 +8,10 @@ import { systemForProject } from "../../scripts/seed_mcas.mjs";
 describe("naming MCAS's system on the platform", () => {
   it("will not seed into no project at all", async () => {
     await expect(
-      systemForProject("", { platformUrl: "http://platform:8000", fetchImpl: vi.fn() }),
+      systemForProject("", {
+        platformUrl: "http://platform:8000",
+        fetchImpl: vi.fn(),
+      }),
     ).rejects.toThrow(/which project/i);
   });
 
@@ -16,11 +19,14 @@ describe("naming MCAS's system on the platform", () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
-      text: async () => '{"detail":"no project'  + "'nope'" + '"}',
+      text: async () => '{"detail":"no project' + "'nope'" + '"}',
     });
 
     await expect(
-      systemForProject("nope", { platformUrl: "http://platform:8000", fetchImpl }),
+      systemForProject("nope", {
+        platformUrl: "http://platform:8000",
+        fetchImpl,
+      }),
     ).rejects.toThrow(/could not name MCAS's system/i);
   });
 

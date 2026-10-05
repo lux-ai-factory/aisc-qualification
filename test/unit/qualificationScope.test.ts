@@ -29,9 +29,8 @@ describe("the repository reads by id inside the one project database it is bound
 
   it("find() asks for the id, in its project's database", async () => {
     const { db, calls } = fakeDb();
-    const { QualificationRepository } = await import(
-      "@/server/repositories/QualificationRepository"
-    );
+    const { QualificationRepository } =
+      await import("@/server/repositories/QualificationRepository");
     await new QualificationRepository(db as never).find("qual-1");
 
     expect(db.qualification.findUnique).not.toHaveBeenCalled();
@@ -40,9 +39,8 @@ describe("the repository reads by id inside the one project database it is bound
 
   it("cardSummary() does too", async () => {
     const { db, calls } = fakeDb();
-    const { QualificationRepository } = await import(
-      "@/server/repositories/QualificationRepository"
-    );
+    const { QualificationRepository } =
+      await import("@/server/repositories/QualificationRepository");
     await new QualificationRepository(db as never).cardSummary("qual-1");
 
     expect(db.qualification.findUnique).not.toHaveBeenCalled();

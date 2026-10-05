@@ -23,7 +23,12 @@ export type ChooserQuestionnaireOption = {
 };
 
 /** The latest card and the questionnaire version it was filled with, resolved. */
-export type ChooserPrevious = { cardVersionNumber: number; versionId: string; name: string; versionNumber: number };
+export type ChooserPrevious = {
+  cardVersionNumber: number;
+  versionId: string;
+  name: string;
+  versionNumber: number;
+};
 
 type Props = {
   project: string;
@@ -35,7 +40,13 @@ type Props = {
 
 const valueOf = (pick: ChooserPick) => `${pick.param}:${pick.id}`;
 
-export default function FormChooser({ project, options, preselected, previous, error }: Props) {
+export default function FormChooser({
+  project,
+  options,
+  preselected,
+  previous,
+  error,
+}: Props) {
   const router = useRouter();
   const [chosen, setChosen] = useState(preselected ? valueOf(preselected) : "");
 
@@ -58,7 +69,9 @@ export default function FormChooser({ project, options, preselected, previous, e
   );
 
   // P is some option's latest: that option says so. Otherwise P is offered again first.
-  const sameAsLatest = previous ? options.find((o) => o.versionId === previous.versionId) : undefined;
+  const sameAsLatest = previous
+    ? options.find((o) => o.versionId === previous.versionId)
+    : undefined;
 
   return (
     <section className="qualify-form qf-chooser">
@@ -74,20 +87,40 @@ export default function FormChooser({ project, options, preselected, previous, e
           </label>
         )}
         {options.map((o) => {
-          const same = previous !== null && previous !== undefined && o.versionId === previous.versionId;
+          const same =
+            previous !== null &&
+            previous !== undefined &&
+            o.versionId === previous.versionId;
           const newer =
-            previous !== null && previous !== undefined && !same && o.versionIds.includes(previous.versionId);
+            previous !== null &&
+            previous !== undefined &&
+            !same &&
+            o.versionIds.includes(previous.versionId);
           return (
             <label className="qf-chooser-option" key={o.questionnaireId}>
               {radio(`questionnaire:${o.questionnaireId}`)}
               <span className="qf-chooser-name">{o.name}</span>{" "}
               <span className="qf-chooser-meta">v{o.versionNumber}</span>{" "}
-              <span className="qf-chooser-meta">{o.questionCount} questions</span>
+              <span className="qf-chooser-meta">
+                {o.questionCount} questions
+              </span>
               {(o.isDefault || same || newer) && (
                 <span className="qf-chooser-tags">
-                  {o.isDefault && <span className="qf-tag qf-tag--default"> default</span>}
-                  {same && <span className="qf-tag"> same as v{previous!.cardVersionNumber}</span>}
-                  {newer && <span className="qf-tag qf-tag--notice"> update available</span>}
+                  {o.isDefault && (
+                    <span className="qf-tag qf-tag--default"> default</span>
+                  )}
+                  {same && (
+                    <span className="qf-tag">
+                      {" "}
+                      same as v{previous!.cardVersionNumber}
+                    </span>
+                  )}
+                  {newer && (
+                    <span className="qf-tag qf-tag--notice">
+                      {" "}
+                      update available
+                    </span>
+                  )}
                 </span>
               )}
             </label>
@@ -98,10 +131,18 @@ export default function FormChooser({ project, options, preselected, previous, e
         <Link className="btn ghost" href={`/p/${project}/questionnaires/new`}>
           + New questionnaire
         </Link>
-        <Link className="btn ghost" href={`/p/${project}/questionnaires/import`}>
+        <Link
+          className="btn ghost"
+          href={`/p/${project}/questionnaires/import`}
+        >
           Import questionnaire
         </Link>
-        <button className="btn" type="button" onClick={go} disabled={chosen === ""}>
+        <button
+          className="btn"
+          type="button"
+          onClick={go}
+          disabled={chosen === ""}
+        >
           Continue
         </button>
       </div>

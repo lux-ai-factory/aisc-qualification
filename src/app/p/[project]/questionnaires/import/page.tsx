@@ -5,7 +5,11 @@ import { builderData } from "../libraryData";
 
 // Import a questionnaire file: by reference it opens the builder, a
 // self-contained one creates a question set and a questionnaire.
-export default async function ImportQuestionnairePage({ params }: { params: Promise<{ project: string }> }) {
+export default async function ImportQuestionnairePage({
+  params,
+}: {
+  params: Promise<{ project: string }>;
+}) {
   const { project } = await params;
   const { groups } = await builderData(await projectDbPastDoor(project));
 
@@ -18,10 +22,13 @@ export default async function ImportQuestionnairePage({ params }: { params: Prom
       </p>
       <h1>Import a questionnaire</h1>
       <p>
-        A questionnaire file names the question-set versions it picks from. A self-contained file also
-        carries their wording, and makes a new question set with it.
+        A questionnaire file names the question-set versions it picks from. A
+        self-contained file also carries their wording, and makes a new question
+        set with it.
       </p>
     </header>
   );
-  return <QuestionnaireImport project={project} groups={groups} header={header} />;
+  return (
+    <QuestionnaireImport project={project} groups={groups} header={header} />
+  );
 }

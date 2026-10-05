@@ -54,7 +54,7 @@ export default function QuestionSetImport({ project, header }: Props) {
     try {
       const data = new FormData();
       data.set("file", file);
-      const read = await readQuestionSetFile(data);
+      const read = await readQuestionSetFile(project, data);
       if (!read.ok) {
         setError(read.error);
         return;

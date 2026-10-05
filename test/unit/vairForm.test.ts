@@ -25,7 +25,10 @@ import {
   componentTypeLabel,
   typeToKind,
 } from "@/data/componentFields";
-import { FormValidationError, QualificationFormParser } from "@/server/forms/QualificationFormParser";
+import {
+  FormValidationError,
+  QualificationFormParser,
+} from "@/server/forms/QualificationFormParser";
 import { KEY_QUESTIONS, keyQuestionField } from "@/data/keyQuestions";
 
 describe("the VAIR lists come from the generated file, whole", () => {
@@ -42,7 +45,9 @@ describe("the VAIR lists come from the generated file, whole", () => {
     ["AreaOfImpact", IMPACT_AREAS],
     ["RiskControl", RISK_CONTROLS],
   ] as const)("%s", (cls, list) => {
-    const expected = (vocab.classes as Record<string, { id: string; label: string }[]>)[cls];
+    const expected = (
+      vocab.classes as Record<string, { id: string; label: string }[]>
+    )[cls];
     expect(list.map((t) => t.id)).toEqual(expected.map((t) => t.id));
     expect(list.every((t) => t.label !== "")).toBe(true);
   });
@@ -51,7 +56,9 @@ describe("the VAIR lists come from the generated file, whole", () => {
     expect(isVairTerm("Domain", "PrivateService")).toBe(true);
     expect(isVairTerm("Domain", "Workplace")).toBe(false);
     expect(isVairTerm("Domain", "finance-and-insurance")).toBe(false);
-    expect(vairLabel("AreaOfImpact", "RightToNondiscrimination")).toBe("Right To Non-discrimination");
+    expect(vairLabel("AreaOfImpact", "RightToNondiscrimination")).toBe(
+      "Right To Non-discrimination",
+    );
   });
 
   it("keeps our own list only where VAIR has none: who is affected", () => {
@@ -66,19 +73,35 @@ describe("a component's type is one list", () => {
     const vair = vocab.classes.AIComponent.map((t) => t.id);
     expect(ids.slice(0, vair.length)).toEqual(vair);
     expect(ids.slice(vair.length)).toEqual([
-      "llm", "rule_engine", "training_data", "validation_data", "other_data", "pipeline", "interface", "other",
+      "llm",
+      "rule_engine",
+      "training_data",
+      "validation_data",
+      "other_data",
+      "pipeline",
+      "interface",
+      "other",
     ]);
     expect(COMPONENT_TYPES.filter((t) => t.vair).length).toBe(vair.length);
   });
 
   it("our generic 'Predictive model' is gone: VAIR's Model terms are the models", () => {
     expect(ids).not.toContain("model");
-    expect(typeToKind("DecisionTree")).toEqual({ kind: "model", vairType: "DecisionTree" });
-    expect(typeToKind("TrainedModel")).toEqual({ kind: "model", vairType: "TrainedModel" });
+    expect(typeToKind("DecisionTree")).toEqual({
+      kind: "model",
+      vairType: "DecisionTree",
+    });
+    expect(typeToKind("TrainedModel")).toEqual({
+      kind: "model",
+      vairType: "TrainedModel",
+    });
   });
 
   it("any other VAIR term is of kind other; one of ours is its own kind with no term", () => {
-    expect(typeToKind("NeuralNetwork")).toEqual({ kind: "other", vairType: "NeuralNetwork" });
+    expect(typeToKind("NeuralNetwork")).toEqual({
+      kind: "other",
+      vairType: "NeuralNetwork",
+    });
     expect(typeToKind("llm")).toEqual({ kind: "llm", vairType: null });
     expect(typeToKind("other")).toEqual({ kind: "other", vairType: null });
     expect(typeToKind("model")).toBeNull();
@@ -148,11 +171,14 @@ describe("the parser takes VAIR terms and nothing else where VAIR has the concep
     expect(() => parse(fd)).toThrow(/deployer/i);
   });
 
-  it.each(["operator", "user", "JobApplicant"])("takes %s as who is affected", (value) => {
-    const fd = submittable();
-    fd.set("risk:0:affected", value);
-    expect(parse(fd).risks[0].affected).toBe(value);
-  });
+  it.each(["operator", "user", "JobApplicant"])(
+    "takes %s as who is affected",
+    (value) => {
+      const fd = submittable();
+      fd.set("risk:0:affected", value);
+      expect(parse(fd).risks[0].affected).toBe(value);
+    },
+  );
 
   it("refuses an affected value that is neither ours nor a subject", () => {
     const fd = submittable();
@@ -178,7 +204,10 @@ describe("the parser takes VAIR terms and nothing else where VAIR has the concep
       followUpControlTerm: null,
       impactAreas: ["Right"],
     });
-    expect(p.systemComponents[0]).toMatchObject({ kind: "model", vairType: "DecisionTree" });
+    expect(p.systemComponents[0]).toMatchObject({
+      kind: "model",
+      vairType: "DecisionTree",
+    });
   });
 
   it.each([
@@ -218,7 +247,11 @@ describe("the parser takes VAIR terms and nothing else where VAIR has the concep
     fd.delete("sectorTags");
     fd.delete("localityTags");
     const p = parse(fd);
-    expect([p.targetSystemTags, p.sectorTags, p.localityTags]).toEqual([[], [], []]);
+    expect([p.targetSystemTags, p.sectorTags, p.localityTags]).toEqual([
+      [],
+      [],
+      [],
+    ]);
     fd.delete("marketFormTags");
     expect(() => parse(fd)).toThrow(/market form/);
   });
@@ -242,7 +275,9 @@ describe("the parser takes VAIR terms and nothing else where VAIR has the concep
   it("asks for the follow-up's term exactly when there is a follow-up", () => {
     const fd = submittable();
     fd.set("risk:0:followUpControl", "Override with written justification");
-    expect(() => parse(fd)).toThrow(/If that is not enough, what follows: pick its term/);
+    expect(() => parse(fd)).toThrow(
+      /If that is not enough, what follows: pick its term/,
+    );
     fd.set("risk:0:followUpControlTerm", "OverridingOutcome");
     expect(parse(fd).risks[0].followUpControlTerm).toBe("OverridingOutcome");
   });
@@ -261,7 +296,9 @@ describe("the parser takes VAIR terms and nothing else where VAIR has the concep
   it("never names VAIR in an error: the user reads it in the methodology, not on the form", () => {
     const fd = submittable();
     fd.set("risk:0:sourceTerm", "Harm");
-    expect(() => parse(fd)).toThrow(/What causes it: Harm is not one of the terms for it/);
+    expect(() => parse(fd)).toThrow(
+      /What causes it: Harm is not one of the terms for it/,
+    );
     fd.delete("risk:0:sourceTerm");
     expect(() => parse(fd)).not.toThrow(/VAIR/);
   });
@@ -275,7 +312,10 @@ describe("the parser takes VAIR terms and nothing else where VAIR has the concep
   it("derives kind and VAIR type from the one Type list, and refuses what is not on it", () => {
     const fd = submittable();
     fd.set("component:0:type", "llm");
-    expect(parse(fd).systemComponents[0]).toMatchObject({ kind: "llm", vairType: null });
+    expect(parse(fd).systemComponents[0]).toMatchObject({
+      kind: "llm",
+      vairType: null,
+    });
     fd.set("component:0:type", "model");
     expect(() => parse(fd)).toThrow(/Component 1: pick its type/);
   });
@@ -287,24 +327,68 @@ import type { QualificationWithAnswers } from "@/server/repositories/Qualificati
 
 function stored(): QualificationWithAnswers {
   return {
-    id: "q1", projectId: "p", systemId: "s", systemName: "MCAS", systemVersion: "1.2.0", company: "Creditum",
-    description: "d", targetUseCase: "u", targetUsers: "t", intendedDeployers: null,
-    systemType: "NarrowAI", purpose: "AssessingCreditworthiness",
-    targetSystemTags: ["Profiling", "bogus"], sectorTags: ["PrivateService", "finance-and-insurance"],
-    marketFormTags: ["Software"], localityTags: ["Workplace", "other"],
-    systemCard: null, systemCardJson: null, ontologyExtracted: null, ontologyPatch: null, ontologyAt: null,
-    systemCardAt: null, systemCardPdfPath: null, createdAt: new Date(0), updatedAt: new Date(0),
-    questionnaireVersionId: null, answers: [], components: [],
-    risks: [{
-      id: "r1", qualificationId: "q1", position: 0, risk: "R", source: "S", sourceTerm: "ErroneousInputData",
-      vulnerability: null, consequence: "C", consequenceTerm: null, impactTerm: "Harm", affected: "user",
-      impactAreas: ["Right"], control: "K", controlTerm: "MitigationMeasure", followUpControl: null,
-      followUpControlTerm: null,
-    }],
-    systemComponents: [{
-      id: "c1", qualificationId: "q1", position: 0, key: "k1", name: "Scoring model", role: null, kind: "model",
-      vairType: "DecisionTree", provider: "in_house", providerName: null,
-    }],
+    id: "q1",
+    projectId: "p",
+    systemId: "s",
+    systemName: "MCAS",
+    systemVersion: "1.2.0",
+    company: "Creditum",
+    description: "d",
+    targetUseCase: "u",
+    targetUsers: "t",
+    intendedDeployers: null,
+    systemType: "NarrowAI",
+    purpose: "AssessingCreditworthiness",
+    targetSystemTags: ["Profiling", "bogus"],
+    sectorTags: ["PrivateService", "finance-and-insurance"],
+    marketFormTags: ["Software"],
+    localityTags: ["Workplace", "other"],
+    systemCard: null,
+    systemCardJson: null,
+    ontologyExtracted: null,
+    ontologyPatch: null,
+    ontologyAt: null,
+    systemCardAt: null,
+    systemCardPdfPath: null,
+    createdAt: new Date(0),
+    updatedAt: new Date(0),
+    questionnaireVersionId: null,
+    answers: [],
+    components: [],
+    risks: [
+      {
+        id: "r1",
+        qualificationId: "q1",
+        position: 0,
+        risk: "R",
+        source: "S",
+        sourceTerm: "ErroneousInputData",
+        vulnerability: null,
+        consequence: "C",
+        consequenceTerm: null,
+        impactTerm: "Harm",
+        affected: "user",
+        impactAreas: ["Right"],
+        control: "K",
+        controlTerm: "MitigationMeasure",
+        followUpControl: null,
+        followUpControlTerm: null,
+      },
+    ],
+    systemComponents: [
+      {
+        id: "c1",
+        qualificationId: "q1",
+        position: 0,
+        key: "k1",
+        name: "Scoring model",
+        role: null,
+        kind: "model",
+        vairType: "DecisionTree",
+        provider: "in_house",
+        providerName: null,
+      },
+    ],
   } as unknown as QualificationWithAnswers;
 }
 
@@ -326,10 +410,16 @@ describe("the export carries the author's VAIR terms to the builder", () => {
   it("passes each risk field's term and the component's VAIR type", () => {
     const e = toExport(stored());
     expect(e.risks[0]).toMatchObject({
-      sourceTerm: "ErroneousInputData", consequenceTerm: null, impactTerm: "Harm",
-      controlTerm: "MitigationMeasure", followUpControlTerm: null,
+      sourceTerm: "ErroneousInputData",
+      consequenceTerm: null,
+      impactTerm: "Harm",
+      controlTerm: "MitigationMeasure",
+      followUpControlTerm: null,
     });
-    expect(e.systemComponents?.[0]).toMatchObject({ kind: "model", vairType: "DecisionTree" });
+    expect(e.systemComponents?.[0]).toMatchObject({
+      kind: "model",
+      vairType: "DecisionTree",
+    });
   });
 });
 
@@ -349,8 +439,15 @@ describe("the next card starts from the terms this one was saved with", () => {
   });
 
   it("carries the provider's and the deployer's terms, empty where the card had none", () => {
-    const start = cardAsFormStart({ ...card, providerTerm: null, deployerTerm: "EducationalInstitution" } as CardContent);
-    expect(start.metadata).toMatchObject({ providerTerm: "", deployerTerm: "EducationalInstitution" });
+    const start = cardAsFormStart({
+      ...card,
+      providerTerm: null,
+      deployerTerm: "EducationalInstitution",
+    } as CardContent);
+    expect(start.metadata).toMatchObject({
+      providerTerm: "",
+      deployerTerm: "EducationalInstitution",
+    });
   });
 
   it("carries each risk field's term, empty where the card had none", () => {
@@ -364,7 +461,9 @@ describe("the next card starts from the terms this one was saved with", () => {
   });
 
   it("gives each component its one type", () => {
-    expect(cardAsFormStart(card).components?.[0]).toMatchObject({ type: "DecisionTree" });
+    expect(cardAsFormStart(card).components?.[0]).toMatchObject({
+      type: "DecisionTree",
+    });
   });
 });
 
@@ -374,9 +473,17 @@ import { systemCardPayload } from "@/domain/SystemCard";
 describe("the PDF card names VAIR's capabilities and domains", () => {
   it("sends each capability as its VAIR label, with no category, and each domain by its label", () => {
     const p = systemCardPayload(
-      { id: "q1", systemName: "MCAS", systemVersion: "1", company: "C", description: "d", targetUseCase: "u",
-        targetUsers: "t", targetSystemTags: ["NaturalLanguageGeneration", "bogus"], sectorTags: ["PrivateService"] },
-      null,
+      {
+        id: "q1",
+        systemName: "MCAS",
+        systemVersion: "1",
+        company: "C",
+        description: "d",
+        targetUseCase: "u",
+        targetUsers: "t",
+        targetSystemTags: ["NaturalLanguageGeneration", "bogus"],
+        sectorTags: ["PrivateService"],
+      },
       null,
       new Date("2026-09-30T10:00:00Z"),
     );

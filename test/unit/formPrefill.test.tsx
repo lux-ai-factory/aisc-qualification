@@ -12,11 +12,7 @@ const example = findExample("mcas")!;
 
 const mount = (initial = example) =>
   render(
-    <QualifyForm
-      project="p"
-      keyQuestions={KEY_QUESTIONS}
-      initial={initial}
-    />,
+    <QualifyForm project="p" keyQuestions={KEY_QUESTIONS} initial={initial} />,
   );
 
 describe("opening the form on a worked example", () => {
@@ -33,9 +29,9 @@ describe("opening the form on a worked example", () => {
   it("preselects the tags as hidden inputs the parser will read", () => {
     const { container } = mount();
     const hidden = (name: string) =>
-      [...container.querySelectorAll(`input[type="hidden"][name="${name}"]`)].map(
-        (i) => (i as HTMLInputElement).value,
-      );
+      [
+        ...container.querySelectorAll(`input[type="hidden"][name="${name}"]`),
+      ].map((i) => (i as HTMLInputElement).value);
     // VAIR terms
     expect(hidden("targetSystemTags")).toContain("Profiling");
     expect(hidden("sectorTags")).toEqual(["PrivateService"]);
@@ -74,23 +70,24 @@ describe("opening the form on a worked example", () => {
 
   it("stays empty when no example is asked for", () => {
     const { container } = render(
-      <QualifyForm
-        project="p"
-        keyQuestions={KEY_QUESTIONS}
-      />,
+      <QualifyForm project="p" keyQuestions={KEY_QUESTIONS} />,
     );
     expect(
-      (container.querySelector('[name="systemName"]') as HTMLInputElement).value,
+      (container.querySelector('[name="systemName"]') as HTMLInputElement)
+        .value,
     ).toBe("");
     expect(container.querySelectorAll("fieldset.qf-risk").length).toBe(1);
     expect(
-      container.querySelectorAll('input[type="hidden"][name="sectorTags"]').length,
+      container.querySelectorAll('input[type="hidden"][name="sectorTags"]')
+        .length,
     ).toBe(0);
   });
 
   it("stays editable", () => {
     const { container } = mount();
-    const name = container.querySelector('[name="systemName"]') as HTMLInputElement;
+    const name = container.querySelector(
+      '[name="systemName"]',
+    ) as HTMLInputElement;
     expect(name.readOnly).toBe(false);
     expect(name.disabled).toBe(false);
   });
@@ -127,7 +124,9 @@ describe("the worked example itself", () => {
   it("uses only vocabulary ids the pickers offer", () => {
     const areaIds = new Set(IMPACT_AREAS.map((a) => a.id));
     for (const row of example.risks) {
-      expect(["operator", "user", ...SUBJECTS.map((s) => s.id)]).toContain(row.affected);
+      expect(["operator", "user", ...SUBJECTS.map((s) => s.id)]).toContain(
+        row.affected,
+      );
       for (const area of row.areas) expect(areaIds.has(area)).toBe(true);
     }
   });

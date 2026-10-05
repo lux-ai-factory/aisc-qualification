@@ -14,7 +14,9 @@ const APP_URL = process.env.QUALIFICATION_TEST_DATABASE_URL ?? "";
 const ADMIN_URL = process.env.QUALIFICATION_TEST_ADMIN_URL ?? "";
 const enabled = APP_URL !== "" && ADMIN_URL !== "";
 if (enabled && (/:5432\//.test(APP_URL) || /:5432\//.test(ADMIN_URL))) {
-  throw new Error("refusing to run the DB tests against port 5432 (the live stack)");
+  throw new Error(
+    "refusing to run the DB tests against port 5432 (the live stack)",
+  );
 }
 
 let app: PrismaClient;
@@ -32,8 +34,13 @@ afterAll(async () => {
 
 function card(systemId: string, name: string) {
   return {
-    systemId, systemName: name, systemVersion: "1", company: "LIST",
-    description: "d", targetUseCase: "u", targetUsers: "t",
+    systemId,
+    systemName: name,
+    systemVersion: "1",
+    company: "LIST",
+    description: "d",
+    targetUseCase: "u",
+    targetUsers: "t",
   };
 }
 
@@ -85,7 +92,9 @@ describe.skipIf(!enabled)("the migration's schema (catalog)", () => {
   });
 
   it("WP3 step 6 card_component has the columns, the unique pair and the component index", async () => {
-    const cols = await admin.$queryRawUnsafe<{ column_name: string; is_nullable: string }[]>(
+    const cols = await admin.$queryRawUnsafe<
+      { column_name: string; is_nullable: string }[]
+    >(
       `SELECT column_name, is_nullable FROM information_schema.columns
         WHERE table_schema = 'qualification' AND table_name = 'card_component'
         ORDER BY column_name`,
@@ -112,109 +121,152 @@ describe.skipIf(!enabled)("the migration's schema (catalog)", () => {
   });
 });
 
-describe.skipIf(!enabled)("only the latest card version changes (S3.3, S3.7)", () => {
-  const v1 = randomUUID();
-  const v2 = randomUUID();
-  let c1 = "";
-  let c2 = "";
+describe.skipIf(!enabled)(
+  "only the latest card version changes (S3.3, S3.7)",
+  () => {
+    const v1 = randomUUID();
+    const v2 = randomUUID();
+    let c1 = "";
+    let c2 = "";
 
-  beforeAll(async () => {
-    // numbers above any other test's in this database, so v2 is the latest here
-    const top = await admin.$queryRawUnsafe<{ n: number }[]>(
-      `SELECT coalesce(max(number), 0)::int AS n FROM project.system`,
-    );
-    const n1 = top[0].n + 1;
-    await admin.$executeRawUnsafe(
-      `INSERT INTO project.system (pid, number, name, version) VALUES ('${v1}', ${n1}, 'MCAS', '1')`,
-    );
-    c1 = (
-      await app.qualification.create({
-        data: {
-          ...card(v1, "MCAS"),
-          answers: { create: [{ toolId: "annex-1", questionId: "1a", answer: "a" }] },
-          risks: { create: [{ position: 0, risk: "r", source: "s", consequence: "c",
-                             affected: "user", control: "k" }] },
-        },
-      })
-    ).id;
-    await admin.$executeRawUnsafe(
-      `INSERT INTO project.system (pid, number, name, version) VALUES ('${v2}', ${n1 + 1}, 'MCAS', '1')`,
-    );
-    c2 = (await app.qualification.create({ data: card(v2, "MCAS") })).id;
-  });
+    beforeAll(async () => {
+      // numbers above any other test's in this database, so v2 is the latest here
+      const top = await admin.$queryRawUnsafe<{ n: number }[]>(
+        `SELECT coalesce(max(number), 0)::int AS n FROM project.system`,
+      );
+      const n1 = top[0].n + 1;
+      await admin.$executeRawUnsafe(
+        `INSERT INTO project.system (pid, number, name, version) VALUES ('${v1}', ${n1}, 'MCAS', '1')`,
+      );
+      c1 = (
+        await app.qualification.create({
+          data: {
+            ...card(v1, "MCAS"),
+            answers: {
+              create: [{ toolId: "annex-1", questionId: "1a", answer: "a" }],
+            },
+            risks: {
+              create: [
+                {
+                  position: 0,
+                  risk: "r",
+                  source: "s",
+                  consequence: "c",
+                  affected: "user",
+                  control: "k",
+                },
+              ],
+            },
+          },
+        })
+      ).id;
+      await admin.$executeRawUnsafe(
+        `INSERT INTO project.system (pid, number, name, version) VALUES ('${v2}', ${n1 + 1}, 'MCAS', '1')`,
+      );
+      c2 = (await app.qualification.create({ data: card(v2, "MCAS") })).id;
+    });
 
-  it("S3.3 card_is_latest says which version is the latest", async () => {
-    const rows = await app.$queryRawUnsafe<{ a: boolean; b: boolean }[]>(
-      `SELECT qualification.card_is_latest('${v1}'::uuid) AS a,
+    it("S3.3 card_is_latest says which version is the latest", async () => {
+      const rows = await app.$queryRawUnsafe<{ a: boolean; b: boolean }[]>(
+        `SELECT qualification.card_is_latest('${v1}'::uuid) AS a,
               qualification.card_is_latest('${v2}'::uuid) AS b`,
-    );
-    expect(rows[0]).toEqual({ a: false, b: true });
-  });
+      );
+      expect(rows[0]).toEqual({ a: false, b: true });
+    });
 
-  it("S3.3 an UPDATE of the v1 card raises once v2 exists", async () => {
-    await expect(
-      app.qualification.update({ where: { id: c1 }, data: { description: "changed" } }),
-    ).rejects.toThrow();
-  });
+    it("S3.3 an UPDATE of the v1 card raises once v2 exists", async () => {
+      await expect(
+        app.qualification.update({
+          where: { id: c1 },
+          data: { description: "changed" },
+        }),
+      ).rejects.toThrow();
+    });
 
-  it("S3.3 inserting or updating an answer of the v1 card raises", async () => {
-    await expect(
-      app.qualificationAnswer.create({
-        data: { qualificationId: c1, toolId: "annex-1", questionId: "1b", answer: "b" },
-      }),
-    ).rejects.toThrow();
-    await expect(
-      app.qualificationAnswer.updateMany({ where: { qualificationId: c1 }, data: { answer: "z" } }),
-    ).rejects.toThrow();
-  });
+    it("S3.3 inserting or updating an answer of the v1 card raises", async () => {
+      await expect(
+        app.qualificationAnswer.create({
+          data: {
+            qualificationId: c1,
+            toolId: "annex-1",
+            questionId: "1b",
+            answer: "b",
+          },
+        }),
+      ).rejects.toThrow();
+      await expect(
+        app.qualificationAnswer.updateMany({
+          where: { qualificationId: c1 },
+          data: { answer: "z" },
+        }),
+      ).rejects.toThrow();
+    });
 
-  it("S3.3 linking a component on the v1 card raises (S6.4)", async () => {
-    await expect(
-      app.$executeRawUnsafe(
-        `INSERT INTO qualification.card_component
+    it("S3.3 linking a component on the v1 card raises (S6.4)", async () => {
+      await expect(
+        app.$executeRawUnsafe(
+          `INSERT INTO qualification.card_component
            (id, qualification_id, component_pid, airo_property, name, component_type)
          VALUES ('cc-old', '${c1}', '${randomUUID()}', 'hasModel', 'm', 'model')`,
-      ),
-    ).rejects.toThrow();
-  });
-
-  it("S3.3/S3.4 the latest card and its answers and components still change in place", async () => {
-    await app.qualification.update({ where: { id: c2 }, data: { description: "edited" } });
-    await app.qualificationAnswer.create({
-      data: { qualificationId: c2, toolId: "annex-1", questionId: "1a", answer: "a2" },
+        ),
+      ).rejects.toThrow();
     });
-    await app.$executeRawUnsafe(
-      `INSERT INTO qualification.card_component
+
+    it("S3.3/S3.4 the latest card and its answers and components still change in place", async () => {
+      await app.qualification.update({
+        where: { id: c2 },
+        data: { description: "edited" },
+      });
+      await app.qualificationAnswer.create({
+        data: {
+          qualificationId: c2,
+          toolId: "annex-1",
+          questionId: "1a",
+          answer: "a2",
+        },
+      });
+      await app.$executeRawUnsafe(
+        `INSERT INTO qualification.card_component
          (id, qualification_id, component_pid, airo_property, name, component_type)
        VALUES ('cc-new', '${c2}', '${randomUUID()}', 'hasTestingData', 'd', 'dataset')`,
-    );
-    const found = await app.qualification.findUnique({ where: { id: c2 } });
-    expect(found?.description).toBe("edited");
-  });
+      );
+      const found = await app.qualification.findUnique({ where: { id: c2 } });
+      expect(found?.description).toBe("edited");
+    });
 
-  it("WP3 step 6 card_component refuses a property that is not one of the five", async () => {
-    await expect(
-      app.$executeRawUnsafe(
-        `INSERT INTO qualification.card_component
+    it("WP3 step 6 card_component refuses a property that is not one of the five", async () => {
+      await expect(
+        app.$executeRawUnsafe(
+          `INSERT INTO qualification.card_component
            (id, qualification_id, component_pid, airo_property, name, component_type)
          VALUES ('cc-bad', '${c2}', '${randomUUID()}', 'hasFriend', 'x', 'model')`,
-      ),
-    ).rejects.toThrow();
-  });
-
-  it("S3.7 deleting a version removes its card, answers, risks, graph and components", async () => {
-    await app.knowledgeGraph.create({
-      data: { qualificationId: c2, digest: "d", turtle: "t", jsonld: "{}", nodes: 1, triples: 1 },
+        ),
+      ).rejects.toThrow();
     });
-    await admin.$executeRawUnsafe(`DELETE FROM project.system WHERE pid IN ('${v1}', '${v2}')`);
-    const left = await admin.$queryRawUnsafe<{ n: bigint }[]>(
-      `SELECT (SELECT count(*) FROM qualification.qualification WHERE id IN ('${c1}','${c2}'))
+
+    it("S3.7 deleting a version removes its card, answers, risks, graph and components", async () => {
+      await app.knowledgeGraph.create({
+        data: {
+          qualificationId: c2,
+          digest: "d",
+          turtle: "t",
+          jsonld: "{}",
+          nodes: 1,
+          triples: 1,
+        },
+      });
+      await admin.$executeRawUnsafe(
+        `DELETE FROM project.system WHERE pid IN ('${v1}', '${v2}')`,
+      );
+      const left = await admin.$queryRawUnsafe<{ n: bigint }[]>(
+        `SELECT (SELECT count(*) FROM qualification.qualification WHERE id IN ('${c1}','${c2}'))
             + (SELECT count(*) FROM qualification.qualification_answer WHERE "qualificationId" IN ('${c1}','${c2}'))
             + (SELECT count(*) FROM qualification.qualification_risk WHERE "qualificationId" IN ('${c1}','${c2}'))
             + (SELECT count(*) FROM qualification.knowledge_graph WHERE "qualificationId" IN ('${c1}','${c2}'))
             + (SELECT count(*) FROM qualification.card_component WHERE qualification_id IN ('${c1}','${c2}'))
             + (SELECT count(*) FROM project.system WHERE pid IN ('${v1}', '${v2}')) AS n`,
-    );
-    expect(Number(left[0].n)).toBe(0);
-  });
-});
+      );
+      expect(Number(left[0].n)).toBe(0);
+    });
+  },
+);

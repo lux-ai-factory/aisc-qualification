@@ -99,13 +99,20 @@ describe("asking the platform", () => {
 
   it("is null when nobody configured the platform", async () => {
     const fetchImpl = vi.fn();
-    expect(await fetchAccess("mcas", "t", { platformUrl: "", fetchImpl })).toBeNull();
+    expect(
+      await fetchAccess("mcas", "t", { platformUrl: "", fetchImpl }),
+    ).toBeNull();
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it("never sends an empty bearer header", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ role: null }) });
-    await fetchAccess("mcas", null, { platformUrl: "http://platform:8000", fetchImpl });
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ role: null }) });
+    await fetchAccess("mcas", null, {
+      platformUrl: "http://platform:8000",
+      fetchImpl,
+    });
     expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBeUndefined();
   });
 });

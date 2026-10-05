@@ -22,7 +22,13 @@ describe("the payload a filler agent publishes", () => {
   });
 
   it("accepts a drafted name with the text it was written for", () => {
-    const names = { purpose: { name: "Consumer loan scoring", of: "Assess the creditworthiness of consumer loan applicants" }, risk0_source: "Postcode proxies" };
+    const names = {
+      purpose: {
+        name: "Consumer loan scoring",
+        of: "Assess the creditworthiness of consumer loan applicants",
+      },
+      risk0_source: "Postcode proxies",
+    };
     const result = parseExtracted({ ...valid, names });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -30,22 +36,49 @@ describe("the payload a filler agent publishes", () => {
   });
 
   it("refuses a drafted name longer than a name, or without its text", () => {
-    expect(parseExtracted({ names: { purpose: { name: "x".repeat(61), of: "t" } } }).ok).toBe(false);
-    expect(parseExtracted({ names: { purpose: { name: "Scoring" } } }).ok).toBe(false);
-    expect(parseExtracted({ names: { purpose: { name: "Scoring", of: "t", extra: 1 } } }).ok).toBe(false);
+    expect(
+      parseExtracted({ names: { purpose: { name: "x".repeat(61), of: "t" } } })
+        .ok,
+    ).toBe(false);
+    expect(parseExtracted({ names: { purpose: { name: "Scoring" } } }).ok).toBe(
+      false,
+    );
+    expect(
+      parseExtracted({
+        names: { purpose: { name: "Scoring", of: "t", extra: 1 } },
+      }).ok,
+    ).toBe(false);
   });
 
   it("accepts a note with its reason, its quote and the text it was written for", () => {
-    const notes = { risk0_control: [{ why: "the answer names a hosted LLM", quote: "a hosted third-party LLM", of: "Manual review" }] };
-    const result = parseExtracted({ ...valid, notes, flags: { risk0_control: ["inconsistent"] } });
+    const notes = {
+      risk0_control: [
+        {
+          why: "the answer names a hosted LLM",
+          quote: "a hosted third-party LLM",
+          of: "Manual review",
+        },
+      ],
+    };
+    const result = parseExtracted({
+      ...valid,
+      notes,
+      flags: { risk0_control: ["inconsistent"] },
+    });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.notes).toEqual(notes);
   });
 
   it("refuses a note without its text or with anything extra", () => {
-    expect(parseExtracted({ notes: { a: [{ why: "w", quote: "q" }] } }).ok).toBe(false);
-    expect(parseExtracted({ notes: { a: [{ why: "w", quote: "q", of: "t", extra: 1 }] } }).ok).toBe(false);
+    expect(
+      parseExtracted({ notes: { a: [{ why: "w", quote: "q" }] } }).ok,
+    ).toBe(false);
+    expect(
+      parseExtracted({
+        notes: { a: [{ why: "w", quote: "q", of: "t", extra: 1 }] },
+      }).ok,
+    ).toBe(false);
   });
 
   it("accepts an empty draft", () => {
@@ -53,7 +86,10 @@ describe("the payload a filler agent publishes", () => {
   });
 
   it("refuses a flag the graph cannot carry", () => {
-    const result = parseExtracted({ ...valid, flags: { technique1: ["smells-wrong"] } });
+    const result = parseExtracted({
+      ...valid,
+      flags: { technique1: ["smells-wrong"] },
+    });
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error).toMatch(/flag/i);
@@ -67,9 +103,9 @@ describe("the payload a filler agent publishes", () => {
   });
 
   it("refuses a node with no label", () => {
-    expect(parseExtracted({ techniques: [{ vair: "MachineLearning" }] }).ok).toBe(
-      false,
-    );
+    expect(
+      parseExtracted({ techniques: [{ vair: "MachineLearning" }] }).ok,
+    ).toBe(false);
   });
 
   it("refuses anything it was not expecting, rather than storing it", () => {
@@ -85,7 +121,9 @@ describe("the payload a filler agent publishes", () => {
   });
 
   it("keeps the vair term optional but never blank", () => {
-    expect(parseExtracted({ techniques: [{ label: "A", vair: "" }] }).ok).toBe(false);
+    expect(parseExtracted({ techniques: [{ label: "A", vair: "" }] }).ok).toBe(
+      false,
+    );
     expect(parseExtracted({ techniques: [{ label: "A" }] }).ok).toBe(true);
   });
 });

@@ -8,7 +8,6 @@ renders as tests/test_ontology_only_card.py expects.
 from pathlib import Path
 
 from models import SystemCard
-from template_engine import TemplateEngine
 
 from tests.test_ontology_only_card import ONTOLOGY_ONLY, node, render
 

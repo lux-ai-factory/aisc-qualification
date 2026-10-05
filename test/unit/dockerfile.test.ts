@@ -10,7 +10,8 @@ import { readFileSync } from "node:fs";
 
 const NEW_CMD = 'CMD ["npx", "next", "start", "-p", "3000"]';
 
-const lines = (path: string) => readFileSync(path, "utf8").replace(/\n+$/, "").split("\n");
+const lines = (path: string) =>
+  readFileSync(path, "utf8").replace(/\n+$/, "").split("\n");
 
 describe("the Dockerfile migrates instead of pushing (T59)", () => {
   it("T59 the last line is exactly the start command (no schema step in the image)", () => {
@@ -27,9 +28,12 @@ describe("the Dockerfile migrates instead of pushing (T59)", () => {
     const before = lines("test/fixtures/Dockerfile.before");
     const after = lines("Dockerfile");
     // the fixture really is the old file: its last line is the schema push
-    expect(before.at(-1)).toBe('CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx next start -p 3000"]');
+    expect(before.at(-1)).toBe(
+      'CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx next start -p 3000"]',
+    );
     // the lines above the command are the old ones, plus the comment saying why there is no schema step
-    const code = (ls: string[]) => ls.slice(0, -1).filter((l) => !l.startsWith("#"));
+    const code = (ls: string[]) =>
+      ls.slice(0, -1).filter((l) => !l.startsWith("#"));
     expect(code(after)).toEqual(code(before));
   });
 });
@@ -38,9 +42,13 @@ describe("DEPLOY.md says what the container runs, and how to get back (T59, D25)
   const deploy = () => readFileSync("DEPLOY.md", "utf8");
 
   it("T59 the startup text says each project database is migrated (migrate-projects.mjs), and the old `prisma db push` line is gone", () => {
-    expect(deploy()).toContain("runs `prisma migrate deploy` in every project database at start");
+    expect(deploy()).toContain(
+      "runs `prisma migrate deploy` in every project database at start",
+    );
     expect(deploy()).toContain("scripts/migrate-projects.mjs");
-    expect(deploy()).not.toContain("The container runs `prisma db push` on startup");
+    expect(deploy()).not.toContain(
+      "The container runs `prisma db push` on startup",
+    );
   });
 
   it("T59 D25 a backup step: before deploying 20260925150000_two_level_forms, pg_dump --schema=qualification", () => {

@@ -19,17 +19,28 @@ import { formVersion } from "../support/forms";
 
 const FILE = "src/app/p/[project]/FormLine.tsx";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const load = async (): Promise<any> => (await import(/* @vite-ignore */ resolve(FILE))).default;
+const load = async (): Promise<any> =>
+  (await import(/* @vite-ignore */ resolve(FILE))).default;
 
 afterEach(cleanup);
 
 /** The props both ways: the flat ones and the resolved version. */
-function props(id: string, name: string, versionNumber: number, over: Record<string, unknown> = {}) {
+function props(
+  id: string,
+  name: string,
+  versionNumber: number,
+  over: Record<string, unknown> = {},
+) {
   return {
     questionnaireId: id,
     questionnaireName: name,
     versionNumber,
-    form: formVersion({ questionnaireId: id, questionnaireName: name, versionNumber, versionId: `${id}-v${versionNumber}` }),
+    form: formVersion({
+      questionnaireId: id,
+      questionnaireName: name,
+      versionNumber,
+      versionId: `${id}-v${versionNumber}`,
+    }),
     ...over,
   };
 }
@@ -41,15 +52,25 @@ async function mount(p: Record<string, unknown>) {
 
 describe("FormLine (R58, T42)", () => {
   it("T42 reads Questionnaire: <name> v<N> · JSON · CSV · Markdown in p.qf-row-form", async () => {
-    const { container } = await mount({ project: "demo", ...props("acme", "Acme AI policy", 3) });
+    const { container } = await mount({
+      project: "demo",
+      ...props("acme", "Acme AI policy", 3),
+    });
     const p = container.querySelector("p.qf-row-form");
-    expect(p?.textContent).toBe("Questionnaire: Acme AI policy v3 · JSON · CSV · Markdown");
-    expect(p?.querySelector("span.qf-row-form-name")?.textContent).toBe("Questionnaire: Acme AI policy v3");
+    expect(p?.textContent).toBe(
+      "Questionnaire: Acme AI policy v3 · JSON · CSV · Markdown",
+    );
+    expect(p?.querySelector("span.qf-row-form-name")?.textContent).toBe(
+      "Questionnaire: Acme AI policy v3",
+    );
     expect(p?.querySelectorAll("span.qf-row-form-sep")).toHaveLength(3);
   });
 
   it("T42 the three links export that exact version under /questionnaires/, named for a screen reader, with download", async () => {
-    await mount({ project: "demo", ...props("u1 x", "Custom questions: MCAS, 2026-09-25", 1) });
+    await mount({
+      project: "demo",
+      ...props("u1 x", "Custom questions: MCAS, 2026-09-25", 1),
+    });
     const name = "Custom questions: MCAS, 2026-09-25 v1";
     const json = screen.getByRole("link", { name: `Export ${name} as JSON` });
     const csv = screen.getByRole("link", { name: `Export ${name} as CSV` });
@@ -57,31 +78,56 @@ describe("FormLine (R58, T42)", () => {
     expect(json.textContent).toBe("JSON");
     expect(csv.textContent).toBe("CSV");
     expect(md.textContent).toBe("Markdown");
-    expect(json.getAttribute("href")).toBe("/p/demo/questionnaires/u1%20x/export?format=json&version=1");
-    expect(csv.getAttribute("href")).toBe("/p/demo/questionnaires/u1%20x/export?format=csv&version=1");
-    expect(md.getAttribute("href")).toBe("/p/demo/questionnaires/u1%20x/export?format=md&version=1");
-    for (const a of [json, csv, md]) expect(a.hasAttribute("download")).toBe(true);
+    expect(json.getAttribute("href")).toBe(
+      "/p/demo/questionnaires/u1%20x/export?format=json&version=1",
+    );
+    expect(csv.getAttribute("href")).toBe(
+      "/p/demo/questionnaires/u1%20x/export?format=csv&version=1",
+    );
+    expect(md.getAttribute("href")).toBe(
+      "/p/demo/questionnaires/u1%20x/export?format=md&version=1",
+    );
+    for (const a of [json, csv, md])
+      expect(a.hasAttribute("download")).toBe(true);
   });
 
   it("T42 the base path prefixes every link", async () => {
-    await mount({ project: "demo", basePath: "/qualification", ...props("acme", "Acme AI policy", 2) });
-    expect(screen.getByRole("link", { name: "Export Acme AI policy v2 as JSON" }).getAttribute("href")).toBe(
+    await mount({
+      project: "demo",
+      basePath: "/qualification",
+      ...props("acme", "Acme AI policy", 2),
+    });
+    expect(
+      screen
+        .getByRole("link", { name: "Export Acme AI policy v2 as JSON" })
+        .getAttribute("href"),
+    ).toBe(
       "/qualification/p/demo/questionnaires/acme/export?format=json&version=2",
     );
   });
 
   it("T42 a legacy card's line is Questionnaire: Annex IV default v1, exporting annex-iv-default v1", async () => {
-    const { container } = await mount({ project: "mcas", ...props("annex-iv-default", "Annex IV default", 1) });
+    const { container } = await mount({
+      project: "mcas",
+      ...props("annex-iv-default", "Annex IV default", 1),
+    });
     expect(container.querySelector("p.qf-row-form")?.textContent).toBe(
       "Questionnaire: Annex IV default v1 · JSON · CSV · Markdown",
     );
-    expect(screen.getByRole("link", { name: "Export Annex IV default v1 as CSV" }).getAttribute("href")).toBe(
+    expect(
+      screen
+        .getByRole("link", { name: "Export Annex IV default v1 as CSV" })
+        .getAttribute("href"),
+    ).toBe(
       "/p/mcas/questionnaires/annex-iv-default/export?format=csv&version=1",
     );
   });
 
   it("T42 without `newer` there is no update line", async () => {
-    const { container } = await mount({ project: "demo", ...props("acme", "Acme AI policy", 2) });
+    const { container } = await mount({
+      project: "demo",
+      ...props("acme", "Acme AI policy", 2),
+    });
     expect(container.querySelector("p.qf-questionnaire-update")).toBeNull();
     expect(screen.queryByRole("link", { name: /Move to v/ })).toBeNull();
   });
@@ -95,7 +141,9 @@ describe("FormLine (R58, T42)", () => {
     const p = container.querySelector("p.qf-questionnaire-update");
     expect(p?.textContent).toContain("Acme AI policy has a newer version, v5.");
     const move = screen.getByRole("link", { name: "Move to v5" });
-    expect(move.getAttribute("href")).toMatch(/\/p\/demo\/system\/edit\?questionnaireVersion=acme-v5$/);
+    expect(move.getAttribute("href")).toMatch(
+      /\/p\/demo\/system\/edit\?questionnaireVersion=acme-v5$/,
+    );
   });
 });
 
@@ -103,16 +151,21 @@ describe("the card and edit pages use it (R58, R66, T42)", () => {
   const CARD = "src/app/p/[project]/qualify/[id]/page.tsx";
   const EDIT = "src/app/p/[project]/system/edit/page.tsx";
 
-  it.each([CARD, EDIT])("T42 %s renders <FormLine> and no own Form: or Questionnaire: paragraph", (file) => {
-    const src = readFileSync(file, "utf8");
-    expect(src).toMatch(/<FormLine\b/);
-    expect(src).not.toMatch(/Form: \{/);
-    expect(src).not.toMatch(/Questionnaire: \{/);
-  });
+  it.each([CARD, EDIT])(
+    "T42 %s renders <FormLine> and no own Form: or Questionnaire: paragraph",
+    (file) => {
+      const src = readFileSync(file, "utf8");
+      expect(src).toMatch(/<FormLine\b/);
+      expect(src).not.toMatch(/Form: \{/);
+      expect(src).not.toMatch(/Questionnaire: \{/);
+    },
+  );
 
   it("T42 the card page resolves the card's questionnaire version (the default version for a legacy card) and asks newerVersion", () => {
     const src = readFileSync(CARD, "utf8");
-    expect(src).toMatch(/resolve\(q\.questionnaireVersionId \?\? null\)\)\s*\?\?\s*annexDefaultVersion\(\)/);
+    expect(src).toMatch(
+      /resolve\(q\.questionnaireVersionId \?\? null\)\)\s*\?\?\s*annexDefaultVersion\(\)/,
+    );
     expect(src).toMatch(/\bnewerVersion\(/);
     expect(src).toMatch(/<FormLine[^>]*\bnewer=/);
     expect(src).not.toMatch(/formVersionId/);

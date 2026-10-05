@@ -7,7 +7,10 @@ import { z } from "zod";
 import { isFormBlock, type FormBlock } from "./blocks";
 import type { ResolvedQuestionnaireVersion } from "./types";
 
-export type QuestionnaireDraftItem = { setVersionId: string; questionId: string };
+export type QuestionnaireDraftItem = {
+  setVersionId: string;
+  questionId: string;
+};
 
 export type QuestionnaireDraft = {
   /** 1..120 after trim; ignored when saving a new version of an existing questionnaire. */
@@ -29,10 +32,14 @@ const draftShape = z.object({
   name: z.string(),
   description: z.string().optional(),
   blocks: z.array(z.string()),
-  items: z.array(z.object({ setVersionId: z.string(), questionId: z.string() })),
+  items: z.array(
+    z.object({ setVersionId: z.string(), questionId: z.string() }),
+  ),
 });
 
-export type ParsedQuestionnaireDraft = { ok: true; value: QuestionnaireDraft } | { ok: false; error: string };
+export type ParsedQuestionnaireDraft =
+  | { ok: true; value: QuestionnaireDraft }
+  | { ok: false; error: string };
 
 /** Never throws. `takenNames`, when given, are the names of the other listed, active questionnaires. */
 export function parseQuestionnaireDraft(
@@ -40,37 +47,60 @@ export function parseQuestionnaireDraft(
   context?: { takenNames?: string[] },
 ): ParsedQuestionnaireDraft {
   const shape = draftShape.safeParse(input);
-  if (!shape.success) return { ok: false, error: "The questionnaire could not be read." };
+  if (!shape.success)
+    return { ok: false, error: "The questionnaire could not be read." };
   const draft = shape.data;
 
   const name = draft.name.trim();
-  if (name === "") return { ok: false, error: "Give the questionnaire a name." };
+  if (name === "")
+    return { ok: false, error: "Give the questionnaire a name." };
   if (name.length > MAX_NAME) {
-    return { ok: false, error: `A questionnaire name is at most ${MAX_NAME} characters.` };
+    return {
+      ok: false,
+      error: `A questionnaire name is at most ${MAX_NAME} characters.`,
+    };
   }
-  const taken = context?.takenNames?.some((t) => t.trim().toLowerCase() === name.toLowerCase());
-  if (taken) return { ok: false, error: `A questionnaire called ${name} already exists.` };
+  const taken = context?.takenNames?.some(
+    (t) => t.trim().toLowerCase() === name.toLowerCase(),
+  );
+  if (taken)
+    return {
+      ok: false,
+      error: `A questionnaire called ${name} already exists.`,
+    };
 
   const description = (draft.description ?? "").trim();
   if (description.length > MAX_DESCRIPTION) {
-    return { ok: false, error: `A description is at most ${MAX_DESCRIPTION} characters.` };
+    return {
+      ok: false,
+      error: `A description is at most ${MAX_DESCRIPTION} characters.`,
+    };
   }
 
   const blocks: FormBlock[] = [];
   for (const b of draft.blocks) {
-    if (!isFormBlock(b)) return { ok: false, error: `${b} is not a part of the questionnaire.` };
-    if (blocks.includes(b)) return { ok: false, error: `${b} is in the questionnaire twice.` };
+    if (!isFormBlock(b))
+      return { ok: false, error: `${b} is not a part of the questionnaire.` };
+    if (blocks.includes(b))
+      return { ok: false, error: `${b} is in the questionnaire twice.` };
     blocks.push(b);
   }
 
   if (draft.items.length > MAX_ITEMS) {
-    return { ok: false, error: `A questionnaire has at most ${MAX_ITEMS} questions.` };
+    return {
+      ok: false,
+      error: `A questionnaire has at most ${MAX_ITEMS} questions.`,
+    };
   }
 
   const seen = new Set<string>();
   const items: QuestionnaireDraftItem[] = [];
   for (const [i, it] of draft.items.entries()) {
-    if (seen.has(it.questionId)) return { ok: false, error: `Question ${i + 1} is already in the questionnaire.` };
+    if (seen.has(it.questionId))
+      return {
+        ok: false,
+        error: `Question ${i + 1} is already in the questionnaire.`,
+      };
     seen.add(it.questionId);
     items.push({ setVersionId: it.setVersionId, questionId: it.questionId });
   }
@@ -84,12 +114,17 @@ export function parseQuestionnaireDraft(
  * (setVersionId, questionId) pairs in order, so a question pinned to another set
  * version is a change.
  */
-export function sameQuestionnaireContent(draft: QuestionnaireDraft, version: ResolvedQuestionnaireVersion): boolean {
+export function sameQuestionnaireContent(
+  draft: QuestionnaireDraft,
+  version: ResolvedQuestionnaireVersion,
+): boolean {
   const a = new Set<string>(draft.blocks);
   const b = new Set<string>(version.blocks);
   if (a.size !== b.size || [...a].some((x) => !b.has(x))) return false;
   if (draft.items.length !== version.questions.length) return false;
   return draft.items.every(
-    (d, i) => d.questionId === version.questions[i].questionId && d.setVersionId === version.questions[i].setVersionId,
+    (d, i) =>
+      d.questionId === version.questions[i].questionId &&
+      d.setVersionId === version.questions[i].setVersionId,
   );
 }

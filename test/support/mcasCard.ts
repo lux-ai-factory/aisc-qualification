@@ -14,7 +14,13 @@ export function mcasCard(): QualificationWithAnswers {
     .filter(([field]) => field.startsWith("q:"))
     .map(([field, answer], i) => {
       const [, toolId, questionId] = field.split(":");
-      return { id: `mcas-a${i + 1}`, qualificationId: "mcas-card", toolId, questionId, answer };
+      return {
+        id: `mcas-a${i + 1}`,
+        qualificationId: "mcas-card",
+        toolId,
+        questionId,
+        answer,
+      };
     });
   const risks = MCAS.risks.map((r, position) => ({
     id: `mcas-r${position + 1}`,

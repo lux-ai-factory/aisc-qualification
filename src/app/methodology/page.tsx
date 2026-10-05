@@ -2,7 +2,15 @@ import SiteHeader from "@/components/SiteHeader";
 import { KEY_QUESTIONS } from "@/data/keyQuestions";
 import { RISK_FIELDS } from "@/data/riskFields";
 import { AFFECTED } from "@/data/airoVocab";
-import { CAPABILITIES, DOMAINS, IMPACT_AREAS, LOCALITIES, MODALITIES, PURPOSES, SYSTEM_TYPES } from "@/data/vairVocab";
+import {
+  CAPABILITIES,
+  DOMAINS,
+  IMPACT_AREAS,
+  LOCALITIES,
+  MODALITIES,
+  PURPOSES,
+  SYSTEM_TYPES,
+} from "@/data/vairVocab";
 import { OntologyClient } from "@/server/services/OntologyClient";
 import Methodology, { type MethodologyFacts } from "./Methodology";
 

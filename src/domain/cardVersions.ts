@@ -7,7 +7,11 @@
  * the older ones are kept as they were. The next card starts from the newest
  * card before it, loaded into the form to be reviewed, not typed again.
  */
-import type { ComponentExample, FormExample, RiskExample } from "@/data/examples/types";
+import type {
+  ComponentExample,
+  FormExample,
+  RiskExample,
+} from "@/data/examples/types";
 import { componentType } from "@/data/componentFields";
 
 export type VersionRef = { pid: string; number: number };
@@ -75,7 +79,9 @@ type CardComponentRow = {
 /** The components the next card starts from: the card's rows with their keys, or, when it has
  *  none, what the filler extracted from 2(c), as suggestions without keys. */
 function startingComponents(card: CardContent): ComponentExample[] {
-  const rows = [...(card.systemComponents ?? [])].sort((a, b) => a.position - b.position);
+  const rows = [...(card.systemComponents ?? [])].sort(
+    (a, b) => a.position - b.position,
+  );
   if (rows.length) {
     return rows.map((r) => ({
       key: r.key,
@@ -86,11 +92,27 @@ function startingComponents(card: CardContent): ComponentExample[] {
       providerName: r.providerName ?? "",
     }));
   }
-  const extracted = (card.ontologyExtracted as { components?: unknown[] } | null | undefined)?.components ?? [];
+  const extracted =
+    (card.ontologyExtracted as { components?: unknown[] } | null | undefined)
+      ?.components ?? [];
   return extracted
-    .map((e) => (typeof e === "string" ? e : typeof (e as { label?: unknown })?.label === "string" ? (e as { label: string }).label : ""))
+    .map((e) =>
+      typeof e === "string"
+        ? e
+        : typeof (e as { label?: unknown })?.label === "string"
+          ? (e as { label: string }).label
+          : "",
+    )
     .filter((label) => label.trim() !== "")
-    .map((label) => ({ key: "", name: label.trim(), role: "", type: "", provider: "in_house" as const, providerName: "", suggested: true }));
+    .map((label) => ({
+      key: "",
+      name: label.trim(),
+      role: "",
+      type: "",
+      provider: "in_house" as const,
+      providerName: "",
+      suggested: true,
+    }));
 }
 
 export type CardContent = {
@@ -184,7 +206,8 @@ export function cardStanding(
   const cardOf = cardIdByVersion(cards);
   const latest = newestFirst(versions)[0];
   return {
-    versionNumber: versions.find((version) => version.pid === systemId)?.number ?? 0,
+    versionNumber:
+      versions.find((version) => version.pid === systemId)?.number ?? 0,
     current: latest !== undefined && latest.pid === systemId,
     currentCardId: latest ? (cardOf.get(latest.pid) ?? null) : null,
   };

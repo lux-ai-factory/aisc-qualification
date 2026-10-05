@@ -18,23 +18,37 @@ afterEach(() => {
 });
 
 const navLinks = (container: HTMLElement) =>
-  [...container.querySelectorAll("nav a")].map((a) => [a.textContent, a.getAttribute("href")]);
+  [...container.querySelectorAll("nav a")].map((a) => [
+    a.textContent,
+    a.getAttribute("href"),
+  ]);
 
 // The links directly in the bar, and the menu's own label, in the order they read.
 const barItems = (container: HTMLElement) =>
-  [...container.querySelectorAll("nav > a, nav > details > summary")].map((el) => el.textContent);
+  [...container.querySelectorAll("nav > a, nav > details > summary")].map(
+    (el) => el.textContent,
+  );
 
-const menu = (container: HTMLElement) => container.querySelector("nav details") as HTMLDetailsElement;
+const menu = (container: HTMLElement) =>
+  container.querySelector("nav details") as HTMLDetailsElement;
 
 describe("the site header (R49, T60)", () => {
   it('inside a project the bar reads "← Back", "AI system", "Versions", "Framework"', () => {
     const { container } = render(<SiteHeader project="demo" />);
-    expect(barItems(container)).toEqual(["← Back", "AI system", "Versions", "Framework"]);
+    expect(barItems(container)).toEqual([
+      "← Back",
+      "AI system",
+      "Versions",
+      "Framework",
+    ]);
   });
 
   it("the Framework menu holds Question sets, Questionnaires and Methodology, inside the project", () => {
     const { container } = render(<SiteHeader project="demo" />);
-    const items = [...menu(container).querySelectorAll("a")].map((a) => [a.textContent, a.getAttribute("href")]);
+    const items = [...menu(container).querySelectorAll("a")].map((a) => [
+      a.textContent,
+      a.getAttribute("href"),
+    ]);
     expect(items).toEqual([
       ["Question sets", "/p/demo/question-sets"],
       ["Questionnaires", "/p/demo/questionnaires"],

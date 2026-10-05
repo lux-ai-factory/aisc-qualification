@@ -1,9 +1,17 @@
 import type { Metadata } from "next";
+// Inter ships with the app: no page asks Google Fonts for it.
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
+import "@fontsource/inter/800.css";
+import "@fontsource/inter/900.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "AI System Qualification",
-  description: "Describe the project's AI system and keep its AI card, version by version",
+  description:
+    "Describe the project's AI system and keep its AI card, version by version",
 };
 
 // Pages read from the database on every request, so they render dynamically. This
@@ -17,18 +25,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin=""
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
-          rel="stylesheet"
-        />
-      </head>
       <body>
         {/* The header is rendered by each page's own layout, because inside a
             project it links inside that project and outside one it cannot. */}

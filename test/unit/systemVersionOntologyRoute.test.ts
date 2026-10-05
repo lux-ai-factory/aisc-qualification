@@ -11,10 +11,12 @@ import { resolve } from "node:path";
 // (knowledgeGraphStore.deliver); 502 when the builder is down. A version of
 // another project is in another database, so it is simply not found here.
 
-const ROUTE_FILE = "src/app/p/[project]/api/system-versions/[systemPid]/ontology.jsonld/route.ts";
+const ROUTE_FILE =
+  "src/app/p/[project]/api/system-versions/[systemPid]/ontology.jsonld/route.ts";
 // A runtime path: an alias in a non-literal import is not resolved.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const load = (path: string): Promise<any> => import(/* @vite-ignore */ resolve(path));
+const load = (path: string): Promise<any> =>
+  import(/* @vite-ignore */ resolve(path));
 const ROUTE = ROUTE_FILE;
 
 const PROJECT = "a1b2c3d4-0000-4000-8000-000000000002";
@@ -24,7 +26,10 @@ const BYTES = '{"@context":{"airo":"https://w3id.org/airo#"},"@graph":[]}';
 
 const access = { role: "viewer" as string | null };
 /** Which project's database holds the card of V2, and the card. */
-const card = { in: PROJECT, current: { id: "c2", systemId: V2 } as Record<string, string> | null };
+const card = {
+  in: PROJECT,
+  current: { id: "c2", systemId: V2 } as Record<string, string> | null,
+};
 const deliver = vi.fn(async () => ({ document: BYTES, fromStore: false }));
 
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
@@ -39,7 +44,9 @@ vi.mock("@/server/repositories/QualificationRepository", () => ({
   QualificationRepository: class {
     constructor(private readonly db: { project: string }) {}
     async findBySystem(systemId: string) {
-      return this.db.project === card.in && card.current?.systemId === systemId ? card.current : null;
+      return this.db.project === card.in && card.current?.systemId === systemId
+        ? card.current
+        : null;
     }
   },
 }));
@@ -55,9 +62,14 @@ vi.mock("@/server/services/OntologyService", () => ({
 
 const get = async (project: string, systemPid: string) => {
   const { GET } = await load(ROUTE);
-  return GET(new Request(`http://q/p/${project}/api/system-versions/${systemPid}/ontology.jsonld`), {
-    params: Promise.resolve({ project, systemPid }),
-  }) as Promise<Response>;
+  return GET(
+    new Request(
+      `http://q/p/${project}/api/system-versions/${systemPid}/ontology.jsonld`,
+    ),
+    {
+      params: Promise.resolve({ project, systemPid }),
+    },
+  ) as Promise<Response>;
 };
 
 beforeEach(() => {
@@ -65,7 +77,10 @@ beforeEach(() => {
   card.in = PROJECT;
   card.current = { id: "c2", systemId: V2 };
   deliver.mockClear();
-  deliver.mockImplementation(async () => ({ document: BYTES, fromStore: false }));
+  deliver.mockImplementation(async () => ({
+    document: BYTES,
+    fromStore: false,
+  }));
 });
 
 describe("GET /p/{project}/api/system-versions/{systemPid}/ontology.jsonld", () => {
@@ -78,7 +93,12 @@ describe("GET /p/{project}/api/system-versions/{systemPid}/ontology.jsonld", () 
     expect(res.status).toBe(200);
     expect(await res.text()).toBe(BYTES);
     expect(res.headers.get("content-type")).toMatch(/application\/ld\+json/);
-    expect(deliver).toHaveBeenCalledWith("c2", "jsonld", expect.any(Function), PROJECT);
+    expect(deliver).toHaveBeenCalledWith(
+      "c2",
+      "jsonld",
+      expect.any(Function),
+      PROJECT,
+    );
   });
 
   it("S7.3 a non-member gets 404", async () => {

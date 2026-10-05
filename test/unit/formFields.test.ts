@@ -50,7 +50,9 @@ describe("form citations", () => {
     expect(RISK_FIELDS.find((f) => f.id === "area")?.kind).toBe("areas");
     // VAIR: the harm is a VAIR select alone; four text fields have one beside them
     expect(RISK_FIELDS.find((f) => f.id === "impact")?.kind).toBe("term");
-    expect(RISK_FIELDS.filter((f) => f.vair).map((f) => [f.id, f.vair])).toEqual([
+    expect(
+      RISK_FIELDS.filter((f) => f.vair).map((f) => [f.id, f.vair]),
+    ).toEqual([
       ["source", "RiskSource"],
       ["consequence", "Consequence"],
       ["impact", "Impact"],

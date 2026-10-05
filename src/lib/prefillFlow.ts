@@ -17,7 +17,11 @@ import type {
   PrefillRisk,
   PrefillValues,
 } from "@/server/services/PrefillClient";
-import { answeredFields, componentWritten, riskWritten } from "@/lib/prefillChoice";
+import {
+  answeredFields,
+  componentWritten,
+  riskWritten,
+} from "@/lib/prefillChoice";
 
 export type Reader = (
   file: File,
@@ -87,13 +91,24 @@ export async function checkDocument(
   read: Reader,
   currentComponents: PrefillComponent[] = [],
 ): Promise<Checked> {
-  const result = await read(file, "empty", current, currentRisks, currentComponents);
+  const result = await read(
+    file,
+    "empty",
+    current,
+    currentRisks,
+    currentComponents,
+  );
   if (!result.ok) return { kind: "error", error: result.error };
   const proposed = result.filled.length + result.kept.length;
   const risksProposed = result.risksProposed;
   const componentsProposed = result.componentsProposed ?? 0;
   const picksProposed = result.picksProposed ?? 0;
-  if (proposed === 0 && risksProposed === 0 && componentsProposed === 0 && picksProposed === 0) {
+  if (
+    proposed === 0 &&
+    risksProposed === 0 &&
+    componentsProposed === 0 &&
+    picksProposed === 0
+  ) {
     return { kind: "nothing" };
   }
   const answered = answeredFields(current).length;
@@ -106,7 +121,9 @@ export async function checkDocument(
       proposed,
       risksAnswered,
       risksProposed,
-      ...(componentsAnswered > 0 || componentsProposed > 0 ? { componentsAnswered, componentsProposed } : {}),
+      ...(componentsAnswered > 0 || componentsProposed > 0
+        ? { componentsAnswered, componentsProposed }
+        : {}),
       ...(picksProposed > 0 ? { picksProposed } : {}),
     };
   }
@@ -136,7 +153,13 @@ export async function applyDocument(
   read: Reader,
   currentComponents: PrefillComponent[] = [],
 ): Promise<Apply | { kind: "error"; error: string }> {
-  const result = await read(file, mode, current, currentRisks, currentComponents);
+  const result = await read(
+    file,
+    mode,
+    current,
+    currentRisks,
+    currentComponents,
+  );
   if (!result.ok) return { kind: "error", error: result.error };
   return toApply(result);
 }

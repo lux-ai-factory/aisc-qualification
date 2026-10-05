@@ -5,7 +5,10 @@ import { vi } from "vitest";
 
 export function fakeTx() {
   const calls: unknown[][] = [];
-  return { calls, $executeRaw: vi.fn(async (...args: unknown[]) => (calls.push(args), 1)) };
+  return {
+    calls,
+    $executeRaw: vi.fn(async (...args: unknown[]) => (calls.push(args), 1)),
+  };
 }
 
 type Repoish = Record<string, unknown>;
@@ -13,10 +16,16 @@ type Repoish = Record<string, unknown>;
 /** `repo` with `transaction` and the history methods, keeping any the test defined itself. */
 export function transactional<T extends Repoish>(repo: T, tx = fakeTx()) {
   const out = repo as Repoish;
-  out.transaction ??= async (fn: (r: unknown, t: unknown) => unknown) => fn(out, tx);
+  out.transaction ??= async (fn: (r: unknown, t: unknown) => unknown) =>
+    fn(out, tx);
   out.recordHistory ??= vi.fn(async () => undefined);
   out.findLink ??= vi.fn(async () => null);
-  out.ontologyState ??= vi.fn(async () => ({ ontologyPatch: null, ontologyExtracted: null }));
+  out.ontologyState ??= vi.fn(async () => ({
+    ontologyPatch: null,
+    ontologyExtracted: null,
+  }));
   out.lockedPatch ??= vi.fn(async () => null);
-  return Object.assign(out, { ledgerTx: tx }) as T & { ledgerTx: ReturnType<typeof fakeTx> };
+  return Object.assign(out, { ledgerTx: tx }) as T & {
+    ledgerTx: ReturnType<typeof fakeTx>;
+  };
 }

@@ -21,13 +21,34 @@ const before = () => JSON.parse(readFileSync(FIXTURE, "utf8"));
 // The form speaks VAIR: the export carries the VAIR terms the author chose instead of resolved
 // tags. That is the one other change
 // to these bytes, and its values come from the ontology's own MCAS fixture, not from the exporter.
-const VAIR_EXAMPLE = JSON.parse(readFileSync("services/ontology/examples/mcas.qualification.json", "utf8"));
-const RISK_TERMS = ["sourceTerm", "consequenceTerm", "impactTerm", "controlTerm", "followUpControlTerm"];
+const VAIR_EXAMPLE = JSON.parse(
+  readFileSync("services/ontology/examples/mcas.qualification.json", "utf8"),
+);
+const RISK_TERMS = [
+  "sourceTerm",
+  "consequenceTerm",
+  "impactTerm",
+  "controlTerm",
+  "followUpControlTerm",
+];
 
 function inVair(x: Q): Q {
-  const { targetSystems: _t, sectors: _s, marketFormTags: _m, localityTags: _l, answers, risks, ...rest } = x;
-  void _t; void _s; void _m; void _l;
-  const head = Object.fromEntries(Object.entries(rest).filter(([k]) => k !== "form"));
+  const {
+    targetSystems: _t,
+    sectors: _s,
+    marketFormTags: _m,
+    localityTags: _l,
+    answers,
+    risks,
+    ...rest
+  } = x;
+  void _t;
+  void _s;
+  void _m;
+  void _l;
+  const head = Object.fromEntries(
+    Object.entries(rest).filter(([k]) => k !== "form"),
+  );
   return {
     ...head,
     systemType: VAIR_EXAMPLE.systemType,
@@ -42,10 +63,20 @@ function inVair(x: Q): Q {
     risks: (risks as Q[]).map((r, i) => {
       const terms = VAIR_EXAMPLE.risks[i];
       return {
-        position: r.position, risk: r.risk, source: r.source, sourceTerm: terms.sourceTerm,
-        vulnerability: r.vulnerability, consequence: r.consequence, consequenceTerm: terms.consequenceTerm,
-        impactTerm: terms.impactTerm, affected: terms.affected, impactAreas: terms.impactAreas, control: r.control,
-        controlTerm: terms.controlTerm, followUpControl: r.followUpControl, followUpControlTerm: terms.followUpControlTerm,
+        position: r.position,
+        risk: r.risk,
+        source: r.source,
+        sourceTerm: terms.sourceTerm,
+        vulnerability: r.vulnerability,
+        consequence: r.consequence,
+        consequenceTerm: terms.consequenceTerm,
+        impactTerm: terms.impactTerm,
+        affected: terms.affected,
+        impactAreas: terms.impactAreas,
+        control: r.control,
+        controlTerm: terms.controlTerm,
+        followUpControl: r.followUpControl,
+        followUpControlTerm: terms.followUpControlTerm,
       };
     }),
     form: x.form,
@@ -70,7 +101,9 @@ function expectedAfter() {
 }
 
 async function exportNow() {
-  const { toExport } = await loadSrc("server/services/QualificationExporter.ts");
+  const { toExport } = await loadSrc(
+    "server/services/QualificationExporter.ts",
+  );
   const { annexDefaultVersion } = await loadSrc("domain/forms/legacy.ts");
   return toExport(mcasCard(), annexDefaultVersion());
 }
@@ -84,9 +117,20 @@ describe("the fixture written before the change (T10)", () => {
     expect(x.form.questions).toHaveLength(14);
     for (const q of x.form.questions) {
       expect(Object.keys(q)).toEqual([
-        "key", "text", "citation", "required", "annexPoint", "ownerForm", "ownerFormId", "ownerBuiltin",
+        "key",
+        "text",
+        "citation",
+        "required",
+        "annexPoint",
+        "ownerForm",
+        "ownerFormId",
+        "ownerBuiltin",
       ]);
-      expect(q).toMatchObject({ ownerForm: "Annex IV default", ownerFormId: "annex-iv-default", ownerBuiltin: true });
+      expect(q).toMatchObject({
+        ownerForm: "Annex IV default",
+        ownerFormId: "annex-iv-default",
+        ownerBuiltin: true,
+      });
     }
     expect(x.answers).toHaveLength(14);
   });
@@ -95,7 +139,9 @@ describe("the fixture written before the change (T10)", () => {
 describe("an Annex IV card exports as before (T10)", () => {
   it("T10 toExport(the MCAS card, annexDefaultVersion()) is the fixture byte for byte, owner keys renamed", async () => {
     const now = await exportNow();
-    expect(JSON.stringify(now, null, 2)).toBe(JSON.stringify(expectedAfter(), null, 2));
+    expect(JSON.stringify(now, null, 2)).toBe(
+      JSON.stringify(expectedAfter(), null, 2),
+    );
   });
 
   it("T10 answers, their order, form.name, form.version, metadata and risks are the fixture's", async () => {
@@ -105,7 +151,11 @@ describe("an Annex IV card exports as before (T10)", () => {
     expect(now.form.name).toBe("Annex IV default");
     expect(now.form.version).toBe(1);
     expect(now.risks).toEqual(was.risks);
-    for (const f of RISK_TERMS) expect(now.risks.map((r: Q) => r[f]), f).toEqual(VAIR_EXAMPLE.risks.map((r: Q) => r[f]));
+    for (const f of RISK_TERMS)
+      expect(
+        now.risks.map((r: Q) => r[f]),
+        f,
+      ).toEqual(VAIR_EXAMPLE.risks.map((r: Q) => r[f]));
     const { form: _a, ...restNow } = now;
     const { form: _b, ...restWas } = was;
     void _a;
@@ -117,9 +167,20 @@ describe("an Annex IV card exports as before (T10)", () => {
     const now = await exportNow();
     for (const q of now.form.questions) {
       expect(Object.keys(q)).toEqual([
-        "key", "text", "citation", "required", "annexPoint", "ownerSet", "ownerSetId", "ownerBuiltin",
+        "key",
+        "text",
+        "citation",
+        "required",
+        "annexPoint",
+        "ownerSet",
+        "ownerSetId",
+        "ownerBuiltin",
       ]);
-      expect(q).toMatchObject({ ownerSet: "Annex IV", ownerSetId: "annex-iv", ownerBuiltin: true });
+      expect(q).toMatchObject({
+        ownerSet: "Annex IV",
+        ownerSetId: "annex-iv",
+        ownerBuiltin: true,
+      });
     }
   });
 });

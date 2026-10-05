@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useId, useReducer, useRef, useState } from "react";
-import { ANNEX_POINTS, annexCitation, isAnnexPoint } from "@/domain/forms/annexPoints";
+import {
+  ANNEX_POINTS,
+  annexCitation,
+  isAnnexPoint,
+} from "@/domain/forms/annexPoints";
 import {
   initialSetEditorState,
   setEditorReducer,
@@ -24,19 +28,36 @@ type Props = {
   latestNumber?: number;
 };
 
-const moveLabel = (text: string, dir: "up" | "down") => `Move ${text.slice(0, 40).trimEnd()} ${dir}`;
+const moveLabel = (text: string, dir: "up" | "down") =>
+  `Move ${text.slice(0, 40).trimEnd()} ${dir}`;
 const short = (text: string) => text.slice(0, 40).trimEnd();
 
-const NEW_QUESTION: QuestionValues = { text: "", citation: "", required: true, annexPoint: null };
+const NEW_QUESTION: QuestionValues = {
+  text: "",
+  citation: "",
+  required: true,
+  annexPoint: null,
+};
 
 type Editor = { index: number | null; values: QuestionValues };
 
-export default function QuestionSetEditor({ project, initial, latestNumber }: Props) {
-  const [state, dispatch] = useReducer(setEditorReducer, initial, initialSetEditorState);
+export default function QuestionSetEditor({
+  project,
+  initial,
+  latestNumber,
+}: Props) {
+  const [state, dispatch] = useReducer(
+    setEditorReducer,
+    initial,
+    initialSetEditorState,
+  );
   const [editor, setEditor] = useState<Editor | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [focus, setFocus] = useState<{ rowKey: string; dir: "up" | "down" } | null>(null);
+  const [focus, setFocus] = useState<{
+    rowKey: string;
+    dir: "up" | "down";
+  } | null>(null);
   const moveButtons = useRef(new Map<string, HTMLButtonElement>());
   const dragFrom = useRef<number | null>(null);
   const ids = useId();
@@ -47,7 +68,10 @@ export default function QuestionSetEditor({ project, initial, latestNumber }: Pr
     if (!focus) return;
     const other = focus.dir === "up" ? "down" : "up";
     const same = moveButtons.current.get(`${focus.rowKey}:${focus.dir}`);
-    const target = same && !same.disabled ? same : moveButtons.current.get(`${focus.rowKey}:${other}`);
+    const target =
+      same && !same.disabled
+        ? same
+        : moveButtons.current.get(`${focus.rowKey}:${other}`);
     target?.focus();
     setFocus(null);
   }, [focus, state.rows]);
@@ -57,7 +81,11 @@ export default function QuestionSetEditor({ project, initial, latestNumber }: Pr
 
   const move = (index: number, dir: "up" | "down") => {
     const row = state.rows[index];
-    dispatch({ type: "move", from: index, to: dir === "up" ? index - 1 : index + 1 });
+    dispatch({
+      type: "move",
+      from: index,
+      to: dir === "up" ? index - 1 : index + 1,
+    });
     setFocus({ rowKey: row.rowKey, dir });
   };
 
@@ -72,10 +100,15 @@ export default function QuestionSetEditor({ project, initial, latestNumber }: Pr
     setError(null);
     setSaving(true);
     try {
-      const result = await saveQuestionSet(project, JSON.stringify(toSetDraft(state)), state.setId ?? undefined, {
-        origin: state.origin,
-        alsoQuestionnaire: state.alsoQuestionnaire,
-      });
+      const result = await saveQuestionSet(
+        project,
+        JSON.stringify(toSetDraft(state)),
+        state.setId ?? undefined,
+        {
+          origin: state.origin,
+          alsoQuestionnaire: state.alsoQuestionnaire,
+        },
+      );
       if (result?.error) setError(result.error);
     } finally {
       setSaving(false);
@@ -88,7 +121,9 @@ export default function QuestionSetEditor({ project, initial, latestNumber }: Pr
         {editing ? (
           <>
             <h2>{state.name}</h2>
-            {state.description && <p className="qf-forms-desc">{state.description}</p>}
+            {state.description && (
+              <p className="qf-forms-desc">{state.description}</p>
+            )}
           </>
         ) : (
           <>
@@ -100,7 +135,9 @@ export default function QuestionSetEditor({ project, initial, latestNumber }: Pr
                 id={`${ids}-name`}
                 value={state.name}
                 maxLength={120}
-                onChange={(e) => dispatch({ type: "setName", name: e.target.value })}
+                onChange={(e) =>
+                  dispatch({ type: "setName", name: e.target.value })
+                }
               />
             </div>
             <div className="field">
@@ -112,14 +149,23 @@ export default function QuestionSetEditor({ project, initial, latestNumber }: Pr
                 value={state.description}
                 maxLength={500}
                 rows={2}
-                onChange={(e) => dispatch({ type: "setDescription", description: e.target.value })}
+                onChange={(e) =>
+                  dispatch({
+                    type: "setDescription",
+                    description: e.target.value,
+                  })
+                }
               />
             </div>
           </>
         )}
 
         <h3 className="qf-group">Questions ({state.rows.length})</h3>
-        {state.rows.length === 0 && <p className="qf-builder-empty">No questions yet. Write the first one.</p>}
+        {state.rows.length === 0 && (
+          <p className="qf-builder-empty">
+            No questions yet. Write the first one.
+          </p>
+        )}
         <ol className="qf-builder-rows">
           {state.rows.map((row, i) => (
             <li
@@ -132,7 +178,8 @@ export default function QuestionSetEditor({ project, initial, latestNumber }: Pr
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
-                if (dragFrom.current !== null) dispatch({ type: "move", from: dragFrom.current, to: i });
+                if (dragFrom.current !== null)
+                  dispatch({ type: "move", from: dragFrom.current, to: i });
                 dragFrom.current = null;
               }}
             >
@@ -140,9 +187,17 @@ export default function QuestionSetEditor({ project, initial, latestNumber }: Pr
               <div className="qf-builder-row-body">
                 <span className="qf-question-text">{row.text}</span>
                 <div className="qf-builder-chips">
-                  {row.citation !== "" && <span className="qf-citation">{row.citation}</span>}
-                  {row.annexPoint && <span className="qf-overlap">{annexCitation(row.annexPoint)}</span>}
-                  <span className="qf-tag">{row.required ? "Required" : "Optional"}</span>
+                  {row.citation !== "" && (
+                    <span className="qf-citation">{row.citation}</span>
+                  )}
+                  {row.annexPoint && (
+                    <span className="qf-overlap">
+                      {annexCitation(row.annexPoint)}
+                    </span>
+                  )}
+                  <span className="qf-tag">
+                    {row.required ? "Required" : "Optional"}
+                  </span>
                 </div>
                 <div className="qf-builder-actions">
                   <span className="qf-builder-move">
@@ -152,7 +207,9 @@ export default function QuestionSetEditor({ project, initial, latestNumber }: Pr
                         type="button"
                         className="qf-builder-tool qf-builder-arrow"
                         aria-label={moveLabel(row.text, dir)}
-                        disabled={dir === "up" ? i === 0 : i === state.rows.length - 1}
+                        disabled={
+                          dir === "up" ? i === 0 : i === state.rows.length - 1
+                        }
                         ref={(el) => {
                           const key = `${row.rowKey}:${dir}`;
                           if (el) moveButtons.current.set(key, el);
@@ -171,7 +228,12 @@ export default function QuestionSetEditor({ project, initial, latestNumber }: Pr
                     onClick={() =>
                       setEditor({
                         index: i,
-                        values: { text: row.text, citation: row.citation, required: row.required, annexPoint: row.annexPoint },
+                        values: {
+                          text: row.text,
+                          citation: row.citation,
+                          required: row.required,
+                          annexPoint: row.annexPoint,
+                        },
                       })
                     }
                   >
@@ -197,7 +259,9 @@ export default function QuestionSetEditor({ project, initial, latestNumber }: Pr
         {editor ? (
           <div className="qf-builder-editor">
             <h3 className="qf-group">
-              {editor.index === null ? "New question" : `Edit question ${editor.index + 1}`}
+              {editor.index === null
+                ? "New question"
+                : `Edit question ${editor.index + 1}`}
             </h3>
             <QuestionEditor
               idPrefix={ids}
@@ -230,8 +294,15 @@ export default function QuestionSetEditor({ project, initial, latestNumber }: Pr
 
         {error && <div className="error">{error}</div>}
         <div className="qf-actions qf-builder-footer">
-          <button className="btn" type="button" disabled={saving} onClick={submit}>
-            {editing && latest !== undefined ? `Save as v${latest + 1}` : "Save question set"}
+          <button
+            className="btn"
+            type="button"
+            disabled={saving}
+            onClick={submit}
+          >
+            {editing && latest !== undefined
+              ? `Save as v${latest + 1}`
+              : "Save question set"}
           </button>
         </div>
       </section>
@@ -254,7 +325,8 @@ function QuestionEditor({
   onSave: () => void;
   onCancel: () => void;
 }) {
-  const set = (over: Partial<QuestionValues>) => onChange({ ...values, ...over });
+  const set = (over: Partial<QuestionValues>) =>
+    onChange({ ...values, ...over });
   return (
     <div>
       <div className="field">
@@ -291,7 +363,13 @@ function QuestionEditor({
             id={`${idPrefix}-point`}
             className="qf-select"
             value={values.annexPoint ?? ""}
-            onChange={(e) => set({ annexPoint: isAnnexPoint(e.target.value) ? e.target.value : null })}
+            onChange={(e) =>
+              set({
+                annexPoint: isAnnexPoint(e.target.value)
+                  ? e.target.value
+                  : null,
+              })
+            }
           >
             <option value="">None</option>
             {ANNEX_POINTS.map((p) => (
@@ -311,7 +389,11 @@ function QuestionEditor({
         Required
       </label>
       <div className="qf-actions qf-builder-editor-actions">
-        <button type="button" className="btn ghost qf-builder-small" onClick={onCancel}>
+        <button
+          type="button"
+          className="btn ghost qf-builder-small"
+          onClick={onCancel}
+        >
           Cancel
         </button>
         <button type="button" className="btn qf-builder-small" onClick={onSave}>

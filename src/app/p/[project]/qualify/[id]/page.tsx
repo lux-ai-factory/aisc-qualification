@@ -43,19 +43,23 @@ export default async function QualificationDetailPage({
   // Who opened which card version is recorded in the ledger as qualification.opened. It is a read:
   // the page never fails for it, and a failure to record is logged, not shown. A server action
   // re-renders this page in its own POST (Next-Action): that is the action, not an opening.
-  if (!(await isServerAction())) await repositoryFor(project)
-    .then((repo) =>
-      repo.transaction((_r, tx) =>
-        emitEvent(tx, {
-          action: "qualification.opened",
-          itemType: "qualification",
-          itemId: q.id,
-          details: { version: q.systemVersion, read_only: readOnly },
-        }),
-      ),
-    )
-    .catch((err: unknown) => console.warn(`ledger: qualification.opened not recorded for ${q.id}: ${String(err)}`));
-
+  if (!(await isServerAction()))
+    await repositoryFor(project)
+      .then((repo) =>
+        repo.transaction((_r, tx) =>
+          emitEvent(tx, {
+            action: "qualification.opened",
+            itemType: "qualification",
+            itemId: q.id,
+            details: { version: q.systemVersion, read_only: readOnly },
+          }),
+        ),
+      )
+      .catch((err: unknown) =>
+        console.warn(
+          `ledger: qualification.opened not recorded for ${q.id}: ${String(err)}`,
+        ),
+      );
 
   // The ontology IS the card: built on read from the form, the agent's
   // extraction and the reviewer's patch. A sidecar that is down must not take
@@ -69,16 +73,25 @@ export default async function QualificationDetailPage({
     vocabularies = await OntologyClient.fromEnv().vocabularies();
   } catch (err) {
     ontologyError =
-      err instanceof Error ? err.message : "The knowledge graph could not be built.";
+      err instanceof Error
+        ? err.message
+        : "The knowledge graph could not be built.";
   }
 
   // The questionnaire version the card was filled with; a card from before
   // questionnaires is the default version, and so is one whose version cannot
   // be found. Only the current card is offered a newer version to move to.
   const questionnaires = await questionnairesFor(project);
-  const form = (await questionnaires.resolve(q.questionnaireVersionId ?? null)) ?? annexDefaultVersion();
+  const form =
+    (await questionnaires.resolve(q.questionnaireVersionId ?? null)) ??
+    annexDefaultVersion();
   const newer = standing?.current
-    ? newerVersion(form, await questionnaires.latestVersion(form.questionnaireId).catch(() => null))
+    ? newerVersion(
+        form,
+        await questionnaires
+          .latestVersion(form.questionnaireId)
+          .catch(() => null),
+      )
     : null;
 
   const savedAt = q.createdAt.toISOString().slice(0, 16).replace("T", " ");
@@ -96,15 +109,28 @@ export default async function QualificationDetailPage({
               {q.company} · {versionLabel(q.systemVersion)} · saved {savedAt}{" "}
               UTC
             </p>
-            <FormLine project={project} questionnaireId={form.questionnaireId} questionnaireName={form.questionnaireName} versionNumber={form.versionNumber} basePath={basePath} newer={newer} />
+            <FormLine
+              project={project}
+              questionnaireId={form.questionnaireId}
+              questionnaireName={form.questionnaireName}
+              versionNumber={form.versionNumber}
+              basePath={basePath}
+              newer={newer}
+            />
           </div>
           <div className="qf-header-actions">
             {standing?.current && (
-              <Link className="btn qf-header-btn" href={`/p/${project}/system/edit`}>
+              <Link
+                className="btn qf-header-btn"
+                href={`/p/${project}/system/edit`}
+              >
                 Edit the AI system
               </Link>
             )}
-            <Link className="btn ghost qf-header-btn" href={`/p/${project}/qualifications`}>
+            <Link
+              className="btn ghost qf-header-btn"
+              href={`/p/${project}/qualifications`}
+            >
               Versions
             </Link>
           </div>
@@ -113,7 +139,8 @@ export default async function QualificationDetailPage({
 
       {readOnly && (
         <p className="qf-prefilled">
-          v{standing?.versionNumber || "?"}, kept as it was: only the latest version changes.{" "}
+          v{standing?.versionNumber || "?"}, kept as it was: only the latest
+          version changes.{" "}
           {standing?.currentCardId && (
             <Link href={`/p/${project}/qualify/${standing.currentCardId}`}>
               Open the latest card
@@ -205,8 +232,8 @@ export default async function QualificationDetailPage({
             ) : (
               <section className="qf-section">
                 <p className="qf-help">
-                  This system&rsquo;s knowledge graph could not be built: {ontologyError} The
-                  answered form is unaffected.
+                  This system&rsquo;s knowledge graph could not be built:{" "}
+                  {ontologyError} The answered form is unaffected.
                 </p>
               </section>
             )}

@@ -60,7 +60,12 @@ export type ResolvedSetVersion = {
 };
 
 /** One version's stamp: who saved it, when. */
-export type VersionStamp = { versionId: string; number: number; createdAt: string /* ISO 8601 */; createdBy: string };
+export type VersionStamp = {
+  versionId: string;
+  number: number;
+  createdAt: string /* ISO 8601 */;
+  createdBy: string;
+};
 
 /** Where a questionnaire version comes from: QuestionnaireService, or a fake in the tests.
  *  null for an id that names no version. */

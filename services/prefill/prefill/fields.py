@@ -144,7 +144,7 @@ def metadata_from_text(text: str) -> dict[str, str]:
         if not value:
             # "System name" with the value on the next line, which is how a
             # heading in a Word document arrives.
-            value = next((l.strip() for l in lines[index + 1:index + 3] if l.strip()), "")
+            value = next((line.strip() for line in lines[index + 1:index + 3] if line.strip()), "")
             following = _label_of(value)
             if following and _field_for_label(following[0]):
                 value = ""  # the next line is another label, not this one's value

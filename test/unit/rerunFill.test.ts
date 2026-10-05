@@ -12,13 +12,21 @@ const cards: Record<string, { id: string; systemId: string }> = {
   old: { id: "old", systemId: "v1" },
 };
 
-const repo = transactional({ cardSummary: vi.fn(async (id: string) => cards[id] ?? null) });
-const actionDoor = vi.fn(async (_p: string, _o: unknown) => ({ db: {} }) as { db?: object; error?: string });
+const repo = transactional({
+  cardSummary: vi.fn(async (id: string) => cards[id] ?? null),
+});
+const actionDoor = vi.fn(
+  async (_p: string, _o: unknown) =>
+    ({ db: {} }) as { db?: object; error?: string },
+);
 const requestFill = vi.fn(async (_p: string, _id: string) => true);
+const fillInFlight = vi.fn(async (_p: string, _id: string) => false);
 const latestVersion = vi.fn(async () => ({ pid: "v2" }));
 const revalidatePath = vi.fn();
 
-vi.mock("next/cache", () => ({ revalidatePath: (p: string) => revalidatePath(p) }));
+vi.mock("next/cache", () => ({
+  revalidatePath: (p: string) => revalidatePath(p),
+}));
 vi.mock("@/lib/projectDb", () => ({
   projectDbForAction: (p: string, o: unknown) => actionDoor(p, o),
 }));
@@ -34,10 +42,12 @@ vi.mock("@/server/services/PlatformClient", () => ({
 }));
 vi.mock("@/server/services/FillerClient", () => ({
   requestFill: (p: string, id: string) => requestFill(p, id),
+  fillInFlight: (p: string, id: string) => fillInFlight(p, id),
 }));
 
 async function rerun(project: string, id: string) {
-  const { rerunFill } = await import("@/app/p/[project]/qualify/[id]/fill-actions");
+  const { rerunFill } =
+    await import("@/app/p/[project]/qualify/[id]/fill-actions");
   return rerunFill(project, id);
 }
 
@@ -45,6 +55,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   actionDoor.mockResolvedValue({ db: {} });
   requestFill.mockResolvedValue(true);
+  fillInFlight.mockResolvedValue(false);
 });
 
 describe("regenerating the AI card", () => {
@@ -56,7 +67,9 @@ describe("regenerating the AI card", () => {
   });
 
   it("is refused to a caller who cannot write the project, and starts nothing", async () => {
-    actionDoor.mockResolvedValue({ error: "403: you cannot change this project." });
+    actionDoor.mockResolvedValue({
+      error: "403: you cannot change this project.",
+    });
     const state = await rerun(PROJECT_ID, "q1");
     expect(state.ok).toBe(false);
     if (!state.ok) expect(state.error).toMatch(/403/);
@@ -82,5 +95,21 @@ describe("regenerating the AI card", () => {
     const state = await rerun(PROJECT_ID, "q1");
     expect(state.ok).toBe(false);
     if (!state.ok) expect(state.error).toMatch(/card agent/i);
+  });
+});
+
+describe("a second click while a run is going (code review B5)", () => {
+  it("says a run is already going, and records no request the agent would ignore", async () => {
+    fillInFlight.mockResolvedValue(true);
+    const transaction = vi.spyOn(
+      repo as unknown as { transaction: () => unknown },
+      "transaction",
+    );
+    const state = await rerun(PROJECT_ID, "q1");
+    expect(state.ok).toBe(false);
+    if (!state.ok) expect(state.error).toMatch(/already/i);
+    expect(fillInFlight).toHaveBeenCalledWith(PROJECT_ID, "q1");
+    expect(transaction).not.toHaveBeenCalled();
+    expect(requestFill).not.toHaveBeenCalled();
   });
 });

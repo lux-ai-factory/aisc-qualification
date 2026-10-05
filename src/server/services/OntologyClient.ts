@@ -21,6 +21,15 @@ export type OntologyBuild = {
  * built and validated there, in Python, and this app only renders the view model
  * it returns: no RDF library and no ontology rules on this side.
  */
+/** The builder refused its input (422): a bad VAIR term, an unknown picker id. Its message is the
+ *  service's own. Any other failure (the service down, a 500) is a plain Error. */
+export class OntologyRejected extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "OntologyRejected";
+  }
+}
+
 export class OntologyClient {
   constructor(
     private readonly serviceUrl: string,
@@ -57,7 +66,7 @@ export class OntologyClient {
       const detail = await OntologyClient.detail(res);
       // 422 is our own mistake (a bad VAIR term, an unknown picker id): the
       // service's message is the useful one, so surface it as-is.
-      if (res.status === 422) throw new Error(detail);
+      if (res.status === 422) throw new OntologyRejected(detail);
       throw new Error(`Ontology service error ${res.status}: ${detail}`);
     }
 
@@ -76,13 +85,15 @@ export class OntologyClient {
     return (await res.json()) as Record<string, string[]>;
   }
 
+  // The body is read once, as text: a JSON error gives its detail, any other body is the message.
   private static async detail(res: Response): Promise<string> {
+    const text = await res.text().catch(() => "");
     try {
-      const body = (await res.json()) as { detail?: string };
+      const body = JSON.parse(text) as { detail?: string };
       if (body?.detail) return body.detail;
       return JSON.stringify(body);
     } catch {
-      return await res.text().catch(() => "");
+      return text;
     }
   }
 }

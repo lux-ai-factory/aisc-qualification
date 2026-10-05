@@ -1,14 +1,24 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import FillStatus from "@/app/p/[project]/qualify/[id]/FillStatus";
 
 // the page passes the fill route under its project
-const STATUS_URL = "/p/a1b2c3d4-0000-4000-8000-000000000002/api/qualifications/q1/fill";
+const STATUS_URL =
+  "/p/a1b2c3d4-0000-4000-8000-000000000002/api/qualifications/q1/fill";
 
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
-const rerunFill = vi.fn(async (_p: string, _id: string) => ({ ok: true }) as { ok: boolean; error?: string });
+const rerunFill = vi.fn(
+  async (_p: string, _id: string) =>
+    ({ ok: true }) as { ok: boolean; error?: string },
+);
 vi.mock("@/app/p/[project]/qualify/[id]/fill-actions", () => ({
   rerunFill: (p: string, id: string) => rerunFill(p, id),
 }));
@@ -36,7 +46,13 @@ describe("the card telling you the filler is working", () => {
   it("reports a run in flight", async () => {
     withStates("running");
     await act(async () => {
-      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+      render(
+        <FillStatus
+          project={PROJECT}
+          qualificationId="q1"
+          statusUrl={STATUS_URL}
+        />,
+      );
     });
     expect(screen.getByRole("status").textContent).toMatch(/refining/i);
   });
@@ -45,7 +61,13 @@ describe("the card telling you the filler is working", () => {
     vi.useFakeTimers();
     const fetchMock = withStates("running", "running", "done");
     await act(async () => {
-      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+      render(
+        <FillStatus
+          project={PROJECT}
+          qualificationId="q1"
+          statusUrl={STATUS_URL}
+        />,
+      );
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     await act(async () => {
@@ -58,7 +80,13 @@ describe("the card telling you the filler is working", () => {
     vi.useFakeTimers();
     withStates("running", "done");
     await act(async () => {
-      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+      render(
+        <FillStatus
+          project={PROJECT}
+          qualificationId="q1"
+          statusUrl={STATUS_URL}
+        />,
+      );
     });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2500);
@@ -70,7 +98,13 @@ describe("the card telling you the filler is working", () => {
     vi.useFakeTimers();
     const fetchMock = withStates("done");
     await act(async () => {
-      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+      render(
+        <FillStatus
+          project={PROJECT}
+          qualificationId="q1"
+          statusUrl={STATUS_URL}
+        />,
+      );
     });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10000);
@@ -80,7 +114,13 @@ describe("the card telling you the filler is working", () => {
 
   it("shows no status line when no run exists for this card", async () => {
     withStates("idle");
-    render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+    render(
+      <FillStatus
+        project={PROJECT}
+        qualificationId="q1"
+        statusUrl={STATUS_URL}
+      />,
+    );
     await act(async () => {});
     expect(screen.queryByRole("status")).toBeNull();
   });
@@ -88,7 +128,13 @@ describe("the card telling you the filler is working", () => {
   it("reports a failed run", async () => {
     withStates("failed");
     await act(async () => {
-      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+      render(
+        <FillStatus
+          project={PROJECT}
+          qualificationId="q1"
+          statusUrl={STATUS_URL}
+        />,
+      );
     });
     expect(screen.getByRole("status").textContent).toMatch(/could not|failed/i);
   });
@@ -100,7 +146,13 @@ describe("the card telling you the filler is working", () => {
         throw new Error("connection refused");
       }),
     );
-    render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+    render(
+      <FillStatus
+        project={PROJECT}
+        qualificationId="q1"
+        statusUrl={STATUS_URL}
+      />,
+    );
     await act(async () => {});
     expect(screen.queryByRole("status")).toBeNull();
     expect(refresh).not.toHaveBeenCalled();
@@ -108,30 +160,55 @@ describe("the card telling you the filler is working", () => {
 });
 
 describe("refining the card with AI from its page", () => {
-  const button = () => screen.queryByRole("button", { name: /refine with ai/i });
+  const button = () =>
+    screen.queryByRole("button", { name: /refine with ai/i });
 
-  it.each(["idle", "done", "failed"])("offers to refine with AI when the run is %s", async (state) => {
-    withStates(state);
-    await act(async () => {
-      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
-    });
-    expect(button()).not.toBeNull();
-  });
+  it.each(["idle", "done", "failed"])(
+    "offers to refine with AI when the run is %s",
+    async (state) => {
+      withStates(state);
+      await act(async () => {
+        render(
+          <FillStatus
+            project={PROJECT}
+            qualificationId="q1"
+            statusUrl={STATUS_URL}
+          />,
+        );
+      });
+      expect(button()).not.toBeNull();
+    },
+  );
 
-  it.each(["queued", "running"])("does not offer it while a run is %s", async (state) => {
-    withStates(state);
-    await act(async () => {
-      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
-    });
-    expect(button()).toBeNull();
-  });
+  it.each(["queued", "running"])(
+    "does not offer it while a run is %s",
+    async (state) => {
+      withStates(state);
+      await act(async () => {
+        render(
+          <FillStatus
+            project={PROJECT}
+            qualificationId="q1"
+            statusUrl={STATUS_URL}
+          />,
+        );
+      });
+      expect(button()).toBeNull();
+    },
+  );
 
   it("starts a run, shows it in flight, and refreshes the page again when it lands", async () => {
     vi.useFakeTimers();
     // first look: an earlier run is done (and refreshes once); after the click: running, then done
     withStates("done", "running", "done");
     await act(async () => {
-      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+      render(
+        <FillStatus
+          project={PROJECT}
+          qualificationId="q1"
+          statusUrl={STATUS_URL}
+        />,
+      );
     });
     expect(refresh).toHaveBeenCalledTimes(1);
     await act(async () => {
@@ -147,9 +224,18 @@ describe("refining the card with AI from its page", () => {
 
   it("shows why when the run could not be started", async () => {
     withStates("idle");
-    rerunFill.mockResolvedValueOnce({ ok: false, error: "The card agent did not take the run." });
+    rerunFill.mockResolvedValueOnce({
+      ok: false,
+      error: "The card agent did not take the run.",
+    });
     await act(async () => {
-      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+      render(
+        <FillStatus
+          project={PROJECT}
+          qualificationId="q1"
+          statusUrl={STATUS_URL}
+        />,
+      );
     });
     await act(async () => {
       fireEvent.click(button()!);
@@ -162,13 +248,24 @@ describe("refining the card with AI from its page", () => {
 describe("the card counting the places to check", () => {
   // The count is the card's own (its nodes carrying notes), so it survives a restart of the
   // agent and drops a note a reviewer's edit settled; the run's record is not read for it.
-  async function withPlaces(places: number, state = "done", result: unknown = undefined) {
+  async function withPlaces(
+    places: number,
+    state = "done",
+    result: unknown = undefined,
+  ) {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({ ok: true, json: async () => ({ state, result }) })),
     );
     await act(async () => {
-      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} places={places} />);
+      render(
+        <FillStatus
+          project={PROJECT}
+          qualificationId="q1"
+          statusUrl={STATUS_URL}
+          places={places}
+        />,
+      );
     });
   }
 

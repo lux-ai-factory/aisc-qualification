@@ -27,7 +27,9 @@ if (!template.includes("{database}")) {
 async function listDatabases() {
   // The catalogue is read on the maintenance database, without the schema and limit of a
   // project database.
-  const catalog = new PrismaClient({ datasourceUrl: template.replace("{database}", "postgres").split("?")[0] });
+  const catalog = new PrismaClient({
+    datasourceUrl: template.replace("{database}", "postgres").split("?")[0],
+  });
   try {
     const rows = await catalog.$queryRawUnsafe(
       `SELECT datname FROM pg_database
@@ -42,9 +44,13 @@ async function listDatabases() {
 
 let names;
 try {
-  names = (await listDatabases()).filter((d) => PROJECT_DATABASE.test(d)).sort();
+  names = (await listDatabases())
+    .filter((d) => PROJECT_DATABASE.test(d))
+    .sort();
 } catch (err) {
-  console.error(`[qualification] cannot list the databases yet: ${err?.message?.split("\n").pop() ?? err}`);
+  console.error(
+    `[qualification] cannot list the databases yet: ${err?.message?.split("\n").pop() ?? err}`,
+  );
   process.exit(1);
 }
 
@@ -61,5 +67,7 @@ for (const name of names) {
     failed.push(name);
   }
 }
-console.log(`[qualification] ${names.length - failed.length} of ${names.length} project databases at the head`);
+console.log(
+  `[qualification] ${names.length - failed.length} of ${names.length} project databases at the head`,
+);
 process.exit(failed.length ? 2 : 0);

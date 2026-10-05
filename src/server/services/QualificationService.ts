@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { ledgerSafe, NotCanonical } from "@/server/ledger/canonical";
 import { assignComponentKeys } from "@/domain/systemComponents";
 import {
   QualificationRepository,
@@ -88,11 +89,21 @@ export class QualificationService {
     // (the card before is looked up only when a row claims one of its keys)
     let allowed = new Set<string>();
     if ((posted ?? []).some((row) => row.key !== null)) {
-      const { versions, cards } = await this.versionsAndCards(project);
-      const from = cards.find((c) => c.id === nextCard(versions, cards).fromCardId);
+      const from = await this.startCard(project);
       allowed = new Set((from?.systemComponents ?? []).map((c) => c.key));
     }
     const systemComponents = assignComponentKeys(posted ?? [], allowed, () => randomUUID());
+    // The card's ledger event carries its content, and is refused when the ledger cannot keep it (an
+    // unpaired surrogate in an answer): asked now, before the version is made, so a refused save
+    // leaves no version without a card.
+    try {
+      ledgerSafe(JSON.parse(JSON.stringify({ ...parsed, systemComponents, questionnaireVersionId: form.versionId })));
+    } catch (err) {
+      if (err instanceof NotCanonical) {
+        throw new FormValidationError(`An answer holds text the record cannot keep (${err.message}). Retype it and save again.`);
+      }
+      throw err;
+    }
     const version = await this.platform.createVersion(project, {
       name: parsed.systemName,
       version: parsed.systemVersion,
@@ -116,12 +127,19 @@ export class QualificationService {
     return { id: made.id, projectId: version.project_id };
   }
 
-  /** The project's card versions and its cards. A project with no version yet
-   *  has no card either: every card points at a version. */
+  /** The project's card versions and its cards' ids. A project with no version
+   *  yet has no card either: every card points at a version. */
   private async versionsAndCards(project: string) {
     const versions = await this.platform.listVersions(project);
-    const cards = versions.length ? await (await this.repos(project)).list() : [];
+    const cards = versions.length ? await (await this.repos(project)).cardRefs() : [];
     return { versions, cards };
+  }
+
+  /** The newest card before the next version, read in full, or null. */
+  private async startCard(project: string) {
+    const { versions, cards } = await this.versionsAndCards(project);
+    const id = nextCard(versions, cards).fromCardId;
+    return id ? (await this.repos(project)).find(id) : null;
   }
 
   /**
@@ -133,7 +151,7 @@ export class QualificationService {
   ): Promise<{ next: NextCard; initial: FormExample | null; fromQuestionnaireVersionId: string | null }> {
     const { versions, cards } = await this.versionsAndCards(project);
     const next = nextCard(versions, cards);
-    const from = cards.find((c) => c.id === next.fromCardId);
+    const from = next.fromCardId ? await (await this.repos(project)).find(next.fromCardId) : null;
     return {
       next,
       initial: from ? cardAsFormStart(from) : null,
@@ -151,7 +169,7 @@ export class QualificationService {
   /** Where one card stands among the card versions. */
   async standing(project: string, card: { systemId: string }): Promise<CardStanding> {
     const versions = await this.platform.listVersions(project);
-    const cards = await (await this.repos(project)).list();
+    const cards = await (await this.repos(project)).cardRefs();
     return cardStanding(versions, cards, card.systemId);
   }
 

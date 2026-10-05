@@ -20,7 +20,8 @@ export default async function NewQuestionnairePage({
     builderData(db),
     from ? questionnairesOn(db).latestVersion(from) : Promise.resolve(null),
   ]);
-  const startFrom = source && source.listed && !source.retired ? source : undefined;
+  const startFrom =
+    source && source.listed && !source.retired ? source : undefined;
 
   return (
     <main className="qualify-page qualify-page--wide qf-forms-page">
@@ -29,9 +30,16 @@ export default async function NewQuestionnairePage({
           <Link href={`/p/${project}/questionnaires`}>← Questionnaires</Link>
         </p>
         <h1>New questionnaire</h1>
-        <p>Select question sets, tick the questions to ask, and choose the blocks the questionnaire includes.</p>
+        <p>
+          Select question sets, tick the questions to ask, and choose the blocks
+          the questionnaire includes.
+        </p>
       </header>
-      <QuestionnaireBuilder project={project} groups={groups} initial={startFrom ? { startFrom } : {}} />
+      <QuestionnaireBuilder
+        project={project}
+        groups={groups}
+        initial={startFrom ? { startFrom } : {}}
+      />
     </main>
   );
 }

@@ -16,10 +16,16 @@ export const FORM_BLOCKS = [
 export type FormBlock = (typeof FORM_BLOCKS)[number];
 
 /** Always on the form: no form can drop them. */
-export const IDENTITY_FIELDS = ["systemName", "systemVersion", "company"] as const;
+export const IDENTITY_FIELDS = [
+  "systemName",
+  "systemVersion",
+  "company",
+] as const;
 
 export function isFormBlock(s: unknown): s is FormBlock {
-  return typeof s === "string" && (FORM_BLOCKS as readonly string[]).includes(s);
+  return (
+    typeof s === "string" && (FORM_BLOCKS as readonly string[]).includes(s)
+  );
 }
 
 /** The given blocks in FORM_BLOCKS order, without duplicates or unknown ids. */

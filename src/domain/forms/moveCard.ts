@@ -21,9 +21,14 @@ export function rewordedSince(
 const answered = (s: string | undefined) => s !== undefined && s.trim() !== "";
 
 /** How many non-blank answers are to questions `to` does not ask. */
-export function droppedAnswers(answers: Record<string, string>, to: ResolvedQuestionnaireVersion): number {
+export function droppedAnswers(
+  answers: Record<string, string>,
+  to: ResolvedQuestionnaireVersion,
+): number {
   const fields = new Set(to.questions.map((q) => q.field));
-  return Object.entries(answers).filter(([field, a]) => !fields.has(field) && answered(a)).length;
+  return Object.entries(answers).filter(
+    ([field, a]) => !fields.has(field) && answered(a),
+  ).length;
 }
 
 /** The line shown above the form while a card moves; null when it does not move. */
@@ -45,7 +50,9 @@ export function moveNotice(args: {
         ? " 1 answer to a question this version does not ask will not be carried over."
         : ` ${dropped} answers to questions this version does not ask will not be carried over.`;
   }
-  const reworded = Object.keys(rewordedSince(from, to)).filter((field) => answered(answers[field])).length;
+  const reworded = Object.keys(rewordedSince(from, to)).filter((field) =>
+    answered(answers[field]),
+  ).length;
   if (reworded > 0) {
     notice +=
       reworded === 1
@@ -64,6 +71,11 @@ export function newerVersion(
   latest: ResolvedQuestionnaireVersion | null,
 ): { versionId: string; versionNumber: number } | null {
   if (!latest || latest.questionnaireId !== card.questionnaireId) return null;
-  if (!latest.listed || latest.retired || latest.versionNumber <= card.versionNumber) return null;
+  if (
+    !latest.listed ||
+    latest.retired ||
+    latest.versionNumber <= card.versionNumber
+  )
+    return null;
   return { versionId: latest.versionId, versionNumber: latest.versionNumber };
 }

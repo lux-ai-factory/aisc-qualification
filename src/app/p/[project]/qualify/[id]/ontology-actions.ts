@@ -26,7 +26,9 @@ async function cardIn(
 ): Promise<{ error: string } | null> {
   const d = await projectDbForAction(project, { write });
   if (d.error !== undefined) return { error: d.error };
-  const card = await new QualificationRepository(d.db).cardSummary(qualificationId);
+  const card = await new QualificationRepository(d.db).cardSummary(
+    qualificationId,
+  );
   return card ? null : { error: REFUSED[404] };
 }
 
@@ -58,15 +60,20 @@ export async function patchOntologyNode(
   try {
     const refused = await cardIn(project, qualificationId, true);
     if (refused) return { ok: false, ...refused };
-    const built = await ontologyService.patchNode(project, qualificationId, nodeId, change, (tx, c) =>
-      emitEvent(tx, {
-        action: "card.node_corrected",
-        itemType: "qualification",
-        itemId: qualificationId,
-        details: { node: c.node },
-        // This node's states go in content: before/after describe the whole item.
-        content: { change, before: c.before, after: c.after },
-      }),
+    const built = await ontologyService.patchNode(
+      project,
+      qualificationId,
+      nodeId,
+      change,
+      (tx, c) =>
+        emitEvent(tx, {
+          action: "card.node_corrected",
+          itemType: "qualification",
+          itemId: qualificationId,
+          details: { node: c.node },
+          // This node's states go in content: before/after describe the whole item.
+          content: { change, before: c.before, after: c.after },
+        }),
     );
     revalidatePath(`/p/${project}/qualify/${qualificationId}`);
     return { ok: true, view: built.view, problems: built.problems };
@@ -86,13 +93,16 @@ export async function resetOntology(
   try {
     const refused = await cardIn(project, qualificationId, true);
     if (refused) return { ok: false, ...refused };
-    const built = await ontologyService.resetPatch(project, qualificationId, (tx, c) =>
-      emitEvent(tx, {
-        action: "card.corrections_discarded",
-        itemType: "qualification",
-        itemId: qualificationId,
-        content: { before: c.before, after: {} },
-      }),
+    const built = await ontologyService.resetPatch(
+      project,
+      qualificationId,
+      (tx, c) =>
+        emitEvent(tx, {
+          action: "card.corrections_discarded",
+          itemType: "qualification",
+          itemId: qualificationId,
+          content: { before: c.before, after: {} },
+        }),
     );
     revalidatePath(`/p/${project}/qualify/${qualificationId}`);
     return { ok: true, view: built.view, problems: built.problems };

@@ -2,8 +2,12 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 
-vi.mock("@/app/p/[project]/qualify/new/prefill-actions", () => ({ readDocument: vi.fn() }));
-vi.mock("@/app/p/[project]/qualify/new/actions", () => ({ submitQualification: vi.fn() }));
+vi.mock("@/app/p/[project]/qualify/new/prefill-actions", () => ({
+  readDocument: vi.fn(),
+}));
+vi.mock("@/app/p/[project]/qualify/new/actions", () => ({
+  submitQualification: vi.fn(),
+}));
 
 import QualifyForm from "@/app/p/[project]/qualify/new/QualifyForm";
 import { findExample } from "@/data/examples";
@@ -48,20 +52,32 @@ const policy = formVersion({
   versionNumber: 2,
   blocks: [],
   questions: [
-    customQuestion("acme", "q1", { text: "Who signs off a model release?", citation: "Acme AI Policy §4.2" }),
-    customQuestion("acme", "q2", { text: "How are incidents reported?", citation: "", required: false }),
+    customQuestion("acme", "q1", {
+      text: "Who signs off a model release?",
+      citation: "Acme AI Policy §4.2",
+    }),
+    customQuestion("acme", "q2", {
+      text: "How are incidents reported?",
+      citation: "",
+      required: false,
+    }),
   ],
 });
 
 const fieldNames = (c: HTMLElement) =>
-  [...c.querySelectorAll("textarea")].map((t) => t.name).filter((n) => n.startsWith("q:"));
-const headings = (c: HTMLElement) => [...c.querySelectorAll("h3.qf-group")].map((h) => h.textContent);
+  [...c.querySelectorAll("textarea")]
+    .map((t) => t.name)
+    .filter((n) => n.startsWith("q:"));
+const headings = (c: HTMLElement) =>
+  [...c.querySelectorAll("h3.qf-group")].map((h) => h.textContent);
 
 describe("a form with no blocks (R9)", () => {
   it("R9 R10 always renders the identity fields, required", () => {
     const { container } = mount(policy);
     for (const name of ["systemName", "systemVersion", "company"]) {
-      const el = container.querySelector(`[name="${name}"]`) as HTMLInputElement;
+      const el = container.querySelector(
+        `[name="${name}"]`,
+      ) as HTMLInputElement;
       expect(el, name).toBeTruthy();
       expect(el.required, name).toBe(true);
     }
@@ -69,7 +85,12 @@ describe("a form with no blocks (R9)", () => {
 
   it("R9 renders no block that is not in form.blocks", () => {
     const { container } = mount(policy);
-    for (const name of ["description", "targetUseCase", "targetUsers", "intendedDeployers"]) {
+    for (const name of [
+      "description",
+      "targetUseCase",
+      "targetUsers",
+      "intendedDeployers",
+    ]) {
       expect(container.querySelector(`[name="${name}"]`), name).toBeNull();
     }
     for (const label of Object.values(BLOCK_LABELS)) {
@@ -81,23 +102,31 @@ describe("a form with no blocks (R9)", () => {
   it("R9 renders the version's questions, in order, named q:<scope>:<localId>", () => {
     const { container } = mount(policy);
     expect(fieldNames(container)).toEqual(["q:f-acme:q1", "q:f-acme:q2"]);
-    const q1 = container.querySelector('[name="q:f-acme:q1"]') as HTMLTextAreaElement;
-    const q2 = container.querySelector('[name="q:f-acme:q2"]') as HTMLTextAreaElement;
+    const q1 = container.querySelector(
+      '[name="q:f-acme:q1"]',
+    ) as HTMLTextAreaElement;
+    const q2 = container.querySelector(
+      '[name="q:f-acme:q2"]',
+    ) as HTMLTextAreaElement;
     expect(q1.required).toBe(true);
     expect(q2.required).toBe(false);
   });
 
   it('R9 marks a question that is not required "where applicable"', () => {
     const { container } = mount(policy);
-    const label = (field: string) => container.querySelector(`label[for="${field}"]`)!;
+    const label = (field: string) =>
+      container.querySelector(`label[for="${field}"]`)!;
     expect(label("q:f-acme:q2").textContent).toContain("where applicable");
     expect(label("q:f-acme:q1").textContent).not.toContain("where applicable");
   });
 
   it("R29 a free-text citation uses the Annex chip; an empty one has no chip", () => {
     const { container } = mount(policy);
-    const label = (field: string) => container.querySelector(`label[for="${field}"]`)!;
-    expect(label("q:f-acme:q1").querySelector("span.qf-citation")?.textContent).toBe("Acme AI Policy §4.2");
+    const label = (field: string) =>
+      container.querySelector(`label[for="${field}"]`)!;
+    expect(
+      label("q:f-acme:q1").querySelector("span.qf-citation")?.textContent,
+    ).toBe("Acme AI Policy §4.2");
     expect(label("q:f-acme:q2").querySelector("span.qf-citation")).toBeNull();
   });
 
@@ -108,7 +137,9 @@ describe("a form with no blocks (R9)", () => {
 
   it("R9 R15 carries the version id in a hidden questionnaireVersionId input", () => {
     const { container } = mount(policy);
-    const hidden = container.querySelector('input[type="hidden"][name="questionnaireVersionId"]') as HTMLInputElement;
+    const hidden = container.querySelector(
+      'input[type="hidden"][name="questionnaireVersionId"]',
+    ) as HTMLInputElement;
     expect(hidden?.value).toBe("acme-v2");
   });
 });
@@ -123,7 +154,8 @@ describe("blocks one by one (R9)", () => {
       }
       expect(container.textContent).toContain(BLOCK_LABELS[block]);
       for (const [other, label] of Object.entries(BLOCK_LABELS)) {
-        if (other !== block) expect(container.textContent, label).not.toContain(label);
+        if (other !== block)
+          expect(container.textContent, label).not.toContain(label);
       }
       expect(container.querySelector("fieldset.qf-risk")).toBeNull();
     });
@@ -139,8 +171,14 @@ describe("a mixed form (R9)", () => {
         seededQuestion("1b"),
         customQuestion("acme", "q1"),
         seededQuestion("2a"),
-        customQuestion("gg", "q1", { setId: "gg", setName: "Governance checklist" }),
-        customQuestion("gg", "q2", { setId: "gg", setName: "Governance checklist" }),
+        customQuestion("gg", "q1", {
+          setId: "gg",
+          setName: "Governance checklist",
+        }),
+        customQuestion("gg", "q2", {
+          setId: "gg",
+          setName: "Governance checklist",
+        }),
       ],
     });
     const { container } = mount(mixed);
@@ -165,13 +203,25 @@ describe("the default version renders the form as it is today (R9, R7)", () => {
   it("R9 the same fields, names, order and headings as KEY_QUESTIONS", () => {
     const { container } = mount(defaultVersionLiteral());
     expect(fieldNames(container)).toEqual(KEY_QUESTIONS.map(keyQuestionField));
-    expect(headings(container)).toEqual(["About the system", "How the system was built"]);
-    for (const name of ["description", "targetUseCase", "targetUsers", "intendedDeployers"]) {
+    expect(headings(container)).toEqual([
+      "About the system",
+      "How the system was built",
+    ]);
+    for (const name of [
+      "description",
+      "targetUseCase",
+      "targetUsers",
+      "intendedDeployers",
+    ]) {
       expect(container.querySelector(`[name="${name}"]`), name).toBeTruthy();
     }
     expect(container.querySelector("fieldset.qf-risk")).toBeTruthy();
     expect(
-      (container.querySelector('input[type="hidden"][name="questionnaireVersionId"]') as HTMLInputElement)?.value,
+      (
+        container.querySelector(
+          'input[type="hidden"][name="questionnaireVersionId"]',
+        ) as HTMLInputElement
+      )?.value,
     ).toBe("annex-iv-default-v1");
   });
 
@@ -179,7 +229,11 @@ describe("the default version renders the form as it is today (R9, R7)", () => {
     const { container } = mount(undefined);
     expect(fieldNames(container)).toEqual(KEY_QUESTIONS.map(keyQuestionField));
     expect(
-      (container.querySelector('input[type="hidden"][name="questionnaireVersionId"]') as HTMLInputElement)?.value,
+      (
+        container.querySelector(
+          'input[type="hidden"][name="questionnaireVersionId"]',
+        ) as HTMLInputElement
+      )?.value,
     ).toBe("annex-iv-default-v1");
   });
 });
@@ -196,17 +250,22 @@ describe("starting from the previous card with another form (R9)", () => {
       },
     };
     const { container } = mount(policy, initial);
-    expect((container.querySelector('[name="q:f-acme:q1"]') as HTMLTextAreaElement).value).toBe(
-      "The head of data science.",
-    );
+    expect(
+      (container.querySelector('[name="q:f-acme:q1"]') as HTMLTextAreaElement)
+        .value,
+    ).toBe("The head of data science.");
     expect(container.querySelector('[name="q:annex-1:1a"]')).toBeNull();
     expect(container.querySelector('[name="q:f-old:q9"]')).toBeNull();
     // the metadata of excluded blocks is not rendered, so it is not posted either
     expect(container.querySelector('[name="description"]')).toBeNull();
-    expect(container.querySelectorAll('input[type="hidden"][name="sectorTags"]').length).toBe(0);
+    expect(
+      container.querySelectorAll('input[type="hidden"][name="sectorTags"]')
+        .length,
+    ).toBe(0);
     // the identity is carried
-    expect((container.querySelector('[name="systemName"]') as HTMLInputElement).value).toBe(
-      example.metadata.systemName,
-    );
+    expect(
+      (container.querySelector('[name="systemName"]') as HTMLInputElement)
+        .value,
+    ).toBe(example.metadata.systemName);
   });
 });

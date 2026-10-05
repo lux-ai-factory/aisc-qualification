@@ -43,7 +43,9 @@ function Box({
         width={W}
         height={H}
         className={
-          gate ? "method-diagram-box method-diagram-box--gate" : "method-diagram-box"
+          gate
+            ? "method-diagram-box method-diagram-box--gate"
+            : "method-diagram-box"
         }
       />
       <text x={x + W / 2} y={y + 19} className="method-diagram-label">
@@ -110,7 +112,11 @@ export default function BafDiagram() {
         className="method-diagram-edge"
         markerEnd="url(#baf-arrow)"
       />
-      <text x={(MAIN[2].x + W + MAIN[3].x) / 2} y={MID - 14} className="method-diagram-cond">
+      <text
+        x={(MAIN[2].x + W + MAIN[3].x) / 2}
+        y={MID - 14}
+        className="method-diagram-cond"
+      >
         settled, or out of rounds
       </text>
 
@@ -143,10 +149,18 @@ export default function BafDiagram() {
       />
       {/* Beside the cycle, not beside the review-to-publish edge, where it would
           read as a condition on leaving the loop. */}
-      <text x={REVISE.x + W + 72} y={REVISE.y + 22} className="method-diagram-cond">
+      <text
+        x={REVISE.x + W + 72}
+        y={REVISE.y + 22}
+        className="method-diagram-cond"
+      >
         while a finding is open,
       </text>
-      <text x={REVISE.x + W + 72} y={REVISE.y + 36} className="method-diagram-cond">
+      <text
+        x={REVISE.x + W + 72}
+        y={REVISE.y + 36}
+        className="method-diagram-cond"
+      >
         up to three rounds
       </text>
 
@@ -160,12 +174,7 @@ export default function BafDiagram() {
           gate={state.id === "review"}
         />
       ))}
-      <Box
-        x={REVISE.x}
-        y={REVISE.y}
-        label={REVISE.label}
-        note={REVISE.note}
-      />
+      <Box x={REVISE.x} y={REVISE.y} label={REVISE.label} note={REVISE.note} />
     </svg>
   );
 }

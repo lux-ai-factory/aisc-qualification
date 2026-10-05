@@ -149,7 +149,11 @@ describe("a node the filler agent flagged", () => {
 
   it("shows the flag, because that is the queue", () => {
     render(
-      <NodeChip node={flagged(["ungrounded"])} vocabularies={{}} onEdit={() => {}} />,
+      <NodeChip
+        node={flagged(["ungrounded"])}
+        vocabularies={{}}
+        onEdit={() => {}}
+      />,
     );
     expect(screen.getByText("ungrounded")).toBeTruthy();
   });
@@ -170,9 +174,15 @@ describe("a node the filler agent flagged", () => {
 
   it("marks the chip so it stands out from a settled one", () => {
     const { container } = render(
-      <NodeChip node={flagged(["sentence"])} vocabularies={{}} onEdit={() => {}} />,
+      <NodeChip
+        node={flagged(["sentence"])}
+        vocabularies={{}}
+        onEdit={() => {}}
+      />,
     );
-    expect(container.querySelector(".onto-node")!.className).toContain("onto-flagged");
+    expect(container.querySelector(".onto-node")!.className).toContain(
+      "onto-flagged",
+    );
   });
 
   it("leaves an unflagged node alone", () => {
@@ -223,7 +233,12 @@ describe("NodeChip consistency finding", () => {
       <NodeChip
         node={node({
           flags: ["inconsistent"],
-          flagNotes: [{ why: "the answer says it wraps an LLM", quote: "wraps a hosted third-party LLM" }],
+          flagNotes: [
+            {
+              why: "the answer says it wraps an LLM",
+              quote: "wraps a hosted third-party LLM",
+            },
+          ],
         })}
         vocabularies={{}}
         onEdit={() => {}}

@@ -25,18 +25,13 @@ export type CardFacts = {
 
 /**
  * The payload the PDF renderer is sent: the form's own facts plus the graph.
- *
- * `generated` is merged in first where a written card exists, so the form's
- * facts override it: prose can be older than the last edit to the form.
  */
 export function systemCardPayload(
   facts: CardFacts,
-  generated: Record<string, unknown> | null,
   ontology: unknown | null,
   now: Date = new Date(),
 ): Record<string, unknown> {
   return {
-    ...(generated ?? {}),
     system_name: facts.systemName,
     system_version: facts.systemVersion,
     provider: facts.company,
@@ -83,7 +78,7 @@ export function aiCardExport(
     graph = null;
   }
   return {
-    ...systemCardPayload(facts, null, build.view, now),
+    ...systemCardPayload(facts, build.view, now),
     ontology_graph: graph,
     ontology_problems: build.problems,
   };
@@ -98,10 +93,15 @@ export function versionLabel(version: string): string {
 }
 
 /** The filename a download offers: slugged system name, the version once, and
- *  what the file is. `suffix` is e.g. "ontology.jsonld", "system_card.pdf". */
+ *  what the file is. `suffix` is e.g. "ontology.jsonld", "system_card.pdf".
+ *  The version is slugged too, keeping its dots: a header can carry no character
+ *  past Latin-1 and no quote, and "2.0 – beta" would make the download fail. */
 export function cardFileName(
   facts: Pick<CardFacts, "systemName" | "systemVersion">,
   suffix: string,
 ): string {
-  return `${fileSlug(facts.systemName)}_${versionLabel(facts.systemVersion)}_${suffix}`;
+  const version = versionLabel(facts.systemVersion)
+    .replace(/[^a-zA-Z0-9.-]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return `${fileSlug(facts.systemName)}_${version}_${suffix}`;
 }

@@ -11,7 +11,10 @@ import { questionSetsOn } from "@/server/services/QuestionSetService";
 import { formExportClient } from "@/server/services/FormExportClient";
 
 const text = (status: number, body: string) =>
-  new Response(body, { status, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  new Response(body, {
+    status,
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
+  });
 
 export async function GET(
   request: Request,
@@ -22,12 +25,17 @@ export async function GET(
   if (db instanceof Response) return db;
   const query = new URL(request.url).searchParams;
   const format = query.get("format");
-  if (format !== "csv" && format !== "md") return text(400, "format must be csv or md");
+  if (format !== "csv" && format !== "md")
+    return text(400, "format must be csv or md");
 
   const version = query.get("version");
-  if (version !== null && !/^[1-9]\d*$/.test(version)) return text(404, "Not found");
+  if (version !== null && !/^[1-9]\d*$/.test(version))
+    return text(404, "Not found");
 
-  const set = await questionSetsOn(db).atNumber(setId, version === null ? undefined : Number(version));
+  const set = await questionSetsOn(db).atNumber(
+    setId,
+    version === null ? undefined : Number(version),
+  );
   if (!set) return text(404, "Not found");
 
   const written = await formExportClient.write(

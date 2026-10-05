@@ -8,7 +8,13 @@ import { useEffect, useRef } from "react";
  * an item is picked (the header survives client navigation, so it would
  * otherwise stay open over the next page), on Escape, and on a click outside.
  */
-export default function NavMenu({ label, children }: { label: string; children: React.ReactNode }) {
+export default function NavMenu({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   const ref = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
@@ -35,7 +41,8 @@ export default function NavMenu({ label, children }: { label: string; children: 
       <div
         className="nav-menu-panel"
         onClick={(e) => {
-          if ((e.target as HTMLElement).closest("a") && ref.current) ref.current.open = false;
+          if ((e.target as HTMLElement).closest("a") && ref.current)
+            ref.current.open = false;
         }}
       >
         {children}

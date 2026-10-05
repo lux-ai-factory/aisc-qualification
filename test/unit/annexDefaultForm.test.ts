@@ -16,7 +16,8 @@ import { FORM_BLOCKS, IDENTITY_FIELDS } from "@/domain/forms/blocks";
 const legacy = legacyModule as any;
 const annexDefaultVersion = () => legacy.annexDefaultVersion();
 
-const MIGRATION = "prisma/migrations/20260925090000_forms_are_data/migration.sql";
+const MIGRATION =
+  "prisma/migrations/20260925090000_forms_are_data/migration.sql";
 
 const BLOCKS = [
   "description",
@@ -36,7 +37,11 @@ describe("the blocks (spec section 3)", () => {
   });
 
   it("R10 the identity block is the three fields no form can drop", () => {
-    expect([...IDENTITY_FIELDS]).toEqual(["systemName", "systemVersion", "company"]);
+    expect([...IDENTITY_FIELDS]).toEqual([
+      "systemName",
+      "systemVersion",
+      "company",
+    ]);
   });
 });
 
@@ -56,8 +61,16 @@ describe("annexDefaultVersion(): the Annex IV default questionnaire, in memory (
     const v = annexDefaultVersion();
     expect(Object.keys(v).sort()).toEqual(
       [
-        "blocks", "builtin", "description", "listed", "questionnaireId", "questionnaireName", "questions",
-        "retired", "versionId", "versionNumber",
+        "blocks",
+        "builtin",
+        "description",
+        "listed",
+        "questionnaireId",
+        "questionnaireName",
+        "questions",
+        "retired",
+        "versionId",
+        "versionNumber",
       ].sort(),
     );
     expect(v).toMatchObject({
@@ -132,11 +145,15 @@ describe("annexSetVersion(): the builtin question set, in memory (T3)", () => {
 
 describe("resolveQuestionnaireVersionId (spec 3.1, 4.3)", () => {
   it("T3 a card with no questionnaire version (NULL) was filled with the default version", () => {
-    expect(legacy.resolveQuestionnaireVersionId(null)).toBe("annex-iv-default-v1");
+    expect(legacy.resolveQuestionnaireVersionId(null)).toBe(
+      "annex-iv-default-v1",
+    );
   });
 
   it("T3 a card with a questionnaire version keeps it", () => {
-    expect(legacy.resolveQuestionnaireVersionId("clx9abc-v2")).toBe("clx9abc-v2");
+    expect(legacy.resolveQuestionnaireVersionId("clx9abc-v2")).toBe(
+      "clx9abc-v2",
+    );
   });
 
   it("T3 resolveFormVersionId is renamed", () => {
@@ -246,7 +263,9 @@ const migration = () => {
 
 describe("the migration seeds the default form (R1, spec 4.3)", () => {
   it("R1 seeds the form row annex-iv-default, builtin, listed and the default", () => {
-    const [form] = insertedRows(migration(), "form").filter((r) => r.id === "annex-iv-default");
+    const [form] = insertedRows(migration(), "form").filter(
+      (r) => r.id === "annex-iv-default",
+    );
     expect(form).toBeTruthy();
     expect(form).toMatchObject({
       id: "annex-iv-default",
@@ -285,7 +304,9 @@ describe("the migration seeds the default form (R1, spec 4.3)", () => {
     const rows = insertedRows(migration(), "form_version_question");
     KEY_QUESTIONS.forEach((k, position) => {
       const row = rows.find(
-        (r) => r.form_version_id === "annex-iv-default-v1" && r.question_id === `annex-iv-${k.id}`,
+        (r) =>
+          r.form_version_id === "annex-iv-default-v1" &&
+          r.question_id === `annex-iv-${k.id}`,
       );
       expect(row, `form_version_question annex-iv-${k.id}`).toMatchObject({
         position,
@@ -315,7 +336,9 @@ describe("the migration's shape (spec 4.2, 4.3; checked in a DB by test/db/forms
     ]) {
       expect(sql, name).toContain(name);
     }
-    expect(sql).toMatch(/DROP INDEX\s+(IF EXISTS\s+)?qualification\."QualificationAnswer_qualificationId_questionId_key"/);
+    expect(sql).toMatch(
+      /DROP INDEX\s+(IF EXISTS\s+)?qualification\."QualificationAnswer_qualificationId_questionId_key"/,
+    );
   });
 
   it("R7 updates and deletes no existing row: history stays byte-identical", () => {
@@ -323,9 +346,18 @@ describe("the migration's shape (spec 4.2, 4.3; checked in a DB by test/db/forms
     // Trigger event lists say UPDATE/DELETE; no statement may touch these tables.
     const history =
       '(?:"?qualification"?\\.)?"?(?:qualification|qualification_answer|qualification_risk|knowledge_graph|card_component)"?';
-    expect(sql).not.toMatch(new RegExp(`\\bUPDATE\\s+(?:ONLY\\s+)?${history}\\s+SET\\b`, "i"));
-    expect(sql).not.toMatch(new RegExp(`\\bDELETE\\s+FROM\\s+(?:ONLY\\s+)?${history}(?:\\s|;|$)`, "i"));
-    expect(sql).not.toMatch(new RegExp(`\\bTRUNCATE\\s+(?:TABLE\\s+)?${history}`, "i"));
+    expect(sql).not.toMatch(
+      new RegExp(`\\bUPDATE\\s+(?:ONLY\\s+)?${history}\\s+SET\\b`, "i"),
+    );
+    expect(sql).not.toMatch(
+      new RegExp(
+        `\\bDELETE\\s+FROM\\s+(?:ONLY\\s+)?${history}(?:\\s|;|$)`,
+        "i",
+      ),
+    );
+    expect(sql).not.toMatch(
+      new RegExp(`\\bTRUNCATE\\s+(?:TABLE\\s+)?${history}`, "i"),
+    );
     // The new column has no default and no backfill.
     expect(sql).toMatch(/ADD COLUMN\s+form_version_id\s+text\s+NULL/i);
   });
@@ -333,7 +365,9 @@ describe("the migration's shape (spec 4.2, 4.3; checked in a DB by test/db/forms
   it("R6 creates the triggers after the seed, so the seed is not refused", () => {
     const sql = migration();
     const seed = sql.indexOf("annex-iv-default-v1");
-    const trigger = sql.search(/CREATE\s+(OR REPLACE\s+)?TRIGGER\s+form_builtin_is_fixed/i);
+    const trigger = sql.search(
+      /CREATE\s+(OR REPLACE\s+)?TRIGGER\s+form_builtin_is_fixed/i,
+    );
     expect(seed).toBeGreaterThan(-1);
     expect(trigger).toBeGreaterThan(seed);
   });
@@ -341,12 +375,17 @@ describe("the migration's shape (spec 4.2, 4.3; checked in a DB by test/db/forms
 
 // The forward migration that removes the default flag
 
-const FIXED = "prisma/migrations/20260925120000_the_default_form_is_fixed/migration.sql";
+const FIXED =
+  "prisma/migrations/20260925120000_the_default_form_is_fixed/migration.sql";
 
 describe("the forward migration 20260925120000_the_default_form_is_fixed (R45)", () => {
   const text = () => readFileSync(FIXED, "utf8");
   /** comments stripped, whitespace collapsed */
-  const flat = () => text().replace(/--[^\n]*/g, "").replace(/\s+/g, " ").trim();
+  const flat = () =>
+    text()
+      .replace(/--[^\n]*/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
 
   it("R45 exists", () => {
     expect(existsSync(FIXED)).toBe(true);
@@ -377,7 +416,15 @@ describe("the forward migration 20260925120000_the_default_form_is_fixed (R45)",
     // The plpgsql body between $$ ... $$ has its own BEGIN ... END; what is
     // refused is a transaction or a data change around it.
     const outside = flat().replace(/\$\$[\s\S]*?\$\$/g, "$$ $$");
-    for (const word of ["UPDATE", "DELETE", "TRUNCATE", "BEGIN", "COMMIT", "CONCURRENTLY", "IF EXISTS"]) {
+    for (const word of [
+      "UPDATE",
+      "DELETE",
+      "TRUNCATE",
+      "BEGIN",
+      "COMMIT",
+      "CONCURRENTLY",
+      "IF EXISTS",
+    ]) {
       expect(outside, word).not.toMatch(new RegExp(`\\b${word}\\b`, "i"));
     }
     // and the body changes no row either
@@ -391,8 +438,12 @@ describe("the forward migration 20260925120000_the_default_form_is_fixed (R45)",
 
   it("R45 the 090000 migration is not edited: its bytes are the ones round 1 shipped", async () => {
     const { createHash } = await import("node:crypto");
-    const digest = createHash("sha256").update(readFileSync(MIGRATION)).digest("hex");
-    expect(digest).toBe("cbea212d7cd330c13c667918bad2b57572a2ceb871c327da423a3bb687147557");
+    const digest = createHash("sha256")
+      .update(readFileSync(MIGRATION))
+      .digest("hex");
+    expect(digest).toBe(
+      "cbea212d7cd330c13c667918bad2b57572a2ceb871c327da423a3bb687147557",
+    );
   });
 });
 

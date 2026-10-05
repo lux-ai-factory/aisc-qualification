@@ -12,7 +12,13 @@ import { loadSrc } from "../support/forms";
 
 const mod = () => loadSrc("domain/forms/references.ts");
 
-const item = (setId: string, setName: string, setVersion: number, scope: string, localId: string) => ({
+const item = (
+  setId: string,
+  setName: string,
+  setVersion: number,
+  scope: string,
+  localId: string,
+) => ({
   setId,
   setName,
   setVersion,
@@ -54,7 +60,10 @@ describe("missingReferences (T53)", () => {
     const { missingReferences } = await mod();
     expect(
       missingReferences(
-        [item("annex-iv", "Annex IV", 1, "annex-1", "1a"), item("acme", "Acme AI policy", 1, "s-acme", "q2")],
+        [
+          item("annex-iv", "Annex IV", 1, "annex-1", "1a"),
+          item("acme", "Acme AI policy", 1, "s-acme", "q2"),
+        ],
         [annexV1, acmeV1],
       ),
     ).toEqual([]);
@@ -77,9 +86,12 @@ describe("missingReferences (T53)", () => {
 
   it("T53 a missing question is named with the set's name on this install, not the file's", async () => {
     const { missingReferences } = await mod();
-    expect(missingReferences([item("acme", "Renamed in the file", 1, "s-acme", "q7")], [acmeV1])).toEqual([
-      's-acme:q7 is not in question set "Acme AI policy" v1.',
-    ]);
+    expect(
+      missingReferences(
+        [item("acme", "Renamed in the file", 1, "s-acme", "q7")],
+        [acmeV1],
+      ),
+    ).toEqual(['s-acme:q7 is not in question set "Acme AI policy" v1.']);
   });
 
   it("T53 the list follows item order, mixing both kinds", async () => {
@@ -105,7 +117,12 @@ describe("missingReferences (T53)", () => {
   it("T53 D15 references match by (setId, setVersion, scope, localId), never by names", async () => {
     const { missingReferences } = await mod();
     // same name, other id: not found
-    expect(missingReferences([item("acme-2", "Acme AI policy", 1, "s-acme", "q1")], [acmeV1])).toEqual([
+    expect(
+      missingReferences(
+        [item("acme-2", "Acme AI policy", 1, "s-acme", "q1")],
+        [acmeV1],
+      ),
+    ).toEqual([
       'Question set "Acme AI policy" (acme-2) v1 is not on this install.',
     ]);
   });

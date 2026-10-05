@@ -1,10 +1,13 @@
 """The service the form talks to: one upload in, the form's fields out."""
 import io
 import json
+import re
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
+import app as prefill_app
 from app import app
 
 client = TestClient(app)
@@ -117,11 +120,6 @@ def test_it_says_how_many_risks_the_document_has_even_when_it_keeps_the_form_s()
     assert body["risksProposed"] == 1
     assert upload().json()["risksProposed"] == 0
 
-
-import re
-from pathlib import Path
-
-import app as prefill_app
 
 APP_ROOT = Path(__file__).resolve().parents[3]
 

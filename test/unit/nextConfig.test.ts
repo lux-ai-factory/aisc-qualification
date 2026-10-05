@@ -9,7 +9,10 @@ describe("next.config", () => {
     // reach the reader, which takes 10 MB (PREFILL_MAX_BYTES).
     const limit = nextConfig.experimental?.serverActions?.bodySizeLimit;
     expect(limit).toBeDefined();
-    const [, amount, unit] = String(limit).toLowerCase().match(/^(\d+)\s*(kb|mb)$/) ?? [];
+    const [, amount, unit] =
+      String(limit)
+        .toLowerCase()
+        .match(/^(\d+)\s*(kb|mb)$/) ?? [];
     const size = Number(amount) * (unit === "mb" ? 1024 * 1024 : 1024);
     expect(size).toBeGreaterThanOrEqual(10 * 1024 * 1024);
   });

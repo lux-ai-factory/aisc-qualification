@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { loadSrc, formVersion, setQuestion, seededQuestion, defaultVersionLiteral } from "../support/forms";
+import {
+  loadSrc,
+  formVersion,
+  setQuestion,
+  seededQuestion,
+  defaultVersionLiteral,
+} from "../support/forms";
 
 // GET /p/<project>/questionnaires/<id>/export?format=json|csv|md[&bundle=self-contained][&version=<n>]
 //   json    -> QuestionnaireFileClient.write(<the version as a file input>, bundle ?? "references")
@@ -12,13 +18,15 @@ import { loadSrc, formVersion, setQuestion, seededQuestion, defaultVersionLitera
 // `questionnaireFileClient` (src/server/services/QuestionnaireFileClient.ts) and
 // `formExportClient` (src/server/services/FormExportClient.ts).
 
-const ROUTE = "app/p/[project]/questionnaires/[questionnaireId]/export/route.ts";
+const ROUTE =
+  "app/p/[project]/questionnaires/[questionnaireId]/export/route.ts";
 
-const { questionnaireService, questionnaireFileClient, formExportClient } = vi.hoisted(() => ({
-  questionnaireService: { exportable: vi.fn() },
-  questionnaireFileClient: { write: vi.fn() },
-  formExportClient: { write: vi.fn() },
-}));
+const { questionnaireService, questionnaireFileClient, formExportClient } =
+  vi.hoisted(() => ({
+    questionnaireService: { exportable: vi.fn() },
+    questionnaireFileClient: { write: vi.fn() },
+    formExportClient: { write: vi.fn() },
+  }));
 // The project doors let these calls through: which project's database a forms page, action or
 // route opens, and who may, is pinned by isolationForms.test.ts.
 vi.mock("@/lib/projectDb", () => ({
@@ -36,7 +44,10 @@ vi.mock("@/server/services/QuestionnaireFileClient", () => ({
   QuestionnaireFileClient: class {},
   questionnaireFileClient,
 }));
-vi.mock("@/server/services/FormExportClient", () => ({ FormExportClient: class {}, formExportClient }));
+vi.mock("@/server/services/FormExportClient", () => ({
+  FormExportClient: class {},
+  formExportClient,
+}));
 
 const mix = formVersion({
   questionnaireId: "mix",
@@ -95,8 +106,18 @@ const mixList = {
   name: "Acme mix",
   version: 2,
   questions: [
-    { text: seededQuestion("2a").text, citation: "Annex IV(2)(a)", required: true, annexPoint: "2a" },
-    { text: "Who signs off a model release?", citation: "Acme AI Policy §4.2", required: false, annexPoint: null },
+    {
+      text: seededQuestion("2a").text,
+      citation: "Annex IV(2)(a)",
+      required: true,
+      annexPoint: "2a",
+    },
+    {
+      text: "Who signs off a model release?",
+      citation: "Acme AI Policy §4.2",
+      required: false,
+      annexPoint: null,
+    },
   ],
 };
 
@@ -111,7 +132,9 @@ const CSV = "﻿question,citation,required,annex_point\r\n";
 async function get(query: string, questionnaireId = "mix", project = "demo") {
   const { GET } = await loadSrc(ROUTE);
   return (await GET(
-    new Request(`http://q/p/${project}/questionnaires/${encodeURIComponent(questionnaireId)}/export${query}`),
+    new Request(
+      `http://q/p/${project}/questionnaires/${encodeURIComponent(questionnaireId)}/export${query}`,
+    ),
     { params: Promise.resolve({ project, questionnaireId }) },
   )) as Response;
 }
@@ -133,17 +156,27 @@ describe("the questionnaire export route: the questionnaire file (T48)", () => {
     const res = await get("?format=json&version=2");
     expect(res.status).toBe(200);
     expect(questionnaireService.exportable).toHaveBeenCalledWith("mix", 2);
-    expect(questionnaireFileClient.write).toHaveBeenCalledWith(mixInput, "references");
+    expect(questionnaireFileClient.write).toHaveBeenCalledWith(
+      mixInput,
+      "references",
+    );
     expect(formExportClient.write).not.toHaveBeenCalled();
     expect(await res.text()).toBe(JSON_FILE.content);
-    expect(res.headers.get("content-type")).toBe("application/json; charset=utf-8");
-    expect(res.headers.get("content-disposition")).toBe('attachment; filename="acme-mix-v2.questionnaire.json"');
+    expect(res.headers.get("content-type")).toBe(
+      "application/json; charset=utf-8",
+    );
+    expect(res.headers.get("content-disposition")).toBe(
+      'attachment; filename="acme-mix-v2.questionnaire.json"',
+    );
     expect(res.headers.get("cache-control")).toBe("no-store");
   });
 
   it("T48 bundle=self-contained travels to the client", async () => {
     await get("?format=json&bundle=self-contained");
-    expect(questionnaireFileClient.write).toHaveBeenCalledWith(mixInput, "self-contained");
+    expect(questionnaireFileClient.write).toHaveBeenCalledWith(
+      mixInput,
+      "self-contained",
+    );
   });
 
   it("T48 without a version it asks for the latest", async () => {
@@ -179,10 +212,18 @@ describe("the questionnaire export route: the questionnaire file (T48)", () => {
   });
 
   it.each([
-    ["unlisted (use once)", { listed: false, questionnaireName: "Custom questions: MCAS, 2026-09-25" }],
+    [
+      "unlisted (use once)",
+      {
+        listed: false,
+        questionnaireName: "Custom questions: MCAS, 2026-09-25",
+      },
+    ],
     ["retired", { retired: true }],
   ])("T48 a %s questionnaire exports like any other", async (_label, over) => {
-    questionnaireService.exportable.mockResolvedValue(formVersion({ ...mix, ...over }));
+    questionnaireService.exportable.mockResolvedValue(
+      formVersion({ ...mix, ...over }),
+    );
     const res = await get("?format=json&version=2");
     expect(res.status).toBe(200);
     expect(questionnaireFileClient.write).toHaveBeenCalledTimes(1);
@@ -190,19 +231,33 @@ describe("the questionnaire export route: the questionnaire file (T48)", () => {
 });
 
 describe("the questionnaire export route: flattened CSV and Markdown (T48, D23)", () => {
-  it.each(["csv", "md"] as const)("T48 format=%s writes the resolved questions as one list named after the questionnaire", async (format) => {
-    const res = await get(`?format=${format}&version=2`);
-    expect(res.status).toBe(200);
-    expect(formExportClient.write).toHaveBeenCalledWith(mixList, format);
-    expect(questionnaireFileClient.write).not.toHaveBeenCalled();
-    expect(new Uint8Array(await res.arrayBuffer())).toEqual(new TextEncoder().encode(CSV));
-    expect(res.headers.get("content-disposition")).toBe('attachment; filename="acme-mix-v2.csv"');
-    expect(res.headers.get("cache-control")).toBe("no-store");
-  });
+  it.each(["csv", "md"] as const)(
+    "T48 format=%s writes the resolved questions as one list named after the questionnaire",
+    async (format) => {
+      const res = await get(`?format=${format}&version=2`);
+      expect(res.status).toBe(200);
+      expect(formExportClient.write).toHaveBeenCalledWith(mixList, format);
+      expect(questionnaireFileClient.write).not.toHaveBeenCalled();
+      expect(new Uint8Array(await res.arrayBuffer())).toEqual(
+        new TextEncoder().encode(CSV),
+      );
+      expect(res.headers.get("content-disposition")).toBe(
+        'attachment; filename="acme-mix-v2.csv"',
+      );
+      expect(res.headers.get("cache-control")).toBe("no-store");
+    },
+  );
 });
 
 describe("the questionnaire export route: refusals (T48)", () => {
-  it.each(["", "?version=2", "?format=pdf", "?format=JSON", "?format=docx&version=1", "?bundle=self-contained"])(
+  it.each([
+    "",
+    "?version=2",
+    "?format=pdf",
+    "?format=JSON",
+    "?format=docx&version=1",
+    "?bundle=self-contained",
+  ])(
     "T48 format missing or not json/csv/md (%s) is 400 format must be json, csv or md",
     async (query) => {
       const res = await get(query);
@@ -219,24 +274,36 @@ describe("the questionnaire export route: refusals (T48)", () => {
     "?format=json&bundle=all",
     "?format=csv&bundle=self-contained",
     "?format=md&bundle=self-contained",
-  ])("T48 %s is 400 bundle applies to json only, and is self-contained", async (query) => {
-    const res = await get(query);
-    expect(res.status).toBe(400);
-    expect(await res.text()).toBe("bundle applies to json only, and is self-contained");
-    expect(questionnaireFileClient.write).not.toHaveBeenCalled();
-    expect(formExportClient.write).not.toHaveBeenCalled();
-  });
+  ])(
+    "T48 %s is 400 bundle applies to json only, and is self-contained",
+    async (query) => {
+      const res = await get(query);
+      expect(res.status).toBe(400);
+      expect(await res.text()).toBe(
+        "bundle applies to json only, and is self-contained",
+      );
+      expect(questionnaireFileClient.write).not.toHaveBeenCalled();
+      expect(formExportClient.write).not.toHaveBeenCalled();
+    },
+  );
 
-  it.each(["0", "-1", "1.5", "abc", "2x"])("T48 a version that is not a positive integer (%s) is 404 Not found", async (v) => {
-    const res = await get(`?format=json&version=${v}`);
-    expect(res.status).toBe(404);
-    expect(await res.text()).toBe("Not found");
-    expect(questionnaireFileClient.write).not.toHaveBeenCalled();
-  });
+  it.each(["0", "-1", "1.5", "abc", "2x"])(
+    "T48 a version that is not a positive integer (%s) is 404 Not found",
+    async (v) => {
+      const res = await get(`?format=json&version=${v}`);
+      expect(res.status).toBe(404);
+      expect(await res.text()).toBe("Not found");
+      expect(questionnaireFileClient.write).not.toHaveBeenCalled();
+    },
+  );
 
   it("T48 an unknown questionnaire, or a number it does not have, is 404 Not found", async () => {
     questionnaireService.exportable.mockResolvedValue(null);
-    for (const query of ["?format=json", "?format=csv&version=9", "?format=json&bundle=self-contained&version=9"]) {
+    for (const query of [
+      "?format=json",
+      "?format=csv&version=9",
+      "?format=json&bundle=self-contained&version=9",
+    ]) {
       const res = await get(query, "nope");
       expect(res.status).toBe(404);
       expect(await res.text()).toBe("Not found");
@@ -249,23 +316,37 @@ describe("the questionnaire export route: refusals (T48)", () => {
     [503, "Questionnaire files are not available on this install."],
     [502, "The questionnaire file service could not be reached."],
     [422, "a questionnaire has at most 200 questions"],
-  ])("T48 the file client's failure is its status (%i) and its error as the body", async (status, error) => {
-    questionnaireFileClient.write.mockResolvedValue({ ok: false, status, error });
-    const res = await get("?format=json");
-    expect(res.status).toBe(status);
-    expect(await res.text()).toBe(error);
-  });
+  ])(
+    "T48 the file client's failure is its status (%i) and its error as the body",
+    async (status, error) => {
+      questionnaireFileClient.write.mockResolvedValue({
+        ok: false,
+        status,
+        error,
+      });
+      const res = await get("?format=json");
+      expect(res.status).toBe(status);
+      expect(await res.text()).toBe(error);
+    },
+  );
 
   it("T48 the CSV writer's failure is its status and its error as the body", async () => {
-    formExportClient.write.mockResolvedValue({ ok: false, status: 503, error: "Exporting forms is not available on this install." });
+    formExportClient.write.mockResolvedValue({
+      ok: false,
+      status: 503,
+      error: "Exporting forms is not available on this install.",
+    });
     const res = await get("?format=csv");
     expect(res.status).toBe(503);
-    expect(await res.text()).toBe("Exporting forms is not available on this install.");
+    expect(await res.text()).toBe(
+      "Exporting forms is not available on this install.",
+    );
   });
 
   it("T48 the route is GET only", async () => {
     const mod = await loadSrc(ROUTE);
     expect(typeof mod.GET).toBe("function");
-    for (const m of ["POST", "PUT", "PATCH", "DELETE"]) expect(mod[m]).toBeUndefined();
+    for (const m of ["POST", "PUT", "PATCH", "DELETE"])
+      expect(mod[m]).toBeUndefined();
   });
 });

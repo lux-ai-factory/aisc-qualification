@@ -70,10 +70,18 @@ export default function QualifyForm({
   const carried = initial?.answers ?? {};
   const moving =
     previous && previous.versionId !== v.versionId
-      ? moveNotice({ from: previous, to: v, cardNumber: cardNumber ?? 0, answers: carried })
+      ? moveNotice({
+          from: previous,
+          to: v,
+          cardNumber: cardNumber ?? 0,
+          answers: carried,
+        })
       : null;
   const reworded = useMemo<Record<string, string>>(
-    () => (previous && previous.versionId !== v.versionId ? rewordedSince(previous, v) : {}),
+    () =>
+      previous && previous.versionId !== v.versionId
+        ? rewordedSince(previous, v)
+        : {},
     [previous, v],
   );
   const has = (block: FormBlock) => v.blocks.includes(block);
@@ -125,20 +133,34 @@ export default function QualifyForm({
     ] as const) {
       const value = picks[name];
       const el = formEl?.elements.namedItem(name);
-      if (!value || !isVairTerm(cls, value) || !(el instanceof HTMLSelectElement)) continue;
+      if (
+        !value ||
+        !isVairTerm(cls, value) ||
+        !(el instanceof HTMLSelectElement)
+      )
+        continue;
       if (mode === "replace" || el.value === "") {
         el.value = value;
         landed += 1;
       }
     }
-    const sets: Array<[FormBlock, VairClass, Set<string>, React.Dispatch<React.SetStateAction<Set<string>>>]> = [
+    const sets: Array<
+      [
+        FormBlock,
+        VairClass,
+        Set<string>,
+        React.Dispatch<React.SetStateAction<Set<string>>>,
+      ]
+    > = [
       ["targetSystemTags", "AICapability", targetTags, setTargetTags],
       ["sectorTags", "Domain", sectorTagSet, setSectorTagSet],
       ["marketFormTags", "Modality", marketForms, setMarketForms],
       ["localityTags", "LocalityOfUse", localities, setLocalities],
     ];
     for (const [block, cls, now, set] of sets) {
-      const values = (picks[block as keyof typeof picks] as string[] | undefined)?.filter((t) => isVairTerm(cls, t));
+      const values = (
+        picks[block as keyof typeof picks] as string[] | undefined
+      )?.filter((t) => isVairTerm(cls, t));
       if (!has(block) || !values?.length) continue;
       if (mode === "replace" || now.size === 0) {
         set(new Set(values));
@@ -148,12 +170,14 @@ export default function QualifyForm({
     return landed;
   };
 
-  const { formRef, upload, riskRows, componentRows, pickDocument, chooseMode } = useDocumentPrefill(
-    initial?.risks,
-    v,
-    initial?.components,
-    applyPicks,
-  );
+  const { formRef, upload, riskRows, componentRows, pickDocument, chooseMode } =
+    useDocumentPrefill(
+      project,
+      initial?.risks,
+      v,
+      initial?.components,
+      applyPicks,
+    );
 
   return (
     <>
@@ -161,7 +185,11 @@ export default function QualifyForm({
           the class gives it the form's look */}
       {moving && <p className="qf-moving">{moving}</p>}
       <div className="qualify-form qualify-prefill">
-        <DocumentUpload status={upload} onPick={pickDocument} onChoose={chooseMode} />
+        <DocumentUpload
+          status={upload}
+          onPick={pickDocument}
+          onChoose={chooseMode}
+        />
       </div>
 
       {/* Submitted through onSubmit, not action={formAction}: React resets a form whose
@@ -347,23 +375,29 @@ export default function QualifyForm({
           <section className="qf-section">
             <h2>Technical documentation</h2>
             <p className="qf-help">
-              Answer in your own words: plain descriptions are more useful here than
-              formal language. Everything is required except the questions marked{" "}
-              <em>where applicable</em>, which you can leave blank when they do not
-              apply to your system. The tag on each question shows which part of EU
-              AI Act Annex IV it covers, for whoever reviews your answers later.
+              Answer in your own words: plain descriptions are more useful here
+              than formal language. Everything is required except the questions
+              marked <em>where applicable</em>, which you can leave blank when
+              they do not apply to your system. The tag on each question shows
+              which part of EU AI Act Annex IV it covers, for whoever reviews
+              your answers later.
             </p>
             {v.questions.map((q, i) => {
               const heading = q.groupLabel ?? q.setName;
               const prev = v.questions[i - 1];
-              const isGroupStart = i === 0 || (prev.groupLabel ?? prev.setName) !== heading;
+              const isGroupStart =
+                i === 0 || (prev.groupLabel ?? prev.setName) !== heading;
               const oldWording = reworded[q.field];
-              const flagged = oldWording !== undefined && (carried[q.field] ?? "").trim() !== "";
+              const flagged =
+                oldWording !== undefined &&
+                (carried[q.field] ?? "").trim() !== "";
               return (
                 <div key={q.field} className="field">
                   {isGroupStart && <h3 className="qf-group">{heading}</h3>}
                   <label className="qf-question" htmlFor={q.field}>
-                    {q.citation !== "" && <span className="qf-citation">{q.citation}</span>}
+                    {q.citation !== "" && (
+                      <span className="qf-citation">{q.citation}</span>
+                    )}
                     {!q.required && (
                       <span className="qf-optional">where applicable</span>
                     )}
@@ -390,11 +424,20 @@ export default function QualifyForm({
         {/* on every card, whatever its questionnaire: the parts of the system */}
         {/* The keys restart each block from an upload's rows. They are siblings, so each needs its own
             prefix: two children keyed "1" make React render one block's rows more than once. */}
-        <ComponentRows key={`components-${componentRows.version}`} initial={componentRows.rows} />
+        <ComponentRows
+          key={`components-${componentRows.version}`}
+          initial={componentRows.rows}
+        />
 
-        {has("risks") && <RiskRows key={`risks-${riskRows.version}`} initial={riskRows.rows} />}
+        {has("risks") && (
+          <RiskRows key={`risks-${riskRows.version}`} initial={riskRows.rows} />
+        )}
 
-        <input type="hidden" name="questionnaireVersionId" value={v.versionId} />
+        <input
+          type="hidden"
+          name="questionnaireVersionId"
+          value={v.versionId}
+        />
 
         <div className="qf-actions">
           <button className="btn" type="submit" disabled={pending}>
@@ -431,7 +474,9 @@ function VairSelect({
           <label className="qf-field-label" htmlFor={id}>
             {label}
           </label>
-          <p className="qf-help">Only public bodies have a term here. Leave it empty for a company.</p>
+          <p className="qf-help">
+            Only public bodies have a term here. Leave it empty for a company.
+          </p>
         </>
       )}
       <select id={id} name={name} defaultValue={initial}>
@@ -454,7 +499,8 @@ function CapabilityPicker({
   selected: Set<string>;
   onToggle: (id: string) => void;
 }) {
-  const labelFor = (id: string) => CAPABILITIES.find((t) => t.id === id)?.label ?? id;
+  const labelFor = (id: string) =>
+    CAPABILITIES.find((t) => t.id === id)?.label ?? id;
 
   return (
     <div className="field">

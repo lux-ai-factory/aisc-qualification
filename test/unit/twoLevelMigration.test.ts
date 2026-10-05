@@ -5,7 +5,8 @@ import { createHash } from "node:crypto";
 // The two-level forms migration, read as text: it changes no history row, and creates its
 // triggers after the data. What it does to a real database is test/db/twoLevelForms.db.test.ts.
 
-const MIGRATION = "prisma/migrations/20260925150000_two_level_forms/migration.sql";
+const MIGRATION =
+  "prisma/migrations/20260925150000_two_level_forms/migration.sql";
 const APPLIED = [
   "prisma/migrations/20260925090000_forms_are_data/migration.sql",
   "prisma/migrations/20260925120000_the_default_form_is_fixed/migration.sql",
@@ -21,7 +22,8 @@ function withoutComments(sql: string): string {
       let quoted = false;
       for (let i = 0; i < line.length; i++) {
         if (line[i] === "'") quoted = !quoted;
-        if (!quoted && line[i] === "-" && line[i + 1] === "-") return line.slice(0, i);
+        if (!quoted && line[i] === "-" && line[i + 1] === "-")
+          return line.slice(0, i);
       }
       return line;
     })
@@ -34,7 +36,10 @@ function withoutComments(sql: string): string {
  * and it must not update, delete or truncate either.
  */
 function withoutFunctionBodies(sql: string): string {
-  return sql.replace(/(CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION[\s\S]*?)\$(\w*)\$[\s\S]*?\$\2\$/gi, "$1<body>");
+  return sql.replace(
+    /(CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION[\s\S]*?)\$(\w*)\$[\s\S]*?\$\2\$/gi,
+    "$1<body>",
+  );
 }
 
 /** The scanned text: comments and function bodies gone. */
@@ -71,26 +76,41 @@ describe("the two-level migration file obeys its rules (T2)", () => {
 
   it("T2 it has no BEGIN, COMMIT, CONCURRENTLY, IF EXISTS or CASCADE", () => {
     // `ON COMMIT DROP` (on the migration's temp tables) is not a COMMIT
-    const text = scanned().replace(/\bON\s+COMMIT\s+DROP\b/gi, "ON_COMMIT_DROP");
-    for (const word of [/\bBEGIN\s*;/i, /\bCOMMIT\b/i, /\bCONCURRENTLY\b/i, /\bIF\s+EXISTS\b/i, /\bCASCADE\b/i]) {
+    const text = scanned().replace(
+      /\bON\s+COMMIT\s+DROP\b/gi,
+      "ON_COMMIT_DROP",
+    );
+    for (const word of [
+      /\bBEGIN\s*;/i,
+      /\bCOMMIT\b/i,
+      /\bCONCURRENTLY\b/i,
+      /\bIF\s+EXISTS\b/i,
+      /\bCASCADE\b/i,
+    ]) {
       expect(text, String(word)).not.toMatch(word);
     }
     // BEGIN also opens every DO block's body; a transaction BEGIN is a statement of its own
     for (const s of statementStarts(text)) {
-      expect(s, "a transaction BEGIN").not.toMatch(/^BEGIN\s*(TRANSACTION|WORK)?\s*;/i);
+      expect(s, "a transaction BEGIN").not.toMatch(
+        /^BEGIN\s*(TRANSACTION|WORK)?\s*;/i,
+      );
       expect(s).not.toMatch(/^START\s+TRANSACTION/i);
     }
   });
 
   it("T2 no statement starts with UPDATE, DELETE FROM or TRUNCATE (DO blocks included)", () => {
     for (const s of statementStarts(scanned())) {
-      expect(s, s.slice(0, 80)).not.toMatch(/^(UPDATE\b|DELETE\s+FROM\b|TRUNCATE\b)/i);
+      expect(s, s.slice(0, 80)).not.toMatch(
+        /^(UPDATE\b|DELETE\s+FROM\b|TRUNCATE\b)/i,
+      );
     }
   });
 
   it("T2 no DO block has an EXCEPTION clause (no subtransactions)", () => {
     const text = withoutComments(raw());
-    const blocks = [...text.matchAll(/\bDO\s+\$(\w*)\$([\s\S]*?)\$\1\$/gi)].map((m) => m[2]);
+    const blocks = [...text.matchAll(/\bDO\s+\$(\w*)\$([\s\S]*?)\$\1\$/gi)].map(
+      (m) => m[2],
+    );
     expect(blocks.length).toBeGreaterThan(0);
     for (const b of blocks) {
       // RAISE EXCEPTION is how the checks fail; an EXCEPTION clause starts a line of its own: `EXCEPTION WHEN`
@@ -100,11 +120,15 @@ describe("the two-level migration file obeys its rules (T2)", () => {
 
   it("T2 every table and function it names is schema-qualified", () => {
     const text = scanned();
-    for (const m of text.matchAll(/\b(?:CREATE\s+TABLE|DROP\s+TABLE|ALTER\s+TABLE|INSERT\s+INTO|CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION|DROP\s+FUNCTION|EXECUTE\s+FUNCTION)\s+(?!TEMP)([\w".]+)/gi)) {
+    for (const m of text.matchAll(
+      /\b(?:CREATE\s+TABLE|DROP\s+TABLE|ALTER\s+TABLE|INSERT\s+INTO|CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION|DROP\s+FUNCTION|EXECUTE\s+FUNCTION)\s+(?!TEMP)([\w".]+)/gi,
+    )) {
       if (/^(tlf_\w+|pg_temp\.\w+)$/i.test(m[1])) continue; // the migration's own temp tables
       expect(m[1], m[0]).toMatch(/^qualification\./);
     }
-    for (const m of text.matchAll(/\bCREATE\s+(?:UNIQUE\s+)?INDEX\s+\w+\s+ON\s+([\w".]+)/gi)) {
+    for (const m of text.matchAll(
+      /\bCREATE\s+(?:UNIQUE\s+)?INDEX\s+\w+\s+ON\s+([\w".]+)/gi,
+    )) {
       expect(m[1], m[0]).toMatch(/^qualification\./);
     }
   });
@@ -112,30 +136,46 @@ describe("the two-level migration file obeys its rules (T2)", () => {
   it("T2 the capture, the tables, the column rename, the drops and the triggers come in the order of spec 4.2", () => {
     const text = scanned();
     const at = (needle: string | RegExp) => {
-      const i = typeof needle === "string" ? text.indexOf(needle) : text.search(needle);
+      const i =
+        typeof needle === "string" ? text.indexOf(needle) : text.search(needle);
       expect(i, String(needle)).toBeGreaterThanOrEqual(0);
       return i;
     };
-    const capture = at(/CREATE\s+TEMP\s+TABLE\s+tlf_counts\s+ON\s+COMMIT\s+DROP/i);
+    const capture = at(
+      /CREATE\s+TEMP\s+TABLE\s+tlf_counts\s+ON\s+COMMIT\s+DROP/i,
+    );
     const create = at("CREATE TABLE qualification.question_set");
-    const rename = at(/RENAME\s+COLUMN\s+form_version_id\s+TO\s+questionnaire_version_id/i);
+    const rename = at(
+      /RENAME\s+COLUMN\s+form_version_id\s+TO\s+questionnaire_version_id/i,
+    );
     const dropFvq = at("DROP TABLE qualification.form_version_question");
     const dropForm = at("DROP TABLE qualification.form;");
     expect(capture).toBeLessThan(create);
     expect(create).toBeLessThan(rename);
     expect(rename).toBeLessThan(dropFvq);
     expect(dropFvq).toBeLessThan(dropForm);
-    const lastDrop = Math.max(...[...text.matchAll(/DROP TABLE qualification\.\w+/g)].map((m) => m.index!));
+    const lastDrop = Math.max(
+      ...[...text.matchAll(/DROP TABLE qualification\.\w+/g)].map(
+        (m) => m.index!,
+      ),
+    );
     for (const t of TRIGGERS) {
-      const created = [...text.matchAll(new RegExp(`CREATE\\s+TRIGGER\\s+${t}\\b`, "g"))];
+      const created = [
+        ...text.matchAll(new RegExp(`CREATE\\s+TRIGGER\\s+${t}\\b`, "g")),
+      ];
       expect(created, `CREATE TRIGGER ${t}`).toHaveLength(1);
-      expect(created[0].index!, `${t} after the last DROP TABLE`).toBeGreaterThan(lastDrop);
+      expect(
+        created[0].index!,
+        `${t} after the last DROP TABLE`,
+      ).toBeGreaterThan(lastDrop);
     }
   });
 
   it("T2 it drops the four form tables in order and the five old trigger functions", () => {
     const text = scanned();
-    const drops = [...text.matchAll(/DROP TABLE (qualification\.\w+)/g)].map((m) => m[1]);
+    const drops = [...text.matchAll(/DROP TABLE (qualification\.\w+)/g)].map(
+      (m) => m[1],
+    );
     expect(drops).toEqual([
       "qualification.form_version_question",
       "qualification.form_question",
@@ -149,7 +189,9 @@ describe("the two-level migration file obeys its rules (T2)", () => {
       "form_name_is_fixed",
       "form_builtin_is_fixed",
     ]) {
-      expect(text, f).toMatch(new RegExp(`DROP FUNCTION qualification\\.${f}\\(\\)`));
+      expect(text, f).toMatch(
+        new RegExp(`DROP FUNCTION qualification\\.${f}\\(\\)`),
+      );
     }
   });
 
@@ -158,14 +200,21 @@ describe("the two-level migration file obeys its rules (T2)", () => {
     expect(text).toContain(
       "two-level forms migration: the builtin form annex-iv-default v1 is not as seeded",
     );
-    expect(text).toMatch(/two-level forms migration: check .* failed: expected .*, found /);
-    for (const c of ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"]) expect(text, c).toContain(c);
+    expect(text).toMatch(
+      /two-level forms migration: check .* failed: expected .*, found /,
+    );
+    for (const c of ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"])
+      expect(text, c).toContain(c);
   });
 
   it("T2 it creates every trigger function with CREATE OR REPLACE FUNCTION qualification.<name>()", () => {
     const text = scanned();
     for (const t of TRIGGERS) {
-      expect(text, t).toMatch(new RegExp(`CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+qualification\\.${t}\\(\\)`));
+      expect(text, t).toMatch(
+        new RegExp(
+          `CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+qualification\\.${t}\\(\\)`,
+        ),
+      );
     }
   });
 });
@@ -191,6 +240,8 @@ describe("the migrations applied on live are not edited (T2)", () => {
 
 // sha256 of the two applied migrations, as deployed databases recorded them.
 const APPLIED_HASHES: Record<string, string> = {
-  "prisma/migrations/20260925090000_forms_are_data/migration.sql": "cbea212d7cd330c13c667918bad2b57572a2ceb871c327da423a3bb687147557",
-  "prisma/migrations/20260925120000_the_default_form_is_fixed/migration.sql": "b8338d12f1c9f3c92022798556e1d0ef7a5b1f25b60b6e7b141feac2ca8dfb4c",
+  "prisma/migrations/20260925090000_forms_are_data/migration.sql":
+    "cbea212d7cd330c13c667918bad2b57572a2ceb871c327da423a3bb687147557",
+  "prisma/migrations/20260925120000_the_default_form_is_fixed/migration.sql":
+    "b8338d12f1c9f3c92022798556e1d0ef7a5b1f25b60b6e7b141feac2ca8dfb4c",
 };

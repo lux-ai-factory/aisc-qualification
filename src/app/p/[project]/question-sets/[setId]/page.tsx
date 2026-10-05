@@ -53,7 +53,9 @@ export default async function QuestionSetPage({
           </div>
         </div>
       </header>
-      {unchanged === "1" && <p className="qf-prefilled">{`No changes: still v${shown.versionNumber}.`}</p>}
+      {unchanged === "1" && (
+        <p className="qf-prefilled">{`No changes: still v${shown.versionNumber}.`}</p>
+      )}
       <div className="qualify-form">
         <section className="qf-section">
           <h2 className="qf-group">Versions</h2>
@@ -62,7 +64,9 @@ export default async function QuestionSetPage({
               <li key={v.versionId}>
                 <Link
                   href={`${setPath}?version=${v.number}`}
-                  aria-current={v.number === shown.versionNumber ? "page" : undefined}
+                  aria-current={
+                    v.number === shown.versionNumber ? "page" : undefined
+                  }
                 >
                   {`v${v.number} · ${v.createdBy} · ${day(v.createdAt)}`}
                 </Link>
@@ -92,9 +96,17 @@ export default async function QuestionSetPage({
                 <div className="qf-builder-row-body">
                   <span className="qf-question-text">{q.text}</span>
                   <div className="qf-builder-chips">
-                    {q.citation !== "" && <span className="qf-citation">{q.citation}</span>}
-                    {q.annexPoint && <span className="qf-overlap">{annexCitation(q.annexPoint)}</span>}
-                    <span className="qf-tag">{q.required ? "Required" : "Optional"}</span>
+                    {q.citation !== "" && (
+                      <span className="qf-citation">{q.citation}</span>
+                    )}
+                    {q.annexPoint && (
+                      <span className="qf-overlap">
+                        {annexCitation(q.annexPoint)}
+                      </span>
+                    )}
+                    <span className="qf-tag">
+                      {q.required ? "Required" : "Optional"}
+                    </span>
                   </div>
                 </div>
               </li>

@@ -83,7 +83,9 @@ describe("the card's downloads", () => {
   it("asks the browser to save the JSON rather than show it", () => {
     const { container } = render(<CardDownloads downloads={DOWNLOADS} />);
     expect(
-      container.querySelector(`a[href="${DOWNLOADS.json}"]`)!.hasAttribute("download"),
+      container
+        .querySelector(`a[href="${DOWNLOADS.json}"]`)!
+        .hasAttribute("download"),
     ).toBe(true);
   });
 
@@ -122,9 +124,7 @@ describe("where the downloads sit", () => {
   it("stay there when the vertical view is open", () => {
     const { container } = mountCard();
     fireEvent.click(screen.getByRole("button", { name: "Vertical" }));
-    expect(
-      container.querySelector(".onto-head .onto-downloads"),
-    ).toBeTruthy();
+    expect(container.querySelector(".onto-head .onto-downloads")).toBeTruthy();
   });
 
   it("are offered once, not once per view", () => {

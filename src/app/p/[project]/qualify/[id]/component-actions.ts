@@ -65,10 +65,21 @@ export async function linkComponent(
     const card = await latestCard(project, qualificationId);
     if ("error" in card) return { ok: false, error: card.error };
     const { repo } = card;
-    const component = (await engineClient.components(project)).find((c) => c.pid === componentPid);
-    if (!component) return { ok: false, error: "The engine has no such component in this project." };
-    if (!propertyOptions(component.component_type).includes(airoProperty as never)) {
-      return { ok: false, error: `A ${component.component_type} cannot be linked as ${airoProperty}.` };
+    const component = (await engineClient.components(project)).find(
+      (c) => c.pid === componentPid,
+    );
+    if (!component)
+      return {
+        ok: false,
+        error: "The engine has no such component in this project.",
+      };
+    if (
+      !propertyOptions(component.component_type).includes(airoProperty as never)
+    ) {
+      return {
+        ok: false,
+        error: `A ${component.component_type} cannot be linked as ${airoProperty}.`,
+      };
     }
     const part = partOfLink(
       airoProperty,
@@ -89,7 +100,10 @@ export async function linkComponent(
       const old = await r.findLink(qualificationId, componentPid);
       await r.linkComponent(qualificationId, link);
       const before = old ? snapshotOf(old) : null;
-      const after = snapshotOf({ ...link, componentKey: link.componentKey ?? null });
+      const after = snapshotOf({
+        ...link,
+        componentKey: link.componentKey ?? null,
+      });
       await r.recordHistory({
         qualificationId,
         kind: old ? "component_relinked" : "component_linked",
@@ -127,7 +141,12 @@ export async function unlinkComponent(
       const old = await r.findLink(qualificationId, componentPid);
       if (!old) return; // nothing linked: nothing changes, nothing to record
       await r.unlinkComponent(qualificationId, componentPid);
-      await r.recordHistory({ qualificationId, kind: "component_unlinked", subject: componentPid, before: snapshotOf(old) });
+      await r.recordHistory({
+        qualificationId,
+        kind: "component_unlinked",
+        subject: componentPid,
+        before: snapshotOf(old),
+      });
       await emitEvent(tx, {
         action: "card.component_unlinked",
         itemType: "qualification",

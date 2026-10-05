@@ -21,20 +21,31 @@ export function canonical(value: unknown): string {
   if (value === false) return "false";
   if (typeof value === "number") return number(value);
   if (typeof value === "bigint") {
-    if (value > BigInt(MAX_SAFE) || value < -BigInt(MAX_SAFE)) throw new NotCanonical(`integer beyond 2**53: ${value}`);
+    if (value > BigInt(MAX_SAFE) || value < -BigInt(MAX_SAFE))
+      throw new NotCanonical(`integer beyond 2**53: ${value}`);
     return value.toString();
   }
   if (typeof value === "string") return text(value);
   if (Array.isArray(value)) return "[" + value.map(canonical).join(",") + "]";
   if (typeof value === "object") {
     const keys = Object.keys(value as object).sort(); // default sort: UTF-16 code units, as RFC 8785 asks
-    return "{" + keys.map((k) => text(k) + ":" + canonical((value as Record<string, unknown>)[k])).join(",") + "}";
+    return (
+      "{" +
+      keys
+        .map(
+          (k) =>
+            text(k) + ":" + canonical((value as Record<string, unknown>)[k]),
+        )
+        .join(",") +
+      "}"
+    );
   }
   throw new NotCanonical(`JSON has no form for ${typeof value}`);
 }
 
 function number(x: number): string {
-  if (!Number.isFinite(x)) throw new NotCanonical("NaN and infinities have no JSON form");
+  if (!Number.isFinite(x))
+    throw new NotCanonical("NaN and infinities have no JSON form");
   return Object.is(x, -0) ? "0" : String(x); // ECMAScript Number::toString is RFC 8785's form
 }
 
@@ -42,8 +53,14 @@ function number(x: number): string {
 export function ledgerSafe(value: unknown): void {
   canonical(value);
   const walk = (v: unknown): void => {
-    if (typeof v === "number" && Number.isInteger(v) && Math.abs(v) > MAX_SAFE) {
-      throw new NotCanonical(`integer beyond 2**53: ${v} (jsonb keeps it as an integer the ledger refuses)`);
+    if (
+      typeof v === "number" &&
+      Number.isInteger(v) &&
+      Math.abs(v) > MAX_SAFE
+    ) {
+      throw new NotCanonical(
+        `integer beyond 2**53: ${v} (jsonb keeps it as an integer the ledger refuses)`,
+      );
     }
     if (Array.isArray(v)) v.forEach(walk);
     else if (v && typeof v === "object") Object.values(v).forEach(walk);
@@ -62,7 +79,8 @@ function text(s: string): string {
       }
       throw new NotCanonical("a lone surrogate has no UTF-8 form");
     }
-    if (c >= 0xdc00 && c <= 0xdfff) throw new NotCanonical("a lone surrogate has no UTF-8 form");
+    if (c >= 0xdc00 && c <= 0xdfff)
+      throw new NotCanonical("a lone surrogate has no UTF-8 form");
   }
   return JSON.stringify(s); // escapes " \ and controls as RFC 8785 does (\b \f \n \r \t, else \u00xx)
 }

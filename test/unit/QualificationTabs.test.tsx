@@ -28,7 +28,9 @@ describe("the two tabs of a compiled qualification", () => {
     expect(screen.getByText("the fourteen answers")).toBeTruthy();
     expect(screen.queryByText("the filled ontology")).toBeNull();
     expect(
-      screen.getByRole("tab", { name: "Answered form" }).getAttribute("aria-selected"),
+      screen
+        .getByRole("tab", { name: "Answered form" })
+        .getAttribute("aria-selected"),
     ).toBe("true");
   });
 
@@ -40,7 +42,9 @@ describe("the two tabs of a compiled qualification", () => {
     expect(screen.getByText("the filled ontology")).toBeTruthy();
     expect(screen.queryByText("the fourteen answers")).toBeNull();
     expect(
-      screen.getByRole("tab", { name: "AI card" }).getAttribute("aria-selected"),
+      screen
+        .getByRole("tab", { name: "AI card" })
+        .getAttribute("aria-selected"),
     ).toBe("true");
   });
 

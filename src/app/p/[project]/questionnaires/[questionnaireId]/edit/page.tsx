@@ -17,7 +17,10 @@ export default async function EditQuestionnairePage({
   const questionnaires = questionnairesOn(db);
   const v = await questionnaires.latestVersion(questionnaireId);
   if (!v || v.builtin || !v.listed || v.retired) notFound();
-  const [{ groups }, history] = await Promise.all([builderData(db), questionnaires.history(questionnaireId)]);
+  const [{ groups }, history] = await Promise.all([
+    builderData(db),
+    questionnaires.history(questionnaireId),
+  ]);
   const stamp = history.find((h) => h.versionId === v.versionId) ?? history[0];
 
   return (
@@ -33,11 +36,15 @@ export default async function EditQuestionnairePage({
           </p>
         )}
         <p>
-          v{v.versionNumber} is the latest version. Saving makes v{v.versionNumber + 1}; cards filled with
-          earlier versions keep them.
+          v{v.versionNumber} is the latest version. Saving makes v
+          {v.versionNumber + 1}; cards filled with earlier versions keep them.
         </p>
       </header>
-      <QuestionnaireBuilder project={project} groups={groups} initial={{ edit: v }} />
+      <QuestionnaireBuilder
+        project={project}
+        groups={groups}
+        initial={{ edit: v }}
+      />
     </main>
   );
 }

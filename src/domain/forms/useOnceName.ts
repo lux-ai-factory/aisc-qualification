@@ -4,8 +4,18 @@
 
 const MAX_SYSTEM = 80;
 
-export function useOnceFormName(systemName: string, today: Date, taken: string[]): string {
-  const system = systemName.split(/\s+/).filter(Boolean).join(" ").slice(0, MAX_SYSTEM).trimEnd() || "unnamed system";
+export function useOnceFormName(
+  systemName: string,
+  today: Date,
+  taken: string[],
+): string {
+  const system =
+    systemName
+      .split(/\s+/)
+      .filter(Boolean)
+      .join(" ")
+      .slice(0, MAX_SYSTEM)
+      .trimEnd() || "unnamed system";
   const day = today.toISOString().slice(0, 10);
   const base = `Custom questions: ${system}, ${day}`;
   const used = new Set(taken.map((t) => t.trim().toLowerCase()));

@@ -29,7 +29,6 @@ from .models import (
     Draft,
     Finding,
     Outcome,
-    PROPERTIES,
     Property,
     Round,
 )
@@ -319,7 +318,8 @@ class FillRun:
         """The same node and flag raised two rounds running."""
         if self.rounds_done < 2:
             return False
-        signature = lambda r: frozenset((f.node_id, f.flag) for f in r.findings)
+        def signature(r):
+            return frozenset((f.node_id, f.flag) for f in r.findings)
         return signature(self.rounds[-1]) == signature(self.rounds[-2])
 
     def _known(self) -> list[str]:

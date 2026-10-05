@@ -1,6 +1,6 @@
 """FastAPI service that turns a qualification into a filled AIRO 3.1 graph.
 
-The third sidecar next to services/llm and services/system_card_renderer. The
+A sidecar next to services/system_card_renderer. The
 Next.js app POSTs a qualification (as exported by scripts/export_qualification.mjs),
 optionally an agent's prose extraction and a reviewer's patch, and gets back the
 view model the card renders plus both serialisations.

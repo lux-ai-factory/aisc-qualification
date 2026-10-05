@@ -1,6 +1,9 @@
 import type { FormBlock } from "@/domain/forms/blocks";
 import { annexDefaultVersion } from "@/domain/forms/legacy";
-import type { ResolvedQuestionnaireVersion, ResolvedQuestion } from "@/domain/forms/types";
+import type {
+  ResolvedQuestionnaireVersion,
+  ResolvedQuestion,
+} from "@/domain/forms/types";
 import { isAffected } from "@/data/airoVocab";
 import { isVairTerm, type VairClass } from "@/data/vairVocab";
 import { RISK_FIELDS } from "@/data/riskFields";
@@ -9,7 +12,9 @@ import { COMPONENT_NAME_MAX, typeToKind } from "@/data/componentFields";
 import type { ComponentInput } from "@/domain/systemComponents";
 
 // The identity: every form has it, whatever its blocks.
-const IDENTITY_REQUIRED: Array<["systemName" | "systemVersion" | "company", string]> = [
+const IDENTITY_REQUIRED: Array<
+  ["systemName" | "systemVersion" | "company", string]
+> = [
   ["systemName", "System name is required"],
   ["systemVersion", "Version is required"],
   ["company", "Company is required"],
@@ -17,7 +22,9 @@ const IDENTITY_REQUIRED: Array<["systemName" | "systemVersion" | "company", stri
 
 // The metadata text blocks, required when the form includes them. They are checked
 // in this order, after the identity, so the first error message is always the same.
-const TEXT_BLOCKS: Array<["description" | "targetUseCase" | "targetUsers", string]> = [
+const TEXT_BLOCKS: Array<
+  ["description" | "targetUseCase" | "targetUsers", string]
+> = [
   ["description", "Description is required"],
   ["targetUseCase", "Target use case is required"],
   ["targetUsers", "Target users are required"],
@@ -44,16 +51,36 @@ export type RiskInput = {
 
 /** A risk row's VAIR selects: the form field, its class, and whether VAIR can always answer it
  *  (then it is required; the follow-up's only when there is a follow-up). */
-const RISK_TERMS: Array<{ field: "sourceTerm" | "consequenceTerm" | "impactTerm" | "controlTerm" | "followUpControlTerm";
-                          of: string; cls: VairClass; required: boolean }> = [
+const RISK_TERMS: Array<{
+  field:
+    | "sourceTerm"
+    | "consequenceTerm"
+    | "impactTerm"
+    | "controlTerm"
+    | "followUpControlTerm";
+  of: string;
+  cls: VairClass;
+  required: boolean;
+}> = [
   { field: "sourceTerm", of: "source", cls: "RiskSource", required: true },
-  { field: "consequenceTerm", of: "consequence", cls: "Consequence", required: false },
+  {
+    field: "consequenceTerm",
+    of: "consequence",
+    cls: "Consequence",
+    required: false,
+  },
   { field: "impactTerm", of: "impact", cls: "Impact", required: true },
   { field: "controlTerm", of: "control", cls: "RiskControl", required: true },
-  { field: "followUpControlTerm", of: "followUpControl", cls: "RiskControl", required: true },
+  {
+    field: "followUpControlTerm",
+    of: "followUpControl",
+    cls: "RiskControl",
+    required: true,
+  },
 ];
 
-const riskLabel = (id: string) => RISK_FIELDS.find((f) => f.id === id)?.label ?? id;
+const riskLabel = (id: string) =>
+  RISK_FIELDS.find((f) => f.id === id)?.label ?? id;
 
 // Required text fields of a risk row, with the label used in error messages.
 const RISK_REQUIRED: Array<[keyof RiskInput, string]> = [
@@ -134,10 +161,25 @@ export class QualificationFormParser {
     }
 
     // On every form, like the identity, and optional: VAIR's lists do not describe every system.
-    const systemType = this.term(formData, "systemType", "AISystem", "system type");
+    const systemType = this.term(
+      formData,
+      "systemType",
+      "AISystem",
+      "system type",
+    );
     const purpose = this.term(formData, "purpose", "Purpose", "purpose");
-    const providerTerm = this.term(formData, "providerTerm", "AIOperator", "provider's term");
-    const deployerTerm = this.term(formData, "deployerTerm", "AIOperator", "deployer's term");
+    const providerTerm = this.term(
+      formData,
+      "providerTerm",
+      "AIOperator",
+      "provider's term",
+    );
+    const deployerTerm = this.term(
+      formData,
+      "deployerTerm",
+      "AIOperator",
+      "deployer's term",
+    );
 
     // The four tag sets are VAIR terms. Only market form is required: VAIR's four forms cover every
     // system, while its capabilities, domains and localities do not.
@@ -149,10 +191,13 @@ export class QualificationFormParser {
       ["marketFormTags", "Modality", "market form"],
       ["localityTags", "LocalityOfUse", "locality of use"],
     ];
-    const tags = Object.fromEntries(tagSets.map(([block]) => [block, picked(block)])) as Record<string, string[]>;
+    const tags = Object.fromEntries(
+      tagSets.map(([block]) => [block, picked(block)]),
+    ) as Record<string, string[]>;
     for (const [block, cls, name] of tagSets) {
       for (const t of tags[block]) {
-        if (!isVairTerm(cls, t)) throw new FormValidationError(`Unknown ${name}: ${t}`);
+        if (!isVairTerm(cls, t))
+          throw new FormValidationError(`Unknown ${name}: ${t}`);
       }
     }
     if (has("marketFormTags") && tags.marketFormTags.length === 0) {
@@ -177,9 +222,14 @@ export class QualificationFormParser {
       form.questions.map((q) => [q.field, q]),
     );
     const answers: AnswerInput[] = [];
+    // One answer per question: a field posted twice keeps its first value, as get() would. Two
+    // would break the unique (tool, question) only after the card's version was made.
+    const seen = new Set<string>();
     for (const [field, raw] of formData.entries()) {
       if (!field.startsWith("q:")) continue;
       if (typeof raw !== "string") continue;
+      if (seen.has(field)) continue;
+      seen.add(field);
       const value = raw.trim();
       if (!value) continue;
       const q = byField.get(field);
@@ -219,26 +269,40 @@ export class QualificationFormParser {
       const m = /^component:(\d+):/.exec(key);
       if (m) indices.add(Number(m[1]));
     }
-    const text = (i: number, f: string) => this.trimmed(formData, `component:${i}:${f}`);
+    const text = (i: number, f: string) =>
+      this.trimmed(formData, `component:${i}:${f}`);
     const rows: ComponentInput[] = [];
     const names = new Set<string>();
     for (const i of [...indices].sort((a, b) => a - b)) {
-      if (["name", "role", "type", "providerName"].every((f) => text(i, f) === "")) continue;
+      if (
+        ["name", "role", "type", "providerName"].every((f) => text(i, f) === "")
+      )
+        continue;
       const n = rows.length + 1;
       const name = text(i, "name");
-      if (name === "") throw new FormValidationError(`Component ${n}: its name is required.`);
+      if (name === "")
+        throw new FormValidationError(`Component ${n}: its name is required.`);
       if (name.length > COMPONENT_NAME_MAX) {
-        throw new FormValidationError(`Component ${n}: the name is at most ${COMPONENT_NAME_MAX} characters.`);
+        throw new FormValidationError(
+          `Component ${n}: the name is at most ${COMPONENT_NAME_MAX} characters.`,
+        );
       }
       const folded = name.toLowerCase().replace(/\s+/g, " ");
-      if (names.has(folded)) throw new FormValidationError(`Component ${n}: ${name} is already on the card.`);
+      if (names.has(folded))
+        throw new FormValidationError(
+          `Component ${n}: ${name} is already on the card.`,
+        );
       names.add(folded);
       const typed = typeToKind(text(i, "type"));
-      if (typed === null) throw new FormValidationError(`Component ${n}: pick its type.`);
-      const provider = text(i, "provider") === "third_party" ? "third_party" : "in_house";
+      if (typed === null)
+        throw new FormValidationError(`Component ${n}: pick its type.`);
+      const provider =
+        text(i, "provider") === "third_party" ? "third_party" : "in_house";
       const providerName = text(i, "providerName");
       if (provider === "third_party" && providerName === "") {
-        throw new FormValidationError(`Component ${n}: name the third party that provides it.`);
+        throw new FormValidationError(
+          `Component ${n}: name the third party that provides it.`,
+        );
       }
       rows.push({
         position: rows.length,
@@ -310,13 +374,17 @@ export class QualificationFormParser {
         const asked = of !== "followUpControl" || text(i, of) !== "";
         if (value === "") {
           if (required && asked) {
-            throw new FormValidationError(`Risk ${n}: ${riskLabel(of)}: pick its term.`);
+            throw new FormValidationError(
+              `Risk ${n}: ${riskLabel(of)}: pick its term.`,
+            );
           }
           terms[field] = null;
           continue;
         }
         if (!asked || !isVairTerm(cls, value)) {
-          throw new FormValidationError(`Risk ${n}: ${riskLabel(of)}: ${value} is not one of the terms for it.`);
+          throw new FormValidationError(
+            `Risk ${n}: ${riskLabel(of)}: ${value} is not one of the terms for it.`,
+          );
         }
         terms[field] = value;
       }
@@ -344,10 +412,16 @@ export class QualificationFormParser {
   }
 
   /** An optional single VAIR select: null when left open, refused when not a term of its class. */
-  private term(formData: FormData, name: string, cls: VairClass, what: string): string | null {
+  private term(
+    formData: FormData,
+    name: string,
+    cls: VairClass,
+    what: string,
+  ): string | null {
     const value = this.trimmed(formData, name);
     if (value === "") return null;
-    if (!isVairTerm(cls, value)) throw new FormValidationError(`Unknown ${what}: ${value}`);
+    if (!isVairTerm(cls, value))
+      throw new FormValidationError(`Unknown ${what}: ${value}`);
     return value;
   }
 

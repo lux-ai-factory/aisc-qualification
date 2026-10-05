@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { filterLibrary, overlapHints, overlapLabel } from "@/domain/forms/library";
+import {
+  filterLibrary,
+  overlapHints,
+  overlapLabel,
+} from "@/domain/forms/library";
 import * as library from "@/domain/forms/library";
 import { customQuestion, seededQuestion, setQuestion } from "../support/forms";
 
@@ -20,13 +24,20 @@ const groups = [
     formId: "acme",
     formName: "Acme AI policy",
     questions: [
-      customQuestion("acme", "q1", { text: "Who signs off a  model release?", citation: "Acme AI Policy §4.2" }),
-      customQuestion("acme", "q2", { text: "How are incidents reported?", citation: "" }),
+      customQuestion("acme", "q1", {
+        text: "Who signs off a  model release?",
+        citation: "Acme AI Policy §4.2",
+      }),
+      customQuestion("acme", "q2", {
+        text: "How are incidents reported?",
+        citation: "",
+      }),
     ],
   },
 ];
 
-const texts = (gs: typeof groups) => gs.map((g) => [g.formName, g.questions.map((q) => q.localId)]);
+const texts = (gs: typeof groups) =>
+  gs.map((g) => [g.formName, g.questions.map((q) => q.localId)]);
 
 describe("filterLibrary (R16)", () => {
   it("R16 an empty query returns every group as it is", () => {
@@ -35,12 +46,18 @@ describe("filterLibrary (R16)", () => {
   });
 
   it("R16 matches the text, ignoring case and runs of whitespace", () => {
-    expect(texts(filterLibrary(groups, "  WHO   signs off a model "))).toEqual([["Acme AI policy", ["q1"]]]);
+    expect(texts(filterLibrary(groups, "  WHO   signs off a model "))).toEqual([
+      ["Acme AI policy", ["q1"]],
+    ]);
   });
 
   it("R16 matches the citation too", () => {
-    expect(texts(filterLibrary(groups, "policy §4.2"))).toEqual([["Acme AI policy", ["q1"]]]);
-    expect(texts(filterLibrary(groups, "annex iv(2)(a)"))).toEqual([["Annex IV default", ["2a"]]]);
+    expect(texts(filterLibrary(groups, "policy §4.2"))).toEqual([
+      ["Acme AI policy", ["q1"]],
+    ]);
+    expect(texts(filterLibrary(groups, "annex iv(2)(a)"))).toEqual([
+      ["Annex IV default", ["2a"]],
+    ]);
   });
 
   it("R16 omits a group with no match", () => {
@@ -56,7 +73,10 @@ describe("filterLibrary (R16)", () => {
 });
 
 describe("overlapHints (R23)", () => {
-  const q = (id: string, annexPoint: string | null) => ({ questionId: id, annexPoint });
+  const q = (id: string, annexPoint: string | null) => ({
+    questionId: id,
+    annexPoint,
+  });
   const selected = [q("A", "2a"), q("B", "2a"), q("C", "1a"), q("N", null)];
   const candidates = [q("D", "2a"), q("E", "1a"), q("F", null), q("G", "2b")];
 
@@ -70,7 +90,10 @@ describe("overlapHints (R23)", () => {
   });
 
   it("R23 a question alone on its point is not hinted, nor is an untagged one", () => {
-    const hints = overlapHints(selected as never, candidates as never) as Record<string, string>;
+    const hints = overlapHints(
+      selected as never,
+      candidates as never,
+    ) as Record<string, string>;
     expect(hints.C).toBeUndefined();
     expect(hints.N).toBeUndefined();
     expect(hints.F).toBeUndefined();
@@ -109,8 +132,16 @@ describe("updatesAvailable (T26)", () => {
     citation: "Acme AI Policy §4.2",
     setVersionId: "acme-v1",
   });
-  const reworded = { ...pinned, text: "Who approves a model release?", setVersionId: "acme-v2", setVersionNumber: 2 };
-  const acmeGroup = (questions: unknown[] = [reworded], over: Record<string, unknown> = {}) => ({
+  const reworded = {
+    ...pinned,
+    text: "Who approves a model release?",
+    setVersionId: "acme-v2",
+    setVersionNumber: 2,
+  };
+  const acmeGroup = (
+    questions: unknown[] = [reworded],
+    over: Record<string, unknown> = {},
+  ) => ({
     setId: "acme",
     setName: "Acme AI policy",
     versionId: "acme-v2",
@@ -127,17 +158,30 @@ describe("updatesAvailable (T26)", () => {
     source,
   });
   const updatesAvailable = (rows: unknown[], gs: unknown[]) =>
-    (library as unknown as { updatesAvailable: (r: unknown, g: unknown) => unknown }).updatesAvailable(rows, gs);
+    (
+      library as unknown as {
+        updatesAvailable: (r: unknown, g: unknown) => unknown;
+      }
+    ).updatesAvailable(rows, gs);
 
   it("T26 is exported by src/domain/forms/library.ts, and sourceUpdates is gone", () => {
-    expect(typeof (library as Record<string, unknown>).updatesAvailable).toBe("function");
+    expect(typeof (library as Record<string, unknown>).updatesAvailable).toBe(
+      "function",
+    );
     expect((library as Record<string, unknown>).sourceUpdates).toBeUndefined();
   });
 
   it("T26 a pick whose set's latest version words it differently is listed as reworded, keyed by row index", () => {
     const other = pick(seededQuestion("2a"), "annex-iv-v1", "r1");
-    expect(updatesAvailable([other, pick(pinned, "acme-v1", "r2")], [acmeGroup()])).toEqual({
-      1: { kind: "reworded", question: reworded, versionId: "acme-v2", versionNumber: 2 },
+    expect(
+      updatesAvailable([other, pick(pinned, "acme-v1", "r2")], [acmeGroup()]),
+    ).toEqual({
+      1: {
+        kind: "reworded",
+        question: reworded,
+        versionId: "acme-v2",
+        versionNumber: 2,
+      },
     });
   });
 
@@ -148,14 +192,27 @@ describe("updatesAvailable (T26)", () => {
     ["annexPoint", { annexPoint: "2a" }],
     ["groupLabel", { groupLabel: "Governance" }],
   ])("T26 D13 a difference in %s alone is an update", (_field, change) => {
-    const newer = { ...pinned, setVersionId: "acme-v2", setVersionNumber: 2, ...change };
+    const newer = {
+      ...pinned,
+      setVersionId: "acme-v2",
+      setVersionNumber: 2,
+      ...change,
+    };
     expect(updatesAvailable([pick()], [acmeGroup([newer as never])])).toEqual({
-      0: { kind: "reworded", question: newer, versionId: "acme-v2", versionNumber: 2 },
+      0: {
+        kind: "reworded",
+        question: newer,
+        versionId: "acme-v2",
+        versionNumber: 2,
+      },
     });
   });
 
   it("T26 a picked question absent from the set's latest version is listed as removed", () => {
-    const other = setQuestion("acme", "q2", { text: "How are incidents reported?", setVersionId: "acme-v2" });
+    const other = setQuestion("acme", "q2", {
+      text: "How are incidents reported?",
+      setVersionId: "acme-v2",
+    });
     expect(updatesAvailable([pick()], [acmeGroup([other])])).toEqual({
       0: { kind: "removed", setName: "Acme AI policy", versionNumber: 2 },
     });
@@ -167,13 +224,21 @@ describe("updatesAvailable (T26)", () => {
   });
 
   it("T26 a pick already pinned to the group's version is never listed", () => {
-    expect(updatesAvailable([pick(reworded, "acme-v2")], [acmeGroup()])).toEqual({});
-    expect(updatesAvailable([pick(pinned, "acme-v2")], [acmeGroup([])])).toEqual({});
+    expect(
+      updatesAvailable([pick(reworded, "acme-v2")], [acmeGroup()]),
+    ).toEqual({});
+    expect(
+      updatesAvailable([pick(pinned, "acme-v2")], [acmeGroup([])]),
+    ).toEqual({});
   });
 
   it("T26 a set missing from groups is not listed", () => {
     const annexGroup = {
-      setId: "annex-iv", setName: "Annex IV", versionId: "annex-iv-v1", versionNumber: 1, retired: false,
+      setId: "annex-iv",
+      setName: "Annex IV",
+      versionId: "annex-iv-v1",
+      versionNumber: 1,
+      retired: false,
       questions: [seededQuestion("2a")],
     };
     expect(updatesAvailable([pick()], [annexGroup])).toEqual({});
@@ -181,18 +246,37 @@ describe("updatesAvailable (T26)", () => {
   });
 
   it("T26 questions a newer set version added are not listed: they were never picked", () => {
-    const added = setQuestion("acme", "q9", { text: "New in v2?", setVersionId: "acme-v2" });
-    expect(updatesAvailable([pick()], [acmeGroup([{ ...pinned, setVersionId: "acme-v2" }, added])])).toEqual({});
+    const added = setQuestion("acme", "q9", {
+      text: "New in v2?",
+      setVersionId: "acme-v2",
+    });
+    expect(
+      updatesAvailable(
+        [pick()],
+        [acmeGroup([{ ...pinned, setVersionId: "acme-v2" }, added])],
+      ),
+    ).toEqual({});
   });
 
   it("T26 retired groups count", () => {
-    expect(updatesAvailable([pick()], [acmeGroup([reworded], { retired: true })])).toEqual({
-      0: { kind: "reworded", question: reworded, versionId: "acme-v2", versionNumber: 2 },
+    expect(
+      updatesAvailable([pick()], [acmeGroup([reworded], { retired: true })]),
+    ).toEqual({
+      0: {
+        kind: "reworded",
+        question: reworded,
+        versionId: "acme-v2",
+        versionNumber: 2,
+      },
     });
   });
 
   it("T26 a group of another set holding the same question id does not count: the pick's set decides", () => {
-    const stranger = acmeGroup([reworded], { setId: "mix", setName: "Mixed", versionId: "mix-v9" });
+    const stranger = acmeGroup([reworded], {
+      setId: "mix",
+      setName: "Mixed",
+      versionId: "mix-v9",
+    });
     expect(updatesAvailable([pick()], [stranger])).toEqual({});
   });
 

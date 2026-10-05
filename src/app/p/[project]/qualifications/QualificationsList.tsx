@@ -67,7 +67,9 @@ export default function QualificationsList({
             </div>
             <div className="qf-row-meta">
               <time dateTime={item.savedAt}>{stamp(item.savedAt)} UTC</time>
-              {item.createdBy && <span className="qf-row-counts">saved by {item.createdBy}</span>}
+              {item.createdBy && (
+                <span className="qf-row-counts">saved by {item.createdBy}</span>
+              )}
               <span className="qf-row-counts">
                 {item.answers} answers · {item.risks} risks
               </span>

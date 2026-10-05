@@ -12,6 +12,9 @@ Interface:
 """
 import dataclasses
 import json
+import random
+import re
+import string
 from pathlib import Path
 
 import pytest
@@ -278,9 +281,6 @@ class TestRoundTrip:
 # The CSV formula guard is an exact inverse. Export guards any cell matching
 # ^'*[=+\-@] with one more '; import strips one ' from a cell matching ^'+[=+\-@].
 
-import random
-import re
-import string
 
 FORMULA_FIRST = "=+-@"
 

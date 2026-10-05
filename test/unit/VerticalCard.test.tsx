@@ -33,7 +33,11 @@ const view: OntologyView = {
       risk: node("risk0", "A creditworthy applicant is rejected", "Risk"),
       source: node("risk0_source", "Postcode proxies", "RiskSource"),
       vulnerability: null,
-      consequence: node("risk0_consequence", "Loss of credit access", "Consequence"),
+      consequence: node(
+        "risk0_consequence",
+        "Loss of credit access",
+        "Consequence",
+      ),
       impact: node("risk0_impact", "Economic harm", "Impact"),
       stakeholder: node("user", "Applicants", "AIUser"),
       control: node("risk0_control", "Officer review", "RiskControl"),
@@ -69,14 +73,16 @@ function mount(over: Record<string, unknown> = {}) {
 
 describe("the vertical AI card", () => {
   it("reads top to bottom: the system's properties, then its risks", () => {
-    render(<VerticalCard
-      view={view}
-      vocabularies={{}}
-      editing={null}
-      pending={false}
-      setEditing={vi.fn()}
-      onSave={vi.fn()}
-    />);
+    render(
+      <VerticalCard
+        view={view}
+        vocabularies={{}}
+        editing={null}
+        pending={false}
+        setEditing={vi.fn()}
+        onSave={vi.fn()}
+      />,
+    );
     expect(screen.getByText("Purpose")).toBeTruthy();
     expect(screen.getByText("Score loan applications")).toBeTruthy();
     expect(
@@ -84,7 +90,6 @@ describe("the vertical AI card", () => {
     ).toBeTruthy();
     expect(screen.getByText("Officer review")).toBeTruthy();
   });
-
 });
 
 // Coverage and "Additional documentation"
@@ -96,7 +101,8 @@ describe("the vertical AI card", () => {
 const coverage = {
   annex: { covered: 3, total: 14, points: [] },
   forms: [{ name: "Acme AI policy", answered: 18, total: 18 }],
-  summary: "Annex IV coverage: 3 of 14 points; Acme AI policy: 18 of 18 answered.",
+  summary:
+    "Annex IV coverage: 3 of 14 points; Acme AI policy: 18 of 18 answered.",
 };
 const additionalDocumentation = [
   {
@@ -108,14 +114,21 @@ const additionalDocumentation = [
         citation: "Acme AI Policy §4.2",
         answer: "The head of data science.",
       },
-      { key: "f-acme:q3", question: "How are incidents reported?", citation: "", answer: "Through the risk desk." },
+      {
+        key: "f-acme:q3",
+        question: "How are incidents reported?",
+        citation: "",
+        answer: "Through the risk desk.",
+      },
     ],
   },
 ];
 
 describe("the vertical AI card with a form (R36)", () => {
   it("R36 the coverage summary is the first line", () => {
-    const { container } = mount({ view: { ...view, coverage, form: { name: "Acme AI policy", version: 2 } } });
+    const { container } = mount({
+      view: { ...view, coverage, form: { name: "Acme AI policy", version: 2 } },
+    });
     const line = container.querySelector("p.qf-coverage");
     expect(line?.textContent).toBe(coverage.summary);
     // before anything else the card shows
@@ -124,14 +137,22 @@ describe("the vertical AI card with a form (R36)", () => {
   });
 
   it('R36 one "Additional documentation: <form>" section after the risks, each entry question, chip and answer', () => {
-    const { container } = mount({ view: { ...view, coverage, additionalDocumentation } });
-    const heads = [...container.querySelectorAll("h3.qf-group")].map((h) => h.textContent);
+    const { container } = mount({
+      view: { ...view, coverage, additionalDocumentation },
+    });
+    const heads = [...container.querySelectorAll("h3.qf-group")].map(
+      (h) => h.textContent,
+    );
     expect(heads).toContain("Additional documentation: Acme AI policy");
-    expect(heads.indexOf("Additional documentation: Acme AI policy")).toBeGreaterThan(heads.indexOf("Risks"));
+    expect(
+      heads.indexOf("Additional documentation: Acme AI policy"),
+    ).toBeGreaterThan(heads.indexOf("Risks"));
     expect(screen.getByText("Who signs off a model release?")).toBeTruthy();
     expect(screen.getByText("The head of data science.")).toBeTruthy();
     expect(screen.getByText("Through the risk desk.")).toBeTruthy();
-    const chips = [...container.querySelectorAll("span.qf-citation")].map((s) => s.textContent);
+    const chips = [...container.querySelectorAll("span.qf-citation")].map(
+      (s) => s.textContent,
+    );
     // the free-text citation in the same chip as the Annex ones
     expect(chips).toContain("Acme AI Policy §4.2");
     expect(chips.filter((c) => c === "")).toEqual([]);
@@ -139,9 +160,17 @@ describe("the vertical AI card with a form (R36)", () => {
 
   it("R36 no Risks heading when there are no chains, no About table when there are no rows", () => {
     const { container } = mount({
-      view: { ...view, rows: [], chains: [], coverage, additionalDocumentation },
+      view: {
+        ...view,
+        rows: [],
+        chains: [],
+        coverage,
+        additionalDocumentation,
+      },
     });
-    const heads = [...container.querySelectorAll("h3.qf-group")].map((h) => h.textContent);
+    const heads = [...container.querySelectorAll("h3.qf-group")].map(
+      (h) => h.textContent,
+    );
     expect(heads).not.toContain("Risks");
     expect(heads).not.toContain("About the system");
     expect(container.querySelector("table.onto-table")).toBeNull();
@@ -152,16 +181,43 @@ describe("the vertical AI card with a form (R36)", () => {
     const sets = [
       {
         form: "Governance checklist",
-        entries: [{ key: "s-gov:q1", question: "Who audits the model?", citation: "Gov §1", answer: "An outside firm." }],
+        entries: [
+          {
+            key: "s-gov:q1",
+            question: "Who audits the model?",
+            citation: "Gov §1",
+            answer: "An outside firm.",
+          },
+        ],
       },
       {
         form: "Acme AI policy",
-        entries: [{ key: "s-acme:q1", question: "Which data?", citation: "", answer: "Loan outcomes." }],
+        entries: [
+          {
+            key: "s-acme:q1",
+            question: "Which data?",
+            citation: "",
+            answer: "Loan outcomes.",
+          },
+        ],
       },
     ];
-    const { container } = mount({ view: { ...view, rows: [], chains: [], coverage, additionalDocumentation: sets } });
-    const heads = [...container.querySelectorAll("h3.qf-group")].map((h) => h.textContent);
-    expect(heads).toEqual(["Additional documentation: Governance checklist", "Additional documentation: Acme AI policy"]);
+    const { container } = mount({
+      view: {
+        ...view,
+        rows: [],
+        chains: [],
+        coverage,
+        additionalDocumentation: sets,
+      },
+    });
+    const heads = [...container.querySelectorAll("h3.qf-group")].map(
+      (h) => h.textContent,
+    );
+    expect(heads).toEqual([
+      "Additional documentation: Governance checklist",
+      "Additional documentation: Acme AI policy",
+    ]);
     expect(screen.getByText("Who audits the model?")).toBeTruthy();
     expect(screen.getByText("An outside firm.")).toBeTruthy();
     expect(screen.getByText("Loan outcomes.")).toBeTruthy();
@@ -170,7 +226,9 @@ describe("the vertical AI card with a form (R36)", () => {
   it("R36 a view without coverage shows no coverage line and no extra sections", () => {
     const { container } = mount();
     expect(container.querySelector("p.qf-coverage")).toBeNull();
-    const heads = [...container.querySelectorAll("h3.qf-group")].map((h) => h.textContent);
+    const heads = [...container.querySelectorAll("h3.qf-group")].map(
+      (h) => h.textContent,
+    );
     expect(heads).toEqual(["About the system", "Risks"]);
   });
 });
@@ -184,7 +242,13 @@ describe("a legacy card (R66)", () => {
       forms: [],
       summary: "Annex IV coverage: 10 of 14 points (4 optional left blank).",
     };
-    const { container } = mount({ view: { ...view, coverage: legacy, form: { name: "Annex IV default", version: 1 } } });
+    const { container } = mount({
+      view: {
+        ...view,
+        coverage: legacy,
+        form: { name: "Annex IV default", version: 1 },
+      },
+    });
     expect(container.querySelector("p.qf-coverage")?.textContent).toBe(
       "Annex IV coverage: 10 of 14 points (4 optional left blank).",
     );

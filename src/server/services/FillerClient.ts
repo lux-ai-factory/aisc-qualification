@@ -38,6 +38,28 @@ export class FillerClient {
       return false;
     }
   }
+
+  /** True when the filler has a run of this card queued or running. False when it has none, or does
+   *  not answer: the request that follows then says whether it took the run. Never throws. */
+  async inFlight(project: string, qualificationId: string): Promise<boolean> {
+    if (!this.serviceUrl) return false;
+    try {
+      const res = await this.fetchImpl(
+        `${this.serviceUrl}/fill/${encodeURIComponent(project)}/${encodeURIComponent(qualificationId)}`,
+        { method: "GET", headers: serviceTokenHeaders(this.serviceToken), cache: "no-store" },
+      );
+      if (!res.ok) return false;
+      const run = (await res.json()) as { state?: unknown };
+      return run.state === "queued" || run.state === "running";
+    } catch {
+      return false;
+    }
+  }
+}
+
+/** Whether a fill of this card is going, with a default client, for server actions. */
+export async function fillInFlight(project: string, qualificationId: string): Promise<boolean> {
+  return new FillerClient().inFlight(project, qualificationId);
 }
 
 /** Request a fill with a default client, for server actions. */

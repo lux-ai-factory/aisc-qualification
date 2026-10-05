@@ -14,8 +14,12 @@ const svc = {
   get: vi.fn(),
 };
 vi.mock("next/navigation", () => ({ redirect: (to: string) => redirect(to) }));
-vi.mock("@/server/services/QualificationService", () => ({ qualificationService: svc }));
-vi.mock("@/server/services/EngineClient", () => ({ engineClient: { components: vi.fn(async () => []) } }));
+vi.mock("@/server/services/QualificationService", () => ({
+  qualificationService: svc,
+}));
+vi.mock("@/server/services/EngineClient", () => ({
+  engineClient: { components: vi.fn(async () => []) },
+}));
 
 const P = "a1b2c3d4-0000-4000-8000-000000000002";
 async function open() {

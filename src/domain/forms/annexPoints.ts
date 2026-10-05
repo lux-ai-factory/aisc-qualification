@@ -22,7 +22,9 @@ export type AnnexPointId =
 export const ANNEX_POINTS: { id: AnnexPointId; citation: string }[] =
   data.points as { id: AnnexPointId; citation: string }[];
 
-const CITATIONS = new Map<string, string>(ANNEX_POINTS.map((p) => [p.id, p.citation]));
+const CITATIONS = new Map<string, string>(
+  ANNEX_POINTS.map((p) => [p.id, p.citation]),
+);
 
 /** Exact and case-sensitive: "1A" and "Annex IV(1)(a)" are not points. */
 export function isAnnexPoint(s: unknown): s is AnnexPointId {

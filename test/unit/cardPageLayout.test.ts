@@ -6,7 +6,18 @@ import { join } from "node:path";
 // engine-link panel. The card's parts are its own Components rows; the engine
 // is not asked about them here.
 const page = readFileSync(
-  join(__dirname, "..", "..", "src", "app", "p", "[project]", "qualify", "[id]", "page.tsx"),
+  join(
+    __dirname,
+    "..",
+    "..",
+    "src",
+    "app",
+    "p",
+    "[project]",
+    "qualify",
+    "[id]",
+    "page.tsx",
+  ),
   "utf8",
 );
 
@@ -18,7 +29,9 @@ describe("the card page", () => {
   });
 
   it("counts the places to check on the card it built, not on the agent's last run", () => {
-    expect(page).toContain("places={ontology ? placesToCheck(ontology.view) : 0}");
+    expect(page).toContain(
+      "places={ontology ? placesToCheck(ontology.view) : 0}",
+    );
   });
 
   it("no longer shows the engine-link panel or asks the engine", () => {

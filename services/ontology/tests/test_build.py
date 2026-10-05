@@ -244,7 +244,7 @@ def test_no_node_label_is_longer_than_sixty_characters():
         "recommendation, alongside influential factors and an explanation."
     )
     g = build_graph(q, EXTRACTED)
-    too_long = {l for l in _labels(g) if len(l) > 60}
+    too_long = {label for label in _labels(g) if len(label) > 60}
     assert too_long == set(), too_long
 
 
@@ -384,8 +384,8 @@ def test_the_impact_node_is_named_after_the_risk_not_prefixed_prose():
     g = build_graph(q, {"names": {"risk0": "Applicant wrongly ranked high risk"}})
     impacts = [str(g.value(i, RDFS.label)) for i in g.subjects(RDF.type, _a("Impact"))]
     assert "Applicant wrongly ranked high risk" in " ".join(impacts)
-    assert not any(l.startswith("Impact of:") for l in impacts)
-    assert all(len(l) <= 60 for l in impacts)
+    assert not any(i.startswith("Impact of:") for i in impacts)
+    assert all(len(i) <= 60 for i in impacts)
 
 
 def test_no_label_in_a_realistic_graph_ends_in_an_ellipsis():

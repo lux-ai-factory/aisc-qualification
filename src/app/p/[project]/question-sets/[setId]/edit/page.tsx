@@ -12,7 +12,9 @@ export default async function EditQuestionSetPage({
   params: Promise<{ project: string; setId: string }>;
 }) {
   const { project, setId } = await params;
-  const latest = await questionSetsOn(await projectDbPastDoor(project)).latest(setId);
+  const latest = await questionSetsOn(await projectDbPastDoor(project)).latest(
+    setId,
+  );
   if (!latest || latest.builtin || latest.retired) notFound();
 
   return (
@@ -23,11 +25,16 @@ export default async function EditQuestionSetPage({
         </p>
         <h1>Edit {latest.setName}</h1>
         <p>
-          v{latest.versionNumber} is the latest version. Saving makes v{latest.versionNumber + 1}; questionnaires
-          pinned to earlier versions keep them.
+          v{latest.versionNumber} is the latest version. Saving makes v
+          {latest.versionNumber + 1}; questionnaires pinned to earlier versions
+          keep them.
         </p>
       </header>
-      <QuestionSetEditor project={project} initial={{ edit: latest }} latestNumber={latest.versionNumber} />
+      <QuestionSetEditor
+        project={project}
+        initial={{ edit: latest }}
+        latestNumber={latest.versionNumber}
+      />
     </main>
   );
 }

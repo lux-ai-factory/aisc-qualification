@@ -32,7 +32,7 @@ browser ── gateway (Caddy + oauth2-proxy + Keycloak) ── qualification-we
                      uses a model)    form answers)                   ledger relay)
 ```
 
-- **qualification-web** (`src/`) is a Next.js 15 app. It serves the form, the card pages and the
+- **qualification-web** (`src/`) is a Next.js 15.5 app (React 19). It serves the form, the card pages and the
   download routes under `/qualification/p/<project pid>/...`. It stores everything in the
   `qualification` schema of the project's own Postgres database (one database per project, made by
   the platform), through Prisma. For every request under `/p/` it asks the platform whether the
@@ -46,7 +46,6 @@ browser ── gateway (Caddy + oauth2-proxy + Keycloak) ── qualification-we
   | `services/agents` | `qualification-agents` | 8012 | The card agent, built on the [BESSER Agentic Framework](https://github.com/BESSER-PEARL/BESSER-Agentic-Framework) (BAF). After a save, the app calls `POST /fill/{pid}/{id}`. The agent reads the card from the app, drafts the nodes that only prose answers can give (techniques from Annex IV 2(a), components from 2(c)), checks the draft, has a second model review it, and publishes it back to the app with flags on what it could not settle. It also proposes short names for long answers and points out choices that contradict the answers. It uses the model the project chose on the platform, or the `BAF_LLM_*` variables. See [its README](services/agents/README.md). |
   | `services/prefill` | `qualification-prefill` | 8012 | Reads a document someone already wrote (.pdf, .docx, .txt, .md) and proposes answers for the form (`POST /prefill`). It also imports and exports question sets and questionnaires as CSV, Markdown, Word or JSON files. Text rules only, no model, stores nothing. See [its README](services/prefill/README.md). |
   | `services/system_card_renderer` | `qualification-pdf` | 8005 | Renders a card as HTML or PDF with Jinja and WeasyPrint (`POST /render/pdf`). |
-  | `services/llm` | `qualification-llm` | 4000 | A LiteLLM wrapper (`POST /generate`) that holds a provider key. The stack runs it, but no code in this repo calls it: the card agent talks to its model through BAF. |
 
   Every service except `/health` refuses a caller that does not send its own token in the
   `X-AISC-Service-Token` header (`service_token.py`, the same file in each service). A service whose
@@ -64,8 +63,8 @@ browser ── gateway (Caddy + oauth2-proxy + Keycloak) ── qualification-we
 
 The app is the submodule `apps/qualification` of the aisc repo. Its services are defined in the aisc
 repo's `docker-compose.development.yml`: `qualification-web`, `qualification-migrate`,
-`qualification-ontology`, `qualification-agents`, `qualification-prefill`, `qualification-pdf` and
-`qualification-llm`. From the aisc repo root:
+`qualification-ontology`, `qualification-agents`, `qualification-prefill` and `qualification-pdf`.
+From the aisc repo root:
 
 ```bash
 ./scripts/secrets.sh        # once: writes env.secrets and env.runtime (the service tokens among them)
@@ -92,7 +91,7 @@ Prerequisites: Node 20 and npm (the image uses `node:20-alpine`), Python 3.12 fo
 Docker for the database tests.
 
 ```bash
-npm ci                      # .npmrc sets legacy-peer-deps, needed while react is pinned to an RC
+npm ci
 npx prisma generate
 npm run typecheck
 npm run lint
@@ -109,7 +108,7 @@ rebuild the container, or rely on the tests.
 A Python service on its own (one virtual environment per service):
 
 ```bash
-cd services/ontology                       # or agents, prefill, system_card_renderer, llm
+cd services/ontology                       # or agents, prefill, system_card_renderer
 python3.12 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
 QUALIFICATION_WEB_TO_ONTOLOGY_TOKEN=dev-web QUALIFICATION_AGENTS_TO_ONTOLOGY_TOKEN=dev-agents \
@@ -121,10 +120,8 @@ with `uvicorn service:app --port 8012`. The ontology and prefill images are buil
 (`docker build -f services/ontology/Dockerfile .`), because they copy shared data from `src/data`.
 Each service's tokens are the ones named in the table below.
 
-The `docker-compose.yml`, `docker-compose.development.yml`, `env.development` and `.env.example`
-files in this repo do not describe the current app: they set `DATABASE_URL` instead of
-`PROJECT_DATABASE_URL`, start no platform and set no service tokens, so the app they bring up cannot
-open a project. Use the aisc repo's compose files.
+This repo has no compose or env files of its own: the app needs the platform, the project databases
+and the service tokens, which the aisc repo's compose files bring up. Use those.
 
 ### Seeding the worked example
 
@@ -156,8 +153,7 @@ instead. In the stack, open the form with `?example=mcas` as above.
 | `QUALIFICATION_AGENTS_TO_WEB_TOKEN` | The token the card agent must send to read and publish a card's `extracted` document (`/p/{pid}/api/qualifications/{id}/extracted`). | none (the agent is refused) |
 | `SEED_PROJECT`, `SEED_FORCE` | Used only by `scripts/seed_mcas.mjs`. | none |
 
-The stack also passes `LLM_SERVICE_URL` and `QUALIFICATION_WEB_TO_LLM_TOKEN`; the app does not read
-them. All tokens are generated by `scripts/secrets.sh` in the aisc repo. Never commit one.
+All tokens are generated by `scripts/secrets.sh` in the aisc repo. Never commit one.
 
 ### Python services
 
@@ -181,9 +177,6 @@ them. All tokens are generated by `scripts/secrets.sh` in the aisc repo. Never c
 | prefill | `PREFILL_MAX_UNZIPPED_BYTES` | Largest total size of the parts of a .docx. | `52428800` (50 MiB) |
 | prefill | `PREFILL_FIELDS_PATH`, `PREFILL_VAIR_VOCAB_PATH` | Override where the field mapping and the VAIR lists are read from. | beside the package (image), else `src/data` |
 | pdf | `QUALIFICATION_WEB_TO_PDF_TOKEN` | Token of its caller. | none (503) |
-| llm | `QUALIFICATION_WEB_TO_LLM_TOKEN` | Token of its caller. | none (503) |
-| llm | `LLM_MODEL` | LiteLLM model name; the stack sets it from `QUALIFICATION_LLM_MODEL`. | `mistral/mistral-large-latest` |
-| llm | `MISTRAL_API_KEY`, `ANTHROPIC_API_KEY` | Provider keys LiteLLM reads. | none |
 
 ## Tests
 
@@ -211,7 +204,7 @@ pages), so a change to wording in those files can fail a test.
 The Python services, each in its own virtual environment with its `requirements.txt` and `pytest`:
 
 ```bash
-cd services/agents && python -m pytest       # likewise ontology, prefill, system_card_renderer, llm
+cd services/agents && python -m pytest       # likewise ontology, prefill, system_card_renderer
 ```
 
 None of them needs a network, a model or a running service.
@@ -297,3 +290,4 @@ Downloads serve the stored graph, so they keep working while the ontology servic
 
 This project is licensed under the [Apache License 2.0](LICENSE.md).
 © 2024–2026 Université du Luxembourg and Luxembourg Institute of Science and Technology (LIST).
+

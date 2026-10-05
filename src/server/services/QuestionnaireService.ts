@@ -447,9 +447,10 @@ export class QuestionnaireService implements QuestionnaireResolver {
       .filter((q) => q.listed && (q.retiredAt !== null) === retired)
       .sort((a, b) => libraryOrder(a, b, DEFAULT_QUESTIONNAIRE_ID));
     let groups: SetGroup[] | null = null;
+    const versionsOf = await Promise.all(questionnaires.map((q) => this.repository.questionnaireVersionsOf(q.id)));
     const out: Array<{ row: QuestionnaireLibraryRow; versionIds: string[] }> = [];
-    for (const q of questionnaires) {
-      const versions = await this.repository.questionnaireVersionsOf(q.id);
+    for (const [i, q] of questionnaires.entries()) {
+      const versions = versionsOf[i];
       const latestRow = versions.at(-1);
       if (!latestRow) continue;
       const latest = toResolvedQuestionnaireVersion(latestRow);

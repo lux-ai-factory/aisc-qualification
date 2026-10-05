@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { answeredFields, needsAChoice, currentAnswers, currentRisks } from "@/lib/prefillChoice";
+import {
+  answeredFields,
+  needsAChoice,
+  currentAnswers,
+  currentRisks,
+} from "@/lib/prefillChoice";
 
 // Uploading onto an empty form just fills it. Uploading onto a form somebody
 // has been typing into is the case that needs asking about, so the question is
@@ -15,10 +20,9 @@ describe("whether to ask what to do with what is already there", () => {
   });
 
   it("it says which fields are at stake", () => {
-    expect(answeredFields({ systemName: "MCAS", company: "", "q:annex-1:1a": "x" })).toEqual([
-      "q:annex-1:1a",
-      "systemName",
-    ]);
+    expect(
+      answeredFields({ systemName: "MCAS", company: "", "q:annex-1:1a": "x" }),
+    ).toEqual(["q:annex-1:1a", "systemName"]);
   });
 });
 
@@ -30,8 +34,16 @@ describe("what the form currently holds", () => {
   }
 
   it("reads the metadata and the answers", () => {
-    const found = currentAnswers(formWith([["systemName", "MCAS"], ["q:annex-1:1a", "First release."]]));
-    expect(found).toEqual({ systemName: "MCAS", "q:annex-1:1a": "First release." });
+    const found = currentAnswers(
+      formWith([
+        ["systemName", "MCAS"],
+        ["q:annex-1:1a", "First release."],
+      ]),
+    );
+    expect(found).toEqual({
+      systemName: "MCAS",
+      "q:annex-1:1a": "First release.",
+    });
   });
 
   it("leaves out the things a document does not propose", () => {
@@ -66,7 +78,12 @@ describe("the risk rows the form holds now", () => {
     form.set("systemName", "not a risk");
     const rows = currentRisks(form);
     expect(rows).toHaveLength(2);
-    expect(rows[0]).toMatchObject({ risk: "wrongly refused", affected: "user", areas: ["right", "safety"], control: "" });
+    expect(rows[0]).toMatchObject({
+      risk: "wrongly refused",
+      affected: "user",
+      areas: ["right", "safety"],
+      control: "",
+    });
     expect(rows[1].risk).toBe("drift");
   });
 
@@ -84,20 +101,39 @@ describe("the risk rows the form holds now", () => {
 
 import * as choice from "@/lib/prefillChoice";
 import { KEY_QUESTIONS, keyQuestionField } from "@/data/keyQuestions";
-import { customQuestion, formVersion, loadSrc, seededQuestion, setQuestion } from "../support/forms";
+import {
+  customQuestion,
+  formVersion,
+  loadSrc,
+  seededQuestion,
+  setQuestion,
+} from "../support/forms";
 
 describe("the prefillable fields of a form (R40)", () => {
   const acme = formVersion({
     blocks: ["targetUsers", "sectorTags", "risks"] as never,
     questions: [
-      customQuestion("acme", "q1", { text: "Who signs off?", citation: "Acme AI Policy §4.2" }),
-      customQuestion("acme", "q2", { text: "Tagged?", annexPoint: "2a" as never }),
+      customQuestion("acme", "q1", {
+        text: "Who signs off?",
+        citation: "Acme AI Policy §4.2",
+      }),
+      customQuestion("acme", "q2", {
+        text: "Tagged?",
+        annexPoint: "2a" as never,
+      }),
     ],
   });
 
   it("R40 are the identity, the included metadata text fields and the questions, never a tag picker", () => {
     expect([...choice.prefillableFor(acme)].sort()).toEqual(
-      ["company", "q:f-acme:q1", "q:f-acme:q2", "systemName", "systemVersion", "targetUsers"].sort(),
+      [
+        "company",
+        "q:f-acme:q1",
+        "q:f-acme:q2",
+        "systemName",
+        "systemVersion",
+        "targetUsers",
+      ].sort(),
     );
   });
 
@@ -106,22 +142,39 @@ describe("the prefillable fields of a form (R40)", () => {
     const set = choice.prefillableFor(annexDefaultVersion());
     expect(set.size).toBe(21);
     expect([...set].sort()).toEqual([...choice.PREFILLABLE].sort());
-    for (const q of KEY_QUESTIONS) expect(set.has(keyQuestionField(q))).toBe(true);
+    for (const q of KEY_QUESTIONS)
+      expect(set.has(keyQuestionField(q))).toBe(true);
   });
 
   it('R40 the spec sent to the prefill: identity, included blocks, "risks" when included, every question', () => {
     const spec = choice.prefillFormSpec(acme);
     expect([...spec.fields].sort()).toEqual(
-      ["company", "q:f-acme:q1", "q:f-acme:q2", "risks", "sectorTags", "systemName", "systemVersion", "targetUsers"].sort(),
+      [
+        "company",
+        "q:f-acme:q1",
+        "q:f-acme:q2",
+        "risks",
+        "sectorTags",
+        "systemName",
+        "systemVersion",
+        "targetUsers",
+      ].sort(),
     );
     expect(spec.questions).toEqual([
-      { field: "q:f-acme:q1", text: "Who signs off?", citation: "Acme AI Policy §4.2", annexPoint: null },
+      {
+        field: "q:f-acme:q1",
+        text: "Who signs off?",
+        citation: "Acme AI Policy §4.2",
+        annexPoint: null,
+      },
       { field: "q:f-acme:q2", text: "Tagged?", citation: "", annexPoint: "2a" },
     ]);
   });
 
   it('R40 no "risks" in the spec when the form has no risk block', () => {
-    expect(choice.prefillFormSpec(formVersion({ blocks: [] })).fields).not.toContain("risks");
+    expect(
+      choice.prefillFormSpec(formVersion({ blocks: [] })).fields,
+    ).not.toContain("risks");
   });
 
   it("R40 what the form holds is read against the form's own fields", () => {
@@ -169,7 +222,12 @@ describe("the prefill spec of a questionnaire version (T58)", () => {
         citation: "Annex IV(2)(a)",
         annexPoint: "2a",
       },
-      { field: "q:s-acme:q1", text: V1_TEXT, citation: "Acme AI Policy §4.2", annexPoint: null },
+      {
+        field: "q:s-acme:q1",
+        text: V1_TEXT,
+        citation: "Acme AI Policy §4.2",
+        annexPoint: null,
+      },
     ]);
     expect(JSON.stringify(spec)).not.toContain("Who signs off a release, v2?");
   });
@@ -177,14 +235,27 @@ describe("the prefill spec of a questionnaire version (T58)", () => {
   it("T58 fields are the identity, the version's blocks, risks when included, and every question field (01 R40)", () => {
     const spec = choice.prefillFormSpec(pinned);
     expect([...spec.fields].sort()).toEqual(
-      ["company", "q:annex-2:2a", "q:s-acme:q1", "risks", "systemName", "systemVersion", "targetUseCase"].sort(),
+      [
+        "company",
+        "q:annex-2:2a",
+        "q:s-acme:q1",
+        "risks",
+        "systemName",
+        "systemVersion",
+        "targetUseCase",
+      ].sort(),
     );
-    expect(choice.prefillFormSpec({ ...pinned, blocks: [] }).fields).not.toContain("risks");
+    expect(
+      choice.prefillFormSpec({ ...pinned, blocks: [] }).fields,
+    ).not.toContain("risks");
   });
 
   it("T58 useDocumentPrefill takes the resolved questionnaire version (source)", async () => {
     const { readFileSync } = await import("node:fs");
-    const src = readFileSync("src/app/p/[project]/qualify/new/useDocumentPrefill.ts", "utf8");
+    const src = readFileSync(
+      "src/app/p/[project]/qualify/new/useDocumentPrefill.ts",
+      "utf8",
+    );
     expect(src).toMatch(/ResolvedQuestionnaireVersion/);
     expect(src).not.toMatch(/ResolvedFormVersion/);
     expect(src).toMatch(/prefillFormSpec\(/);
@@ -203,14 +274,35 @@ describe("the component rows the form holds now", () => {
     form.set("component:3:provider", "third_party");
     form.set("component:3:providerName", "Vendor");
     expect(currentComponents(form)).toEqual([
-      { key: "k1", name: "Scoring model", role: "", type: "DecisionTree", provider: "in_house", providerName: "" },
-      { key: "", name: "Hosted LLM", role: "", type: "", provider: "third_party", providerName: "Vendor" },
+      {
+        key: "k1",
+        name: "Scoring model",
+        role: "",
+        type: "DecisionTree",
+        provider: "in_house",
+        providerName: "",
+      },
+      {
+        key: "",
+        name: "Hosted LLM",
+        role: "",
+        type: "",
+        provider: "third_party",
+        providerName: "Vendor",
+      },
     ]);
   });
 
   it("counts a row as written when it has a name, a role, a type or a provider's name", async () => {
     const { componentWritten } = await import("@/lib/prefillChoice");
-    const blank = { key: "", name: "", role: "", type: "", provider: "in_house" as const, providerName: "" };
+    const blank = {
+      key: "",
+      name: "",
+      role: "",
+      type: "",
+      provider: "in_house" as const,
+      providerName: "",
+    };
     expect(componentWritten(blank)).toBe(false);
     expect(componentWritten({ ...blank, type: "DecisionTree" })).toBe(true);
   });

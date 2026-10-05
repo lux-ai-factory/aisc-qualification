@@ -1,9 +1,24 @@
-
 import { useRef, useState } from "react";
 import type { FormExample } from "@/data/examples";
-import { currentAnswers, currentComponents, currentRisks, prefillableFor, prefillFormSpec } from "@/lib/prefillChoice";
-import { applyDocument, checkDocument, type Reader, type UploadStatus } from "@/lib/prefillFlow";
-import type { PrefillComponent, PrefillMode, PrefillPicks, PrefillRisk } from "@/server/services/PrefillClient";
+import {
+  currentAnswers,
+  currentComponents,
+  currentRisks,
+  prefillableFor,
+  prefillFormSpec,
+} from "@/lib/prefillChoice";
+import {
+  applyDocument,
+  checkDocument,
+  type Reader,
+  type UploadStatus,
+} from "@/lib/prefillFlow";
+import type {
+  PrefillComponent,
+  PrefillMode,
+  PrefillPicks,
+  PrefillRisk,
+} from "@/server/services/PrefillClient";
 import { readDocument } from "./prefill-actions";
 import { DEFAULT_VERSION_ID } from "@/domain/forms/legacy";
 import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
@@ -12,7 +27,7 @@ import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
  *  than the default, the action is also told the form's fields and questions;
  *  for the default it is sent only the document, the mode and the current answers. */
 const readWithAction =
-  (form: ResolvedQuestionnaireVersion | undefined): Reader =>
+  (project: string, form: ResolvedQuestionnaireVersion | undefined): Reader =>
   async (file, mode, current, rows, parts) => {
     const data = new FormData();
     data.set("document", file);
@@ -25,7 +40,12 @@ const readWithAction =
       data.set("fields", JSON.stringify(spec.fields));
       data.set("questions", JSON.stringify(spec.questions));
     }
-    return (await readDocument(undefined, data)) ?? { ok: false, error: "The document could not be read." };
+    return (
+      (await readDocument(project, undefined, data)) ?? {
+        ok: false,
+        error: "The document could not be read.",
+      }
+    );
   };
 
 /**
@@ -37,9 +57,15 @@ const readWithAction =
  * put them back.
  */
 /** Puts a document's VAIR picks on the form by the mode's rule, and says how many landed. */
-export type PicksApplier = (picks: PrefillPicks, mode: PrefillMode, form: HTMLFormElement | null) => number;
+export type PicksApplier = (
+  picks: PrefillPicks,
+  mode: PrefillMode,
+  form: HTMLFormElement | null,
+) => number;
 
 export function useDocumentPrefill(
+  /** The project the form saves into: the document reader asks about the caller in it. */
+  project: string,
   initialRisks: FormExample["risks"] | undefined,
   form?: ResolvedQuestionnaireVersion,
   initialComponents?: FormExample["components"],
@@ -50,20 +76,29 @@ export function useDocumentPrefill(
   const [picked, setPicked] = useState<File | null>(null);
   // The risk rows keep their own state, so a document's rows are put in by
   // starting the block again from them.
-  const [riskRows, setRiskRows] = useState<{ version: number; rows?: PrefillRisk[] }>({
+  const [riskRows, setRiskRows] = useState<{
+    version: number;
+    rows?: PrefillRisk[];
+  }>({
     version: 0,
     rows: initialRisks,
   });
   // The same for the Components block's rows.
-  const [componentRows, setComponentRows] = useState<{ version: number; rows?: PrefillComponent[] }>({
+  const [componentRows, setComponentRows] = useState<{
+    version: number;
+    rows?: PrefillComponent[];
+  }>({
     version: 0,
     rows: initialComponents,
   });
 
-  const formNow = () => (formRef.current ? new FormData(formRef.current) : null);
+  const formNow = () =>
+    formRef.current ? new FormData(formRef.current) : null;
   const answersNow = () => {
     const data = formNow();
-    return data ? currentAnswers(data, form ? prefillableFor(form) : undefined) : {};
+    return data
+      ? currentAnswers(data, form ? prefillableFor(form) : undefined)
+      : {};
   };
   const risksNow = () => {
     const data = formNow();
@@ -78,16 +113,24 @@ export function useDocumentPrefill(
     const form = formRef.current;
     for (const [name, value] of Object.entries(values)) {
       const field = form?.elements.namedItem(name);
-      if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
+      if (
+        field instanceof HTMLInputElement ||
+        field instanceof HTMLTextAreaElement
+      ) {
         field.value = value;
       }
     }
   };
 
-  const land = (outcome: Awaited<ReturnType<typeof applyDocument>>, mode: PrefillMode) => {
+  const land = (
+    outcome: Awaited<ReturnType<typeof applyDocument>>,
+    mode: PrefillMode,
+  ) => {
     if (outcome.kind === "error") return setUpload(outcome);
     writeValues(outcome.values);
-    const picks = applyPicks ? applyPicks(outcome.picks, mode, formRef.current) : 0;
+    const picks = applyPicks
+      ? applyPicks(outcome.picks, mode, formRef.current)
+      : 0;
     if (outcome.risks) {
       const rows = outcome.risks;
       setRiskRows((r) => ({ version: r.version + 1, rows }));
@@ -111,7 +154,13 @@ export function useDocumentPrefill(
   const pickDocument = async (file: File) => {
     setPicked(file);
     setUpload({ kind: "reading" });
-    const checked = await checkDocument(file, answersNow(), risksNow(), readWithAction(form), partsNow());
+    const checked = await checkDocument(
+      file,
+      answersNow(),
+      risksNow(),
+      readWithAction(project, form),
+      partsNow(),
+    );
     // An empty form: the careful choice is the only one there is.
     if (checked.kind === "apply") land(checked, "empty");
     else setUpload(checked);
@@ -120,7 +169,17 @@ export function useDocumentPrefill(
   const chooseMode = async (mode: PrefillMode) => {
     if (!picked) return;
     setUpload({ kind: "reading" });
-    land(await applyDocument(picked, mode, answersNow(), risksNow(), readWithAction(form), partsNow()), mode);
+    land(
+      await applyDocument(
+        picked,
+        mode,
+        answersNow(),
+        risksNow(),
+        readWithAction(project, form),
+        partsNow(),
+      ),
+      mode,
+    );
   };
 
   return { formRef, upload, riskRows, componentRows, pickDocument, chooseMode };

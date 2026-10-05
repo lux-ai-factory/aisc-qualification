@@ -13,7 +13,8 @@ import { seedMcas } from "../../scripts/seed_mcas.mjs";
 const JSON_FILE = "services/ontology/examples/mcas.qualification.json";
 type Answer = { toolId: string; questionId: string; answer: string };
 
-const fromJson = (): Answer[] => JSON.parse(readFileSync(JSON_FILE, "utf8")).answers;
+const fromJson = (): Answer[] =>
+  JSON.parse(readFileSync(JSON_FILE, "utf8")).answers;
 
 const fromExample = (): Answer[] =>
   Object.entries(MCAS.answers as Record<string, string>)
@@ -24,18 +25,34 @@ const fromExample = (): Answer[] =>
     });
 
 async function fromSeed(): Promise<Answer[]> {
-  const create = vi.fn(async (args: { data: { answers: { create: Answer[] } } }) => ({ id: "x", systemName: "MCAS", args }));
-  const prisma = { qualification: { findUnique: vi.fn(async () => null), create, delete: vi.fn() } };
+  const create = vi.fn(
+    async (args: { data: { answers: { create: Answer[] } } }) => ({
+      id: "x",
+      systemName: "MCAS",
+      args,
+    }),
+  );
+  const prisma = {
+    qualification: {
+      findUnique: vi.fn(async () => null),
+      create,
+      delete: vi.fn(),
+    },
+  };
   const log = vi.spyOn(console, "log").mockImplementation(() => {});
   try {
-    await seedMcas(prisma as never, { platform: { projectId: "p", systemId: "s" } } as never);
+    await seedMcas(
+      prisma as never,
+      { platform: { projectId: "p", systemId: "s" } } as never,
+    );
   } finally {
     log.mockRestore();
   }
   return create.mock.calls[0][0].data.answers.create;
 }
 
-const keys = (a: Answer[]) => a.map((x) => `${x.toolId}:${x.questionId}`).sort();
+const keys = (a: Answer[]) =>
+  a.map((x) => `${x.toolId}:${x.questionId}`).sort();
 const ONE_F = (a: Answer[]) => a.find((x) => x.questionId === "1f")?.answer;
 
 describe("the MCAS example agrees everywhere (R72)", () => {
@@ -57,7 +74,22 @@ describe("the MCAS example agrees everywhere (R72)", () => {
 
   it("R72 the JSON's answers follow KEY_QUESTIONS order, with 1f right after 1de", () => {
     const ids = fromJson().map((a) => a.questionId);
-    expect(ids).toEqual(["1a", "1b", "1c", "1de", "1f", "1gh", "2a", "2b", "2c", "2d", "2e", "2f", "2g", "2h"]);
+    expect(ids).toEqual([
+      "1a",
+      "1b",
+      "1c",
+      "1de",
+      "1f",
+      "1gh",
+      "2a",
+      "2b",
+      "2c",
+      "2d",
+      "2e",
+      "2f",
+      "2g",
+      "2h",
+    ]);
   });
 
   it("R72 the ontology README's example table says 14 Annex IV answers and 413 triples", () => {
@@ -70,12 +102,27 @@ describe("the MCAS example agrees everywhere (R72)", () => {
 });
 
 // The form speaks VAIR, and the three copies carry the same terms.
-async function seedData(): Promise<Record<string, unknown> & { risks: { create: Record<string, unknown>[] } }> {
-  const create = vi.fn(async (args: { data: unknown }) => ({ id: "x", systemName: "MCAS", args }));
-  const prisma = { qualification: { findUnique: vi.fn(async () => null), create, delete: vi.fn() } };
+async function seedData(): Promise<
+  Record<string, unknown> & { risks: { create: Record<string, unknown>[] } }
+> {
+  const create = vi.fn(async (args: { data: unknown }) => ({
+    id: "x",
+    systemName: "MCAS",
+    args,
+  }));
+  const prisma = {
+    qualification: {
+      findUnique: vi.fn(async () => null),
+      create,
+      delete: vi.fn(),
+    },
+  };
   const log = vi.spyOn(console, "log").mockImplementation(() => {});
   try {
-    await seedMcas(prisma as never, { platform: { projectId: "p", systemId: "s" } } as never);
+    await seedMcas(
+      prisma as never,
+      { platform: { projectId: "p", systemId: "s" } } as never,
+    );
   } finally {
     log.mockRestore();
   }
@@ -84,8 +131,21 @@ async function seedData(): Promise<Record<string, unknown> & { risks: { create: 
 
 describe("the MCAS example's VAIR terms agree everywhere", () => {
   const json = () => JSON.parse(readFileSync(JSON_FILE, "utf8"));
-  const TAGS = ["systemType", "purpose", "targetSystemTags", "sectorTags", "marketFormTags", "localityTags"] as const;
-  const TERMS = ["sourceTerm", "consequenceTerm", "impactTerm", "controlTerm", "followUpControlTerm"] as const;
+  const TAGS = [
+    "systemType",
+    "purpose",
+    "targetSystemTags",
+    "sectorTags",
+    "marketFormTags",
+    "localityTags",
+  ] as const;
+  const TERMS = [
+    "sourceTerm",
+    "consequenceTerm",
+    "impactTerm",
+    "controlTerm",
+    "followUpControlTerm",
+  ] as const;
 
   it("the metadata terms and tags", async () => {
     const seed = await seedData();
@@ -107,7 +167,9 @@ describe("the MCAS example's VAIR terms agree everywhere", () => {
     const seed = await seedData();
     json().risks.forEach((r: Record<string, unknown>, i: number) => {
       expect(MCAS.risks[i].areas, `risk ${i}`).toEqual(r.impactAreas);
-      expect(seed.risks.create[i].impactAreas, `risk ${i}`).toEqual(r.impactAreas);
+      expect(seed.risks.create[i].impactAreas, `risk ${i}`).toEqual(
+        r.impactAreas,
+      );
       for (const f of TERMS) {
         expect(MCAS.risks[i][f] || null, `risk ${i} ${f}`).toEqual(r[f]);
         expect(seed.risks.create[i][f], `risk ${i} ${f}`).toEqual(r[f]);

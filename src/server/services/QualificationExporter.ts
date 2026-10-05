@@ -143,8 +143,10 @@ function answersInForm(
   return [...inForm, ...stray];
 }
 
-const operatorTerm = (id: string | null | undefined) =>
-  id && isVairTerm("AIOperator", id) ? id : null;
+/** The id when it is a VAIR term of the class, else null: the builder refuses an unknown term. */
+const termOf = (cls: VairClass, id: string | null | undefined) =>
+  id && isVairTerm(cls, id) ? id : null;
+const operatorTerm = (id: string | null | undefined) => termOf("AIOperator", id);
 const terms = (cls: VairClass, ids: readonly string[]) => ids.filter((id) => isVairTerm(cls, id));
 
 /** The card as the ontology service reads it. Without a form version the answers
@@ -164,8 +166,8 @@ export function toExport(
     targetUseCase: q.targetUseCase,
     targetUsers: q.targetUsers,
     intendedDeployers: q.intendedDeployers,
-    systemType: q.systemType ?? null,
-    purpose: q.purpose ?? null,
+    systemType: termOf("AISystem", q.systemType),
+    purpose: termOf("Purpose", q.purpose),
     providerTerm: operatorTerm(q.providerTerm),
     deployerTerm: operatorTerm(q.deployerTerm),
     // A tag that is not a VAIR term of its class is dropped, not passed through: a

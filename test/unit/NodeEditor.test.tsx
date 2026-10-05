@@ -202,7 +202,9 @@ describe("NodeEditor as a pop-up", () => {
     expect(
       panel.querySelector('[data-testid="term-not-applicable"]'),
     ).toBeNull();
-    expect(screen.getByText(/name a population this node is not part of/i)).toBeTruthy();
+    expect(
+      screen.getByText(/name a population this node is not part of/i),
+    ).toBeTruthy();
   });
 
   it("saves a term picked from a partial vocabulary, without any mark", () => {
@@ -266,11 +268,18 @@ describe("NodeEditor consistency finding", () => {
   it("shows why the AI points here, with the quote in quotation marks", () => {
     const { panel } = mount({
       flags: ["inconsistent"],
-      flagNotes: [{ why: "the answer says it wraps an LLM", quote: "wraps a hosted third-party LLM" }],
+      flagNotes: [
+        {
+          why: "the answer says it wraps an LLM",
+          quote: "wraps a hosted third-party LLM",
+        },
+      ],
     });
     expect(screen.getByText("Why the AI points here")).toBeTruthy();
     expect(panel.textContent).toContain("the answer says it wraps an LLM");
-    expect(panel.textContent).toContain("\u201Cwraps a hosted third-party LLM\u201D");
+    expect(panel.textContent).toContain(
+      "\u201Cwraps a hosted third-party LLM\u201D",
+    );
   });
 
   it("has no such heading when there is no note", () => {

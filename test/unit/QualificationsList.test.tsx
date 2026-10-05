@@ -28,7 +28,10 @@ describe("the compiled qualifications list", () => {
     render(
       <QualificationsList
         project={PROJECT}
-        items={[item({ id: "c2", versionNumber: 2 }), item({ id: "c1", versionNumber: 1 })]}
+        items={[
+          item({ id: "c2", versionNumber: 2 }),
+          item({ id: "c1", versionNumber: 1 }),
+        ]}
       />,
     );
     expect(screen.getByText("Version 2")).toBeTruthy();
@@ -45,21 +48,30 @@ describe("the compiled qualifications list", () => {
   });
 
   it("does not double the v when the provider typed one", () => {
-    const { container } = render(<QualificationsList project={PROJECT} items={[item()]} />);
+    const { container } = render(
+      <QualificationsList project={PROJECT} items={[item()]} />,
+    );
     expect(container.textContent).not.toContain("vv1.2.0");
     expect(container.textContent).toContain("v1.2.0");
   });
 
   it("adds the v when the provider did not type one", () => {
     const { container } = render(
-      <QualificationsList project={PROJECT} items={[item({ systemVersion: "2.0" })]} />,
+      <QualificationsList
+        project={PROJECT}
+        items={[item({ systemVersion: "2.0" })]}
+      />,
     );
     expect(container.textContent).toContain("v2.0");
   });
 
   it("links each row to its own page, inside the project", () => {
-    const { container } = render(<QualificationsList project={PROJECT} items={[item()]} />);
-    const link = container.querySelector(`a[href="/p/${PROJECT}/qualify/abc123"]`);
+    const { container } = render(
+      <QualificationsList project={PROJECT} items={[item()]} />,
+    );
+    const link = container.querySelector(
+      `a[href="/p/${PROJECT}/qualify/abc123"]`,
+    );
     expect(link).toBeTruthy();
   });
 
@@ -74,28 +86,44 @@ describe("the compiled qualifications list", () => {
       <QualificationsList
         project={PROJECT}
         items={[
-          item({ id: "new", systemName: "Newer", savedAt: "2026-09-11T10:00:00.000Z" }),
-          item({ id: "old", systemName: "Older", savedAt: "2026-09-01T10:00:00.000Z" }),
+          item({
+            id: "new",
+            systemName: "Newer",
+            savedAt: "2026-09-11T10:00:00.000Z",
+          }),
+          item({
+            id: "old",
+            systemName: "Older",
+            savedAt: "2026-09-01T10:00:00.000Z",
+          }),
         ]}
       />,
     );
-    const names = [...container.querySelectorAll("h3")].map((h) => h.textContent);
+    const names = [...container.querySelectorAll("h3")].map(
+      (h) => h.textContent,
+    );
     expect(names[0]).toContain("Newer");
     expect(names[1]).toContain("Older");
   });
 
   it("has no modal: a row is a link, not a dialog trigger", () => {
-    const { container } = render(<QualificationsList project={PROJECT} items={[item()]} />);
+    const { container } = render(
+      <QualificationsList project={PROJECT} items={[item()]} />,
+    );
     expect(container.querySelector('[role="dialog"]')).toBeNull();
     expect(container.querySelector(".qf-modal")).toBeNull();
   });
 
   it("with no card yet, it asks for the system to be described, once", () => {
     // one system per project: the empty state starts version 1 of it
-    const { container } = render(<QualificationsList project={PROJECT} items={[]} />);
+    const { container } = render(
+      <QualificationsList project={PROJECT} items={[]} />,
+    );
     expect(screen.getByText(/no AI card yet/i)).toBeTruthy();
     const link = container.querySelector("a")!;
     expect(link.getAttribute("href")).toBe(`/p/${PROJECT}/system/edit`);
-    expect(container.textContent).not.toMatch(/first qualification|new qualification/i);
+    expect(container.textContent).not.toMatch(
+      /first qualification|new qualification/i,
+    );
   });
 });

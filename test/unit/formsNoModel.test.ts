@@ -9,7 +9,11 @@ function sources(dir: string): string[] {
   if (!existsSync(dir)) return [];
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
-    return statSync(path).isDirectory() ? sources(path) : /\.tsx?$/.test(name) ? [path] : [];
+    return statSync(path).isDirectory()
+      ? sources(path)
+      : /\.tsx?$/.test(name)
+        ? [path]
+        : [];
   });
 }
 
@@ -84,7 +88,11 @@ describe("form assembly calls no model (R41)", () => {
   it("R41 T61 none imports the filler or the LLM service", () => {
     const offending = files()
       .filter(existsSync)
-      .filter((f) => /FillerClient|services\/llm|from ["'][^"']*\/llm["']/.test(readFileSync(f, "utf8")));
+      .filter((f) =>
+        /FillerClient|services\/llm|from ["'][^"']*\/llm["']/.test(
+          readFileSync(f, "utf8"),
+        ),
+      );
     expect(offending).toEqual([]);
   });
 
@@ -102,11 +110,20 @@ describe("form assembly calls no model (R41)", () => {
   });
 
   it("T61 the only environment names any of them reads are PREFILL_URL, PLATFORM_URL, NEXT_BASE_PATH and QUALIFICATION_WEB_TO_PREFILL_TOKEN", () => {
-    const allowed = ["PREFILL_URL", "PLATFORM_URL", "NEXT_BASE_PATH", "QUALIFICATION_WEB_TO_PREFILL_TOKEN"];
+    const allowed = [
+      "PREFILL_URL",
+      "PLATFORM_URL",
+      "NEXT_BASE_PATH",
+      "QUALIFICATION_WEB_TO_PREFILL_TOKEN",
+    ];
     const read = files()
       .filter(existsSync)
       .flatMap((f) =>
-        [...readFileSync(f, "utf8").matchAll(/process\.env(?:\.([A-Za-z0-9_]+)|\[["']([A-Za-z0-9_]+)["']\])/g)]
+        [
+          ...readFileSync(f, "utf8").matchAll(
+            /process\.env(?:\.([A-Za-z0-9_]+)|\[["']([A-Za-z0-9_]+)["']\])/g,
+          ),
+        ]
           .map((m) => m[1] ?? m[2])
           .filter((name) => !allowed.includes(name))
           .map((name) => `${f}: ${name}`),
@@ -146,7 +163,9 @@ describe("the addendum's new parts call no model (R73)", () => {
 
   it("R73 none imports FillerClient or services/llm", () => {
     const offending = NEW_PARTS.filter(existsSync).filter((f) =>
-      /FillerClient|services\/llm|from ["'][^"']*\/llm["']/.test(readFileSync(f, "utf8")),
+      /FillerClient|services\/llm|from ["'][^"']*\/llm["']/.test(
+        readFileSync(f, "utf8"),
+      ),
     );
     expect(offending).toEqual([]);
   });
@@ -154,11 +173,20 @@ describe("the addendum's new parts call no model (R73)", () => {
   // The prefill service token is a service-to-service token, not a model credential,
   // so it is allowed. NEXT_BASE_PATH is allowed because the /forms export redirect's
   // Location carries the base path.
-  const ALLOWED = ["PREFILL_URL", "PLATFORM_URL", "NEXT_BASE_PATH", "QUALIFICATION_WEB_TO_PREFILL_TOKEN"];
+  const ALLOWED = [
+    "PREFILL_URL",
+    "PLATFORM_URL",
+    "NEXT_BASE_PATH",
+    "QUALIFICATION_WEB_TO_PREFILL_TOKEN",
+  ];
 
   it("R73 T61 the only environment names they read are PREFILL_URL, PLATFORM_URL, NEXT_BASE_PATH and QUALIFICATION_WEB_TO_PREFILL_TOKEN", () => {
     const read = NEW_PARTS.filter(existsSync).flatMap((f) =>
-      [...readFileSync(f, "utf8").matchAll(/process\.env(?:\.([A-Za-z0-9_]+)|\[["']([A-Za-z0-9_]+)["']\])/g)]
+      [
+        ...readFileSync(f, "utf8").matchAll(
+          /process\.env(?:\.([A-Za-z0-9_]+)|\[["']([A-Za-z0-9_]+)["']\])/g,
+        ),
+      ]
         .map((m) => m[1] ?? m[2])
         .filter((name) => !ALLOWED.includes(name))
         .map((name) => `${f}: ${name}`),

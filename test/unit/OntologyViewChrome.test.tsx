@@ -43,7 +43,11 @@ const view: View = {
       risk: node("risk0", "A creditworthy applicant is rejected", "Risk"),
       source: node("risk0_source", "Postcode proxies", "RiskSource"),
       vulnerability: null,
-      consequence: node("risk0_consequence", "Loss of credit access", "Consequence"),
+      consequence: node(
+        "risk0_consequence",
+        "Loss of credit access",
+        "Consequence",
+      ),
       impact: node("risk0_impact", "Economic harm", "Impact"),
       stakeholder: node("user", "Applicants", "AIUser"),
       control: node("risk0_control", "Officer review", "RiskControl"),

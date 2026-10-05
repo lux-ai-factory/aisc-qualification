@@ -37,7 +37,9 @@ export function assignComponentKeys(
       );
     }
     if (row.key !== null && used.has(row.key)) {
-      throw new FormValidationError(`Component ${i + 1}: the same component is listed twice.`);
+      throw new FormValidationError(
+        `Component ${i + 1}: the same component is listed twice.`,
+      );
     }
     const key = row.key ?? newKey();
     used.add(key);

@@ -27,7 +27,11 @@ const node = (id: string, label: string, cls: string) => ({
 const view = {
   system: node("system", "MicroCredit Assist Score (MCAS) v1.2.0", "AISystem"),
   answers: [
-    { citation: "Annex IV(1)(a)", questionId: "annex-1a", text: "v1.2.0 follows v1.1.x." },
+    {
+      citation: "Annex IV(1)(a)",
+      questionId: "annex-1a",
+      text: "v1.2.0 follows v1.1.x.",
+    },
   ],
   rows: [
     {
@@ -108,7 +112,9 @@ describe("the AI card as JSON", () => {
     // The view is a projection: it shows what a card needs. The graph is the
     // source, and a consumer that wants a node the view omits must have it.
     const exported = aiCardExport(facts, build);
-    expect(exported.ontology_graph).toEqual({ "@graph": [{ "@id": "ex:system" }] });
+    expect(exported.ontology_graph).toEqual({
+      "@graph": [{ "@id": "ex:system" }],
+    });
   });
 
   it("reports what the build could not settle", () => {
@@ -140,27 +146,45 @@ describe("the AI card as JSON, for a card built with a form (R37)", () => {
     coverage: {
       annex: { covered: 3, total: 14, points: [] },
       forms: [{ name: "Acme AI policy", answered: 18, total: 18 }],
-      summary: "Annex IV coverage: 3 of 14 points; Acme AI policy: 18 of 18 answered.",
+      summary:
+        "Annex IV coverage: 3 of 14 points; Acme AI policy: 18 of 18 answered.",
     },
     additionalDocumentation: [
       {
         form: "Acme AI policy",
-        entries: [{ key: "f-acme:q1", question: "Who signs off?", citation: "§4.2", answer: "The head of data science." }],
+        entries: [
+          {
+            key: "f-acme:q1",
+            question: "Who signs off?",
+            citation: "§4.2",
+            answer: "The head of data science.",
+          },
+        ],
       },
     ],
   } as unknown as OntologyView;
 
   it("R37 its ontology holds the form, the coverage and the additional documentation", () => {
-    const ontology = aiCardExport(facts, { ...build, view: formView }).ontology as Record<string, unknown>;
+    const ontology = aiCardExport(facts, { ...build, view: formView })
+      .ontology as Record<string, unknown>;
     expect(ontology.form).toEqual({ name: "Acme AI policy", version: 2 });
-    expect((ontology.coverage as { summary: string }).summary).toMatch(/^Annex IV coverage: 3 of 14 points/);
+    expect((ontology.coverage as { summary: string }).summary).toMatch(
+      /^Annex IV coverage: 3 of 14 points/,
+    );
     expect(ontology.additionalDocumentation).toHaveLength(1);
   });
 
   it("R37 nothing else in the export changes shape", () => {
     const plain = aiCardExport(facts, build, new Date("2026-09-25T09:00:00Z"));
-    const withForm = aiCardExport(facts, { ...build, view: formView }, new Date("2026-09-25T09:00:00Z"));
+    const withForm = aiCardExport(
+      facts,
+      { ...build, view: formView },
+      new Date("2026-09-25T09:00:00Z"),
+    );
     expect(Object.keys(withForm).sort()).toEqual(Object.keys(plain).sort());
-    expect({ ...withForm, ontology: null }).toEqual({ ...plain, ontology: null });
+    expect({ ...withForm, ontology: null }).toEqual({
+      ...plain,
+      ontology: null,
+    });
   });
 });

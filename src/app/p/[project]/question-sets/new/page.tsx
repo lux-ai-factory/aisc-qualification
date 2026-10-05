@@ -2,7 +2,11 @@ import Link from "next/link";
 import QuestionSetEditor from "../QuestionSetEditor";
 
 // A new question set: its name, its description and the questions it writes.
-export default async function NewQuestionSetPage({ params }: { params: Promise<{ project: string }> }) {
+export default async function NewQuestionSetPage({
+  params,
+}: {
+  params: Promise<{ project: string }>;
+}) {
   const { project } = await params;
   return (
     <main className="qualify-page qualify-page--form qf-forms-page">

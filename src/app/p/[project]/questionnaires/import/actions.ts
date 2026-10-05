@@ -6,23 +6,38 @@ import type { ReferenceItem } from "@/domain/forms/references";
 import type { ResolvedQuestion } from "@/domain/forms/types";
 import { callerName } from "@/server/access/callerName";
 import { projectDbForAction } from "@/lib/projectDb";
-import { questionnairesOn, type SelfContainedFile } from "@/server/services/QuestionnaireService";
-import { questionnaireFileClient, type QuestionnaireFile } from "@/server/services/QuestionnaireFileClient";
+import {
+  questionnairesOn,
+  type SelfContainedFile,
+} from "@/server/services/QuestionnaireService";
+import {
+  questionnaireFileClient,
+  type QuestionnaireFile,
+} from "@/server/services/QuestionnaireFileClient";
 import type { FormsRecorder } from "@/server/services/QuestionSetService";
 import { emitEvent } from "@/server/ledger/emit";
 
 /** The ledger's events for an import: the set and the questionnaire it makes. */
 const recordImport: FormsRecorder = async (tx, saved) => {
   if (saved.set) {
-    await emitEvent(tx, { action: "question_set.created", itemType: "question_set", itemId: saved.set.id,
-      details: { version: saved.set.number }, content: saved.set.content });
+    await emitEvent(tx, {
+      action: "question_set.created",
+      itemType: "question_set",
+      itemId: saved.set.id,
+      details: { version: saved.set.number },
+      content: saved.set.content,
+    });
   }
   if (saved.questionnaire) {
-    await emitEvent(tx, { action: "questionnaire.created", itemType: "questionnaire", itemId: saved.questionnaire.id,
-      details: { version: saved.questionnaire.number }, content: saved.questionnaire.content });
+    await emitEvent(tx, {
+      action: "questionnaire.created",
+      itemType: "questionnaire",
+      itemId: saved.questionnaire.id,
+      details: { version: saved.questionnaire.number },
+      content: saved.questionnaire.content,
+    });
   }
 };
-
 
 const MISSING =
   "This questionnaire refers to questions this install does not have. Import its self-contained file, or import those question sets first.";
@@ -38,7 +53,12 @@ export type ReadQuestionnaireResult =
         picks: Array<{ question: ResolvedQuestion; setVersionId: string }>;
       };
     }
-  | { ok: true; bundle: "self-contained"; file: QuestionnaireFile; fileName: string }
+  | {
+      ok: true;
+      bundle: "self-contained";
+      file: QuestionnaireFile;
+      fileName: string;
+    }
   | { ok: false; error: string; missing?: string[] };
 
 /**
@@ -46,22 +66,35 @@ export type ReadQuestionnaireResult =
  * file whose set versions are all in this project opens the builder with its
  * picks; a self-contained file goes back for the create-both preview.
  */
-export async function readQuestionnaireFile(project: string, formData: FormData): Promise<ReadQuestionnaireResult> {
+export async function readQuestionnaireFile(
+  project: string,
+  formData: FormData,
+): Promise<ReadQuestionnaireResult> {
   const door = await projectDbForAction(project, { write: false });
   if (door.error !== undefined) return { ok: false, error: door.error };
   const upload = formData.get("file");
-  if (!(upload instanceof File) || upload.size === 0) return { ok: false, error: "Choose a file first." };
+  if (!(upload instanceof File) || upload.size === 0)
+    return { ok: false, error: "Choose a file first." };
   const read = await questionnaireFileClient.read(upload);
   if (!read.ok) return { ok: false, error: read.error };
   const file = read.file;
-  if (file.bundle === "self-contained") return { ok: true, bundle: "self-contained", file, fileName: upload.name };
+  if (file.bundle === "self-contained")
+    return { ok: true, bundle: "self-contained", file, fileName: upload.name };
 
-  const resolved = await questionnairesOn(door.db).resolveReferences(file.items as ReferenceItem[]);
-  if (!resolved.ok) return { ok: false, error: MISSING, missing: resolved.missing };
+  const resolved = await questionnairesOn(door.db).resolveReferences(
+    file.items as ReferenceItem[],
+  );
+  if (!resolved.ok)
+    return { ok: false, error: MISSING, missing: resolved.missing };
   return {
     ok: true,
     bundle: "references",
-    open: { name: file.name, blocks: file.blocks as FormBlock[], origin: "import", picks: resolved.picks },
+    open: {
+      name: file.name,
+      blocks: file.blocks as FormBlock[],
+      origin: "import",
+      picks: resolved.picks,
+    },
   };
 }
 
@@ -93,5 +126,7 @@ export async function importSelfContained(
     record: recordImport,
   });
   if (!saved.ok) return { error: saved.error };
-  redirect(`/p/${project}/system/edit?questionnaire=${encodeURIComponent(saved.questionnaireId)}`);
+  redirect(
+    `/p/${project}/system/edit?questionnaire=${encodeURIComponent(saved.questionnaireId)}`,
+  );
 }

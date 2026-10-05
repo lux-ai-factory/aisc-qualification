@@ -20,7 +20,11 @@ export type DocumentUploadProps = {
   onChoose: (mode: PrefillMode) => void;
 };
 
-export default function DocumentUpload({ status, onPick, onChoose }: DocumentUploadProps) {
+export default function DocumentUpload({
+  status,
+  onPick,
+  onChoose,
+}: DocumentUploadProps) {
   return (
     <section className="qf-section qf-prefill">
       <h2>Start from a document</h2>
@@ -44,14 +48,16 @@ export default function DocumentUpload({ status, onPick, onChoose }: DocumentUpl
         />
       </div>
 
-      {status.kind === "reading" && <p className="qf-note">Reading the document…</p>}
+      {status.kind === "reading" && (
+        <p className="qf-note">Reading the document…</p>
+      )}
 
       {status.kind === "error" && <p className="qf-error">{status.error}</p>}
 
       {status.kind === "nothing" && (
         <p className="qf-note">
-          There was nothing in that document this form could use. The headings it
-          looks for are the Annex IV points, and labels like &quot;System
+          There was nothing in that document this form could use. The headings
+          it looks for are the Annex IV points, and labels like &quot;System
           name:&quot;.
         </p>
       )}
@@ -59,16 +65,33 @@ export default function DocumentUpload({ status, onPick, onChoose }: DocumentUpl
       {status.kind === "choose" && (
         <div className="qf-prefill-mode">
           <p>
-            The document has {counted(status.proposed, status.risksProposed, status.componentsProposed)} for this form,
-            and the form already has{" "}
-            {counted(status.answered, status.risksAnswered, status.componentsAnswered)} in it. What
-            should the document do with them?
+            The document has{" "}
+            {counted(
+              status.proposed,
+              status.risksProposed,
+              status.componentsProposed,
+            )}{" "}
+            for this form, and the form already has{" "}
+            {counted(
+              status.answered,
+              status.risksAnswered,
+              status.componentsAnswered,
+            )}{" "}
+            in it. What should the document do with them?
           </p>
           <div className="qf-actions">
-            <button className="btn btn-primary" type="button" onClick={() => onChoose("empty")}>
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={() => onChoose("empty")}
+            >
               Fill only the empty ones
             </button>
-            <button className="btn btn-secondary" type="button" onClick={() => onChoose("replace")}>
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={() => onChoose("replace")}
+            >
               Replace my answers
             </button>
           </div>
@@ -77,14 +100,24 @@ export default function DocumentUpload({ status, onPick, onChoose }: DocumentUpl
 
       {status.kind === "applied" && (
         <p className="qf-note">
-          Filled {counted(status.filled.length, status.risks, status.components, status.picks)} from the document
+          Filled{" "}
+          {counted(
+            status.filled.length,
+            status.risks,
+            status.components,
+            status.picks,
+          )}{" "}
+          from the document
           {status.kept.length > 0 && (
             <>
-              , left {status.kept.length} as {status.kept.length === 1 ? "it was" : "they were"}
+              , left {status.kept.length} as{" "}
+              {status.kept.length === 1 ? "it was" : "they were"}
             </>
           )}
           {status.risksKept && <>, and left your risks as they were</>}
-          {status.componentsKept && <>, and left your components as they were</>}
+          {status.componentsKept && (
+            <>, and left your components as they were</>
+          )}
           . Read them before saving.
         </p>
       )}
@@ -92,13 +125,24 @@ export default function DocumentUpload({ status, onPick, onChoose }: DocumentUpl
   );
 }
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const plural = (n: number, one: string, many: string) =>
+  `${n} ${n === 1 ? one : many}`;
 
 /** "21 answers, 5 risks and 9 components", leaving out the rows there are none of. */
-function counted(answers: number, risks: number, components = 0, picks = 0): string {
+function counted(
+  answers: number,
+  risks: number,
+  components = 0,
+  picks = 0,
+): string {
   const parts = [plural(answers, "answer", "answers")];
   if (risks > 0) parts.push(plural(risks, "risk", "risks"));
   if (components > 0) parts.push(plural(components, "component", "components"));
-  if (picks > 0) parts.push(plural(picks, "choice from the lists", "choices from the lists"));
-  return parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+  if (picks > 0)
+    parts.push(
+      plural(picks, "choice from the lists", "choices from the lists"),
+    );
+  return parts.length === 1
+    ? parts[0]
+    : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 }

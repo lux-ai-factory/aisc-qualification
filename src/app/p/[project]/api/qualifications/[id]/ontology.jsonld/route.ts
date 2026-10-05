@@ -48,8 +48,11 @@ export async function GET(
   } catch (err) {
     // The ontology service is a separate process; say so rather than 500.
     const detail = err instanceof Error ? err.message : "unavailable";
-    return new NextResponse(`Could not produce the knowledge graph: ${detail}`, {
-      status: 502,
-    });
+    return new NextResponse(
+      `Could not produce the knowledge graph: ${detail}`,
+      {
+        status: 502,
+      },
+    );
   }
 }

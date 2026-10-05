@@ -6,3 +6,10 @@ package-lock.json
 prisma/migrations
 src/data
 public
+# Prose stays as written: the agents' and the ontology's prompts are sent to a model word for word,
+# and the legal files are kept as published.
+*.md
+# The Python services format their own files; their fixtures and examples are read byte for byte.
+services
+# Fixtures are compared byte for byte.
+test/fixtures

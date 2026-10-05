@@ -8,7 +8,10 @@ import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 
 const css = readFileSync("src/app/globals.css", "utf8");
-const detailPage = readFileSync("src/app/p/[project]/qualify/[id]/page.tsx", "utf8");
+const detailPage = readFileSync(
+  "src/app/p/[project]/qualify/[id]/page.tsx",
+  "utf8",
+);
 
 /** The declarations of one rule, by selector. */
 function rule(selector: string): string {
@@ -47,7 +50,10 @@ describe("a compiled qualification uses the window's width", () => {
     // Wider than the 820px reading column, because the metadata fields pair up
     // and the answers are paragraphs; well short of the compiled card's
     // near-full-bleed, because a row of inputs 1900px wide is not a form.
-    const page = readFileSync("src/app/p/[project]/system/edit/page.tsx", "utf8");
+    const page = readFileSync(
+      "src/app/p/[project]/system/edit/page.tsx",
+      "utf8",
+    );
     expect(page).toMatch(/className="qualify-page qualify-page--form"/);
     expect(page).not.toMatch(/qualify-page--wide/);
     expect(rule(".qualify-page--form")).toMatch(/max-width: 1080px/);
@@ -63,17 +69,37 @@ describe("a compiled qualification uses the window's width", () => {
       "src/app/p/[project]/questionnaires/new/page.tsx",
       "src/app/p/[project]/questionnaires/[questionnaireId]/edit/page.tsx",
     ]) {
-      expect(readFileSync(path, "utf8"), path).toMatch(/className="qualify-page qualify-page--wide qf-forms-page"/);
+      expect(readFileSync(path, "utf8"), path).toMatch(
+        /className="qualify-page qualify-page--wide qf-forms-page"/,
+      );
     }
-    const importStep = readFileSync("src/app/p/[project]/questionnaires/import/QuestionnaireImport.tsx", "utf8");
-    expect(importStep).toContain('"qualify-page qualify-page--wide qf-forms-page"');
-    const library = readFileSync("src/app/p/[project]/questionnaires/page.tsx", "utf8");
-    expect(library).toMatch(/className="qualify-page qualify-page--form qf-forms-page"/);
+    const importStep = readFileSync(
+      "src/app/p/[project]/questionnaires/import/QuestionnaireImport.tsx",
+      "utf8",
+    );
+    expect(importStep).toContain(
+      '"qualify-page qualify-page--wide qf-forms-page"',
+    );
+    const library = readFileSync(
+      "src/app/p/[project]/questionnaires/page.tsx",
+      "utf8",
+    );
+    expect(library).toMatch(
+      /className="qualify-page qualify-page--form qf-forms-page"/,
+    );
     expect(library).not.toMatch(/qualify-page--wide/);
-    const sets = readFileSync("src/app/p/[project]/question-sets/page.tsx", "utf8");
-    expect(sets).toMatch(/className="qualify-page qualify-page--form qf-forms-page"/);
+    const sets = readFileSync(
+      "src/app/p/[project]/question-sets/page.tsx",
+      "utf8",
+    );
+    expect(sets).toMatch(
+      /className="qualify-page qualify-page--form qf-forms-page"/,
+    );
     expect(sets).not.toMatch(/qualify-page--wide/);
-    const setImport = readFileSync("src/app/p/[project]/question-sets/import/QuestionSetImport.tsx", "utf8");
+    const setImport = readFileSync(
+      "src/app/p/[project]/question-sets/import/QuestionSetImport.tsx",
+      "utf8",
+    );
     expect(setImport).not.toMatch(/qualify-page--wide/);
   });
 });

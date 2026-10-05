@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import Methodology, { type MethodologyFacts } from "@/app/methodology/Methodology";
+import Methodology, {
+  type MethodologyFacts,
+} from "@/app/methodology/Methodology";
 
 afterEach(cleanup);
 
@@ -33,7 +35,14 @@ describe("the methodology page explains the filler workflow", () => {
     expect(svg.getAttribute("role")).toBe("img");
     expect(svg.getAttribute("aria-label")).toMatch(/state machine|workflow/i);
     const labels = [...svg.querySelectorAll("text")].map((t) => t.textContent);
-    for (const state of ["load", "draft", "review", "revise", "publish", "done"]) {
+    for (const state of [
+      "load",
+      "draft",
+      "review",
+      "revise",
+      "publish",
+      "done",
+    ]) {
       expect(labels).toContain(state);
     }
     // the two conditions that make it a loop rather than a line
@@ -64,7 +73,8 @@ describe("the methodology page explains the filler workflow", () => {
     const { container } = mount();
     const rows = [...container.querySelectorAll("table.method-stops tbody tr")];
     expect(rows.length).toBe(4);
-    const text = container.querySelector("table.method-stops")!.textContent ?? "";
+    const text =
+      container.querySelector("table.method-stops")!.textContent ?? "";
     for (const rule of ["clean", "fixpoint", "cap", "budget"]) {
       expect(text).toContain(rule);
     }
@@ -87,7 +97,9 @@ describe("the methodology page explains the filler workflow", () => {
   it("says the draft is published flagged rather than withheld", () => {
     const { container } = mount();
     expect(container.textContent).toMatch(/flag/i);
-    expect(container.textContent).toMatch(/every exit publishes|always publishes/i);
+    expect(container.textContent).toMatch(
+      /every exit publishes|always publishes/i,
+    );
   });
 
   it("attributes the framework it runs on", () => {
@@ -130,7 +142,9 @@ describe("the methodology page reads as a procedure", () => {
     expect(text).not.toMatch(/Step \d+[a-z]/);
     // Each ontology is explained inside the step that first needs it, so there
     // is no separate section to jump to afterwards.
-    const headings = [...container.querySelectorAll("h2")].map((h) => h.textContent);
+    const headings = [...container.querySelectorAll("h2")].map(
+      (h) => h.textContent,
+    );
     expect(headings).not.toContain("How AIRO and VAIR join");
   });
 
@@ -172,9 +186,9 @@ describe("the methodology page reads as a procedure", () => {
     const stages = [...container.querySelectorAll(".method-pipe > li")].map(
       (s) => (s.textContent ?? "").trim(),
     );
-    const titles = [...container.querySelectorAll("ol.method-steps > li > h3")].map(
-      (h) => (h.textContent ?? "").trim(),
-    );
+    const titles = [
+      ...container.querySelectorAll("ol.method-steps > li > h3"),
+    ].map((h) => (h.textContent ?? "").trim());
     expect(stages.length).toBe(titles.length);
     stages.forEach((stage, i) => {
       expect(titles[i].split(" ")[0]).toBe(stage);
@@ -197,18 +211,28 @@ describe("the methodology page", () => {
     expect(screen.getAllByText(/AI Risk Ontology/).length).toBeGreaterThan(0);
     expect(container.textContent).toContain("Delaram Golpayegani");
     expect(container.textContent).toContain("ADAPT Centre");
-    expect(container.querySelector('a[href="https://w3id.org/airo"]')).toBeTruthy();
     expect(
-      container.querySelector('a[href="https://doi.org/10.5281/zenodo.10894750"]'),
+      container.querySelector('a[href="https://w3id.org/airo"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector(
+        'a[href="https://doi.org/10.5281/zenodo.10894750"]',
+      ),
     ).toBeTruthy();
   });
 
   it("attributes VAIR the same way", () => {
     const { container } = mount();
-    expect(screen.getAllByText(/Vocabulary of AI Risks/).length).toBeGreaterThan(0);
-    expect(container.querySelector('a[href="https://w3id.org/vair"]')).toBeTruthy();
     expect(
-      container.querySelector('a[href="https://doi.org/10.5281/zenodo.10894914"]'),
+      screen.getAllByText(/Vocabulary of AI Risks/).length,
+    ).toBeGreaterThan(0);
+    expect(
+      container.querySelector('a[href="https://w3id.org/vair"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector(
+        'a[href="https://doi.org/10.5281/zenodo.10894914"]',
+      ),
     ).toBeTruthy();
   });
 
@@ -216,14 +240,18 @@ describe("the methodology page", () => {
     const { container } = mount();
     expect(container.textContent).toMatch(/CC BY 4\.0/);
     expect(
-      container.querySelector('a[href="https://creativecommons.org/licenses/by/4.0/"]'),
+      container.querySelector(
+        'a[href="https://creativecommons.org/licenses/by/4.0/"]',
+      ),
     ).toBeTruthy();
   });
 
   it("links the Act itself, not just a paraphrase of it", () => {
     const { container } = mount();
     expect(
-      container.querySelector('a[href="https://eur-lex.europa.eu/eli/reg/2024/1689/oj"]'),
+      container.querySelector(
+        'a[href="https://eur-lex.europa.eu/eli/reg/2024/1689/oj"]',
+      ),
     ).toBeTruthy();
     expect(container.textContent).toMatch(/Annex IV/);
   });
@@ -248,7 +276,9 @@ describe("the methodology page", () => {
   });
 
   it("says how much of the vocabulary is in use", () => {
-    const { container } = mount({ vocabulary: { classes: 19, terms: 331, typed: 14 } });
+    const { container } = mount({
+      vocabulary: { classes: 19, terms: 331, typed: 14 },
+    });
     expect(container.textContent).toContain("331");
   });
 
@@ -260,7 +290,9 @@ describe("the methodology page", () => {
 
   it("drops the two closing sections that were not part of the procedure", () => {
     const { container } = mount();
-    const headings = [...container.querySelectorAll("h2")].map((h) => h.textContent);
+    const headings = [...container.querySelectorAll("h2")].map(
+      (h) => h.textContent,
+    );
     expect(headings).not.toContain("Defect register: the sources");
     expect(headings).not.toContain("What the sources themselves rest on");
   });
@@ -268,7 +300,9 @@ describe("the methodology page", () => {
   it("states what the procedure does not do", () => {
     const { container } = mount();
     expect(container.textContent).toMatch(/Annex III/);
-    expect(container.textContent).toMatch(/not a legal|no legal|does not decide/i);
+    expect(container.textContent).toMatch(
+      /not a legal|no legal|does not decide/i,
+    );
   });
 
   it("still says what it does not run, and why", () => {

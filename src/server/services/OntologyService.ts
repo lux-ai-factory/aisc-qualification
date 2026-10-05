@@ -66,6 +66,22 @@ export class OntologyService {
   }
 
   /**
+   * Build the card with a draft that is not stored yet, and the card's stored corrections; nothing
+   * is saved. The builder's refusal comes through as OntologyRejected: a draft it refuses must not
+   * be stored, or the card's graph fails on every read.
+   */
+  async checkExtracted(projectId: string, qualificationId: string, extracted: OntologyExtracted): Promise<void> {
+    const repo = await this.repos(projectId);
+    const q = await repo.find(qualificationId);
+    if (!q) throw new Error("Qualification not found.");
+    await this.clientFactory().build(
+      await this.exportOf(projectId, q),
+      extracted,
+      (q.ontologyPatch as OntologyPatch | null) ?? undefined,
+    );
+  }
+
+  /**
    * Record one reviewer correction and rebuild. The patch is merged per node, so
    * correcting a label does not discard a VAIR type set earlier. An empty change
    * removes that node's entry, which reverts it to the generated value.
@@ -94,6 +110,7 @@ export class OntologyService {
       (q.ontologyExtracted as OntologyExtracted | null) ?? undefined,
       patch,
     );
+    let stored: OntologyPatch = patch;
     await repo.transaction(async (r, tx) => {
       // the patch as it is now, locked: a correction saved meanwhile is kept, not overwritten
       const now = ((await r.lockedPatch(qualificationId)) as OntologyPatch | null) ?? {};
@@ -103,6 +120,7 @@ export class OntologyService {
       if (Object.keys(mergedNow).length === 0) delete fresh[nodeId];
       else fresh[nodeId] = mergedNow;
       const after = fresh[nodeId] ?? null;
+      stored = fresh;
       await r.saveOntologyPatch(qualificationId, fresh as unknown as Prisma.InputJsonValue);
       await r.recordHistory({
         qualificationId,
@@ -113,8 +131,17 @@ export class OntologyService {
       });
       await record(tx, { node: nodeId, before, after });
     });
-    await this.graphsFor(repo).save(qualificationId, built);
-    return built;
+    // A correction saved meanwhile is in what was stored but not in what was built: build that.
+    const graph =
+      JSON.stringify(stored) === JSON.stringify(patch)
+        ? built
+        : await this.clientFactory().build(
+            await this.exportOf(projectId, q),
+            (q.ontologyExtracted as OntologyExtracted | null) ?? undefined,
+            stored,
+          );
+    await this.graphsFor(repo).save(qualificationId, graph);
+    return graph;
   }
 
   /** Drop every correction and go back to the generated graph.

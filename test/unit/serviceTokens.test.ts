@@ -47,7 +47,10 @@ describe("qualification-agents", () => {
     vi.stubEnv("QUALIFICATION_WEB_TO_AGENTS_TOKEN", tok("agents"));
     const fetchImpl = fakeFetch();
     const { FillerClient } = await import("@/server/services/FillerClient");
-    await new FillerClient("http://agents:8012", fetchImpl as unknown as typeof fetch).request(PID, "q1");
+    await new FillerClient(
+      "http://agents:8012",
+      fetchImpl as unknown as typeof fetch,
+    ).request(PID, "q1");
     expect(headersOf(fetchImpl)[HEADER]).toBe(tok("agents"));
   });
 
@@ -55,7 +58,9 @@ describe("qualification-agents", () => {
     vi.stubEnv("QUALIFICATION_WEB_TO_AGENTS_TOKEN", tok("agents"));
     vi.stubEnv("AGENT_SERVICE_URL", "http://agents:8012");
     // the door lets the caller read the project, and the card is in its database
-    vi.doMock("@/lib/projectDb", () => ({ projectDbForRoute: async () => ({}) }));
+    vi.doMock("@/lib/projectDb", () => ({
+      projectDbForRoute: async () => ({}),
+    }));
     vi.doMock("@/server/repositories/QualificationRepository", () => ({
       QualificationRepository: class {
         cardSummary = async (id: string) => ({ id });
@@ -63,10 +68,15 @@ describe("qualification-agents", () => {
     }));
     const fetchImpl = fakeFetch({ state: "done" });
     vi.stubGlobal("fetch", fetchImpl);
-    const { GET } = await import("@/app/p/[project]/api/qualifications/[id]/fill/route");
-    const res = await GET(new Request("http://q/x"), { params: Promise.resolve({ project: PID, id: "q1" }) });
+    const { GET } =
+      await import("@/app/p/[project]/api/qualifications/[id]/fill/route");
+    const res = await GET(new Request("http://q/x"), {
+      params: Promise.resolve({ project: PID, id: "q1" }),
+    });
     expect(res.status).toBe(200);
-    expect(fetchImpl.mock.calls[0][0]).toBe(`http://agents:8012/fill/${PID}/q1`);
+    expect(fetchImpl.mock.calls[0][0]).toBe(
+      `http://agents:8012/fill/${PID}/q1`,
+    );
     expect(headersOf(fetchImpl)[HEADER]).toBe(tok("agents"));
     vi.doUnmock("@/lib/projectDb");
     vi.doUnmock("@/server/repositories/QualificationRepository");
@@ -92,33 +102,51 @@ describe("qualification-ontology", () => {
 describe("qualification-prefill", () => {
   it("POST /prefill carries the web-to-prefill token", async () => {
     vi.stubEnv("QUALIFICATION_WEB_TO_PREFILL_TOKEN", tok("prefill"));
-    const fetchImpl = fakeFetch({ values: {}, filled: [], kept: [], model: null });
+    const fetchImpl = fakeFetch({
+      values: {},
+      filled: [],
+      kept: [],
+      model: null,
+    });
     const { PrefillClient } = await import("@/server/services/PrefillClient");
-    await new PrefillClient("http://prefill:8012", fetchImpl as unknown as typeof fetch).read(
-      new File(["x"], "a.txt"),
-    );
+    await new PrefillClient(
+      "http://prefill:8012",
+      fetchImpl as unknown as typeof fetch,
+    ).read(new File(["x"], "a.txt"));
     expect(headersOf(fetchImpl)[HEADER]).toBe(tok("prefill"));
   });
 
   it("the form reader's POST /forms/import carries it too", async () => {
     vi.stubEnv("QUALIFICATION_WEB_TO_PREFILL_TOKEN", tok("prefill"));
-    const fetchImpl = fakeFetch({ format: "csv", found: 0, questions: [], warnings: [] });
-    const { FormImportClient } = await import("@/server/services/FormImportClient");
-    await new FormImportClient("http://prefill:8012", fetchImpl as unknown as typeof fetch).read(
-      new File(["question\nWho?\n"], "a.csv"),
-    );
+    const fetchImpl = fakeFetch({
+      format: "csv",
+      found: 0,
+      questions: [],
+      warnings: [],
+    });
+    const { FormImportClient } =
+      await import("@/server/services/FormImportClient");
+    await new FormImportClient(
+      "http://prefill:8012",
+      fetchImpl as unknown as typeof fetch,
+    ).read(new File(["question\nWho?\n"], "a.csv"));
     expect(fetchImpl.mock.calls[0][0]).toBe("http://prefill:8012/forms/import");
     expect(headersOf(fetchImpl)[HEADER]).toBe(tok("prefill"));
   });
 
   it("the form writer's POST /forms/export carries it too, beside its JSON content type", async () => {
     vi.stubEnv("QUALIFICATION_WEB_TO_PREFILL_TOKEN", tok("prefill"));
-    const fetchImpl = fakeFetch({ filename: "f.csv", contentType: "text/csv", content: "" });
-    const { FormExportClient } = await import("@/server/services/FormExportClient");
-    await new FormExportClient("http://prefill:8012", fetchImpl as unknown as typeof fetch).write(
-      { formName: "F", versionNumber: 1, questions: [] } as never,
-      "csv",
-    );
+    const fetchImpl = fakeFetch({
+      filename: "f.csv",
+      contentType: "text/csv",
+      content: "",
+    });
+    const { FormExportClient } =
+      await import("@/server/services/FormExportClient");
+    await new FormExportClient(
+      "http://prefill:8012",
+      fetchImpl as unknown as typeof fetch,
+    ).write({ formName: "F", versionNumber: 1, questions: [] } as never, "csv");
     expect(fetchImpl.mock.calls[0][0]).toBe("http://prefill:8012/forms/export");
     expect(headersOf(fetchImpl)[HEADER]).toBe(tok("prefill"));
     expect(headersOf(fetchImpl)["Content-Type"]).toBe("application/json");
@@ -130,7 +158,8 @@ describe("qualification-pdf", () => {
     vi.stubEnv("QUALIFICATION_WEB_TO_PDF_TOKEN", tok("pdf"));
     const fetchImpl = fakeFetch();
     vi.stubGlobal("fetch", fetchImpl);
-    const { SystemCardRendererClient } = await import("@/server/services/SystemCardRendererClient");
+    const { SystemCardRendererClient } =
+      await import("@/server/services/SystemCardRendererClient");
     await new SystemCardRendererClient("http://pdf:8005").renderPdf({});
     expect(headersOf(fetchImpl)[HEADER]).toBe(tok("pdf"));
     expect(headersOf(fetchImpl)["Content-Type"]).toBe("application/json");
@@ -146,18 +175,24 @@ describe("no client sends another edge's token", () => {
         "src/server/services/FillerClient.ts",
         "src/app/p/[project]/api/qualifications/[id]/fill/route.ts",
       ],
-      QUALIFICATION_WEB_TO_ONTOLOGY_TOKEN: ["src/server/services/OntologyClient.ts"],
+      QUALIFICATION_WEB_TO_ONTOLOGY_TOKEN: [
+        "src/server/services/OntologyClient.ts",
+      ],
       QUALIFICATION_WEB_TO_PREFILL_TOKEN: [
         "src/server/services/PrefillClient.ts",
         "src/server/services/FormImportClient.ts",
         "src/server/services/FormExportClient.ts",
       ],
-      QUALIFICATION_WEB_TO_PDF_TOKEN: ["src/server/services/SystemCardRendererClient.ts"],
+      QUALIFICATION_WEB_TO_PDF_TOKEN: [
+        "src/server/services/SystemCardRendererClient.ts",
+      ],
     };
     const files = Object.values(owners).flat();
     for (const [name, mine] of Object.entries(owners)) {
       for (const file of files) {
-        expect(read(file).includes(name), `${file} and ${name}`).toBe(mine.includes(file));
+        expect(read(file).includes(name), `${file} and ${name}`).toBe(
+          mine.includes(file),
+        );
       }
     }
   });
@@ -171,7 +206,6 @@ describe("every caller of a sidecar sends that sidecar's token", () => {
     ONTOLOGY_SERVICE_URL: "QUALIFICATION_WEB_TO_ONTOLOGY_TOKEN",
     PREFILL_URL: "QUALIFICATION_WEB_TO_PREFILL_TOKEN",
     SYSTEM_CARD_RENDERER_URL: "QUALIFICATION_WEB_TO_PDF_TOKEN",
-    LLM_SERVICE_URL: "QUALIFICATION_WEB_TO_LLM_TOKEN",
   };
 
   it("holds for every source file that reads a sidecar's URL", async () => {
@@ -185,7 +219,10 @@ describe("every caller of a sidecar sends that sidecar's token", () => {
         else if (/\.tsx?$/.test(name)) {
           const text = readFileSync(path, "utf8");
           for (const [url, token] of Object.entries(TOKEN_OF)) {
-            if (text.includes(`process.env.${url}`) && !(text.includes(token) && text.includes("serviceTokenHeaders")))
+            if (
+              text.includes(`process.env.${url}`) &&
+              !(text.includes(token) && text.includes("serviceTokenHeaders"))
+            )
               missing.push(`${path} reads ${url} but does not send ${token}`);
           }
         }

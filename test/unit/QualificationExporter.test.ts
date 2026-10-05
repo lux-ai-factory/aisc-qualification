@@ -98,10 +98,30 @@ describe("toExport", () => {
   });
 
   it("carries the provider's and the deployer's terms, dropping one that is not an operator term", () => {
-    const out = toExport(row({ providerTerm: "EducationalInstitution", deployerTerm: "bogus:operator" }));
+    const out = toExport(
+      row({
+        providerTerm: "EducationalInstitution",
+        deployerTerm: "bogus:operator",
+      }),
+    );
     expect(out.providerTerm).toBe("EducationalInstitution");
     expect(out.deployerTerm).toBeNull();
-    expect(toExport(row({ providerTerm: null, deployerTerm: null })).providerTerm).toBeNull();
+    expect(
+      toExport(row({ providerTerm: null, deployerTerm: null })).providerTerm,
+    ).toBeNull();
+  });
+
+  it("carries the system type and purpose, dropping one that is not a VAIR term of its class (code review B10)", () => {
+    const out = toExport(
+      row({ systemType: "NarrowAI", purpose: "AssessingCreditworthiness" }),
+    );
+    expect(out.systemType).toBe("NarrowAI");
+    expect(out.purpose).toBe("AssessingCreditworthiness");
+    const bad = toExport(
+      row({ systemType: "bogus:system", purpose: "Workplace" }),
+    );
+    expect(bad.systemType).toBeNull();
+    expect(bad.purpose).toBeNull();
   });
 
   it("produces only the fields the service needs, and no Date objects", () => {
@@ -179,7 +199,11 @@ describe("toExport with the card's form version (R30)", () => {
 
   it("R30 each answer carries its citation and Annex tag from the version's snapshot", () => {
     const out = toExport(q(), mixed);
-    expect(out.answers.find((a) => a.questionId === "q1" && a.toolId === "f-clx9abc")).toEqual({
+    expect(
+      out.answers.find(
+        (a) => a.questionId === "q1" && a.toolId === "f-clx9abc",
+      ),
+    ).toEqual({
       toolId: "f-clx9abc",
       questionId: "q1",
       answer: "The head of data science.",
@@ -196,12 +220,22 @@ describe("toExport with the card's form version (R30)", () => {
   });
 
   it("R30 answers follow the version's order; stray answers come last, by key", () => {
-    const keys = toExport(q(), mixed).answers.map((a) => `${a.toolId}:${a.questionId}`);
-    expect(keys).toEqual(["annex-2:2a", "f-clx9abc:q1", "annex-1:1a", "aa-stray:q1", "zz-stray:q9"]);
+    const keys = toExport(q(), mixed).answers.map(
+      (a) => `${a.toolId}:${a.questionId}`,
+    );
+    expect(keys).toEqual([
+      "annex-2:2a",
+      "f-clx9abc:q1",
+      "annex-1:1a",
+      "aa-stray:q1",
+      "zz-stray:q9",
+    ]);
   });
 
   it("R30 T43 the export names the questionnaire, its version and its questions in order", () => {
-    const out = toExport(q(), mixed) as ReturnType<typeof toExport> & { form: unknown };
+    const out = toExport(q(), mixed) as ReturnType<typeof toExport> & {
+      form: unknown;
+    };
     expect(out.form).toEqual({
       name: "Acme mix",
       version: 2,
@@ -242,10 +276,20 @@ describe("toExport with the card's form version (R30)", () => {
 
   it("R30 a block the form leaves out exports as stored: empty text, null deployers", () => {
     const out = toExport(
-      row({ description: "", targetUseCase: "", targetUsers: "", intendedDeployers: null } as never),
+      row({
+        description: "",
+        targetUseCase: "",
+        targetUsers: "",
+        intendedDeployers: null,
+      } as never),
       formVersion({ blocks: [] }),
     );
-    expect(out).toMatchObject({ description: "", targetUseCase: "", targetUsers: "", intendedDeployers: null });
+    expect(out).toMatchObject({
+      description: "",
+      targetUseCase: "",
+      targetUsers: "",
+      intendedDeployers: null,
+    });
   });
 
   it("R30 still JSON as it stands", () => {
@@ -261,14 +305,26 @@ describe("toExport names each question's owner by id (R69)", () => {
     const twoOnce = formVersion({
       questionnaireName: "Mixed once",
       questions: [
-        customQuestion("u1", "q1", { setName: "Custom questions", text: "First once?" }),
-        customQuestion("u2", "q1", { setName: "Custom questions", text: "Second once?" }),
+        customQuestion("u1", "q1", {
+          setName: "Custom questions",
+          text: "First once?",
+        }),
+        customQuestion("u2", "q1", {
+          setName: "Custom questions",
+          text: "Second once?",
+        }),
       ],
     });
-    const out = toExport(row({ answers: [] as never }), twoOnce) as ReturnType<typeof toExport> & {
-      form: { questions: Array<{ key: string; ownerSet: string; ownerSetId: string }> };
+    const out = toExport(row({ answers: [] as never }), twoOnce) as ReturnType<
+      typeof toExport
+    > & {
+      form: {
+        questions: Array<{ key: string; ownerSet: string; ownerSetId: string }>;
+      };
     };
-    expect(out.form.questions.map((q) => [q.key, q.ownerSet, q.ownerSetId])).toEqual([
+    expect(
+      out.form.questions.map((q) => [q.key, q.ownerSet, q.ownerSetId]),
+    ).toEqual([
       ["f-u1:q1", "Custom questions", "u1"],
       ["f-u2:q1", "Custom questions", "u2"],
     ]);
@@ -277,16 +333,33 @@ describe("toExport names each question's owner by id (R69)", () => {
 
 describe("the owner keys' order (T43)", () => {
   it("T43 each form.questions entry has exactly the keys key, text, citation, required, annexPoint, ownerSet, ownerSetId, ownerBuiltin, in that order", () => {
-    const out = toExport(row({ answers: [] as never }), mixed) as ReturnType<typeof toExport> & {
-      form: { name: string; version: number; questions: Array<Record<string, unknown>> };
+    const out = toExport(row({ answers: [] as never }), mixed) as ReturnType<
+      typeof toExport
+    > & {
+      form: {
+        name: string;
+        version: number;
+        questions: Array<Record<string, unknown>>;
+      };
     };
     expect(out.form.name).toBe("Acme mix");
     expect(out.form.version).toBe(2);
     for (const q of out.form.questions) {
       expect(Object.keys(q)).toEqual([
-        "key", "text", "citation", "required", "annexPoint", "ownerSet", "ownerSetId", "ownerBuiltin",
+        "key",
+        "text",
+        "citation",
+        "required",
+        "annexPoint",
+        "ownerSet",
+        "ownerSetId",
+        "ownerBuiltin",
       ]);
     }
-    expect(out.form.questions[1]).toMatchObject({ ownerSet: "Acme AI policy", ownerSetId: "clx9abc", ownerBuiltin: false });
+    expect(out.form.questions[1]).toMatchObject({
+      ownerSet: "Acme AI policy",
+      ownerSetId: "clx9abc",
+      ownerBuiltin: false,
+    });
   });
 });

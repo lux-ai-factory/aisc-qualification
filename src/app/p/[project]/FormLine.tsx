@@ -51,7 +51,9 @@ export default function FormLine({
       {newer && (
         <p className="qf-questionnaire-update">
           {`${questionnaireName} has a newer version, v${newer.versionNumber}. `}
-          <Link href={`/p/${project}/system/edit?questionnaireVersion=${encodeURIComponent(newer.versionId)}`}>
+          <Link
+            href={`/p/${project}/system/edit?questionnaireVersion=${encodeURIComponent(newer.versionId)}`}
+          >
             {`Move to v${newer.versionNumber}`}
           </Link>
         </p>

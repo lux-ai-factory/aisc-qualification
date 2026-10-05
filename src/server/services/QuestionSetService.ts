@@ -206,10 +206,10 @@ export class QuestionSetService {
     const sets = (await this.repository.listSets())
       .filter((s) => (s.retiredAt !== null) === retired)
       .sort((a, b) => libraryOrder(a, b, ANNEX_SET_ID));
+    const versionsOf = await Promise.all(sets.map((s) => this.repository.setVersionsOf(s.id)));
     const rows: SetListRow[] = [];
-    for (const s of sets) {
-      const versions = await this.repository.setVersionsOf(s.id);
-      const latest = versions.at(-1);
+    for (const [i, s] of sets.entries()) {
+      const latest = versionsOf[i].at(-1);
       if (!latest) continue;
       rows.push({
         setId: s.id,
@@ -231,9 +231,10 @@ export class QuestionSetService {
   /** Every set's latest version, retired ones included and flagged, Annex IV first. */
   async groups(): Promise<SetGroup[]> {
     const sets = (await this.repository.listSets()).sort((a, b) => libraryOrder(a, b, ANNEX_SET_ID));
+    const versionsOf = await Promise.all(sets.map((s) => this.repository.setVersionsOf(s.id)));
     const groups: SetGroup[] = [];
-    for (const s of sets) {
-      const latest = (await this.repository.setVersionsOf(s.id)).at(-1);
+    for (const [i] of sets.entries()) {
+      const latest = versionsOf[i].at(-1);
       if (!latest) continue;
       const resolved = toResolvedSetVersion(latest);
       groups.push({

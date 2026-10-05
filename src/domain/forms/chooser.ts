@@ -6,7 +6,10 @@
 import { findExample } from "@/data/examples";
 import { DEFAULT_QUESTIONNAIRE_ID } from "./legacy";
 
-export type ChooserPick = { param: "questionnaire" | "questionnaireVersion"; id: string };
+export type ChooserPick = {
+  param: "questionnaire" | "questionnaireVersion";
+  id: string;
+};
 
 /**
  * The option to start on. `options` are the listed, current questionnaires with
@@ -24,8 +27,12 @@ export function preselect(
     // An older version, a use-once or a retired one: that very version again.
     return { param: "questionnaireVersion", id: fromVersionId };
   }
-  const fallback = options.find((o) => o.questionnaireId === DEFAULT_QUESTIONNAIRE_ID) ?? options[0];
-  return fallback ? { param: "questionnaire", id: fallback.questionnaireId } : null;
+  const fallback =
+    options.find((o) => o.questionnaireId === DEFAULT_QUESTIONNAIRE_ID) ??
+    options[0];
+  return fallback
+    ? { param: "questionnaire", id: fallback.questionnaireId }
+    : null;
 }
 
 export type QuestionnaireLookup =

@@ -28,7 +28,11 @@ export const QUESTIONNAIRE_VERSION_INCLUDE = {
   questionnaire: true,
   items: {
     orderBy: { position: "asc" },
-    include: { setItem: { include: { question: true, setVersion: { include: { set: true } } } } },
+    include: {
+      setItem: {
+        include: { question: true, setVersion: { include: { set: true } } },
+      },
+    },
   },
 } as const satisfies Prisma.QuestionnaireVersionInclude;
 
@@ -50,12 +54,19 @@ export class QuestionnaireRepository extends QuestionSetRepository {
     return this.db.questionnaire.findUnique({ where: { id } });
   }
 
-  findQuestionnaireVersion(id: string): Promise<QuestionnaireVersionRow | null> {
-    return this.db.questionnaireVersion.findUnique({ where: { id }, include: QUESTIONNAIRE_VERSION_INCLUDE });
+  findQuestionnaireVersion(
+    id: string,
+  ): Promise<QuestionnaireVersionRow | null> {
+    return this.db.questionnaireVersion.findUnique({
+      where: { id },
+      include: QUESTIONNAIRE_VERSION_INCLUDE,
+    });
   }
 
   /** Every version of a questionnaire, oldest first. */
-  questionnaireVersionsOf(questionnaireId: string): Promise<QuestionnaireVersionRow[]> {
+  questionnaireVersionsOf(
+    questionnaireId: string,
+  ): Promise<QuestionnaireVersionRow[]> {
     return this.db.questionnaireVersion.findMany({
       where: { questionnaireId },
       orderBy: { number: "asc" },
@@ -64,7 +75,10 @@ export class QuestionnaireRepository extends QuestionSetRepository {
   }
 
   /** The questionnaire (when new), the version and its items: one transaction. */
-  async insertQuestionnaireVersion(plan: QuestionnaireVersionInsert, onWrite?: OnWrite): Promise<void> {
+  async insertQuestionnaireVersion(
+    plan: QuestionnaireVersionInsert,
+    onWrite?: OnWrite,
+  ): Promise<void> {
     await this.db.$transaction(async (tx) => {
       await writeQuestionnaireVersion(tx, plan);
       if (onWrite) await onWrite(tx);
@@ -72,7 +86,11 @@ export class QuestionnaireRepository extends QuestionSetRepository {
   }
 
   /** The only update the triggers allow on a questionnaire: retired_at, once. */
-  async retireQuestionnaire(id: string, at: Date, onWrite?: OnWrite): Promise<void> {
+  async retireQuestionnaire(
+    id: string,
+    at: Date,
+    onWrite?: OnWrite,
+  ): Promise<void> {
     await this.db.$transaction(async (tx) => {
       await tx.questionnaire.update({ where: { id }, data: { retiredAt: at } });
       if (onWrite) await onWrite(tx);

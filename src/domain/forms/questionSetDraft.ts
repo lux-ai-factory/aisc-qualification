@@ -44,30 +44,52 @@ const draftShape = z.object({
   ),
 });
 
-export type ParsedSetDraft = { ok: true; value: SetDraft } | { ok: false; error: string };
+export type ParsedSetDraft =
+  | { ok: true; value: SetDraft }
+  | { ok: false; error: string };
 
 /** Never throws. `takenNames`, when given, are the names of the other active sets. */
-export function parseSetDraft(input: unknown, context?: { takenNames?: string[] }): ParsedSetDraft {
+export function parseSetDraft(
+  input: unknown,
+  context?: { takenNames?: string[] },
+): ParsedSetDraft {
   const shape = draftShape.safeParse(input);
-  if (!shape.success) return { ok: false, error: "The question set could not be read." };
+  if (!shape.success)
+    return { ok: false, error: "The question set could not be read." };
   const draft = shape.data;
 
   const name = draft.name.trim();
   if (name === "") return { ok: false, error: "Give the question set a name." };
   if (name.length > MAX_NAME) {
-    return { ok: false, error: `A question set name is at most ${MAX_NAME} characters.` };
+    return {
+      ok: false,
+      error: `A question set name is at most ${MAX_NAME} characters.`,
+    };
   }
-  const taken = context?.takenNames?.some((t) => t.trim().toLowerCase() === name.toLowerCase());
-  if (taken) return { ok: false, error: `A question set called ${name} already exists.` };
+  const taken = context?.takenNames?.some(
+    (t) => t.trim().toLowerCase() === name.toLowerCase(),
+  );
+  if (taken)
+    return {
+      ok: false,
+      error: `A question set called ${name} already exists.`,
+    };
 
   const description = (draft.description ?? "").trim();
   if (description.length > MAX_DESCRIPTION) {
-    return { ok: false, error: `A description is at most ${MAX_DESCRIPTION} characters.` };
+    return {
+      ok: false,
+      error: `A description is at most ${MAX_DESCRIPTION} characters.`,
+    };
   }
 
-  if (draft.questions.length === 0) return { ok: false, error: "A question set needs at least one question." };
+  if (draft.questions.length === 0)
+    return { ok: false, error: "A question set needs at least one question." };
   if (draft.questions.length > MAX_QUESTIONS) {
-    return { ok: false, error: `A question set has at most ${MAX_QUESTIONS} questions.` };
+    return {
+      ok: false,
+      error: `A question set has at most ${MAX_QUESTIONS} questions.`,
+    };
   }
 
   const seen = new Set<string>();
@@ -78,20 +100,42 @@ export function parseSetDraft(input: unknown, context?: { takenNames?: string[] 
     const citation = q.citation.trim();
     if (text === "") return { ok: false, error: `Question ${n} has no text.` };
     if (text.length > MAX_TEXT) {
-      return { ok: false, error: `Question ${n} is longer than ${MAX_TEXT} characters.` };
+      return {
+        ok: false,
+        error: `Question ${n} is longer than ${MAX_TEXT} characters.`,
+      };
     }
     if (citation.length > MAX_CITATION) {
-      return { ok: false, error: `The citation of question ${n} is longer than ${MAX_CITATION} characters.` };
+      return {
+        ok: false,
+        error: `The citation of question ${n} is longer than ${MAX_CITATION} characters.`,
+      };
     }
     if (q.annexPoint !== null && !isAnnexPoint(q.annexPoint)) {
-      return { ok: false, error: `Question ${n} names an Annex IV point that does not exist.` };
+      return {
+        ok: false,
+        error: `Question ${n} names an Annex IV point that does not exist.`,
+      };
     }
     if (q.questionId !== undefined) {
-      if (seen.has(q.questionId)) return { ok: false, error: `Question ${n} is already in the question set.` };
+      if (seen.has(q.questionId))
+        return {
+          ok: false,
+          error: `Question ${n} is already in the question set.`,
+        };
       seen.add(q.questionId);
     }
-    const wording = { text, citation, required: q.required, annexPoint: q.annexPoint as AnnexPointId | null };
-    questions.push(q.questionId === undefined ? wording : { questionId: q.questionId, ...wording });
+    const wording = {
+      text,
+      citation,
+      required: q.required,
+      annexPoint: q.annexPoint as AnnexPointId | null,
+    };
+    questions.push(
+      q.questionId === undefined
+        ? wording
+        : { questionId: q.questionId, ...wording },
+    );
   }
 
   return { ok: true, value: { name, description, questions } };
@@ -102,7 +146,10 @@ export function parseSetDraft(input: unknown, context?: { takenNames?: string[] 
  * `latest` would change nothing. Name, description and group labels are not
  * content; a row without a questionId is a new question, so always a change.
  */
-export function sameSetContent(draft: SetDraft, latest: ResolvedSetVersion): boolean {
+export function sameSetContent(
+  draft: SetDraft,
+  latest: ResolvedSetVersion,
+): boolean {
   if (draft.questions.length !== latest.questions.length) return false;
   return draft.questions.every((d, i) => {
     const v = latest.questions[i];

@@ -40,7 +40,12 @@ export type BuilderState = {
 
 export type BuilderAction =
   /** With `group`, the tick is made in that selected set's group. */
-  | { type: "tick"; question: ResolvedQuestion; setVersionId: string; group?: SetGroup }
+  | {
+      type: "tick";
+      question: ResolvedQuestion;
+      setVersionId: string;
+      group?: SetGroup;
+    }
   | { type: "untick"; questionId: string }
   | { type: "selectSet"; group: SetGroup }
   | { type: "deselectSet"; setId: string }
@@ -49,12 +54,21 @@ export type BuilderAction =
   | { type: "toggleBlock"; block: FormBlock }
   | { type: "setName"; name: string }
   /** "Accept the update": the pick now shows that set version's wording. */
-  | { type: "acceptUpdate"; index: number; question: ResolvedQuestion; setVersionId: string }
+  | {
+      type: "acceptUpdate";
+      index: number;
+      question: ResolvedQuestion;
+      setVersionId: string;
+    }
   /** "Accept all updates": every reworded update of `updatesAvailable`; removed ones are left. */
   | { type: "acceptAllUpdates"; updates: Record<number, SetUpdate> };
 
 /** A pick as a caller hands it in: an imported reference, resolved. */
-export type BuilderPick = { question: ResolvedQuestion; setVersionId: string; viaSetId?: string };
+export type BuilderPick = {
+  question: ResolvedQuestion;
+  setVersionId: string;
+  viaSetId?: string;
+};
 
 export type BuilderInit = {
   name?: string;
@@ -71,14 +85,27 @@ export type BuilderInit = {
 
 type RowInput = Omit<BuilderRow, "rowKey">;
 
-const pick = (q: ResolvedQuestion, setVersionId: string, viaSetId?: string): RowInput =>
+const pick = (
+  q: ResolvedQuestion,
+  setVersionId: string,
+  viaSetId?: string,
+): RowInput =>
   viaSetId === undefined
     ? { kind: "pick", questionId: q.questionId, setVersionId, source: q }
-    : { kind: "pick", questionId: q.questionId, setVersionId, source: q, viaSetId };
+    : {
+        kind: "pick",
+        questionId: q.questionId,
+        setVersionId,
+        source: q,
+        viaSetId,
+      };
 
 /** The given picks as rows keyed r0, r1, ..., each marked with its set, and those sets selected. */
 function withPicks(base: BuilderState, picks: BuilderPick[]): BuilderState {
-  const rows = picks.map((p, i) => ({ ...pick(p.question, p.setVersionId, p.viaSetId ?? p.question.setId), rowKey: `r${i}` }));
+  const rows = picks.map((p, i) => ({
+    ...pick(p.question, p.setVersionId, p.viaSetId ?? p.question.setId),
+    rowKey: `r${i}`,
+  }));
   const selected = [...new Set(rows.map((r) => r.viaSetId as string))];
   return { ...base, rows, selected, nextRow: rows.length };
 }
@@ -101,12 +128,21 @@ export function initialBuilderState(opts: BuilderInit = {}): BuilderState {
   if (opts.edit) {
     const v = opts.edit;
     return withPicks(
-      { ...base, questionnaireId: v.questionnaireId, name: v.questionnaireName, description: v.description, blocks: [...v.blocks] },
+      {
+        ...base,
+        questionnaireId: v.questionnaireId,
+        name: v.questionnaireName,
+        description: v.description,
+        blocks: [...v.blocks],
+      },
       picksOf(v),
     );
   }
   if (opts.startFrom) {
-    return withPicks({ ...base, blocks: [...opts.startFrom.blocks] }, picksOf(opts.startFrom));
+    return withPicks(
+      { ...base, blocks: [...opts.startFrom.blocks] },
+      picksOf(opts.startFrom),
+    );
   }
   return withPicks(base, opts.picks ?? []);
 }
@@ -116,20 +152,29 @@ export function isTicked(state: BuilderState, questionId: string): boolean {
   return state.rows.some((r) => r.questionId === questionId);
 }
 
-function insertAt(state: BuilderState, index: number, row: RowInput): BuilderState {
+function insertAt(
+  state: BuilderState,
+  index: number,
+  row: RowInput,
+): BuilderState {
   const rows = [...state.rows];
   rows.splice(index, 0, { ...row, rowKey: `r${state.nextRow}` });
   return { ...state, rows, nextRow: state.nextRow + 1 };
 }
 
-const append = (state: BuilderState, row: RowInput) => insertAt(state, state.rows.length, row);
+const append = (state: BuilderState, row: RowInput) =>
+  insertAt(state, state.rows.length, row);
 
 /**
  * Where a question ticked in set S's group goes: after the last row from S
  * that stands earlier in S's order; else before the first row from S that stands
  * later; else at the end.
  */
-function placeIn(state: BuilderState, group: SetGroup, questionId: string): number {
+function placeIn(
+  state: BuilderState,
+  group: SetGroup,
+  questionId: string,
+): number {
   const order = group.questions.map((q) => q.questionId);
   const at = order.indexOf(questionId);
   if (at < 0) return state.rows.length;
@@ -147,16 +192,24 @@ function placeIn(state: BuilderState, group: SetGroup, questionId: string): numb
   return state.rows.length;
 }
 
-function repinned(row: BuilderRow, question: ResolvedQuestion, setVersionId: string): BuilderRow {
+function repinned(
+  row: BuilderRow,
+  question: ResolvedQuestion,
+  setVersionId: string,
+): BuilderRow {
   return { ...row, source: question, setVersionId };
 }
 
-export function builderReducer(state: BuilderState, action: BuilderAction): BuilderState {
+export function builderReducer(
+  state: BuilderState,
+  action: BuilderAction,
+): BuilderState {
   switch (action.type) {
     case "tick": {
       if (isTicked(state, action.question.questionId)) return state;
       const { group } = action;
-      if (!group) return append(state, pick(action.question, action.setVersionId));
+      if (!group)
+        return append(state, pick(action.question, action.setVersionId));
       return insertAt(
         state,
         placeIn(state, group, action.question.questionId),
@@ -164,15 +217,22 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
       );
     }
     case "untick":
-      return { ...state, rows: state.rows.filter((r) => r.questionId !== action.questionId) };
+      return {
+        ...state,
+        rows: state.rows.filter((r) => r.questionId !== action.questionId),
+      };
     case "selectSet": {
       // Every question of the set not already ticked, in its order, after what is
       // there, pinned to the set's latest version.
       const { group } = action;
       if (state.selected.includes(group.setId)) return state;
-      let next: BuilderState = { ...state, selected: [...state.selected, group.setId] };
+      let next: BuilderState = {
+        ...state,
+        selected: [...state.selected, group.setId],
+      };
       for (const q of group.questions) {
-        if (!isTicked(next, q.questionId)) next = append(next, pick(q, group.versionId, group.setId));
+        if (!isTicked(next, q.questionId))
+          next = append(next, pick(q, group.versionId, group.setId));
       }
       return next;
     }
@@ -187,7 +247,8 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
     case "move": {
       const { from, to } = action;
       const n = state.rows.length;
-      if (from < 0 || from >= n || to < 0 || to >= n || from === to) return state;
+      if (from < 0 || from >= n || to < 0 || to >= n || from === to)
+        return state;
       const rows = [...state.rows];
       const [row] = rows.splice(from, 1);
       rows.splice(to, 0, row);
@@ -195,7 +256,10 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
     }
     case "remove":
       if (!state.rows[action.index]) return state;
-      return { ...state, rows: state.rows.filter((_, i) => i !== action.index) };
+      return {
+        ...state,
+        rows: state.rows.filter((_, i) => i !== action.index),
+      };
     case "toggleBlock":
       return {
         ...state,
@@ -215,7 +279,9 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
     case "acceptAllUpdates": {
       const rows = state.rows.map((row, i) => {
         const u = action.updates[i];
-        return u && u.kind === "reworded" ? repinned(row, u.question, u.versionId) : row;
+        return u && u.kind === "reworded"
+          ? repinned(row, u.question, u.versionId)
+          : row;
       });
       return { ...state, rows };
     }
@@ -231,6 +297,9 @@ export function toQuestionnaireDraft(state: BuilderState): QuestionnaireDraft {
     name: state.name,
     description: state.description,
     blocks: inBlockOrder(state.blocks),
-    items: state.rows.map((r) => ({ setVersionId: r.setVersionId, questionId: r.questionId })),
+    items: state.rows.map((r) => ({
+      setVersionId: r.setVersionId,
+      questionId: r.questionId,
+    })),
   };
 }

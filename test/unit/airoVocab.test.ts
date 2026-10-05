@@ -7,7 +7,11 @@ import { AFFECTED, isAffected, vocabLabel } from "@/data/airoVocab";
 describe("airoVocab", () => {
   it("keeps only the list VAIR has no vocabulary for", () => {
     expect(AFFECTED.map((e) => e.id)).toEqual(["operator", "user"]);
-    expect(Object.keys(airoVocab).sort()).toEqual(["AFFECTED", "isAffected", "vocabLabel"]);
+    expect(Object.keys(airoVocab).sort()).toEqual([
+      "AFFECTED",
+      "isAffected",
+      "vocabLabel",
+    ]);
   });
 
   it("validates ids", () => {

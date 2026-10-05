@@ -1,6 +1,5 @@
 """The shared vocabulary must resolve both in the repo and inside the container,
 where the package sits at /app/airo_min and there is no ../../src/data above it."""
-import os
 from pathlib import Path
 
 from airo_min.pickers import candidate_paths, load_vocab

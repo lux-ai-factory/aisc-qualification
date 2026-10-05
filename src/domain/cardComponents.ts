@@ -48,7 +48,8 @@ export function defaultProperty(componentType: string): AiroProperty {
 
 /** The properties a component of this type may be linked by. */
 export function propertyOptions(componentType: string): AiroProperty[] {
-  if (componentType === "dataset") return ["hasTestingData", "hasTrainingData", "hasValidationData"];
+  if (componentType === "dataset")
+    return ["hasTestingData", "hasTrainingData", "hasValidationData"];
   if (componentType === "model" || componentType === "llm") return ["hasModel"];
   return ["hasComponent"];
 }
@@ -63,7 +64,10 @@ export type ComponentDrift = {
 };
 
 /** Where the card's links and the engine disagree. Pure: changes nothing it is given. */
-export function componentDrift(linked: LinkedComponent[], engine: EngineComponent[]): ComponentDrift {
+export function componentDrift(
+  linked: LinkedComponent[],
+  engine: EngineComponent[],
+): ComponentDrift {
   const enginePids = new Set(engine.map((c) => c.pid));
   const linkOf = new Map(linked.map((l) => [l.componentPid, l]));
   return {
@@ -71,7 +75,10 @@ export function componentDrift(linked: LinkedComponent[], engine: EngineComponen
     added: engine.filter((c) => !linkOf.has(c.pid)),
     changed: engine.filter((c) => {
       const link = linkOf.get(c.pid);
-      return link !== undefined && (link.componentType !== c.component_type || link.objectName !== c.data);
+      return (
+        link !== undefined &&
+        (link.componentType !== c.component_type || link.objectName !== c.data)
+      );
     }),
   };
 }
@@ -92,8 +99,13 @@ export function partOfLink(
 ): { ok: true; componentKey: string | null } | { ok: false; error: string } {
   if (!componentKey) return { ok: true, componentKey: null };
   if (airoProperty === "hasTestingData") {
-    return { ok: false, error: "Test material is what an assessment uses, not a part of the system." };
+    return {
+      ok: false,
+      error:
+        "Test material is what an assessment uses, not a part of the system.",
+    };
   }
-  if (!cardKeys.has(componentKey)) return { ok: false, error: "That component is not on this card." };
+  if (!cardKeys.has(componentKey))
+    return { ok: false, error: "That component is not on this card." };
   return { ok: true, componentKey };
 }

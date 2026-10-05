@@ -27,10 +27,15 @@ export async function GET(
   try {
     // The filler refuses a caller without this app's token for it.
     // Runs are kept per project and card.
-    const res = await fetch(`${serviceUrl}/fill/${encodeURIComponent(project)}/${encodeURIComponent(id)}`, {
-      headers: serviceTokenHeaders(process.env.QUALIFICATION_WEB_TO_AGENTS_TOKEN),
-      cache: "no-store",
-    });
+    const res = await fetch(
+      `${serviceUrl}/fill/${encodeURIComponent(project)}/${encodeURIComponent(id)}`,
+      {
+        headers: serviceTokenHeaders(
+          process.env.QUALIFICATION_WEB_TO_AGENTS_TOKEN,
+        ),
+        cache: "no-store",
+      },
+    );
     if (res.status === 404) return NextResponse.json({ state: "idle" });
     if (!res.ok) return NextResponse.json({ state: "idle" });
     const body = await res.json();

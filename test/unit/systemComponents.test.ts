@@ -4,7 +4,12 @@ import {
   FormValidationError,
 } from "@/server/forms/QualificationFormParser";
 import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
-import { COMPONENT_KINDS, COMPONENT_BLOCK, COMPONENT_TYPES, isComponentKind } from "@/data/componentFields";
+import {
+  COMPONENT_KINDS,
+  COMPONENT_BLOCK,
+  COMPONENT_TYPES,
+  isComponentKind,
+} from "@/data/componentFields";
 import { assignComponentKeys } from "@/domain/systemComponents";
 import { cardAsFormStart, type CardContent } from "@/domain/cardVersions";
 
@@ -14,8 +19,16 @@ import { cardAsFormStart, type CardContent } from "@/domain/cardVersions";
 
 /** A form with no blocks and no questions: only the identity, which is always there. */
 const EMPTY_FORM = {
-  questionnaireId: "q", questionnaireName: "Q", description: "", listed: true, builtin: false, retired: false,
-  versionId: "v", versionNumber: 1, blocks: [], questions: [],
+  questionnaireId: "q",
+  questionnaireName: "Q",
+  description: "",
+  listed: true,
+  builtin: false,
+  retired: false,
+  versionId: "v",
+  versionNumber: 1,
+  blocks: [],
+  questions: [],
 } as unknown as ResolvedQuestionnaireVersion;
 
 function identity(): FormData {
@@ -26,19 +39,39 @@ function identity(): FormData {
   return fd;
 }
 
-function addComponent(fd: FormData, i: number, over: Partial<Record<string, string>> = {}) {
+function addComponent(
+  fd: FormData,
+  i: number,
+  over: Partial<Record<string, string>> = {},
+) {
   // A row's one Type list: a VAIR AIComponent term, or one of our own types.
-  const v = { name: "Scoring model", role: "Scores each application", type: "DecisionTree", provider: "in_house", ...over };
+  const v = {
+    name: "Scoring model",
+    role: "Scores each application",
+    type: "DecisionTree",
+    provider: "in_house",
+    ...over,
+  };
   for (const [k, val] of Object.entries(v)) fd.set(`component:${i}:${k}`, val);
 }
 
-const parse = (fd: FormData) => new QualificationFormParser().parse(fd, EMPTY_FORM);
+const parse = (fd: FormData) =>
+  new QualificationFormParser().parse(fd, EMPTY_FORM);
 
 describe("QL1 the kinds of component", () => {
   it("data the system is built on is a kind; a test set is not", () => {
     const ids = COMPONENT_KINDS.map((k) => k.id);
-    expect(ids).toEqual(["model", "rule_engine", "llm", "training_data", "validation_data", "other_data",
-      "pipeline", "interface", "other"]);
+    expect(ids).toEqual([
+      "model",
+      "rule_engine",
+      "llm",
+      "training_data",
+      "validation_data",
+      "other_data",
+      "pipeline",
+      "interface",
+      "other",
+    ]);
     expect(ids.some((id) => /test/.test(id))).toBe(false);
     expect(COMPONENT_BLOCK.help).toMatch(/test set is not a component/i);
     expect(isComponentKind("training_data")).toBe(true);
@@ -56,27 +89,50 @@ describe("QL1 the rows, parsed and checked", () => {
   it("parses rows in order, with their posted keys", () => {
     const fd = identity();
     addComponent(fd, 0, { key: "k-1" });
-    addComponent(fd, 3, { name: "Training data", type: "training_data", role: "" });
+    addComponent(fd, 3, {
+      name: "Training data",
+      type: "training_data",
+      role: "",
+    });
     const rows = parse(fd).systemComponents;
     expect(rows).toEqual([
-      { position: 0, key: "k-1", name: "Scoring model", role: "Scores each application", kind: "model",
-        vairType: "DecisionTree", provider: "in_house", providerName: null },
-      { position: 1, key: null, name: "Training data", role: null, kind: "training_data", vairType: null,
-        provider: "in_house", providerName: null },
+      {
+        position: 0,
+        key: "k-1",
+        name: "Scoring model",
+        role: "Scores each application",
+        kind: "model",
+        vairType: "DecisionTree",
+        provider: "in_house",
+        providerName: null,
+      },
+      {
+        position: 1,
+        key: null,
+        name: "Training data",
+        role: null,
+        kind: "training_data",
+        vairType: null,
+        provider: "in_house",
+        providerName: null,
+      },
     ]);
   });
 
   it("skips a completely empty row", () => {
     const fd = identity();
     addComponent(fd, 0);
-    for (const f of ["name", "role", "type", "providerName"]) fd.set(`component:1:${f}`, "");
+    for (const f of ["name", "role", "type", "providerName"])
+      fd.set(`component:1:${f}`, "");
     expect(parse(fd).systemComponents).toHaveLength(1);
   });
 
   it("needs a name and a type from the list, naming the row", () => {
     const fd = identity();
     addComponent(fd, 0, { name: "" });
-    expect(() => parse(fd)).toThrow(new FormValidationError("Component 1: its name is required."));
+    expect(() => parse(fd)).toThrow(
+      new FormValidationError("Component 1: its name is required."),
+    );
     const fd2 = identity();
     addComponent(fd2, 0, { type: "test_data" });
     expect(() => parse(fd2)).toThrow(/Component 1: pick its type/);
@@ -106,12 +162,26 @@ describe("QL1 the rows, parsed and checked", () => {
 });
 
 describe("QL2 keys: carried from the card before, never made up by the browser", () => {
-  const uuid = (() => { let n = 0; return () => `new-${++n}`; })();
+  const uuid = (() => {
+    let n = 0;
+    return () => `new-${++n}`;
+  })();
   const row = (key: string | null, name = "Scoring model") =>
-    ({ position: 0, key, name, role: null, kind: "model", vairType: "DecisionTree", provider: "in_house", providerName: null }) as const;
+    ({
+      position: 0,
+      key,
+      name,
+      role: null,
+      kind: "model",
+      vairType: "DecisionTree",
+      provider: "in_house",
+      providerName: null,
+    }) as const;
 
   it("a row carried from the card before keeps its key", () => {
-    expect(assignComponentKeys([row("k-1")], new Set(["k-1"]), uuid)[0].key).toBe("k-1");
+    expect(
+      assignComponentKeys([row("k-1")], new Set(["k-1"]), uuid)[0].key,
+    ).toBe("k-1");
   });
 
   it("a new row gets a fresh key", () => {
@@ -120,42 +190,99 @@ describe("QL2 keys: carried from the card before, never made up by the browser",
   });
 
   it("a key the card before does not have is refused", () => {
-    expect(() => assignComponentKeys([row("forged")], new Set(["k-1"]), uuid)).toThrow(FormValidationError);
+    expect(() =>
+      assignComponentKeys([row("forged")], new Set(["k-1"]), uuid),
+    ).toThrow(FormValidationError);
   });
 
   it("one key may not be used twice", () => {
-    expect(() => assignComponentKeys([row("k-1"), row("k-1", "Other")], new Set(["k-1"]), uuid))
-      .toThrow(/twice/);
+    expect(() =>
+      assignComponentKeys(
+        [row("k-1"), row("k-1", "Other")],
+        new Set(["k-1"]),
+        uuid,
+      ),
+    ).toThrow(/twice/);
   });
 });
 
 describe("QL4 the next card starts from the last one's components", () => {
   const base: CardContent = {
-    systemName: "MCAS", systemVersion: "1.2.0", company: "LIST", description: "", targetUseCase: "",
-    targetUsers: "", intendedDeployers: null, targetSystemTags: [], sectorTags: [], marketFormTags: [],
-    localityTags: [], answers: [], risks: [],
+    systemName: "MCAS",
+    systemVersion: "1.2.0",
+    company: "LIST",
+    description: "",
+    targetUseCase: "",
+    targetUsers: "",
+    intendedDeployers: null,
+    targetSystemTags: [],
+    sectorTags: [],
+    marketFormTags: [],
+    localityTags: [],
+    answers: [],
+    risks: [],
   };
 
   it("rows with their keys, in order", () => {
     const start = cardAsFormStart({
       ...base,
       systemComponents: [
-        { position: 1, key: "k-2", name: "Training data", role: null, kind: "training_data", provider: "in_house", providerName: null },
-        { position: 0, key: "k-1", name: "Scoring model", role: "Scores", kind: "model", provider: "in_house", providerName: null },
+        {
+          position: 1,
+          key: "k-2",
+          name: "Training data",
+          role: null,
+          kind: "training_data",
+          provider: "in_house",
+          providerName: null,
+        },
+        {
+          position: 0,
+          key: "k-1",
+          name: "Scoring model",
+          role: "Scores",
+          kind: "model",
+          provider: "in_house",
+          providerName: null,
+        },
       ],
     });
-    expect(start.components?.map((c) => [c.key, c.name])).toEqual([["k-1", "Scoring model"], ["k-2", "Training data"]]);
+    expect(start.components?.map((c) => [c.key, c.name])).toEqual([
+      ["k-1", "Scoring model"],
+      ["k-2", "Training data"],
+    ]);
     expect(start.components?.every((c) => !c.suggested)).toBe(true);
   });
 
   it("a card without rows offers what the filler extracted, as suggestions without keys", () => {
     const start = cardAsFormStart({
       ...base,
-      ontologyExtracted: { components: [{ label: "Scoring model", vair: "vair:MachineLearning" }, "Policy-rule engine"] },
+      ontologyExtracted: {
+        components: [
+          { label: "Scoring model", vair: "vair:MachineLearning" },
+          "Policy-rule engine",
+        ],
+      },
     });
     expect(start.components).toEqual([
-      { key: "", name: "Scoring model", role: "", type: "", provider: "in_house", providerName: "", suggested: true },
-      { key: "", name: "Policy-rule engine", role: "", type: "", provider: "in_house", providerName: "", suggested: true },
+      {
+        key: "",
+        name: "Scoring model",
+        role: "",
+        type: "",
+        provider: "in_house",
+        providerName: "",
+        suggested: true,
+      },
+      {
+        key: "",
+        name: "Policy-rule engine",
+        role: "",
+        type: "",
+        provider: "in_house",
+        providerName: "",
+        suggested: true,
+      },
     ]);
   });
 

@@ -57,6 +57,11 @@ load ──► draft ──► controls ──► critic ──► revise ──
 its findings attached, because the graph is the editing surface. Withholding it
 would leave the user with nothing to correct.
 
+The app builds a draft before it stores it, and refuses (422) one the builder
+rejects, such as a VAIR term the vocabulary does not have: stored, it would
+break the card's graph on every read. The run then fails with the app's
+message, and the card keeps the draft it had.
+
 ## Layout
 
 ```

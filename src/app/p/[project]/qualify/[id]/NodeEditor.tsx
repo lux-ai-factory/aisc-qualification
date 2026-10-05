@@ -80,7 +80,9 @@ export default function NodeEditor({
                 </li>
               ))}
             </ul>
-            <p>Saving any change here records that you looked, and clears them.</p>
+            <p>
+              Saving any change here records that you looked, and clears them.
+            </p>
           </section>
         )}
 
@@ -91,7 +93,9 @@ export default function NodeEditor({
               {(node.flagNotes ?? []).map((note, i) => (
                 <li key={i}>
                   {note.why}
-                  {note.quote && <blockquote>&ldquo;{note.quote}&rdquo;</blockquote>}
+                  {note.quote && (
+                    <blockquote>&ldquo;{note.quote}&rdquo;</blockquote>
+                  )}
                 </li>
               ))}
             </ul>

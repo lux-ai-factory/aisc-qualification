@@ -2,7 +2,7 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl
-# .npmrc carries legacy-peer-deps=true, needed while react is pinned to an RC.
+# .npmrc: strict peer resolution (it held legacy-peer-deps while react was an RC).
 COPY package.json package-lock.json* .npmrc ./
 RUN npm ci
 

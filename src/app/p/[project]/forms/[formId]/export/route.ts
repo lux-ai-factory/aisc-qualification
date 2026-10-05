@@ -13,6 +13,8 @@ export async function GET(
   const search = new URL(request.url).search;
   return new Response(null, {
     status: 308,
-    headers: { Location: `${basePath}/p/${encodeURIComponent(project)}/questionnaires/${encodeURIComponent(formId)}/export${search}` },
+    headers: {
+      Location: `${basePath}/p/${encodeURIComponent(project)}/questionnaires/${encodeURIComponent(formId)}/export${search}`,
+    },
   });
 }

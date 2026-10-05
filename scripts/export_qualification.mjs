@@ -32,11 +32,16 @@ function terms(cls, ids) {
 
 const project = arg("--project") ?? "";
 if (!PROJECT_ID.test(project)) {
-  console.error("pass --project <pid>: the card is read from that project's own database");
+  console.error(
+    "pass --project <pid>: the card is read from that project's own database",
+  );
   process.exit(2);
 }
 const prisma = new PrismaClient({
-  datasourceUrl: projectDatabaseUrl(project, process.env.PROJECT_DATABASE_URL ?? ""),
+  datasourceUrl: projectDatabaseUrl(
+    project,
+    process.env.PROJECT_DATABASE_URL ?? "",
+  ),
 });
 
 async function main() {
@@ -113,7 +118,9 @@ async function main() {
   };
 
   if (dropped > 0) {
-    console.error(`warning: ${dropped} tag(s) are not VAIR terms of their class and were dropped`);
+    console.error(
+      `warning: ${dropped} tag(s) are not VAIR terms of their class and were dropped`,
+    );
   }
 
   const json = JSON.stringify(out, null, 2);

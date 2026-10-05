@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { loadSrc } from "../support/forms";
 
 // The retire button: src/app/p/[project]/RetireButton.tsx, props {name, action}. A ghost "Retire" that asks
@@ -9,12 +15,18 @@ import { loadSrc } from "../support/forms";
 
 afterEach(cleanup);
 
-async function mount(action: () => Promise<{ error?: string } | void>, name = "Acme AI policy") {
-  const { default: RetireButton } = await loadSrc("app/p/[project]/RetireButton.tsx");
+async function mount(
+  action: () => Promise<{ error?: string } | void>,
+  name = "Acme AI policy",
+) {
+  const { default: RetireButton } = await loadSrc(
+    "app/p/[project]/RetireButton.tsx",
+  );
   return render(<RetireButton name={name} action={action} />);
 }
 
-const CONFIRM = "Retire Acme AI policy? Cards and questionnaires that use it keep it.";
+const CONFIRM =
+  "Retire Acme AI policy? Cards and questionnaires that use it keep it.";
 
 describe("the retire button (T56)", () => {
   it("T56 renders one ghost button Retire and calls nothing yet", async () => {
@@ -33,7 +45,10 @@ describe("the retire button (T56)", () => {
     await mount(action);
     fireEvent.click(screen.getByRole("button", { name: "Retire" }));
     expect(document.body.textContent).toContain(CONFIRM);
-    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["Retire", "Cancel"]);
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual([
+      "Retire",
+      "Cancel",
+    ]);
     expect(action).not.toHaveBeenCalled();
   });
 
@@ -51,20 +66,31 @@ describe("the retire button (T56)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retire" }));
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(document.body.textContent).not.toContain(CONFIRM);
-    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["Retire"]);
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual([
+      "Retire",
+    ]);
     expect(action).not.toHaveBeenCalled();
   });
 
   it("T56 an {error} from the action shows in div.error", async () => {
-    const action = vi.fn(async () => ({ error: "Annex IV cannot be retired." }));
+    const action = vi.fn(async () => ({
+      error: "Annex IV cannot be retired.",
+    }));
     const { container } = await mount(action);
     fireEvent.click(screen.getByRole("button", { name: "Retire" }));
     fireEvent.click(screen.getByRole("button", { name: "Retire" }));
-    await waitFor(() => expect(container.querySelector("div.error")?.textContent).toBe("Annex IV cannot be retired."));
+    await waitFor(() =>
+      expect(container.querySelector("div.error")?.textContent).toBe(
+        "Annex IV cannot be retired.",
+      ),
+    );
   });
 
   it("T56 the question names the thing retired", async () => {
-    await mount(vi.fn(async () => undefined), "Annex IV default");
+    await mount(
+      vi.fn(async () => undefined),
+      "Annex IV default",
+    );
     fireEvent.click(screen.getByRole("button", { name: "Retire" }));
     expect(document.body.textContent).toContain(
       "Retire Annex IV default? Cards and questionnaires that use it keep it.",

@@ -11,7 +11,12 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 
-import { decide, fetchAccess, isProjectId, projectFromPath } from "@/server/access/projectAccess";
+import {
+  decide,
+  fetchAccess,
+  isProjectId,
+  projectFromPath,
+} from "@/server/access/projectAccess";
 import { tokenFromHeaders } from "@/server/services/callerToken";
 import { SERVICE_TOKEN_HEADER } from "@/server/services/http";
 
@@ -37,7 +42,8 @@ export async function middleware(request: NextRequest) {
   if (project === null) return NextResponse.next();
   // Only a pid names a project (and its database): anything else is not found,
   // and the platform is not asked about it.
-  if (!isProjectId(project)) return new NextResponse("No such project.", { status: 404 });
+  if (!isProjectId(project))
+    return new NextResponse("No such project.", { status: 404 });
   if (
     AGENT_ROUTE.test(pathname) &&
     AGENT_METHODS.has(request.method.toUpperCase()) &&
@@ -46,9 +52,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const access = await fetchAccess(project, tokenFromHeaders(request.headers) || null, {
-    platformUrl: process.env.PLATFORM_URL ?? "",
-  });
+  const access = await fetchAccess(
+    project,
+    tokenFromHeaders(request.headers) || null,
+    {
+      platformUrl: process.env.PLATFORM_URL ?? "",
+    },
+  );
 
   switch (decide(request.method, access)) {
     case "allow":
@@ -56,10 +66,15 @@ export async function middleware(request: NextRequest) {
     case "not-found":
       return new NextResponse("No such project.", { status: 404 });
     case "forbidden":
-      return new NextResponse("You can read this project but not change it.", { status: 403 });
-    case "unavailable":
-      return new NextResponse("The platform is not answering, so who may be here cannot be established.", {
-        status: 503,
+      return new NextResponse("You can read this project but not change it.", {
+        status: 403,
       });
+    case "unavailable":
+      return new NextResponse(
+        "The platform is not answering, so who may be here cannot be established.",
+        {
+          status: 503,
+        },
+      );
   }
 }

@@ -16,7 +16,9 @@ import * as chooser from "@/domain/forms/chooser";
 
 type Pick = { param: string; id: string } | null;
 const preselect = (options: unknown[], from: unknown): Pick =>
-  (chooser as unknown as { preselect: (o: unknown, f: unknown) => Pick }).preselect(options, from);
+  (
+    chooser as unknown as { preselect: (o: unknown, f: unknown) => Pick }
+  ).preselect(options, from);
 
 const options = [
   { questionnaireId: "annex-iv-default", versionId: "annex-iv-default-v1" },
@@ -26,7 +28,10 @@ const options = [
 
 describe("preselect (T37)", () => {
   it("T37 a project's first card starts on the Annex IV default", () => {
-    expect(preselect(options, { fromVersionId: null })).toEqual({ param: "questionnaire", id: "annex-iv-default" });
+    expect(preselect(options, { fromVersionId: null })).toEqual({
+      param: "questionnaire",
+      id: "annex-iv-default",
+    });
   });
 
   it("T37 the first card gets annex-iv-default whatever the order of the options", () => {
@@ -37,22 +42,39 @@ describe("preselect (T37)", () => {
   });
 
   it("T37 without the default among the options, a first card gets the first option; no options, null", () => {
-    const without = options.filter((o) => o.questionnaireId !== "annex-iv-default");
-    expect(preselect(without, { fromVersionId: null })).toEqual({ param: "questionnaire", id: "acme" });
+    const without = options.filter(
+      (o) => o.questionnaireId !== "annex-iv-default",
+    );
+    expect(preselect(without, { fromVersionId: null })).toEqual({
+      param: "questionnaire",
+      id: "acme",
+    });
     expect(preselect([], { fromVersionId: null })).toBeNull();
   });
 
   it("T37 A14 a card filled with the latest version of a listed questionnaire starts on that questionnaire", () => {
-    expect(preselect(options, { fromVersionId: "gov-v1" })).toEqual({ param: "questionnaire", id: "gov" });
-    expect(preselect(options, { fromVersionId: "acme-v3" })).toEqual({ param: "questionnaire", id: "acme" });
+    expect(preselect(options, { fromVersionId: "gov-v1" })).toEqual({
+      param: "questionnaire",
+      id: "gov",
+    });
+    expect(preselect(options, { fromVersionId: "acme-v3" })).toEqual({
+      param: "questionnaire",
+      id: "acme",
+    });
   });
 
   it("T37 D11 a card filled with an older version starts on that exact version, never the newer one", () => {
-    expect(preselect(options, { fromVersionId: "acme-v1" })).toEqual({ param: "questionnaireVersion", id: "acme-v1" });
+    expect(preselect(options, { fromVersionId: "acme-v1" })).toEqual({
+      param: "questionnaireVersion",
+      id: "acme-v1",
+    });
   });
 
   it("T37 a card filled with a use-once version, or a retired questionnaire's version, is offered that very version", () => {
-    expect(preselect(options, { fromVersionId: "u1-v1" })).toEqual({ param: "questionnaireVersion", id: "u1-v1" });
+    expect(preselect(options, { fromVersionId: "u1-v1" })).toEqual({
+      param: "questionnaireVersion",
+      id: "u1-v1",
+    });
     expect(preselect(options, { fromVersionId: "retired-v2" })).toEqual({
       param: "questionnaireVersion",
       id: "retired-v2",
@@ -60,7 +82,11 @@ describe("preselect (T37)", () => {
   });
 
   it("T37 a legacy card has P = annex-iv-default-v1, the default's latest, so it starts on the default", () => {
-    expect(preselect([...options].reverse(), { fromVersionId: "annex-iv-default-v1" })).toEqual({
+    expect(
+      preselect([...options].reverse(), {
+        fromVersionId: "annex-iv-default-v1",
+      }),
+    ).toEqual({
       param: "questionnaire",
       id: "annex-iv-default",
     });
@@ -68,7 +94,11 @@ describe("preselect (T37)", () => {
 
   it("T37 a stale argument an old caller passes changes nothing", () => {
     expect(
-      preselect(options, { fromVersionId: null, fromFormListed: true, defaultFormId: "acme" }),
+      preselect(options, {
+        fromVersionId: null,
+        fromFormListed: true,
+        defaultFormId: "acme",
+      }),
     ).toEqual({ param: "questionnaire", id: "annex-iv-default" });
   });
 });
@@ -85,17 +115,28 @@ describe("preselect (T37)", () => {
 
 describe("pickQuestionnaireParams (T39)", () => {
   const pick = (params: Record<string, string | undefined>) =>
-    (chooser as unknown as { pickQuestionnaireParams: (p: unknown) => unknown }).pickQuestionnaireParams(params);
+    (
+      chooser as unknown as { pickQuestionnaireParams: (p: unknown) => unknown }
+    ).pickQuestionnaireParams(params);
 
   it("T39 is exported by src/domain/forms/chooser.ts, and pickFormParams is gone", () => {
-    expect(typeof (chooser as Record<string, unknown>).pickQuestionnaireParams).toBe("function");
+    expect(
+      typeof (chooser as Record<string, unknown>).pickQuestionnaireParams,
+    ).toBe("function");
     expect((chooser as Record<string, unknown>).pickFormParams).toBeUndefined();
   });
 
   it.each([
     [{ example: "mcas" }],
     [{ example: "mcas", questionnaireVersion: "u1-v1" }],
-    [{ example: "MCAS", questionnaire: "acme", formVersion: "u1-v1", form: "gov" }],
+    [
+      {
+        example: "MCAS",
+        questionnaire: "acme",
+        formVersion: "u1-v1",
+        form: "gov",
+      },
+    ],
   ])("T39 row 1: a known ?example wins over everything (%o)", (params) => {
     expect(pick(params)).toEqual({ lookup: "example" });
   });
@@ -107,38 +148,55 @@ describe("pickQuestionnaireParams (T39)", () => {
     [{ questionnaireVersion: "u1-v1", questionnaire: "gone" }],
     [{ example: "nope", questionnaireVersion: "u1-v1", questionnaire: "acme" }],
     [{ example: "", questionnaireVersion: "u1-v1" }],
-  ])("T39 row 2: ?questionnaireVersion is the lookup; nothing else is read (%o)", (params) => {
-    expect(pick(params)).toEqual({ lookup: "version", id: "u1-v1" });
-  });
+  ])(
+    "T39 row 2: ?questionnaireVersion is the lookup; nothing else is read (%o)",
+    (params) => {
+      expect(pick(params)).toEqual({ lookup: "version", id: "u1-v1" });
+    },
+  );
 
   it.each([
     [{ formVersion: "u1-v1" }],
     [{ formVersion: "u1-v1", questionnaire: "acme" }],
     [{ formVersion: "u1-v1", form: "acme" }],
     [{ questionnaireVersion: "", formVersion: "u1-v1", questionnaire: "acme" }],
-  ])("T39 row 3: the alias ?formVersion comes next, and still beats any questionnaire parameter (%o)", (params) => {
-    expect(pick(params)).toEqual({ lookup: "version", id: "u1-v1" });
-  });
+  ])(
+    "T39 row 3: the alias ?formVersion comes next, and still beats any questionnaire parameter (%o)",
+    (params) => {
+      expect(pick(params)).toEqual({ lookup: "version", id: "u1-v1" });
+    },
+  );
 
   it.each([
     [{ questionnaire: "acme" }],
     [{ questionnaire: "acme", form: "gov" }],
     [{ questionnaire: "acme", questionnaireVersion: "", formVersion: "" }],
     [{ example: "nope", questionnaire: "acme" }],
-  ])("T39 row 4: no version parameter, ?questionnaire is the lookup of its latest version (%o)", (params) => {
-    expect(pick(params)).toEqual({ lookup: "latest", id: "acme" });
-  });
-
-  it.each([[{ form: "acme" }], [{ form: "acme", questionnaire: "" }], [{ form: "acme", formVersion: "" }]])(
-    "T39 row 5: the alias ?form comes last (%o)",
+  ])(
+    "T39 row 4: no version parameter, ?questionnaire is the lookup of its latest version (%o)",
     (params) => {
       expect(pick(params)).toEqual({ lookup: "latest", id: "acme" });
     },
   );
 
   it.each([
+    [{ form: "acme" }],
+    [{ form: "acme", questionnaire: "" }],
+    [{ form: "acme", formVersion: "" }],
+  ])("T39 row 5: the alias ?form comes last (%o)", (params) => {
+    expect(pick(params)).toEqual({ lookup: "latest", id: "acme" });
+  });
+
+  it.each([
     [{}],
-    [{ questionnaire: "", questionnaireVersion: "", form: "", formVersion: "" }],
+    [
+      {
+        questionnaire: "",
+        questionnaireVersion: "",
+        form: "",
+        formVersion: "",
+      },
+    ],
     [{ example: "nope" }],
     [{ example: "" }],
   ])("T39 row 6: nothing named is the chooser, no lookup (%o)", (params) => {
@@ -146,10 +204,15 @@ describe("pickQuestionnaireParams (T39)", () => {
   });
 
   it("T39 an unknown version never falls back to a questionnaire parameter", () => {
-    expect(pick({ questionnaireVersion: "no-such-version", questionnaire: "acme" })).toEqual({
+    expect(
+      pick({ questionnaireVersion: "no-such-version", questionnaire: "acme" }),
+    ).toEqual({
       lookup: "version",
       id: "no-such-version",
     });
-    expect(pick({ formVersion: "no-such-version", form: "acme" })).toEqual({ lookup: "version", id: "no-such-version" });
+    expect(pick({ formVersion: "no-such-version", form: "acme" })).toEqual({
+      lookup: "version",
+      id: "no-such-version",
+    });
   });
 });

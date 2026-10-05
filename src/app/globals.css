@@ -2150,12 +2150,28 @@ a:hover {
 }
 
 /* Regenerating the card: the filler's run again, when none is in flight. */
-.fill-rerun { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 20px; }
-.fill-rerun .fill-status { flex: 1 1 100%; margin: 0; }
-.fill-rerun-error { font-size: 13px; color: var(--error); }
+.fill-rerun {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 0 0 20px;
+}
+.fill-rerun .fill-status {
+  flex: 1 1 100%;
+  margin: 0;
+}
+.fill-rerun-error {
+  font-size: 13px;
+  color: var(--error);
+}
 
 /* The card page's header buttons: editing the system, beside its versions. */
-.qf-header-actions { display: flex; gap: 0.5rem; align-items: center; }
+.qf-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
 
 /* Form assembly: library, builder, import, chooser, form line */
 /* Every rule reuses a pattern of the pages around it: panels,
@@ -2312,7 +2328,6 @@ a:hover {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(0, 15, 223, 0.1);
 }
-
 
 /* Library rows: a checkbox column and a body; the text and its chips are
    separate lines, so a citation is never glued to the sentence. */
