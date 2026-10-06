@@ -446,6 +446,53 @@ a:hover {
   padding: 10px 16px;
 }
 
+/* A block shown a page at a time: one component, one risk, five questions. The pages out of
+   view stay in the form, only hidden. */
+.qualify-form .qf-carousel-page[hidden] {
+  display: none;
+}
+.qualify-form .qf-carousel-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 16px;
+}
+.qualify-form .qf-carousel-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.qualify-form .qf-carousel-step,
+.qualify-form .qf-carousel-dot {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.qualify-form .qf-carousel-dot {
+  min-width: 32px;
+}
+.qualify-form .qf-carousel-dot.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+.qualify-form .qf-carousel-step:disabled {
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.6;
+}
+.qualify-form .qf-carousel-count {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 /* Risk rows on the detail page */
 /* A risk is a labelled group of the same rows as everything else; only the
    heading is its own. A second grid here would make it read as a different

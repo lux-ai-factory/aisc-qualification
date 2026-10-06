@@ -22,11 +22,15 @@ import ComponentRows from "./ComponentRows";
 import { submitQualification, type SubmitState } from "./actions";
 import SubmitOverlay from "./SubmitOverlay";
 import DocumentUpload from "./DocumentUpload";
+import Carousel from "./Carousel";
 import { useDocumentPrefill, type PicksApplier } from "./useDocumentPrefill";
 import { annexDefaultVersion } from "@/domain/forms/legacy";
 import type { FormBlock } from "@/domain/forms/blocks";
 import { moveNotice, rewordedSince } from "@/domain/forms/moveCard";
 import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
+
+/** Technical documentation questions per page of its carousel. */
+const QUESTIONS_PER_PAGE = 5;
 
 type Props = {
   /** The project whose AI system this describes. */
@@ -85,6 +89,13 @@ export default function QualifyForm({
     [previous, v],
   );
   const has = (block: FormBlock) => v.blocks.includes(block);
+  const [questionPage, setQuestionPage] = useState(0);
+  const questionPages = useMemo(() => {
+    const pages: (typeof v.questions)[] = [];
+    for (let i = 0; i < v.questions.length; i += QUESTIONS_PER_PAGE)
+      pages.push(v.questions.slice(i, i + QUESTIONS_PER_PAGE));
+    return pages;
+  }, [v]);
   const meta = initial?.metadata;
   // The tag sets are VAIR terms, held here because they are chips, not fields.
   const [targetTags, setTargetTags] = useState<Set<string>>(
@@ -382,42 +393,59 @@ export default function QualifyForm({
               which part of EU AI Act Annex IV it covers, for whoever reviews
               your answers later.
             </p>
-            {v.questions.map((q, i) => {
-              const heading = q.groupLabel ?? q.setName;
-              const prev = v.questions[i - 1];
-              const isGroupStart =
-                i === 0 || (prev.groupLabel ?? prev.setName) !== heading;
-              const oldWording = reworded[q.field];
-              const flagged =
-                oldWording !== undefined &&
-                (carried[q.field] ?? "").trim() !== "";
-              return (
-                <div key={q.field} className="field">
-                  {isGroupStart && <h3 className="qf-group">{heading}</h3>}
-                  <label className="qf-question" htmlFor={q.field}>
-                    {q.citation !== "" && (
-                      <span className="qf-citation">{q.citation}</span>
-                    )}
-                    {!q.required && (
-                      <span className="qf-optional">where applicable</span>
-                    )}
-                    <span className="qf-question-text">{q.text}</span>
-                  </label>
-                  {flagged && (
-                    <p className="qf-wording-changed">
-                      {`Reworded since v${cardNumber ?? 0}. Previous wording: ${oldWording}`}
-                    </p>
-                  )}
-                  <textarea
-                    id={q.field}
-                    name={q.field}
-                    defaultValue={initial?.answers[q.field] ?? ""}
-                    rows={q.text.length > 300 ? 5 : 3}
-                    required={q.required}
-                  />
-                </div>
-              );
-            })}
+            {/* A heading where the group starts; a page that opens mid-group says which group it
+                continues, as a label rather than a second heading. */}
+            <Carousel
+              label="Page"
+              page={questionPage}
+              onPage={setQuestionPage}
+              pages={questionPages.map((questions, p) => ({
+                key: p,
+                node: questions.map((q, i) => {
+                  const heading = q.groupLabel ?? q.setName;
+                  const at = p * QUESTIONS_PER_PAGE + i;
+                  const prev = v.questions[at - 1];
+                  const isGroupStart =
+                    at === 0 || (prev.groupLabel ?? prev.setName) !== heading;
+                  const continues = i === 0 && !isGroupStart;
+                  const oldWording = reworded[q.field];
+                  const flagged =
+                    oldWording !== undefined &&
+                    (carried[q.field] ?? "").trim() !== "";
+                  return (
+                    <div key={q.field} className="field">
+                      {isGroupStart && <h3 className="qf-group">{heading}</h3>}
+                      {continues && (
+                        <p className="qf-group qf-group-continued">
+                          {heading} (continued)
+                        </p>
+                      )}
+                      <label className="qf-question" htmlFor={q.field}>
+                        {q.citation !== "" && (
+                          <span className="qf-citation">{q.citation}</span>
+                        )}
+                        {!q.required && (
+                          <span className="qf-optional">where applicable</span>
+                        )}
+                        <span className="qf-question-text">{q.text}</span>
+                      </label>
+                      {flagged && (
+                        <p className="qf-wording-changed">
+                          {`Reworded since v${cardNumber ?? 0}. Previous wording: ${oldWording}`}
+                        </p>
+                      )}
+                      <textarea
+                        id={q.field}
+                        name={q.field}
+                        defaultValue={initial?.answers[q.field] ?? ""}
+                        rows={q.text.length > 300 ? 5 : 3}
+                        required={q.required}
+                      />
+                    </div>
+                  );
+                }),
+              }))}
+            />
           </section>
         )}
 

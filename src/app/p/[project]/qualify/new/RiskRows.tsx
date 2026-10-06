@@ -5,10 +5,12 @@ import { AFFECTED } from "@/data/airoVocab";
 import { IMPACT_AREAS, SUBJECTS, vairTerms } from "@/data/vairVocab";
 import { RISK_BLOCK, RISK_FIELDS, type RiskField } from "@/data/riskFields";
 import type { RiskExample } from "@/data/examples";
+import Carousel from "./Carousel";
 
 // Question 15: one row per risk. Field names are `risk:<key>:<field>`; the key
 // is the row's stable id (not its position), so removing a middle row leaves a
-// gap the parser tolerates and renumbers. A field VAIR can type has one VAIR
+// gap the parser tolerates and renumbers. One risk per page of a carousel; a new one opens on
+// its own page. A field VAIR can type has one VAIR
 // select, `risk:<key>:<field>Term`; the harm is only that select.
 
 /** The one VAIR select of a risk field. Required where VAIR always has a term that fits; the
@@ -59,8 +61,10 @@ export default function RiskRows({ initial }: { initial?: RiskExample[] }) {
       : [{ key: 0, areas: new Set() }],
   );
   const [nextKey, setNextKey] = useState(initial?.length || 1);
+  const [page, setPage] = useState(0);
 
   const addRow = () => {
+    setPage(rows.length);
     setRows((r) => [...r, { key: nextKey, areas: new Set() }]);
     setNextKey((k) => k + 1);
   };
@@ -85,117 +89,131 @@ export default function RiskRows({ initial }: { initial?: RiskExample[] }) {
       </h2>
       <p className="qf-help">{RISK_BLOCK.help}</p>
 
-      {rows.map((row, n) => (
-        <fieldset key={row.key} className="qf-risk">
-          <legend>
-            Risk {n + 1}
-            {rows.length > 1 && (
-              <button
-                type="button"
-                className="qf-risk-remove"
-                onClick={() => removeRow(row.key)}
-              >
-                Remove
-              </button>
-            )}
-          </legend>
-          {RISK_FIELDS.map((f) => {
-            const name = `risk:${row.key}:${f.id}`;
-            const termName = `${name}Term`;
-            const termValue =
-              (row.values?.[`${f.id}Term` as keyof RiskExample] as
-                | string
-                | undefined) ?? "";
-            return (
-              <div key={f.id} className="field">
-                <label
-                  className="qf-question"
-                  htmlFor={f.kind === "term" ? termName : name}
-                >
-                  <span className="qf-citation">{f.citation}</span>
-                  {f.optional && (
-                    <span className="qf-optional">where applicable</span>
-                  )}
-                  <span className="qf-question-text">{f.label}</span>
-                </label>
-                {f.kind === "text" && (
-                  <textarea
-                    id={name}
-                    name={name}
-                    defaultValue={
-                      (row.values?.[f.id as keyof RiskExample] as string) ?? ""
-                    }
-                    rows={2}
-                    required={!f.optional}
-                    placeholder={f.placeholder}
-                  />
-                )}
-                {f.vair && (
-                  <TermSelect f={f} name={termName} initial={termValue} />
-                )}
-                {f.kind === "affected" && (
-                  <select
-                    id={name}
-                    name={name}
-                    required
-                    defaultValue={row.values?.affected ?? ""}
+      <Carousel
+        label="Risk"
+        page={page}
+        onPage={setPage}
+        pages={rows.map((row, n) => ({
+          key: row.key,
+          node: (
+            <fieldset key={row.key} className="qf-risk">
+              <legend>
+                Risk {n + 1}
+                {rows.length > 1 && (
+                  <button
+                    type="button"
+                    className="qf-risk-remove"
+                    onClick={() => removeRow(row.key)}
                   >
-                    <option value="" disabled>
-                      Choose…
-                    </option>
-                    <optgroup label="Standard groups">
-                      {SUBJECTS.map((t) => (
-                        <option
-                          key={t.id}
-                          value={t.id}
-                          title={t.definition || undefined}
-                        >
-                          {t.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Other groups">
-                      {AFFECTED.map((e) => (
-                        <option key={e.id} value={e.id}>
-                          {e.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  </select>
+                    Remove
+                  </button>
                 )}
-                {f.kind === "areas" && (
-                  <>
-                    <div
-                      className="qf-picker-options"
-                      id={name}
-                      data-field={name}
+              </legend>
+              {RISK_FIELDS.map((f) => {
+                const name = `risk:${row.key}:${f.id}`;
+                const termName = `${name}Term`;
+                const termValue =
+                  (row.values?.[`${f.id}Term` as keyof RiskExample] as
+                    | string
+                    | undefined) ?? "";
+                return (
+                  <div key={f.id} className="field">
+                    <label
+                      className="qf-question"
+                      htmlFor={f.kind === "term" ? termName : name}
                     >
-                      {IMPACT_AREAS.map((a) => {
-                        const active = row.areas.has(a.id);
-                        return (
-                          <button
-                            type="button"
-                            key={a.id}
-                            className={`qf-chip${active ? " active" : ""}`}
-                            onClick={() => toggleArea(row.key, a.id)}
-                            aria-pressed={active}
-                            title={a.definition || undefined}
-                          >
-                            {a.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {Array.from(row.areas).map((id) => (
-                      <input key={id} type="hidden" name={name} value={id} />
-                    ))}
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </fieldset>
-      ))}
+                      <span className="qf-citation">{f.citation}</span>
+                      {f.optional && (
+                        <span className="qf-optional">where applicable</span>
+                      )}
+                      <span className="qf-question-text">{f.label}</span>
+                    </label>
+                    {f.kind === "text" && (
+                      <textarea
+                        id={name}
+                        name={name}
+                        defaultValue={
+                          (row.values?.[f.id as keyof RiskExample] as string) ??
+                          ""
+                        }
+                        rows={2}
+                        required={!f.optional}
+                        placeholder={f.placeholder}
+                      />
+                    )}
+                    {f.vair && (
+                      <TermSelect f={f} name={termName} initial={termValue} />
+                    )}
+                    {f.kind === "affected" && (
+                      <select
+                        id={name}
+                        name={name}
+                        required
+                        defaultValue={row.values?.affected ?? ""}
+                      >
+                        <option value="" disabled>
+                          Choose…
+                        </option>
+                        <optgroup label="Standard groups">
+                          {SUBJECTS.map((t) => (
+                            <option
+                              key={t.id}
+                              value={t.id}
+                              title={t.definition || undefined}
+                            >
+                              {t.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Other groups">
+                          {AFFECTED.map((e) => (
+                            <option key={e.id} value={e.id}>
+                              {e.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                      </select>
+                    )}
+                    {f.kind === "areas" && (
+                      <>
+                        <div
+                          className="qf-picker-options"
+                          id={name}
+                          data-field={name}
+                        >
+                          {IMPACT_AREAS.map((a) => {
+                            const active = row.areas.has(a.id);
+                            return (
+                              <button
+                                type="button"
+                                key={a.id}
+                                className={`qf-chip${active ? " active" : ""}`}
+                                onClick={() => toggleArea(row.key, a.id)}
+                                aria-pressed={active}
+                                title={a.definition || undefined}
+                              >
+                                {a.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {Array.from(row.areas).map((id) => (
+                          <input
+                            key={id}
+                            type="hidden"
+                            name={name}
+                            value={id}
+                          />
+                        ))}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </fieldset>
+          ),
+        }))}
+      />
 
       <button type="button" className="btn ghost qf-risk-add" onClick={addRow}>
         + Add another risk
