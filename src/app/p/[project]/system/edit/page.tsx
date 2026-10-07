@@ -76,7 +76,7 @@ export default async function EditSystemPage({
           }
         : null;
     return (
-      <main className="qualify-page qualify-page--form">
+      <main className="qualify-page qualify-page--fill">
         <header className="qualify-header">
           <h1>
             {start?.initial ? "Edit the AI system" : "Describe the AI system"}
@@ -112,7 +112,7 @@ export default async function EditSystemPage({
   const initial = worked ?? start?.initial ?? null;
 
   return (
-    <main className="qualify-page qualify-page--form">
+    <main className="qualify-page qualify-page--fill">
       <header className="qualify-header">
         <h1>
           {start?.initial ? "Edit the AI system" : "Describe the AI system"}

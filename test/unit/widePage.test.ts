@@ -47,15 +47,19 @@ describe("a compiled qualification uses the window's width", () => {
   });
 
   it("gives the form being filled in its own, middling width", () => {
-    // Wider than the 820px reading column, because the metadata fields pair up
-    // and the answers are paragraphs; well short of the compiled card's
-    // near-full-bleed, because a row of inputs 1900px wide is not a form.
+    // Wider than the 820px reading column, because the metadata fields pair up,
+    // the answers are paragraphs and a risk's selects sit beside them (2026-10-07:
+    // 1440px, was 1080px); short of the compiled card's 1900px near-full-bleed.
     const page = readFileSync(
       "src/app/p/[project]/system/edit/page.tsx",
       "utf8",
     );
-    expect(page).toMatch(/className="qualify-page qualify-page--form"/);
+    expect(page).toMatch(/className="qualify-page qualify-page--fill"/);
     expect(page).not.toMatch(/qualify-page--wide/);
+    expect(rule(".qualify-page--fill")).toMatch(
+      /max-width: min\(1440px, calc\(100vw - 56px\)\)/,
+    );
+    // the other --form pages keep 1080px
     expect(rule(".qualify-page--form")).toMatch(/max-width: 1080px/);
     // and the default column is unchanged for everything else
     expect(rule(".qualify-page")).toMatch(/max-width: 820px/);

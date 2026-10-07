@@ -275,6 +275,11 @@ a:hover {
 .qualify-page--form {
   max-width: 1080px;
 }
+/* The qualification form itself (system edit) goes wider again: a risk's selects sit beside its
+   answers. The other --form pages (question sets, the questionnaires list) stay 1080px. */
+.qualify-page--fill {
+  max-width: min(1440px, calc(100vw - 56px));
+}
 .qf-header-row {
   display: flex;
   align-items: flex-start;
@@ -440,6 +445,35 @@ a:hover {
   padding: 10px 12px;
   font-family: inherit;
   font-size: 14px;
+}
+/* A risk page on two columns: most questions span both; a text answer and its VAIR select share
+   a row (the select a fixed width), and the two select-only questions take one column each. */
+.qualify-form .qf-risk-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 20px;
+}
+.qualify-form .qf-risk-fields > .field {
+  grid-column: 1 / -1;
+  margin-bottom: 10px;
+}
+.qualify-form .qf-risk-fields > .field.qf-risk-half {
+  grid-column: auto;
+}
+.qualify-form .qf-risk-answer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+  gap: 12px;
+  align-items: start;
+}
+.qualify-form .qf-risk-fields select {
+  width: 100%;
+}
+@media (max-width: 900px) {
+  .qualify-form .qf-risk-fields,
+  .qualify-form .qf-risk-answer {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .qualify-form .qf-risk-add {
   width: auto;
