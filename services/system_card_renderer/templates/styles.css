@@ -159,7 +159,7 @@ code {
 }
 
 
-/* ── Ontology section ─────────────────────────────────────────────────────── */
+/* Ontology section */
 .onto-pdf h3 {
   margin: 18px 0 8px;
   font-size: 12pt;
@@ -211,6 +211,19 @@ code {
 .onto-pdf .term.none {
   color: #999;
   font-style: italic;
+}
+.onto-pdf .ai-name {
+  font-size: 7pt;
+  color: #666;
+  font-style: italic;
+}
+.onto-pdf .flag {
+  font-size: 7pt;
+  color: #b00020;
+  border: 0.5pt solid #b00020;
+  border-radius: 2pt;
+  padding: 0 2pt;
+  margin-left: 3pt;
 }
 .onto-pdf .note {
   font-size: 7.5pt;

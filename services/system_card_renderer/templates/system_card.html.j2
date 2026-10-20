@@ -2,20 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>{{ card.system_name }} — AI Card</title>
+  <title>{{ card.system_name }} · AI card</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+{# A label, and the web card's marks: "AI name" while the AI drafted the name, "AI draft" for a
+   node the AI drafted, and each open flag of its review with the reason and the quote. #}
+{% macro named(n) %}{{ n.label }}{% if n.nameDrafted %} <span class="ai-name">(AI name)</span>{% endif %}
+{%- if n.provenance == 'extracted' %} <span class="ai-name">(AI draft{% if n.derivedFrom %} from {{ n.derivedFrom }}{% endif %})</span>{% endif %}
+{%- for f in n.flags %} <span class="flag">{{ {'inconsistent': 'check'}.get(f, f) }}</span>{% endfor %}
+{%- for note in n.flagNotes %}<div class="note">{{ note.why }}{% if note.quote %} &ldquo;{{ note.quote }}&rdquo;{% endif %}</div>{% endfor %}
+{%- endmacro %}
 
 <header class="cover">
   <div class="eyebrow">AI Card</div>
   <h1>{{ card.system_name }}</h1>
   <p class="subtitle">
     {{ card.provider }} ·
-    {# Providers type the "v" themselves about half the time; without this the
-       cover read "vv1.2.0". Done here, not on the model, because the renderer
-       passes the card as a plain dict. #}
-    {% if card.system_version[:1] in ["v", "V"] %}{{ card.system_version }}{% else %}v{{ card.system_version }}{% endif %}
+    {# The system's own release, never with a "v": that is kept for AI card versions, and
+       providers often type one. Done here, not on the model, because the renderer passes
+       the card as a plain dict. #}
+    System release {% if card.system_version[:1] in ["v", "V"] %}{{ card.system_version[1:] }}{% else %}{{ card.system_version }}{% endif %}
     {% if card.generated_at %}
       · generated {{ card.generated_at }}
     {% endif %}
@@ -27,25 +34,25 @@
       <td>{{ card.provider }}</td>
     </tr>
     <tr>
-      <th>Version</th>
-      <td>{{ card.system_version }}</td>
+      <th>System release</th>
+      <td>{% if card.system_version[:1] in ["v", "V"] %}{{ card.system_version[1:] }}{% else %}{{ card.system_version }}{% endif %}</td>
     </tr>
     <tr>
-      <th>Target systems</th>
+      <th>Capabilities</th>
       <td>
         {% for t in card.classification.target_systems %}
-          <span class="chip">{{ t.category }} / {{ t.subcategory }}</span>
+          <span class="chip">{% if t.category %}{{ t.category }} / {% endif %}{{ t.subcategory }}</span>
         {% endfor %}
-        {% if not card.classification.target_systems %}—{% endif %}
+        {% if not card.classification.target_systems %}none{% endif %}
       </td>
     </tr>
     <tr>
-      <th>Sectors</th>
+      <th>Application domains</th>
       <td>
         {% for s in card.classification.sectors %}
           <span class="chip chip--sector">{{ s }}</span>
         {% endfor %}
-        {% if not card.classification.sectors %}—{% endif %}
+        {% if not card.classification.sectors %}none{% endif %}
       </td>
     </tr>
   </table>
@@ -56,13 +63,20 @@
   {% if card.overview %}
   <p>{{ card.overview }}</p>
   {% endif %}
+  {# A form may leave these out: an empty row is left out rather than printed blank. #}
   <dl class="kv">
+    {% if card.description %}
     <dt>Description</dt>
     <dd>{{ card.description }}</dd>
+    {% endif %}
+    {% if card.target_use_case %}
     <dt>Target use case</dt>
     <dd>{{ card.target_use_case }}</dd>
+    {% endif %}
+    {% if card.target_users %}
     <dt>Target users</dt>
     <dd>{{ card.target_users }}</dd>
+    {% endif %}
   </dl>
 </section>
 
@@ -82,17 +96,20 @@
 
 {% if card.ontology %}
 <section class="onto-pdf">
-  <h2>Ontology</h2>
+  <h2>AI card</h2>
+  {% if card.ontology.coverage %}<p class="coverage">{{ card.ontology.coverage.summary }}</p>{% endif %}
   <p class="muted">
-    This card as a filled AIRO graph (AI Risk Ontology, core concepts):
-    {{ card.ontology.counts.nodes }} nodes, {{ card.ontology.counts.triples }} triples,
+    This card holds {{ card.ontology.counts.nodes }} items and
     {{ card.ontology.counts.risks }} risks.
     {% if card.ontology.counts.reviewed %}
-      {{ card.ontology.counts.reviewed }} node(s) corrected by a reviewer.
+      {{ card.ontology.counts.reviewed }} item(s) corrected by a reviewer.
+    {% endif %}
+    {% if card.ontology.counts.flagged %}
+      {{ card.ontology.counts.flagged }} item(s) flagged by the AI's review and not yet settled.
     {% endif %}
   </p>
 
-  <h3>About the system</h3>
+  <h3>Identification and use</h3>
   <table class="onto-pdf-table">
     {% for row in card.ontology.rows %}
     <tr>
@@ -100,8 +117,8 @@
       <td>
         {% for n in row.nodes %}
           <div class="onto-pdf-node{% if n.provenance == 'reviewed' %} reviewed{% endif %}">
-            {{ n.label }}
-            {% if n.vair %}<span class="term">vair:{{ n.vair }}</span>
+            {{ named(n) }}
+            {% if n.vair %}<span class="term">{{ n.vair }}</span>
             {% elif n.termExpected is false or n.termNotApplicable %}
               {# No term exists for this node, so naming the class says more
                  than flagging an absence nobody can fill. #}
@@ -116,18 +133,28 @@
     {% endfor %}
   </table>
 
-  <h3>Risks</h3>
+  <h3>Risk identification</h3>
   {% for c in card.ontology.chains %}
   <table class="onto-pdf-chain">
     <caption>Risk {{ loop.index }} of {{ card.ontology.chains|length }}<span class="cite">{{ c.citation }}</span></caption>
-    <tr><th>The risk</th><td>{{ c.risk.label }}</td></tr>
-    {% if c.source %}<tr><th>Caused by</th><td>{{ c.source.label }}</td></tr>{% endif %}
-    {% if c.vulnerability %}<tr><th>Exploiting</th><td>{{ c.vulnerability.label }}</td></tr>{% endif %}
-    {% if c.consequence %}<tr><th>Leading to</th><td>{{ c.consequence.label }}</td></tr>{% endif %}
-    {% if c.stakeholder %}<tr><th>Affecting</th><td>{{ c.stakeholder.label }}{% if c.areas %} &mdash; {% for a in c.areas %}{{ a.label }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</td></tr>{% endif %}
-    {% if c.control %}<tr><th>Control</th><td>{{ c.control.label }}</td></tr>{% endif %}
-    {% if c.followUp %}<tr><th>If insufficient</th><td>{{ c.followUp.label }}</td></tr>{% endif %}
+    <tr><th>The risk</th><td>{{ named(c.risk) }}</td></tr>
+    {% if c.source %}<tr><th>Caused by</th><td>{{ named(c.source) }}</td></tr>{% endif %}
+    {% if c.vulnerability %}<tr><th>Exploiting</th><td>{{ named(c.vulnerability) }}</td></tr>{% endif %}
+    {% if c.consequence %}<tr><th>Leading to</th><td>{{ named(c.consequence) }}</td></tr>{% endif %}
+    {% if c.stakeholder %}<tr><th>Affecting</th><td>{{ named(c.stakeholder) }}{% if c.areas %}; areas: {% for a in c.areas %}{{ named(a) }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</td></tr>{% endif %}
+    {% if c.control %}<tr><th>Control</th><td>{{ named(c.control) }}</td></tr>{% endif %}
+    {% if c.followUp %}<tr><th>If insufficient</th><td>{{ named(c.followUp) }}</td></tr>{% endif %}
   </table>
+  {% endfor %}
+
+  {% for s in card.ontology.additionalDocumentation %}
+  <h3>Additional documentation: {{ s.form }}</h3>
+  <dl class="kv">
+    {% for e in s.entries %}
+    <dt>{{ e.question }}{% if e.citation %}<span class="cite">{{ e.citation }}</span>{% endif %}</dt>
+    <dd>{{ e.answer }}</dd>
+    {% endfor %}
+  </dl>
   {% endfor %}
 </section>
 {% endif %}

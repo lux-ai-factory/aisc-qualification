@@ -5,6 +5,9 @@ findings) are an optional extra, so a payload carrying only the form's metadata
 and the graph has to validate and render: that is what the Download PDF button
 in the vertical view sends when nobody has generated the prose.
 """
+import copy
+import json
+import re
 from pathlib import Path
 
 import pytest
@@ -161,20 +164,59 @@ def _html(**over) -> str:
     return render(dict(ONTOLOGY_ONLY, **over))
 
 
-def test_a_version_that_already_says_v_is_not_prefixed_again():
-    # The form stores what the provider typed, and providers type "v1.2.0".
-    # The cover used to render that as "vv1.2.0".
+def test_a_release_the_provider_typed_with_a_v_loses_it_on_the_cover():
+    # The form stores what the provider typed, and providers type "v1.2.0";
+    # "v" is kept for AI card versions, so the cover drops it.
     html = _html(system_version="v1.2.0")
-    assert "vv1.2.0" not in html
-    assert "Creditum AI SARL \u00b7 v1.2.0" in subtitle(html)
+    assert "Creditum AI SARL \u00b7 System release 1.2.0" in subtitle(html)
 
 
-def test_a_bare_version_still_gets_its_v():
+def test_a_bare_release_reads_the_same():
     html = _html(system_version="1.2.0")
-    assert "Creditum AI SARL \u00b7 v1.2.0" in subtitle(html)
+    assert "Creditum AI SARL \u00b7 System release 1.2.0" in subtitle(html)
 
 
 def subtitle(html: str) -> str:
     """The cover line under the title: provider, version, date."""
     start = html.index('<p class="subtitle">')
     return " ".join(html[start : html.index("</p>", start)].split())
+
+
+# An AI-drafted name is shown as one
+
+# The ontology builder's own view of the MCAS example (kept current by the ontology suite).
+MCAS_VIEW = json.loads(
+    (ROOT.parent / "agents" / "tests" / "fixtures" / "mcas.view.json").read_text(encoding="utf-8")
+)
+
+
+def _drafted(view: dict, ids: set) -> dict:
+    view = copy.deepcopy(view)
+    for row in view["rows"]:
+        for n in row["nodes"]:
+            if n["id"] in ids:
+                n["nameDrafted"] = True
+    for chain in view["chains"]:
+        for slot in ("risk", "source", "control"):
+            if chain.get(slot) and chain[slot]["id"] in ids:
+                chain[slot]["nameDrafted"] = True
+    return view
+
+
+def _row_label(view: dict, prop: str) -> str:
+    return next(r for r in view["rows"] if r["property"] == prop)["nodes"][0]["label"]
+
+
+def test_a_name_the_ai_drafted_is_marked_on_the_card_until_a_person_keeps_it():
+    view = _drafted(MCAS_VIEW, {"purpose", "risk0_source"})
+    html = " ".join(render(dict(ONTOLOGY_ONLY, ontology=view)).split())
+    purpose = _row_label(view, "hasPurpose")
+    source = view["chains"][0]["source"]["label"]
+    assert re.search(re.escape(purpose) + r' <span class="ai-name">\(AI name\)</span>', html)
+    assert re.search(re.escape(source) + r' <span class="ai-name">\(AI name\)</span>', html)
+    assert html.count("(AI name)") == 2
+
+
+def test_a_name_the_author_wrote_or_a_person_kept_is_not_marked():
+    html = render(dict(ONTOLOGY_ONLY, ontology=MCAS_VIEW))
+    assert "(AI name)" not in html

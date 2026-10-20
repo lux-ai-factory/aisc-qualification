@@ -8,7 +8,8 @@ from pydantic import BaseModel, Field
 
 
 class TargetSystem(BaseModel):
-    category: str
+    # A VAIR capability is a flat term: no category, its label in `subcategory`.
+    category: str = ""
     subcategory: str
 
 
@@ -21,6 +22,13 @@ class Finding(BaseModel):
     title: str = Field(..., description="The topic area, e.g. Data & data governance")
     summary: str = Field(..., description="One-paragraph synthesis")
     points: List[str] = Field(default_factory=list)
+
+
+class FlagNote(BaseModel):
+    """Why the AI's review flagged a node, and the words of the answer it points at."""
+
+    why: str = ""
+    quote: str = ""
 
 
 class OntologyNode(BaseModel):
@@ -37,10 +45,17 @@ class OntologyNode(BaseModel):
     # instead of flagging a gap that cannot be closed.
     termExpected: Optional[bool] = None
     termNotApplicable: Optional[bool] = None
+    # The label is a name the AI drafted from the author's text: the card marks it
+    # as one until a person edits or keeps it, which clears this.
+    nameDrafted: Optional[bool] = None
     generatedLabel: Optional[str] = None
     reviewNote: Optional[str] = None
     formTag: Optional[str] = None
     derivedFrom: Optional[str] = None
+    # What the AI's review could not settle (provenance "extracted" marks a node the AI
+    # drafted): printed, so the copy kept for the record is not read as the author's own.
+    flags: List[str] = Field(default_factory=list)
+    flagNotes: List[FlagNote] = Field(default_factory=list)
 
 
 class OntologyRow(BaseModel):
@@ -69,6 +84,49 @@ class OntologyCounts(BaseModel):
     risks: int = 0
     reviewed: int = 0
     untyped: int = 0
+    flagged: int = 0
+
+
+class CoveragePoint(BaseModel):
+    id: str
+    citation: str
+    covered: bool
+
+
+class CoverageAnnex(BaseModel):
+    covered: int
+    total: int
+    points: List[CoveragePoint] = Field(default_factory=list)
+    #: points left blank that the form asked only optionally
+    optionalBlank: int = 0
+
+
+class CoverageForm(BaseModel):
+    name: str
+    answered: int
+    total: int
+
+
+class Coverage(BaseModel):
+    """How much of Annex IV the card covers, as services/ontology computes it."""
+
+    annex: CoverageAnnex
+    forms: List[CoverageForm] = Field(default_factory=list)
+    summary: str
+
+
+class AdditionalEntry(BaseModel):
+    key: str
+    question: str
+    citation: str = ""
+    answer: str
+
+
+class AdditionalSection(BaseModel):
+    """One owner form's answers that answer no Annex IV point."""
+
+    form: str
+    entries: List[AdditionalEntry] = Field(default_factory=list)
 
 
 class Ontology(BaseModel):
@@ -78,6 +136,9 @@ class Ontology(BaseModel):
     rows: List[OntologyRow] = Field(default_factory=list)
     chains: List[OntologyChain] = Field(default_factory=list)
     counts: OntologyCounts = Field(default_factory=OntologyCounts)
+    # Present when the card was filled with a known form version.
+    coverage: Optional[Coverage] = None
+    additionalDocumentation: List[AdditionalSection] = Field(default_factory=list)
 
 
 class SystemCard(BaseModel):
