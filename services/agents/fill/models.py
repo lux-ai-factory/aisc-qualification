@@ -44,9 +44,6 @@ class Node:
     #: The AIRO class this node takes. Needed to check the term belongs to it.
     cls: str = ""
 
-    def with_label(self, label: str) -> "Node":
-        return Node(id=self.id, label=label, vair=self.vair, cls=self.cls)
-
 
 @dataclass(frozen=True)
 class Finding:
@@ -71,17 +68,6 @@ class Draft:
     prop: Property
     nodes: tuple[Node, ...] = ()
 
-    def merge(self, nodes: tuple[Node, ...]) -> "Draft":
-        """This draft with a revision applied: matching ids swapped, new ones added.
-
-        Adding matters: `uncovered` is the finding whose remedy is a node that
-        is not there yet, so a revision that could only replace could never
-        answer it.
-        """
-        fresh = {n.id: n for n in nodes}
-        kept = tuple(fresh.pop(n.id, n) for n in self.nodes)
-        return Draft(prop=self.prop, nodes=kept + tuple(fresh.values()))
-
 
 @dataclass
 class Round:
@@ -101,7 +87,7 @@ class Outcome:
     draft: Draft
     rounds: list[Round] = field(default_factory=list)
     #: Which stopping rule fired. Every one of them publishes.
-    stop: Literal["clean", "fixpoint", "cap", "budget"] = "clean"
+    stop: Literal["clean", "fixpoint", "cap"] = "clean"
 
     @property
     def open_findings(self) -> tuple[Finding, ...]:

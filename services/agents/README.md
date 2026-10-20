@@ -1,27 +1,36 @@
-# Ontology filler
+# Ontology filler (the card agent)
 
 Reads the prose answers of a qualification, drafts the ontology nodes they
 support, reviews its own draft, and publishes it to the graph flagged for a
-person to edit.
+person to edit. In the AISC stack this is the `qualification-agents` service:
+qualification-web starts a run with `POST /fill/{pid}/{id}` after each save and
+reads its state with `GET /fill/{pid}/{id}`.
 
-Two of the graph's properties cannot be filled from form fields, because the
-Annex IV answers they come from are paragraphs:
+One of the graph's properties cannot be filled from form fields, because the
+Annex IV answer it comes from is a paragraph (`DRAFTED` in `fill/workflow.py`):
 
 | Property | From | AIRO class |
 |---|---|---|
 | `techniques` | Annex IV 2(a), how the system was built | `AITechnique` |
-| `components` | Annex IV 2(c), what it is made of | `AIComponent` |
 
-Everything else in the graph comes from a picker or a risk row and needs no
-model. `risk_types` (naming and typing the risk-chain nodes) is the next
-increment; the loop already takes it, the prompt does not yet.
+Everything else in the graph comes from a picker, the Components block or a risk
+row, which the author types, and needs no model. The loop also accepts
+`components` and `risk_types`, but the run drafts neither.
+
+Two further passes run on the same card: one drafts short names for long
+answers (`fill/names.py`), and one points out card choices that the author's
+own answers contradict, quoting the answer (`fill/consistency.py`). Neither
+changes the author's text. A consistency finding is kept only when its quote is
+in the answers word for word, starting and ending on a word boundary, and has at
+least two content words; a shorter one is dropped as "quote too short".
 
 ## The loop
 
 ```
-load ──► draft ──► controls ──► critic ──► revise ──┐
-                      │            │                │
-                      └── clean ───┴──► publish ◄───┘ (bounded: 3 rounds)
+load ──► draft ──► controls ──► critic ──► revise
+                      ▲  │            │            │
+                      │  └── clean ───┴──► publish │ (bounded: 3 rounds)
+                      └────────────────────────────┘
 ```
 
 1. **draft** the model proposes `{label, vair}` for one property, given that
@@ -31,9 +40,13 @@ load ──► draft ──► controls ──► critic ──► revise ──
    term, no answer with content left empty. Cheapest first, so the critic is
    never paid to look at a draft that cannot be written.
 3. **critic** a second model, given the answer and the draft but not the
-   draft's justification, raises at most one finding per node and quotes the
-   span it relies on.
-4. **revise** only the nodes a finding named go back, with the finding text.
+   draft's justification, raises at most one finding per node and says why in
+   its `why` (the prompt asks it to quote the span there; nothing checks it).
+4. **revise** the writer is shown its draft by node id and the findings, and
+   answers with the whole list again: the named nodes fixed or removed, the
+   rest kept, what is missing added. That list replaces the draft, and the
+   next round reviews it once. A writer that returns only the fixed nodes
+   drops the others; the next review can ask for them back.
 5. **publish** the draft is written with `provenance: "extracted"`, and
    unsettled findings ride along as `qual:reviewFlag` triples.
 
@@ -44,24 +57,43 @@ load ──► draft ──► controls ──► critic ──► revise ──
 | `clean` | nothing objected | published unflagged |
 | `fixpoint` | same node and flag twice running | published flagged |
 | `cap` | 3 rounds | published flagged |
-| `budget` | call limit for one property | published flagged, recorded |
 
 **Every exit publishes.** A draft that failed review belongs in the graph with
 its findings attached, because the graph is the editing surface. Withholding it
 would leave the user with nothing to correct.
 
+The app builds a draft before it stores it, and refuses (422) one the builder
+rejects, such as a VAIR term the vocabulary does not have: stored, it would
+break the card's graph on every read. The run then fails with the app's
+message, and the card keeps the draft it had.
+
+`GET /fill/{pid}/{id}` reports `queued`, `running`, `done` or `failed`. The
+final state is written whatever the ledger does, so a ledger error cannot leave
+a run `running`. A failed run's `error` is a short text (at most 300 characters)
+with anything key-like taken out; qualification-web passes it on to editors and owners only (a viewer
+sees that the run failed). The full
+exception goes to the service's log only (`fill/errors.py`). While `LEDGER_MODE` is on, a run that arrives without a UUID in
+`X-AISC-Request-Id` records no ledger events, and the agent logs one warning for
+that run.
+
 ## Layout
 
 ```
-agent.py             CLI: --qualification <id> | --serve | --dry-run
+service.py           the HTTP entry point (FastAPI): POST and GET /fill/{pid}/{id}
+agent.py             CLI: --qualification <id> --project <pid> [--dry-run]
 fill/workflow.py     FillRun (the steps), run_fill() for callers, and the six
-                     BAF states whose bodies call the same steps
+                     BAF states whose bodies call the same steps (no entry point
+                     starts the machine)
 fill/controls.py     the deterministic checks
 fill/agents.py       the writer and the critic, and the parsing of their answers
 fill/prompts.py      the writer's and reviewer's prompts, built from prompts/
-fill/clients.py      HTTP to the LLM service, the ontology service and the app
+fill/clients.py      HTTP to the ontology service and the app
+fill/baf_llm.py      the provider table, and the model a project chose on the platform
+fill/names.py        short names for long answers
+fill/consistency.py  the pass that compares card choices with the answers
+fill/ledger.py       a run's ledger events, sent to the platform when LEDGER_MODE is on
 fill/models.py       Draft, Node, Finding, Round, Outcome
-prompts/             reviewing-an-ontology-draft.md (the review pass)
+prompts/             the review, naming and consistency prompts
 ```
 
 The drafting prompt is **not** here: it is
@@ -71,9 +103,11 @@ a change to the rule cannot apply to half the system.
 
 ## The model
 
-BAF's own mechanism, and the only one in the app: a BAF LLM wrapper, chosen and
-configured by environment variable, with the credential held in BAF's property
-store (`fill/llm.py`).
+A BAF LLM wrapper, with the credential held in BAF's property store. The model
+is the one the card's project chose on the platform ("AI assistant models and keys", under Manage > AI assistants),
+read through the platform's internal route with `PLATFORM_URL` and
+`PLATFORM_INTERNAL_TOKEN`. A project without a choice uses the model named by
+the environment (`config_from_env` in `fill/baf_llm.py`):
 
 | provider | wrapper | key it reads | model examples |
 |---|---|---|---|
@@ -106,36 +140,43 @@ BAF_LLM_MODEL=claude-sonnet-5
 ANTHROPIC_API_KEY=...
 ```
 
-Put those in the repo's `.env`. `docker compose` forwards all five variables to
-this service; nothing else reads them, and the app itself makes no LLM calls at
-all.
+In the AISC stack these variables come from the aisc repo's environment files;
+the stack sets no provider key for this service by default, so a run there uses
+the project's own choice. The Next.js app makes no model calls at all.
 
 BAF imports each provider SDK lazily and only logs a warning when one is
 missing, so a missing package appears as a `None` client at the first
-prediction rather than at startup. `requirements.txt` pins `openai` and
-`anthropic` for that reason.
+prediction rather than at startup. `requirements.txt` pins `openai`,
+`anthropic` and `ollama` for that reason, each to an exact version.
 
 ## Running it
 
 ```bash
+python3.12 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
 
-set -a; source ../../.env; set +a      # the same variables compose would pass
-export APP_URL=http://localhost:3399
+export APP_URL=http://localhost:3000/qualification   # the app, with its base path
 export ONTOLOGY_SERVICE_URL=http://localhost:8011
+export QUALIFICATION_AGENTS_TO_WEB_TOKEN=...        # its tokens for the app and the ontology
+export QUALIFICATION_AGENTS_TO_ONTOLOGY_TOKEN=...
+export BAF_LLM_PROVIDER=mistral BAF_LLM_MODEL=mistral-large-latest MISTRAL_API_KEY=...
 
-python agent.py --qualification <id> --dry-run   # draft, review, print, write nothing
-python agent.py --qualification <id>             # and publish
-uvicorn service:app --port 8012                  # the HTTP entry point the app calls
-python agent.py --serve                          # BAF agent on the A2A platform
+python agent.py --qualification <id> --project <pid> --dry-run   # draft, review, print, write nothing
+python agent.py --qualification <id> --project <pid>             # and publish
+QUALIFICATION_WEB_TO_AGENTS_TOKEN=... uvicorn service:app --port 8012   # the HTTP entry point
 ```
 
-Temperature is 0: a draft should be reproducible.
+The image is built from `Dockerfile.stack` (this directory as the context, the
+ontology prompts as a named context).
+
+No call sets a temperature, so the provider's default applies: two runs on the
+same card can draft differently.
 
 ## Tests
 
 ```bash
-python -m pytest            # 100 tests, no network, no model
+pip install pytest          # not in requirements.txt
+python -m pytest            # no network, no model
 ```
 
 The controls and the stopping rules are tested against a fake writer and critic,
@@ -162,8 +203,8 @@ model and a fake publisher.
 
 `fill/workflow.py` holds the state machine, and `run_fill()` runs the same steps
 as a plain function. That duplication is deliberate: the machine is the readable
-description of the flow and what BAF's monitoring database records, and a
-function is what an HTTP request should call.
+description of the flow, tested against the same steps, and a function is what
+an HTTP request should call. Nothing starts the machine today.
 
 BAF checks state-body signatures by inspecting annotations, so a body must be
 written `def body(session: Session) -> None:` with no `from __future__ import

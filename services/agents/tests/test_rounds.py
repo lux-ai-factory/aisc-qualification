@@ -9,7 +9,6 @@ import json
 
 import pytest
 
-from fill.models import CAP
 from fill.workflow import FillRun
 
 ANSWER_2A = (
@@ -63,6 +62,7 @@ def run_one(complete, max_rounds: int = 3) -> FillRun:
     run.review()
     while run.needs_revision():
         run.revise()
+        run.review()
     run.finish_property()
     return run
 
@@ -153,12 +153,6 @@ class TestControlsComeFirst:
         assert run.findings == []
 
 
-class TestInflation:
-    def test_the_cap_on_nodes_is_the_one_the_prompt_states(self):
-        assert CAP["techniques"] == 3
-        assert CAP["components"] == 4
-
-
 class TestRevisionCanAddAsWellAsReplace:
     """`uncovered` says a node is missing, so a revision has to be able to add.
 
@@ -218,3 +212,116 @@ class TestRevisionCanAddAsWellAsReplace:
         run.revise()
         ids = [n.id for n in run.draft_in_hand.nodes]
         assert ids == sorted(set(ids)), "ids must stay unique and ordered"
+
+
+class TestRevisionReplacesTheDraft:
+    """A revision is the whole list again, so a node can be fixed in place or removed.
+
+    Merging the revision by positional id overwrote the wrong node when the writer re-proposed only
+    the flagged one, and never removed anything, so `inflated` could not be resolved.
+    """
+
+    FOUR = (
+        "A gradient-boosted decision tree, hand-written policy eligibility rules, "
+        "a logistic regression scorecard and a recurrent neural network."
+    )
+    TERMS4 = {"AITechnique": ["MachineLearning", "LogicBasedTechnique", "Regression", "NeuralNetwork"]}
+
+    def _run(self, answer, complete):
+        return FillRun(
+            qualification={"id": "q1", "answers": [{"toolId": "annex-2", "questionId": "2a", "answer": answer}]},
+            terms=self.TERMS4,
+            complete=complete,
+            publish=lambda qid, payload: None,
+        )
+
+    def test_an_inflated_draft_loses_the_surplus_node_and_ends_clean(self):
+        four = json.dumps({"nodes": [
+            {"label": "Gradient-boosted decision tree", "vair": "MachineLearning"},
+            {"label": "Policy eligibility rules", "vair": "LogicBasedTechnique"},
+            {"label": "Logistic regression scorecard", "vair": "Regression"},
+            {"label": "Recurrent neural network", "vair": "NeuralNetwork"},
+        ]})
+        three = json.dumps({"nodes": json.loads(four)["nodes"][:3]})
+        run = self._run(self.FOUR, scripted(four, three, '{"findings": []}'))
+        run.load()
+        run.draft()
+        run.review()
+        assert [(f.node_id, f.flag) for f in run.findings] == [("technique3", "inflated")]
+        while run.needs_revision():
+            run.revise()
+            run.review()
+        run.finish_property()
+        outcome = run.outcomes["techniques"]
+        assert [n.label for n in outcome.draft.nodes] == [
+            "Gradient-boosted decision tree", "Policy eligibility rules", "Logistic regression scorecard"]
+        assert outcome.stop == "clean"
+
+    def test_the_flagged_node_is_replaced_and_the_writer_sees_the_draft_it_revises(self):
+        answer = "A gradient-boosted decision tree, checked against a random forest ensemble."
+        first = json.dumps({"nodes": [
+            {"label": "Gradient-boosted decision tree", "vair": "MachineLearning"},
+            {"label": "Quantum annealing solver", "vair": "Regression"},
+        ]})
+        fixed = json.dumps({"nodes": [
+            {"label": "Gradient-boosted decision tree", "vair": "MachineLearning"},
+            {"label": "Random forest ensemble", "vair": "Regression"},
+        ]})
+        prompts = []
+        replies = iter([first, fixed, '{"findings": []}'])
+
+        def complete(system, user, *a, **k):
+            prompts.append(user)
+            return next(replies)
+
+        run = self._run(answer, complete)
+        run.load()
+        run.draft()
+        run.review()
+        assert [(f.node_id, f.flag) for f in run.findings] == [("technique1", "ungrounded")]
+        run.revise()
+        assert [n.label for n in run.draft_in_hand.nodes] == ["Gradient-boosted decision tree", "Random forest ensemble"]
+        revise_prompt = prompts[1]
+        assert "technique0: Gradient-boosted decision tree" in revise_prompt
+        assert "technique1: Quantum annealing solver" in revise_prompt
+        assert "whole list" in revise_prompt
+
+    def _revised_after(self, revision):
+        answer = "A gradient-boosted decision tree, checked against a random forest ensemble."
+        first = json.dumps({"nodes": [
+            {"label": "Gradient-boosted decision tree", "vair": "MachineLearning"},
+            {"label": "Quantum annealing solver", "vair": "Regression"},
+        ]})
+        run = self._run(answer, scripted(first, revision, '{"findings": []}'))
+        run.load()
+        run.draft()
+        run.review()
+        assert run.findings, "the second node must be flagged for a revision to happen"
+        run.revise()
+        return [n.label for n in run.draft_in_hand.nodes]
+
+    def test_a_revision_answer_with_no_node_list_keeps_the_draft(self):
+        """Prose, or a reply cut at the token limit, is no answer: the earlier rounds' nodes stay."""
+        kept = ["Gradient-boosted decision tree", "Quantum annealing solver"]
+        assert self._revised_after("sorry, I cannot") == kept
+        assert self._revised_after('{"nodes": [{"label": "Gradient') == kept
+        assert self._revised_after('{"answer": "none"}') == kept
+
+    def test_an_explicit_empty_node_list_still_replaces_the_draft(self):
+        assert self._revised_after('{"nodes": []}') == []
+
+    def test_a_writer_that_answers_only_the_fixed_node_does_not_keep_the_flagged_one(self):
+        answer = "A gradient-boosted decision tree, checked against a random forest ensemble."
+        first = json.dumps({"nodes": [
+            {"label": "Gradient-boosted decision tree", "vair": "MachineLearning"},
+            {"label": "Quantum annealing solver", "vair": "Regression"},
+        ]})
+        only_fixed = json.dumps({"nodes": [{"label": "Random forest ensemble", "vair": "Regression"}]})
+        run = self._run(answer, scripted(first, only_fixed, '{"findings": []}'))
+        run.load()
+        run.draft()
+        run.review()
+        run.revise()
+        labels = [n.label for n in run.draft_in_hand.nodes]
+        assert "Quantum annealing solver" not in labels
+        assert labels == ["Random forest ensemble"]

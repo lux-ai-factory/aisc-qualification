@@ -1,14 +1,14 @@
 """The workflow itself: six BAF states, and the loop they run.
 
-    load ──► draft ──► review ──► revise ──┐
-                         │                 │  (a finding, rounds left)
-                         │ (settled)       │
-                         ▼                 │
-                      publish ──► done ◄───┘
+    load ──► draft ──► review ◄──► revise   (a finding, rounds left)
+               ▲         │
+               │         │ (settled)
+               │         ▼
+               └──── publish ──► done   (more properties / none left)
 
-`draft`, `review` and `revise` are the review loop from fill/loop.py, one
-property at a time; the state machine is what makes the rounds legible from
-outside, and BAF's monitoring database is what records them.
+`draft`, `review` and `revise` are the review loop, run one property at a time.
+The state machine describes the flow and is tested against the same steps; no
+entry point starts it (run_fill is what the service calls).
 
 `run_fill` runs the same steps without a platform, which is what the tests and
 the HTTP entry point use: a state machine is a good way to describe a flow and a
@@ -17,15 +17,18 @@ poor way to be called by a web request.
 from dataclasses import dataclass, field
 from typing import Callable
 
+from . import clients
 from .agents import LlmCritic, LlmWriter
 from .controls import run_controls
+from .consistency import check
+from .names import draft_names, nameable
+from .view_nodes import nodes_of
 from .models import (
     CITATION_OF,
     CLASS_OF,
     Draft,
     Finding,
     Outcome,
-    PROPERTIES,
     Property,
     Round,
 )
@@ -36,9 +39,10 @@ STATE_NAMES = ("load", "draft", "review", "revise", "publish", "done")
 
 MAX_ROUNDS = 3
 
-#: The properties this workflow drafts today. `risk_types` needs the risk rows
-#: and a per-node class, which is the next increment.
-DRAFTED: tuple[Property, ...] = ("techniques", "components")
+#: The properties this workflow drafts: only what the answers say and no form field holds. The form
+#: speaks VAIR, so the author types the Components block and every risk field; what is left is the
+#: techniques of Annex IV 2(a).
+DRAFTED: tuple[Property, ...] = ("techniques",)
 
 
 @dataclass
@@ -68,14 +72,36 @@ class FillResult:
 def answer_for(qualification: dict, citation: str) -> str:
     """The answer a property is drafted from, found by its Annex IV citation."""
     wanted = citation.replace("Annex IV(", "").replace(")", "").replace("(", "")
-    for answer in qualification.get("answers", []):
+    answers = qualification.get("answers", [])
+    if any("annexPoint" in a for a in answers):
+        # Exported with a form: only the tag says which point an answer is about,
+        # and several questions may answer the same point.
+        point = wanted.lower().replace("-", "")
+        return "\n\n".join(
+            a["answer"] for a in answers if a.get("annexPoint") == point and a.get("answer")
+        )
+    for answer in answers:
         key = f"{answer.get('toolId', '')}:{answer.get('questionId', '')}"
         if key.endswith(wanted.lower()) or answer.get("questionId") == wanted.lower():
             return answer.get("answer", "")
     return ""
 
 
-def payload_of(outcomes: dict[str, Outcome]) -> dict:
+def known_parts(qualification: dict) -> dict[str, list[str]]:
+    """What the card already holds, per drafted property: its Components rows.
+
+    Refine with AI works on top of the card, so these are never proposed again.
+    Techniques have no rows of their own yet.
+    """
+    names = [c["name"] for c in qualification.get("systemComponents") or [] if c.get("name")]
+    return {"components": names} if names else {}
+
+
+def _fold(label: str) -> str:
+    return " ".join(label.split()).casefold()
+
+
+def payload_of(outcomes: dict[str, Outcome], known: dict[str, list[str]] | None = None) -> dict:
     """The `extracted` document the builder reads: the draft, its flags, its record.
 
     Node ids are positional and assigned by the parser, so they match the ids the
@@ -84,6 +110,9 @@ def payload_of(outcomes: dict[str, Outcome]) -> dict:
     answers with the flag where the node should be. The builder skips a flag
     whose node does not exist, so publishing those as flags dropped them in
     silence. They go in the record instead, where the card can show them.
+
+    A node that repeats one of the card's own rows (`known`) is left out, and the
+    ids after it move up so they still match the builder's; a flag follows its node.
     """
     payload: dict = {"flags": {}, "record": {}}
     unattached: list[dict] = []
@@ -91,15 +120,22 @@ def payload_of(outcomes: dict[str, Outcome]) -> dict:
 
     for prop in DRAFTED:
         outcome = outcomes.get(prop)
-        nodes = outcome.draft.nodes if outcome else ()
+        drafted = outcome.draft.nodes if outcome else ()
+        on_card = {_fold(k) for k in (known or {}).get(prop, [])}
+        nodes = tuple(n for n in drafted if _fold(n.label) not in on_card)
+        prefix = drafted[0].id.rstrip("0123456789") if drafted else prop
+        new_id = {n.id: f"{prefix}{i}" for i, n in enumerate(nodes)}
+        dropped = {n.id for n in drafted} - set(new_id)
         payload[prop] = [{"label": n.label, "vair": n.vair} for n in nodes]
         if not outcome:
             continue
 
-        ids = {n.id for n in nodes}
+        ids = set(new_id)
         for finding in outcome.open_findings:
+            if finding.node_id in dropped:
+                continue  # its node is the card's own row, not the draft's
             if finding.node_id in ids:
-                payload["flags"].setdefault(finding.node_id, []).append(finding.flag)
+                payload["flags"].setdefault(new_id[finding.node_id], []).append(finding.flag)
             else:
                 unattached.append(
                     {
@@ -132,8 +168,7 @@ class FillRun:
     """One qualification's fill, as an object the steps operate on.
 
     The steps are methods rather than a loop body so that the plain function and
-    the BAF state machine drive the same code. They used to be two descriptions
-    of the same work, one of which did nothing.
+    the BAF state machine drive the same code.
     """
 
     qualification: dict
@@ -141,6 +176,8 @@ class FillRun:
     complete: Callable[..., str]
     publish: Callable[[str, dict], object]
     max_rounds: int = MAX_ROUNDS
+    #: The ontology service's build, which says which long answers were cut to a label.
+    build: Callable[[dict, dict], dict] | None = None
 
     queue: list[Property] = field(default_factory=list)
     current: Property | None = None
@@ -154,8 +191,6 @@ class FillRun:
     def rounds_done(self) -> int:
         return len(self.rounds)
 
-    # ── the steps ────────────────────────────────────────────────────────────
-
     def load(self) -> None:
         """Plan which properties this qualification can fill."""
         self.queue = list(DRAFTED)
@@ -165,7 +200,7 @@ class FillRun:
         """Take the next property and propose nodes for it."""
         self.current = self.queue.pop(0)
         self.draft_in_hand = self._writer().draft(
-            self.current, self._source(), self._terms()
+            self.current, self._source(), self._terms(), known=self._known()
         )
         self.findings = []
         self.rounds = []
@@ -177,7 +212,7 @@ class FillRun:
         self.findings = run_controls(draft, self._source(), self._terms())
         calls = 1
         if not self.findings:
-            self.findings = list(self._critic().review(draft, self._source()))
+            self.findings = list(self._critic().review(draft, self._source(), known=self._known()))
             calls = 2
         self.rounds.append(
             Round(
@@ -189,13 +224,20 @@ class FillRun:
         )
 
     def revise(self) -> None:
-        """Ask again about the nodes a finding named, keeping the rest."""
+        """Show the writer its draft and the findings; its whole new list replaces the draft.
+
+        A full replacement, not a merge by id: ids are positions in one answer, so a merge
+        overwrote the wrong node when the writer re-proposed only the flagged one, and could
+        never remove a node (the remedy for `inflated`). An answer with no node list at all
+        (prose, a truncated reply) keeps the draft; see LlmWriter.draft.
+        """
         assert self.draft_in_hand is not None, "revise before draft"
-        fresh = self._writer().draft(
-            self.current, self._source(), self._terms(), self.findings
+        self.draft_in_hand = self._writer().draft(
+            self.current, self._source(), self._terms(), self.findings, known=self._known(),
+            previous=self.draft_in_hand,
         )
-        self.draft_in_hand = self.draft_in_hand.merge(fresh.nodes)
-        self.review()
+        # No review here: the machine's revise -> review transition and run_fill's loop each
+        # review the revision once. Reviewing here as well made two rounds of one draft.
 
     def finish_property(self) -> None:
         """Record where this property's loop ended, and move on."""
@@ -211,10 +253,57 @@ class FillRun:
 
     def publish_all(self) -> None:
         """Write the drafts and their flags where the card reads them."""
-        self.payload = payload_of(self.outcomes)
+        self.payload = payload_of(self.outcomes, known_parts(self.qualification))
+        self._name_long_answers()
+        self._check_consistency()
         self.publish(self.qualification["id"], self.payload)
 
-    # ── the conditions the state machine branches on ─────────────────────────
+    def _name_long_answers(self) -> None:
+        """Draft a name for each long answer the builder had to cut to a label.
+
+        Node ids and full texts come from the builder's own view, not from a guess at
+        them. When the ontology service cannot be reached the run publishes what it
+        has, without names, and the record says so.
+        """
+        self.payload["names"] = {}
+        try:
+            view = (self.build or clients.build)(self.qualification, {})["view"]
+        except clients.ServiceError:
+            self.payload["record"]["names"] = "ontology unreachable"
+            return
+        except Exception:
+            # Names are optional: a malformed answer must not lose the techniques.
+            self.payload["record"]["names"] = "naming failed"
+            return
+        try:
+            names, gave_up = draft_names(nameable(nodes_of(view)), self.complete)
+        except Exception:
+            self.payload["record"]["names"] = "naming failed"
+            return
+        self.payload["names"] = names
+        if gave_up:
+            self.payload["record"]["names_left"] = gave_up
+
+    def _check_consistency(self) -> None:
+        """Point at card choices the author's own answers contradict; it only points.
+
+        Optional like the names: whatever goes wrong here, the run publishes what it has.
+        """
+        self.payload["notes"] = {}
+        record = self.payload["record"]
+        record["notes"] = 0
+        try:
+            view = (self.build or clients.build)(self.qualification, {"names": self.payload.get("names", {})})["view"]
+            notes, dropped = check(view, self.qualification.get("answers", []), self.complete)
+        except Exception as error:
+            record["notes_failed"] = str(error) or type(error).__name__
+            return
+        self.payload["notes"] = notes
+        record["notes"] = sum(len(v) for v in notes.values())
+        if dropped:
+            record["notes_dropped"] = dropped
+
+    # The conditions the state machine branches on.
 
     def needs_revision(self) -> bool:
         """A finding is open, a round remains, and the last two differ."""
@@ -224,8 +313,6 @@ class FillRun:
 
     def more_to_draft(self) -> bool:
         return bool(self.queue)
-
-    # ── internals ────────────────────────────────────────────────────────────
 
     def _stop_reason(self) -> str:
         if not self.findings:
@@ -238,8 +325,12 @@ class FillRun:
         """The same node and flag raised two rounds running."""
         if self.rounds_done < 2:
             return False
-        signature = lambda r: frozenset((f.node_id, f.flag) for f in r.findings)
+        def signature(r):
+            return frozenset((f.node_id, f.flag) for f in r.findings)
         return signature(self.rounds[-1]) == signature(self.rounds[-2])
+
+    def _known(self) -> list[str]:
+        return known_parts(self.qualification).get(self.current, [])
 
     def _source(self) -> str:
         return answer_for(self.qualification, CITATION_OF[self.current])
@@ -260,6 +351,7 @@ def run_fill(
     complete: Callable[..., str],
     publish: Callable[[str, dict], object],
     max_rounds: int = MAX_ROUNDS,
+    build: Callable[[dict, dict], dict] | None = None,
 ) -> FillResult:
     """Draft, review and publish one qualification's extracted document.
 
@@ -273,6 +365,7 @@ def run_fill(
         complete=complete,
         publish=publish,
         max_rounds=max_rounds,
+        build=build,
     )
     run.load()
     while run.more_to_draft():
@@ -280,6 +373,7 @@ def run_fill(
         run.review()
         while run.needs_revision():
             run.revise()
+            run.review()
         run.finish_property()
     run.publish_all()
 
@@ -290,7 +384,9 @@ def run_fill(
 
 
 def build_agent(name: str = "ontology_filler"):
-    """The same steps as a BAF agent, for its platforms and its run history.
+    """The same steps as a BAF agent: the flow's description, tested against FillRun.
+
+    No entry point starts it: nothing puts a FillRun in a BAF session yet.
 
     Every body calls a method of FillRun, which is what run_fill drives too, so
     there is one implementation of the work and two ways to set it going.
@@ -341,7 +437,7 @@ def build_agent(name: str = "ontology_filler"):
         current_run(session).review()
 
     def revise_body(session: Session) -> None:
-        """Re-propose the nodes a finding named, then review again."""
+        """Redraft with the findings; the transition to review checks the result."""
         current_run(session).revise()
 
     def publish_body(session: Session) -> None:

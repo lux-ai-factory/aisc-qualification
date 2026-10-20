@@ -1,0 +1,198 @@
+"""An agent run is in the ledger. The app opens the run (card.ai_refinement_requested,
+with a run id) and hands the agent the run id and the person's request id; every event of the run
+cites both, the model is on each, the person never is. A post that fails is retried, then logged:
+it never fails the run."""
+import json
+import uuid
+
+import pytest
+
+pytest.importorskip("fastapi")
+from fastapi.testclient import TestClient
+
+import service
+from fill import ledger
+
+PID = str(uuid.uuid4())
+RUN_ID = str(uuid.uuid4())
+REQUEST_ID = str(uuid.uuid4())
+
+
+@pytest.fixture
+def sent(monkeypatch):
+    out = []
+
+    def fake_send(url, body, hdrs, timeout=None):
+        event = json.loads(body)
+        out.append({"url": url, "event": event, "headers": hdrs})
+        return 202 if event.get("model") else 422                     # as the real route does
+    monkeypatch.setattr(ledger, "_send", fake_send)
+    monkeypatch.setattr(ledger.time, "sleep", lambda _s: None)
+    monkeypatch.setenv("LEDGER_MODE", "record")
+    monkeypatch.setenv("PLATFORM_URL", "http://platform:8000")
+    monkeypatch.setenv("PLATFORM_LEDGER_AGENTS_TOKEN", "agents-token-0123456789")
+    return out
+
+
+@pytest.fixture
+def client(monkeypatch):
+    def fake_fill(pid, qualification_id):
+        state = ledger.RUN.get()
+        state["model"] = "openai/gpt-4o-mini"
+        ledger.emit("agent.run_started", "agent_run", state["run_id"], {"model": state["model"]})
+        complete = ledger.recording(lambda system, user: "{}")
+        with ledger.purpose("draft", "hasPurpose"):
+            complete("s", "u")
+        return {"rounds": 2, "calls": 1, "flagged": 0}
+    monkeypatch.setattr(service, "fill_one", fake_fill)
+    service.RUNS.clear()
+    return TestClient(service.app)                                    # conftest gives it the app's token
+
+
+def start(client, **headers):
+    return client.post(f"/fill/{PID}/q1", headers=headers)
+
+
+def test_a_run_records_its_start_each_model_call_and_its_end(client, sent):
+    assert start(client, **{"X-AISC-Run-Id": RUN_ID, "X-AISC-Request-Id": REQUEST_ID}).status_code == 202
+    actions = [s["event"]["action"] for s in sent]
+    assert actions == ["agent.run_started", "ai.llm_call", "agent.run_finished"]
+    for s in sent:
+        e = s["event"]
+        assert (e["run_id"], e["request_id"], e["model"]) == (RUN_ID, REQUEST_ID, "openai/gpt-4o-mini")
+        assert s["url"] == f"http://platform:8000/internal/projects/{PID}/ledger/events"
+        assert s["headers"]["X-AISC-Service-Token"] == "agents-token-0123456789"
+        assert not {"actor_ref", "on_behalf_of_ref", "actor_kind"} & set(e)       # never a person
+    call = sent[1]["event"]["details"]
+    assert call["purpose"] == "draft" and call["property"] == "hasPurpose" and call["latency_ms"] >= 0
+    assert service.RUNS[f"{PID}/q1"]["run_id"] == RUN_ID
+
+
+def test_a_failed_run_records_why(client, sent, monkeypatch):
+    def boom(pid, qid):
+        raise RuntimeError("the model is down")
+    monkeypatch.setattr(service, "fill_one", boom)
+    start(client, **{"X-AISC-Run-Id": RUN_ID, "X-AISC-Request-Id": REQUEST_ID})
+    # a code from a closed list, never the text, and a model even before one is known
+    assert [(s["event"]["action"], s["event"]["details"], s["event"]["model"]) for s in sent] == [
+        ("agent.run_failed", {"error": "error"}, "unknown")]
+
+
+def test_without_a_run_id_or_with_the_ledger_off_nothing_is_sent(client, sent, monkeypatch):
+    start(client)                                                     # an app that sends no run id
+    assert sent == []
+    monkeypatch.setenv("LEDGER_MODE", "off")
+    service.RUNS.clear()
+    start(client, **{"X-AISC-Run-Id": RUN_ID, "X-AISC-Request-Id": REQUEST_ID})
+    assert sent == []
+
+
+def test_an_id_that_is_not_a_uuid_is_never_put_in_an_event(client, sent):
+    start(client, **{"X-AISC-Run-Id": "x; DROP", "X-AISC-Request-Id": REQUEST_ID})
+    assert sent == [] and service.RUNS[f"{PID}/q1"]["run_id"] is None
+
+
+def test_a_post_that_fails_is_retried_with_the_same_event_then_logged(monkeypatch, sent):
+    answers = iter([503, OSError("refused"), 202])
+    seen = []
+
+    def flaky(url, body, hdrs, timeout=None):
+        seen.append(json.loads(body)["event_id"])
+        a = next(answers)
+        if isinstance(a, Exception):
+            raise a
+        return a
+    monkeypatch.setattr(ledger, "_send", flaky)
+    with ledger.run(PID, "q1", RUN_ID, REQUEST_ID):
+        assert ledger.emit("agent.run_finished", "agent_run", RUN_ID, {}) is True
+    assert len(seen) == 3 and len(set(seen)) == 1
+
+    monkeypatch.setattr(ledger, "_send", lambda *a: 503)
+    with ledger.run(PID, "q1", RUN_ID, REQUEST_ID):
+        assert ledger.emit("agent.run_finished", "agent_run", RUN_ID, {}) is False   # never raises
+
+
+def test_the_published_draft_carries_the_run(monkeypatch, sent):
+    from fill import clients
+
+    got = {}
+
+    def fake_post(url, payload, token, method="POST", extra=None):
+        got.update(extra or {})
+        return {"ok": True}
+    monkeypatch.setattr(clients, "_post", fake_post)
+    with ledger.run(PID, "q1", RUN_ID, REQUEST_ID) as state:
+        state["model"] = "openai/gpt-4o-mini"
+        clients.publish(PID, "q1", {"components": []})
+    assert got == {"X-AISC-Run-Id": RUN_ID, "X-AISC-Request-Id": REQUEST_ID, "X-AISC-Model": "openai/gpt-4o-mini"}
+
+
+@pytest.mark.parametrize("exc, code", [
+    (RuntimeError("POST https://x/v1:generate?key=AIzaSyA-not-a-real-key failed"), "error"),
+    (ValueError("the answer was 'The system scores Jane Doe, born 1980'"), "parse_error"),
+])
+def test_a_failure_is_recorded_as_a_code_never_its_text(exc, code):
+    """immudb keeps what it is given for ever; an error's text can hold a key or a person."""
+    assert ledger.error_code(exc) == code
+
+
+def test_a_model_call_never_waits_on_the_ledger(monkeypatch):
+    """One short try per ai.llm_call."""
+    tries = []
+    monkeypatch.setenv("LEDGER_MODE", "record")
+    monkeypatch.setenv("PLATFORM_URL", "http://platform:8000")
+    monkeypatch.setenv("PLATFORM_LEDGER_AGENTS_TOKEN", "x")
+    monkeypatch.setattr(ledger, "_send", lambda url, body, hdrs, timeout=None: tries.append(timeout) or 503)
+    monkeypatch.setattr(ledger.time, "sleep", lambda s: (_ for _ in ()).throw(AssertionError("slept")))
+    with ledger.run(PID, "q1", RUN_ID, REQUEST_ID):
+        ledger.recording(lambda s, u: "{}")("s", "u")
+    assert tries == [2.0]
+
+
+def test_a_run_without_a_request_id_is_warned_about_once_and_sends_nothing(client, sent, caplog):
+    """Ledger events stay request-bound, so a run the app started without a request id records
+    nothing; that is logged once per run as a warning, not left silent."""
+    caplog.set_level("WARNING", logger=ledger.logger.name)
+    assert start(client, **{"X-AISC-Run-Id": RUN_ID}).status_code == 202
+    assert sent == []
+    warned = [r for r in caplog.records if r.levelname == "WARNING" and "request id" in r.getMessage()]
+    assert len(warned) == 1
+    assert RUN_ID in warned[0].getMessage() and "q1" in warned[0].getMessage()
+
+
+def test_no_request_id_warning_when_the_run_has_one_or_the_ledger_is_off(client, sent, caplog, monkeypatch):
+    caplog.set_level("WARNING", logger=ledger.logger.name)
+    start(client, **{"X-AISC-Run-Id": RUN_ID, "X-AISC-Request-Id": REQUEST_ID})
+    monkeypatch.setenv("LEDGER_MODE", "off")
+    service.RUNS.clear()
+    start(client, **{"X-AISC-Run-Id": RUN_ID})
+    assert not [r for r in caplog.records if "request id" in r.getMessage()]
+
+
+@pytest.mark.parametrize("raised", [ValueError("unknown url type: 'platform'"), RuntimeError("garbled")])
+def test_a_send_that_raises_anything_is_logged_never_raised(monkeypatch, sent, raised):
+    """urlopen raises ValueError for a PLATFORM_URL without a scheme and BadStatusLine (not an
+    OSError) for a garbled reply; emit must still answer False, never raise into the run."""
+    def broken(*a, **k):
+        raise raised
+    monkeypatch.setattr(ledger, "_send", broken)
+    with ledger.run(PID, "q1", RUN_ID, REQUEST_ID):
+        assert ledger.emit("agent.run_finished", "agent_run", RUN_ID, {}) is False
+
+
+def test_a_run_whose_failure_cannot_be_recorded_still_ends_failed(client, monkeypatch):
+    """The terminal state is written whatever the ledger does, or start() refuses every later run
+    of the card (in_flight) until the service restarts."""
+    def boom(pid, qid):
+        raise RuntimeError("the model is down")
+
+    def ledger_down(*a, **k):
+        raise ValueError("ledger down")
+    monkeypatch.setattr(service, "fill_one", boom)
+    monkeypatch.setattr(service.ledger, "emit", ledger_down)
+    try:
+        start(client, **{"X-AISC-Run-Id": RUN_ID, "X-AISC-Request-Id": REQUEST_ID})
+    except ValueError:
+        pass  # the test client re-raises a background task's exception
+    run = service.RUNS[f"{PID}/q1"]
+    assert run["state"] == "failed" and run["finished"]

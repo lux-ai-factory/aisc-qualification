@@ -8,8 +8,8 @@ import pytest
 
 baf = pytest.importorskip("baf", reason="BAF is not installed in this environment")
 
-from fill.workflow import STATE_NAMES, build_agent, run_fill
-from fill.models import PROPERTIES
+from fill.workflow import DRAFTED, STATE_NAMES, build_agent, run_fill  # noqa: E402 (after importorskip)
+from tests.views import MCAS_VIEW, in_a_row  # noqa: E402
 
 
 QUALIFICATION = {
@@ -73,16 +73,6 @@ class TestTheStateMachine:
         initial = [s.name for s in agent.states if s.initial]
         assert initial == ["load"]
 
-    def test_every_state_has_a_body_of_its_own(self):
-        # A state left with BAF's default body is a dead end that looks like a
-        # step. `state.body` is BAF's decorator and always exists, so asserting
-        # on it proves nothing; the stored callable is `_body`.
-        from baf.core.state import State
-
-        for state in build_agent().states:
-            assert state._body.__name__.endswith("_body"), state.name
-            assert state._body is not State.__init__.__defaults__, state.name
-
     def test_every_state_but_the_last_can_leave(self):
         agent = build_agent()
         for state in agent.states:
@@ -106,7 +96,8 @@ class TestARunEndToEnd:
             "Gradient-boosted decision tree",
             "Policy eligibility rules",
         ]
-        assert len(payload["components"]) == 3
+        # only what the answers say and no form field holds: the Components block states the parts
+        assert "components" not in payload
         assert result.stop_reasons["techniques"] == "clean"
 
     def test_a_clean_run_publishes_no_flags(self):
@@ -141,7 +132,7 @@ class TestARunEndToEnd:
         result = run_fill(
             QUALIFICATION, terms=TERMS, complete=FakeCompleter(), publish=lambda q, p: None
         )
-        assert set(result.stop_reasons) == set(PROPERTIES) - {"risk_types"}
+        assert set(result.stop_reasons) == set(DRAFTED)
         assert result.calls > 0
         assert result.rounds >= len(result.stop_reasons)
 
@@ -160,7 +151,7 @@ class TestARunEndToEnd:
         assert published["q1"]["flags"] == {}
         unattached = published["q1"]["record"]["unattached"]
         assert {u["flag"] for u in unattached} == {"uncovered"}
-        assert {u["property"] for u in unattached} == {"techniques", "components"}
+        assert {u["property"] for u in unattached} == set(DRAFTED)
 
 
 class TestNothingIsLostOnPublish:
@@ -168,8 +159,7 @@ class TestNothingIsLostOnPublish:
 
     `uncovered` is about a property, not a node: there is no node to flag,
     because the point is that one is missing. The builder skips a flag whose node
-    id does not exist, so publishing it as a node flag dropped it silently. A run
-    that raises five findings and publishes four is a run that lies about itself.
+    id does not exist, so publishing it as a node flag would drop it silently.
     """
 
     def test_a_property_level_finding_is_kept_in_the_record(self):
@@ -202,7 +192,7 @@ class TestNothingIsLostOnPublish:
         assert all(u["detail"] for u in unattached)
 
     def test_the_record_says_what_the_run_did(self):
-        from fill.models import Draft, Finding, Node, Outcome, Round
+        from fill.models import Draft, Node, Outcome, Round
         from fill.workflow import payload_of
 
         outcome = Outcome(
@@ -220,10 +210,8 @@ class TestNothingIsLostOnPublish:
 class TestTheStatesDoTheWork:
     """Each state body performs its step, rather than describing one.
 
-    The machine was drawn before it was wired: draft, review and revise had
-    docstrings and empty bodies while run_fill did the work beside them. A state
-    that names a step it does not take is worse than no state at all, because
-    the diagram, the documentation and the monitoring all report it as real.
+    A state that names a step it does not take is worse than no state at all,
+    because the diagram, the documentation and the monitoring all report it as real.
     """
 
     def session(self, qualification=QUALIFICATION):
@@ -239,7 +227,7 @@ class TestTheStatesDoTheWork:
     def test_loading_plans_the_properties_to_fill(self):
         run = self.session()
         run.load()
-        assert run.queue == ["techniques", "components"]
+        assert run.queue == list(DRAFTED) == ["techniques"]
         assert run.current is None
 
     def test_drafting_produces_nodes_for_the_property_in_hand(self):
@@ -281,17 +269,19 @@ class TestTheStatesDoTheWork:
         before = run.draft_in_hand.nodes
         run.findings = [Finding("technique0", "sentence", "describes", "critic")]
         run.revise()
+        assert run.rounds_done == 1  # the review that follows is the caller's step
+        run.review()
         assert run.rounds_done == 2
         assert len(run.draft_in_hand.nodes) == len(before)
 
-    def test_a_property_is_finished_and_the_next_one_begins(self):
+    def test_a_property_is_finished_and_the_queue_moves_on(self):
         run = self.session()
         run.load()
         run.draft()
         run.review()
         run.finish_property()
         assert "techniques" in run.outcomes
-        assert run.queue == ["components"]
+        assert run.queue == list(DRAFTED)[1:]
         assert run.current is None
 
     def test_publishing_writes_once_when_everything_is_done(self):
@@ -308,36 +298,44 @@ class TestTheStatesDoTheWork:
         assert set(published) == {"q1"}
         assert published["q1"]["techniques"]
 
-    def test_the_same_object_is_what_run_fill_drives(self):
-        # One implementation: the function and the state machine must not be two
-        # descriptions of the same steps that can drift apart.
-        import inspect
-
-        from fill.workflow import FillRun, run_fill
-
-        assert "FillRun" in inspect.getsource(run_fill)
-
 
 class TestTheMachineAndTheFunctionAreOneImplementation:
     """The bodies call the run's methods, so a change to a step changes both."""
 
-    def test_every_body_calls_the_run(self):
-        import inspect
+    @staticmethod
+    def state_and_session(name, **run_answers):
+        from unittest.mock import Mock
 
-        from fill import workflow
+        from fill.workflow import FillRun
 
-        source = inspect.getsource(workflow.build_agent)
-        for step in ("load()", "draft()", "review()", "revise()", "finish_property()", "publish_all()"):
-            assert step in source, f"no state performs {step}"
+        run = Mock(spec=FillRun, terms={"AITechnique": []}, current="techniques", outcomes={})
+        for method, value in run_answers.items():
+            getattr(run, method).return_value = value
+        session = Mock()
+        session.get.return_value = run
+        return next(s for s in build_agent().states if s.name == name), session, run
 
-    def test_the_conditions_are_the_runs_own(self):
-        import inspect
+    @pytest.mark.parametrize("name, step", [
+        ("load", "load"), ("draft", "draft"), ("review", "review"), ("revise", "revise"),
+        ("publish", "finish_property"), ("publish", "publish_all"),
+    ])
+    def test_every_body_calls_the_run(self, name, step):
+        state, session, run = self.state_and_session(name, more_to_draft=False)
+        state._body(session)
+        getattr(run, step).assert_called_once_with()
 
-        from fill import workflow
+    def test_the_last_state_reports_the_run(self):
+        state, session, _ = self.state_and_session("done")
+        state._body(session)
+        session.reply.assert_called_once_with("Filled 0 properties, 0 findings left for review.")
 
-        source = inspect.getsource(workflow.build_agent)
-        assert "needs_revision()" in source
-        assert "more_to_draft()" in source
+    @pytest.mark.parametrize("name, method, value, dest", [
+        ("review", "needs_revision", True, "revise"), ("review", "needs_revision", False, "publish"),
+        ("publish", "more_to_draft", True, "draft"), ("publish", "more_to_draft", False, "done"),
+    ])
+    def test_the_conditions_are_the_runs_own(self, name, method, value, dest):
+        state, session, _ = self.state_and_session(name, **{method: value})
+        assert [t.dest.name for t in state.transitions if t.condition(session)] == [dest]
 
     def test_a_session_without_a_run_says_so(self):
         # A caller that starts the machine with nothing to fill gets told, not a
@@ -353,3 +351,187 @@ class TestTheMachineAndTheFunctionAreOneImplementation:
 
         with pytest.raises(ValueError, match="no run in the session"):
             load._body(session)
+
+
+# Form assembly: the filler drafts from answers tagged with their Annex IV point.
+
+from fill.workflow import answer_for  # noqa: E402
+
+
+def _tagged(tool: str, qid: str, text: str, point):
+    return {"toolId": tool, "questionId": qid, "answer": text, "annexPoint": point}
+
+
+def test_every_answer_tagged_with_the_point_is_used_in_export_order():
+    q = {
+        "answers": [
+            _tagged("f-acme", "q3", "Acme's build steps.", "2a"),
+            _tagged("annex-2", "2c", "Three parts.", "2c"),
+            _tagged("annex-2", "2a", "Gradient boosting.", "2a"),
+        ]
+    }
+    assert answer_for(q, "Annex IV(2)(a)") == "Acme's build steps.\n\nGradient boosting."
+    assert answer_for(q, "Annex IV(2)(c)") == "Three parts."
+
+
+def test_an_untagged_answer_is_never_matched_by_its_key():
+    """f-x:q12a ends in "2a", but once any answer carries annexPoint the suffix
+    rule is off: only the tag says which point an answer is about."""
+    q = {
+        "answers": [
+            _tagged("f-x", "q12a", "Not about 2(a) at all.", None),
+            _tagged("annex-2", "2c", "Three parts.", "2c"),
+        ]
+    }
+    assert answer_for(q, "Annex IV(2)(a)") == ""
+
+
+def test_no_tagged_answer_for_the_point_means_nothing_to_draft_from():
+    q = {"answers": [_tagged("f-acme", "q1", "Policy text.", None)]}
+    assert answer_for(q, "Annex IV(2)(a)") == ""
+    assert answer_for(q, "Annex IV(2)(c)") == ""
+
+
+def test_without_any_annex_point_key_the_suffix_rule_is_as_today():
+    assert answer_for(QUALIFICATION, "Annex IV(2)(a)").startswith("A gradient-boosted decision tree")
+    assert answer_for(QUALIFICATION, "Annex IV(2)(c)").startswith("A scoring model")
+    legacy = {"answers": [{"toolId": "f-x", "questionId": "q12a", "answer": "Suffix match."}]}
+    assert answer_for(legacy, "Annex IV(2)(a)") == "Suffix match."
+
+
+PURPOSE = "Assess the creditworthiness of consumer loan applicants for retail banks"
+VIEW = {"view": in_a_row(
+    {"id": "purpose", "cls": "Purpose", "label": "Assess the...", "fullText": PURPOSE, "provenance": "form"},
+    prop="hasPurpose",
+)}
+
+
+class TestNamingTheLongAnswers:
+    def completer(self):
+        fake = FakeCompleter()
+
+        def complete(system, user, temperature=0.0):
+            if "Naming long answers" in system:
+                return '{"purpose": "Consumer loan creditworthiness"}'
+            return fake(system, user, temperature)
+
+        return complete
+
+    def test_the_payload_carries_the_names_next_to_the_techniques(self):
+        published = {}
+        run_fill(
+            QUALIFICATION,
+            terms=TERMS,
+            complete=self.completer(),
+            publish=lambda qid, payload: published.setdefault(qid, payload),
+            build=lambda q, e: VIEW,
+        )
+        payload = published["q1"]
+        assert payload["names"] == {"purpose": {"name": "Consumer loan creditworthiness", "of": PURPOSE}}
+        assert payload["techniques"]
+
+    def test_a_name_that_could_not_be_kept_is_left_in_the_record(self):
+        published = {}
+        run_fill(
+            QUALIFICATION,
+            terms=TERMS,
+            complete=lambda s, u, temperature=0.0: '{"purpose": "Astronomy"}'
+            if "Naming long answers" in s
+            else FakeCompleter()(s, u, temperature),
+            publish=lambda qid, payload: published.setdefault(qid, payload),
+            build=lambda q, e: VIEW,
+        )
+        assert published["q1"]["names"] == {}
+        assert published["q1"]["record"]["names_left"][0]["node"] == "purpose"
+
+    def test_the_real_card_view_asks_names_for_its_long_answers(self):
+        fake = FakeCompleter()
+        asked = []
+
+        def complete(system, user, temperature=0.0):
+            if "Naming long answers" in system:
+                asked.append(user)
+                return "{}"
+            return fake(system, user, temperature)
+
+        run_fill(QUALIFICATION, terms=TERMS, complete=complete,
+                 publish=lambda qid, payload: None, build=lambda q, e: {"view": MCAS_VIEW})
+        assert asked and all(f"{i}:" in asked[0] for i in ("purpose", "deployer", "users", "risk0_source"))
+
+    def test_an_unreachable_ontology_service_publishes_the_run_without_names(self):
+        from fill.clients import ServiceError
+
+        def down(q, e):
+            raise ServiceError("unreachable")
+
+        published = {}
+        run_fill(
+            QUALIFICATION,
+            terms=TERMS,
+            complete=FakeCompleter(),
+            publish=lambda qid, payload: published.setdefault(qid, payload),
+            build=down,
+        )
+        assert published["q1"]["techniques"]
+        assert published["q1"]["names"] == {}
+        assert published["q1"]["record"]["names"] == "ontology unreachable"
+
+    def test_a_completer_that_fails_on_naming_still_publishes_the_techniques(self):
+        fake = FakeCompleter()
+
+        def complete(system, user, temperature=0.0):
+            if "Naming long answers" in system:
+                raise TimeoutError("model timed out")
+            return fake(system, user, temperature)
+
+        published = {}
+        run_fill(QUALIFICATION, terms=TERMS, complete=complete,
+                 publish=lambda qid, payload: published.setdefault(qid, payload), build=lambda q, e: VIEW)
+        assert published["q1"]["techniques"] and published["q1"]["names"] == {}
+        assert published["q1"]["record"]["names"] == "naming failed"
+
+    def test_a_malformed_build_answer_publishes_the_techniques_too(self):
+        published = {}
+        run_fill(QUALIFICATION, terms=TERMS, complete=FakeCompleter(),
+                 publish=lambda qid, payload: published.setdefault(qid, payload), build=lambda q, e: {})
+        assert published["q1"]["techniques"]
+        assert published["q1"]["record"]["names"] == "naming failed"
+
+
+def test_one_revision_through_the_machine_adds_exactly_one_round():
+    """revise -> review is the machine's own transition, so revise must not review as well: it
+    appended two rounds on one draft, and a repeated control finding then stopped at `fixpoint`
+    after one revision, unlike run_fill."""
+    from unittest.mock import Mock
+
+    from fill.workflow import FillRun
+
+    ungrounded = '{"nodes": [{"label": "Quantum annealing", "vair": "MachineLearning"}]}'
+    run = FillRun(qualification=QUALIFICATION, terms=TERMS, complete=lambda s, u, *a, **k: ungrounded,
+                  publish=lambda qid, payload: None)
+    session = Mock()
+    session.get.return_value = run
+    states = {s.name: s for s in build_agent().states}
+    run.load()
+    states["draft"]._body(session)
+    states["review"]._body(session)
+    assert len(run.rounds) == 1
+    states["revise"]._body(session)
+    states["review"]._body(session)
+    assert len(run.rounds) == 2
+
+
+def test_run_fill_reviews_each_revision_once():
+    complete = FakeCompleter()
+    calls = {"n": 0}
+
+    def ungrounded_then_good(system, user, *a, **k):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return '{"nodes": [{"label": "Quantum annealing", "vair": "MachineLearning"}]}'
+        return complete(system, user)
+
+    result = run_fill(QUALIFICATION, TERMS, ungrounded_then_good, lambda qid, p: None)
+    techniques = result.outcomes["techniques"]
+    assert [len(r.findings) for r in techniques.rounds] == [1, 0]
+    assert techniques.stop == "clean"

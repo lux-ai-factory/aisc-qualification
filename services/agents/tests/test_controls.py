@@ -4,7 +4,6 @@ Each is a pure function over (draft, source text, term list). They are the part
 of the workflow that must hold when the model misbehaves, so they are tested
 without one.
 """
-import pytest
 
 from fill.controls import run_controls
 from fill.models import Draft, Node
@@ -136,11 +135,17 @@ class TestEveryFindingIsPublishable:
     def test_each_flag_is_one_the_builder_accepts(self):
         # The builder refuses a flag outside its closed set, so a control that
         # invents one would make the draft unpublishable.
-        import sys
+        # Read from the builder's source, not imported: importing it needs rdflib, which this
+        # service does not install (it talks to the ontology service over HTTP).
+        import ast
         from pathlib import Path
 
-        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "ontology"))
-        from airo_min.build import REVIEW_FLAGS
+        build = Path(__file__).resolve().parents[2] / "ontology" / "airo_min" / "build.py"
+        tree = ast.parse(build.read_text(encoding="utf-8"))
+        [value] = [n.value for n in tree.body if isinstance(n, ast.Assign)
+                   and any(getattr(t, "id", None) == "REVIEW_FLAGS" for t in n.targets)]
+        REVIEW_FLAGS = frozenset(ast.literal_eval(value.args[0]))
+        assert "ungrounded" in REVIEW_FLAGS
 
         bad = draft(
             Node("technique0", "The system uses quantum annealing for everything.", "Police", "AITechnique"),

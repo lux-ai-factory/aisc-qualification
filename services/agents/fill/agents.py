@@ -8,10 +8,12 @@ crash would publish nothing, and always publishing something is the design.
 """
 from __future__ import annotations
 
+
 import json
 import re
 from typing import Callable, Sequence
 
+from . import ledger
 from .models import CLASS_OF, Draft, Finding, Node, Property
 from .prompts import critic_prompt, writer_prompt
 
@@ -51,6 +53,11 @@ def _json_object(text: str) -> dict:
     except json.JSONDecodeError:
         return {}
     return parsed if isinstance(parsed, dict) else {}
+
+
+def answers_a_node_list(text: str) -> bool:
+    """Whether a model's answer holds a "nodes" list at all, empty or not."""
+    return isinstance(_json_object(text).get("nodes"), list)
 
 
 def parse_nodes(text: str, prop: Property) -> list[Node]:
@@ -114,9 +121,17 @@ class LlmWriter:
         source: str,
         terms: list[str],
         findings: Sequence[Finding] = (),
+        known: Sequence[str] = (),
+        previous: Draft | None = None,
     ) -> Draft:
-        system, user = writer_prompt(prop, source, terms, findings)
-        return Draft(prop=prop, nodes=tuple(parse_nodes(self._complete(system, user), prop)))
+        system, user = writer_prompt(prop, source, terms, findings, known=known, previous=previous)
+        with ledger.purpose("draft" if not findings else "revise", str(prop)):
+            answer = self._complete(system, user)
+        if previous is not None and not answers_a_node_list(answer):
+            # A revision with no node list (prose, or a reply cut at the token limit) is no
+            # answer: keep the draft it was asked to revise. An explicit {"nodes": []} replaces.
+            return previous
+        return Draft(prop=prop, nodes=tuple(parse_nodes(answer, prop)))
 
 
 class LlmCritic:
@@ -125,6 +140,8 @@ class LlmCritic:
     def __init__(self, complete: Completer):
         self._complete = complete
 
-    def review(self, draft: Draft, source: str) -> list[Finding]:
-        system, user = critic_prompt(draft, source)
-        return parse_findings(self._complete(system, user))
+    def review(self, draft: Draft, source: str, known: Sequence[str] = ()) -> list[Finding]:
+        system, user = critic_prompt(draft, source, known=known)
+        with ledger.purpose("review", str(draft.prop)):
+            answer = self._complete(system, user)
+        return parse_findings(answer)

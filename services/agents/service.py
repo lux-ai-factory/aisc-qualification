@@ -1,31 +1,46 @@
 """HTTP entry point for the ontology filler.
 
-The app calls this when a qualification is saved. A run makes several LLM calls
+The app calls this when a person presses Refine with AI on the card. A run makes several LLM calls
 and takes seconds to a minute, so the request starts one and returns 202: a
 server action that waits for it would hold the user's form submit open and fail
 on the first slow model.
 
-The state stays readable at GET /fill/{id}, which is how the card can say what
+Each card lives in its project's own database, so a run is addressed by the
+project and the card: POST /fill/{pid}/{id} starts it, GET /fill/{pid}/{id} reads it.
+The pid only says where the card is; the model's project is still read from the
+card itself (agent.fill_one).
+
+The state stays readable at GET /fill/{pid}/{id}, which is how the card can say what
 the run did rather than the app guessing. It lives in memory: a run is worth
 reporting while it is fresh, and the durable record of it goes into the
 qualification's own `extracted` document when the draft is published.
 """
 from __future__ import annotations
 
+import logging
 import threading
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException
 
 from agent import fill_one
+from fill import ledger
+from fill.errors import safe_error
+from service_token import ServiceTokens
 
 State = Literal["queued", "running", "done", "failed"]
 
-app = FastAPI(title="Ontology filler", version="0.1.0")
+log = logging.getLogger("qualification-agents")
 
-#: qualification id -> what its latest run is doing. Guarded because BackgroundTasks
-#: runs on a worker thread.
+app = FastAPI(title="Ontology filler", version="0.1.0")
+# Only qualification-web calls this, with its own token: a run spends the
+# qualification's project key, so nothing else on the network may start one.
+app.add_middleware(ServiceTokens, names=("QUALIFICATION_WEB_TO_AGENTS_TOKEN",))
+
+#: run_key(pid, qualification id) -> what its latest run is doing. Guarded because
+#: BackgroundTasks runs on a worker thread.
 RUNS: dict[str, dict[str, Any]] = {}
 _LOCK = threading.Lock()
 
@@ -39,49 +54,80 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-def _run(qualification_id: str) -> None:
-    """One run, with its outcome recorded either way."""
+def run_key(pid: str, qualification_id: str) -> str:
+    """Runs are keyed by project and card: a card id means nothing outside its project."""
+    return f"{pid}/{qualification_id}"
+
+
+def _run(pid: str, qualification_id: str, run_id: str | None = None, request_id: str | None = None) -> None:
+    """One run, with its outcome recorded either way: in RUNS for the app's status line, and in the
+    ledger for the record (agent.run_started, then agent.run_finished or agent.run_failed)."""
+    key = run_key(pid, qualification_id)
     with _LOCK:
-        RUNS[qualification_id] |= {"state": "running"}
+        RUNS[key] |= {"state": "running"}
+    # The terminal state is written in `finally`, whatever the ledger does: a run left "running"
+    # makes start() refuse every later run of the card until the service restarts.
+    outcome: dict[str, Any] = {"state": "failed", "error": "the run stopped unexpectedly"}
     try:
-        result = fill_one(qualification_id)
-    except Exception as exc:  # the app must be able to read why
+        with ledger.run(pid, qualification_id, run_id, request_id):
+            try:
+                result = fill_one(pid, qualification_id)
+            except Exception as exc:  # the app must be able to read why
+                # Any project reader sees the status: a short text with no key in it. The
+                # full exception, which can quote a key or an endpoint, goes only to the log.
+                log.exception("fill run %s failed: %s", key, exc)
+                outcome = {"state": "failed", "error": safe_error(str(exc))}
+                ledger.emit("agent.run_failed", "agent_run", run_id, {"error": ledger.error_code(exc)})
+                return
+            outcome = {"state": "done", "result": result}
+            ledger.emit("agent.run_finished", "agent_run", run_id,
+                        {"rounds": result.get("rounds"), "calls": result.get("calls")})
+    finally:
         with _LOCK:
-            RUNS[qualification_id] |= {
-                "state": "failed",
-                "error": str(exc),
-                "finished": _now(),
-            }
-        return
-    with _LOCK:
-        RUNS[qualification_id] |= {
-            "state": "done",
-            "result": result,
-            "finished": _now(),
-        }
+            RUNS[key] |= {**outcome, "finished": _now()}
 
 
-@app.post("/fill/{qualification_id}", status_code=202)
-def start(qualification_id: str, background: BackgroundTasks) -> dict[str, Any]:
-    """Start a run, unless one is already in flight for this qualification."""
+@app.post("/fill/{pid}/{qualification_id}", status_code=202)
+def start(pid: uuid.UUID, qualification_id: str, background: BackgroundTasks,
+          x_aisc_run_id: str | None = Header(default=None),
+          x_aisc_request_id: str | None = Header(default=None)) -> dict[str, Any]:
+    """Start a run, unless one is already in flight for this card.
+
+    The pid (a uuid, else 422) says which project database the card is read from; a
+    card of another project is simply not found there. The model's project is still
+    read from the card, so whoever can reach this service cannot choose whose key a
+    run spends."""
+    project = str(pid)
+    key = run_key(project, qualification_id)
     with _LOCK:
-        current = RUNS.get(qualification_id)
+        current = RUNS.get(key)
         in_flight = current and current["state"] in {"queued", "running"}
         if not in_flight:
-            RUNS[qualification_id] = {
+            RUNS[key] = {
+                "project": project,
                 "qualification": qualification_id,
+                "run_id": _uuid_or_none(x_aisc_run_id),
                 "state": "queued",
                 "started": _now(),
                 "finished": None,
             }
     if not in_flight:
-        background.add_task(_run, qualification_id)
-    return RUNS[qualification_id]
+        background.add_task(_run, project, qualification_id, _uuid_or_none(x_aisc_run_id),
+                            _uuid_or_none(x_aisc_request_id))
+    return RUNS[key]
 
 
-@app.get("/fill/{qualification_id}")
-def status(qualification_id: str) -> dict[str, Any]:
-    run = RUNS.get(qualification_id)
+def _uuid_or_none(value: str | None) -> str | None:
+    """A run or request id the app sent, or None: anything else is never put in an event."""
+    try:
+        return str(uuid.UUID(value)) if value else None
+    except ValueError:
+        return None
+
+
+@app.get("/fill/{pid}/{qualification_id}")
+def status(pid: uuid.UUID, qualification_id: str) -> dict[str, Any]:
+    run = RUNS.get(run_key(str(pid), qualification_id))
     if run is None:
         raise HTTPException(status_code=404, detail="no run for that qualification")
     return run
