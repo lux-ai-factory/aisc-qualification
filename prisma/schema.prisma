@@ -9,6 +9,14 @@ datasource db {
 
 model Qualification {
   id                String                @id @default(cuid())
+  // The card version it describes: a row of project.system in this project's
+  // own database, numbered by the platform. The database is the project, so the
+  // card names no project. One card per version; every save makes the next
+  // version, and only the latest version's card changes. The foreign key is
+  // made in the migration, since Prisma cannot model a key into a schema this
+  // app only reads. `url` stays env("DATABASE_URL") for the Prisma CLI, which
+  // scripts/migrate-projects.mjs sets per project database.
+  systemId          String                @unique @map("system_id") @db.Uuid
   systemName        String
   systemVersion     String
   company           String
@@ -20,6 +28,12 @@ model Qualification {
   marketFormTags    String[]              @default([])
   localityTags      String[]              @default([])
   intendedDeployers String?
+  /// VAIR terms: the system's AISystem type and its Purpose; NULL when left open.
+  /// The tag columns above hold VAIR local names too (src/data/vair_vocab.json).
+  systemType        String?               @map("system_type")
+  providerTerm      String?               @map("provider_term")
+  deployerTerm      String?               @map("deployer_term")
+  purpose           String?
   systemCard        String?
   systemCardJson    Json?
   // The filled AIRO graph is the system card. `ontologyExtracted` holds the
@@ -27,33 +41,96 @@ model Qualification {
   // node id; the graph itself is rebuilt from them, never stored as the truth.
   ontologyExtracted Json?
   ontologyPatch     Json?
-  ontologyAt        DateTime?
-  systemCardAt      DateTime?
+  ontologyAt        DateTime?             @map("ontology_at") @db.Timestamptz(3)
+  systemCardAt      DateTime?             @map("system_card_at") @db.Timestamptz(3)
   systemCardPdfPath String?
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
   answers           QualificationAnswer[]
   knowledgeGraph    KnowledgeGraph?
   risks             QualificationRisk[]
+  components        CardComponent[]
+  /// The Components block: the parts of the system, each with its stable key.
+  systemComponents  QualificationComponent[]
+  /// The questionnaire version this card was filled with. NULL means "Annex IV default" v1
+  /// (annex-iv-default-v1): every card saved before forms existed.
+  questionnaireVersionId String?               @map("questionnaire_version_id")
+  questionnaireVersion   QuestionnaireVersion? @relation(fields: [questionnaireVersionId], references: [id], onDelete: Restrict, map: "qualification_questionnaire_version_id_fkey")
+
+  @@index([questionnaireVersionId], map: "qualification_questionnaire_version_id_idx")
+  @@map("qualification")
+  history           CardHistory[]
+}
+
+// An engine component the card links through an AIRO property (hasModel,
+// hasTrainingData, hasTestingData, hasValidationData, hasComponent), with a
+// snapshot of what it was when linked, so drift from the engine can be shown.
+model CardComponent {
+  id              String        @id @default(cuid())
+  qualificationId String        @map("qualification_id")
+  componentPid    String        @map("component_pid") @db.Uuid
+  airoProperty    String        @map("airo_property")
+  name            String
+  componentType   String        @map("component_type")
+  objectName      String        @default("") @map("object_name")
+  linkedAt        DateTime      @default(now()) @map("linked_at") @db.Timestamptz(3)
+  /// Which part of the system (a QualificationComponent key of the same card) this engine item is,
+  /// e.g. the training file is "Training data". Never on test material (hasTestingData).
+  componentKey    String?       @map("component_key") @db.Uuid
+  qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
+
+  @@unique([qualificationId, componentPid])
+  @@index([componentPid])
+  @@map("card_component")
+}
+
+// One row of the Components block: a part of the system. `key` is
+// its identity across card versions: the next card carries the row and its key, so assessments of
+// the part, and their results, stay with it through renames.
+model QualificationComponent {
+  id              String        @id @default(cuid())
+  qualificationId String        @map("qualification_id")
+  position        Int
+  key             String        @db.Uuid
+  name            String
+  role            String?
+  kind            String
+  /// The VAIR AIComponent term the type was chosen as; NULL for one of our own types.
+  vairType        String?       @map("vair_type")
+  provider        String        @default("in_house")
+  providerName    String?       @map("provider_name")
+  qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
+
+  @@unique([qualificationId, key])
+  @@index([key])
+  @@map("qualification_component")
 }
 
 // One row of the risk block (question 15): one full AIRO risk chain.
-// Ids in `affected` and `impactAreas` come from src/data/airo_vocab.json.
+// `affected` is one of our two ids in airo_vocab.json or a VAIR AISubject local name.
+// `impactAreas` and every `...Term` are VAIR local names (src/data/vair_vocab.json). Each term
+// types the node its text names.
 model QualificationRisk {
   id              String        @id @default(cuid())
   qualificationId String
   position        Int
   risk            String
   source          String
+  sourceTerm      String?       @map("source_term")
   vulnerability   String?
   consequence     String
+  consequenceTerm String?       @map("consequence_term")
+  impactTerm      String?       @map("impact_term")
   affected        String
   impactAreas     String[]      @default([])
   control         String
+  controlTerm     String?       @map("control_term")
   followUpControl String?
+  followUpControlTerm String?   @map("follow_up_control_term")
   qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
 
   @@index([qualificationId])
+  @@map("qualification_risk")
 }
 
 /// The knowledge graph for one system.
@@ -77,8 +154,10 @@ model KnowledgeGraph {
   stamp           String[]      @default([])
   nodes           Int
   triples         Int
-  builtAt         DateTime      @default(now())
+  builtAt         DateTime      @default(now()) @map("built_at") @db.Timestamptz(3)
   qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
+
+  @@map("knowledge_graph")
 }
 
 model QualificationAnswer {
@@ -89,6 +168,147 @@ model QualificationAnswer {
   answer          String
   qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
 
-  @@unique([qualificationId, questionId])
+  // toolId is the question's scope ("annex-1"/"annex-2" for the seeded questions),
+  // questionId its local id within that scope.
+  @@unique([qualificationId, toolId, questionId], map: "qualification_answer_qualification_id_tool_id_question_id_key")
   @@index([qualificationId, toolId])
+  @@map("qualification_answer")
+}
+
+/// Where questions are written. The builtin set is id "annex-iv" (ANNEX_SET_ID in src/domain/forms/legacy.ts).
+model QuestionSet {
+  id          String               @id @default(cuid())
+  /// Fixed at creation.
+  name        String
+  description String               @default("")
+  /// "builtin" (Annex IV), "builder" or "import".
+  origin      String
+  /// Retired: hidden from lists and pickers, still resolvable. Set once, never cleared.
+  retiredAt   DateTime?            @map("retired_at") @db.Timestamptz(3)
+  createdAt   DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdBy   String               @map("created_by")
+  versions    QuestionSetVersion[]
+  questions   Question[]
+
+  @@map("question_set")
+}
+
+/// One immutable version of a question set. Append-only.
+model QuestionSetVersion {
+  id        String                   @id @default(cuid())
+  setId     String                   @map("set_id")
+  number    Int
+  createdAt DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdBy String                   @map("created_by")
+  set       QuestionSet              @relation(fields: [setId], references: [id], onDelete: Restrict)
+  items     QuestionSetVersionItem[]
+
+  @@unique([setId, number], map: "question_set_version_set_id_number_key")
+  @@map("question_set_version")
+}
+
+/// A question's identity. Its wording is per set version.
+model Question {
+  id        String                   @id @default(cuid())
+  setId     String                   @map("set_id")
+  /// "annex-1"/"annex-2" (builtin), "f-<old form id>" (carried over from a single-level form), "s-<set id>" (made in a set).
+  scope     String
+  /// "1a" ... (builtin), "q1", "q2", ... per set, never reused.
+  localId   String                   @map("local_id")
+  createdAt DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  set       QuestionSet              @relation(fields: [setId], references: [id], onDelete: Restrict)
+  items     QuestionSetVersionItem[]
+
+  @@unique([scope, localId], map: "question_scope_local_id_key")
+  @@index([setId], map: "question_set_id_idx")
+  @@map("question")
+}
+
+/// A question as one set version words it. Immutable. The only place wording lives.
+model QuestionSetVersionItem {
+  setVersionId String                     @map("set_version_id")
+  questionId   String                     @map("question_id")
+  position     Int
+  text         String
+  /// Free text for any source, e.g. "Acme AI Policy §4.2". May be "".
+  citation     String                     @default("")
+  required     Boolean
+  /// One of the 14 ids in src/data/annexPoints.json, or null (untagged).
+  annexPoint   String?                    @map("annex_point")
+  /// The builtin questions keep "General description" / "Development and design"; others null.
+  groupLabel   String?                    @map("group_label")
+  setVersion   QuestionSetVersion         @relation(fields: [setVersionId], references: [id], onDelete: Restrict)
+  question     Question                   @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  usedBy       QuestionnaireVersionItem[]
+
+  @@id([setVersionId, questionId], map: "question_set_version_item_pkey")
+  @@unique([setVersionId, position], map: "question_set_version_item_set_version_id_position_key")
+  @@index([questionId], map: "question_set_version_item_question_id_idx")
+  @@map("question_set_version_item")
+}
+
+/// What a card is filled with. The default is always id "annex-iv-default" (DEFAULT_QUESTIONNAIRE_ID). There is no default flag.
+model Questionnaire {
+  id          String                 @id @default(cuid())
+  name        String
+  description String                 @default("")
+  origin      String
+  /// false for "Use once": never in lists or the chooser.
+  listed      Boolean                @default(true)
+  retiredAt   DateTime?              @map("retired_at") @db.Timestamptz(3)
+  createdAt   DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdBy   String                 @map("created_by")
+  versions    QuestionnaireVersion[]
+
+  @@map("questionnaire")
+}
+
+/// One immutable questionnaire version. Append-only.
+model QuestionnaireVersion {
+  id              String                     @id @default(cuid())
+  questionnaireId String                     @map("questionnaire_id")
+  number          Int
+  /// Included blocks, a subset of FORM_BLOCKS. The identity block is implicit.
+  blocks          String[]
+  createdAt       DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdBy       String                     @map("created_by")
+  questionnaire   Questionnaire              @relation(fields: [questionnaireId], references: [id], onDelete: Restrict)
+  items           QuestionnaireVersionItem[]
+  qualifications  Qualification[]
+
+  @@unique([questionnaireId, number], map: "questionnaire_version_questionnaire_id_number_key")
+  @@map("questionnaire_version")
+}
+
+/// One picked question, pinned to the set version whose wording it shows.
+model QuestionnaireVersionItem {
+  questionnaireVersionId String                 @map("questionnaire_version_id")
+  position               Int
+  setVersionId           String                 @map("set_version_id")
+  questionId             String                 @map("question_id")
+  questionnaireVersion   QuestionnaireVersion   @relation(fields: [questionnaireVersionId], references: [id], onDelete: Restrict)
+  setItem                QuestionSetVersionItem @relation(fields: [setVersionId, questionId], references: [setVersionId, questionId], onDelete: Restrict, map: "questionnaire_version_item_set_item_fkey")
+
+  @@id([questionnaireVersionId, questionId], map: "questionnaire_version_item_pkey")
+  @@unique([questionnaireVersionId, position], map: "questionnaire_version_item_version_id_position_key")
+  @@index([setVersionId, questionId], map: "questionnaire_version_item_set_version_id_question_id_idx")
+  @@map("questionnaire_version_item")
+}
+
+// What a card's later changes would overwrite: one row per change, append-only,
+// written in the change's own transaction. See migration 20261003000000_ledger_history.
+model CardHistory {
+  id              BigInt        @id @default(autoincrement())
+  qualificationId String        @map("qualification_id")
+  kind            String
+  subject         String?
+  before          Json?
+  after           Json?
+  changedBy       String        @default("person") @map("changed_by")
+  runId           String?       @map("run_id") @db.Uuid
+  at              DateTime      @default(now()) @db.Timestamptz(3)
+  qualification   Qualification @relation(fields: [qualificationId], references: [id])
+
+  @@index([qualificationId, at], map: "card_history_by_card")
+  @@map("card_history")
 }
