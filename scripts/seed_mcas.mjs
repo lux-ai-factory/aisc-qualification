@@ -1,10 +1,15 @@
 import { pathToFileURL } from "node:url";
 
 import { PrismaClient } from "@prisma/client";
+
+import { PROJECT_ID, projectDatabaseUrl } from "./projectDb.mjs";
 // The prose extraction and the curated node names: the parts of the AIRO graph
 // that need judgment rather than a form field. See
-// services/ontology/skills/filling-the-airo-ontology/SKILL.md.
+// services/ontology/prompts/filling-the-airo-ontology.md.
 import ontologyExtracted from "../services/ontology/examples/mcas.extracted.json" with { type: "json" };
+// The VAIR terms of the worked example come from the ontology's committed fixture, so
+// the seed, the fixture and the graph built from it agree term for term.
+import example from "../services/ontology/examples/mcas.qualification.json" with { type: "json" };
 
 const QUALIFICATION = {
   systemName: "MicroCredit Assist Score (MCAS)",
@@ -16,23 +21,25 @@ const QUALIFICATION = {
     "Retail banking and consumer micro-finance in the EU (deployed in Germany, France, and the Netherlands). Evaluates creditworthiness for €100–€5,000 consumer loans, returns a 0–1000 credit score, a Low/Medium/High risk category, and an Approve/Review/Reject recommendation, alongside influential factors and a natural-language explanation surfaced via the bank's web portal, mobile app, and staff dashboard. The subjects of the system are individual loan applicants whose access to credit is affected by its outputs.",
   targetUsers:
     "Primary: bank customers aged 18+ applying for consumer loans through the bank's web portal or mobile app. Secondary: bank loan officers and compliance staff who monitor decisions, conduct manual reviews of borderline cases, and can approve, reject, or override outcomes with mandatory written justification.",
-  targetSystemTags: [
-    "tabular-structured-data:tabular-classification-regression",
-    "predictive-analytical-ai:risk-scoring-assessment",
-    "predictive-analytical-ai:predictive-analytics",
-    "natural-language-processing:text-generation-summarization",
-    "natural-language-processing:question-answering",
-    "knowledge-retrieval:retrieval-augmented-generation-rag",
-  ],
-  sectorTags: ["finance-and-insurance"],
+  systemType: example.systemType,
+  purpose: example.purpose,
+  targetSystemTags: example.targetSystemTags,
+  sectorTags: example.sectorTags,
   intendedDeployers:
     "Retail banks and consumer micro-finance providers licensed in DE, FR and NL, who run MCAS inside their own data centre and inside their own lending workflow. Each deployer configures the Approve/Review/Reject thresholds to its own risk appetite, staffs the Review queue with its own trained loan officers, and remains the controller for applicant data. Creditum AI SARL never operates the system on a deployer's behalf and never sees applicant-level data.",
-  marketFormTags: ["software", "service"],
-  localityTags: ["workplace", "other"],
+  marketFormTags: example.marketFormTags,
+  localityTags: example.localityTags,
 };
 
-// Question 15 rows: one full AIRO risk chain each.
-const RISKS = [
+// Question 15 rows: one full AIRO risk chain each. The areas and the VAIR terms are the fixture's.
+const TERM_FIELDS = [
+  "sourceTerm",
+  "consequenceTerm",
+  "impactTerm",
+  "controlTerm",
+  "followUpControlTerm",
+];
+const RISK_TEXT = [
   {
     position: 0,
     risk: "An applicant is wrongly ranked as high risk and routed to Reject",
@@ -42,7 +49,7 @@ const RISKS = [
       "The features assume complete bureau history in every deployment market; there is no explicit low-coverage path",
     consequence:
       "A creditworthy applicant is refused a loan they would have repaid, and the recorded reason cites data that was never there",
-    affected: "user",
+    affected: "NaturalPerson",
     impactAreas: ["right"],
     control:
       "Every Reject and every Review case goes to a trained loan officer before any decision reaches the applicant; bureau coverage below the configured threshold forces the case into Review",
@@ -112,6 +119,13 @@ const RISKS = [
       "Roll back to the previous signed model, which stays deployable for one quarter, and notify the deployer banks and the market surveillance authority",
   },
 ];
+const RISKS = RISK_TEXT.map((r, i) => ({
+  ...r,
+  impactAreas: example.risks[i].impactAreas,
+  ...Object.fromEntries(
+    TERM_FIELDS.map((f) => [f, example.risks[i][f] ?? null]),
+  ),
+}));
 
 // Answers keyed by Annex IV point (toolId) and sub-item id (questionId), matching
 // src/data/keyQuestions.ts. Every sub-item is answered, the four optional ones
@@ -150,24 +164,105 @@ function buildAnswers() {
   return list;
 }
 
-/** The qualification this seed writes, for anything that needs to name it. */
-export const MCAS_SEED = QUALIFICATION;
-
 /**
  * A fixed id, not a generated one. The demo links to this qualification from
  * outside the app, so it has to be the same after every reinstall.
  */
 export const MCAS_ID = "cmpeno6uw0001h9ig8l1d5b27";
 
+async function platformCall(what, url, init, fetchImpl) {
+  let response;
+  try {
+    response = await fetchImpl(url, {
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      ...init,
+    });
+  } catch (cause) {
+    throw new Error(`Could not ${what}: the platform did not answer.`, {
+      cause,
+    });
+  }
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(
+      `Could not ${what}: the platform answered ${response.status}. ${detail}`.trim(),
+    );
+  }
+  return response.json();
+}
+
+function platformBase(options) {
+  const platformUrl = (
+    options.platformUrl ??
+    process.env.PLATFORM_URL ??
+    ""
+  ).replace(/\/+$/, "");
+  if (!platformUrl) {
+    throw new Error(
+      "PLATFORM_URL is not set: MCAS's system cannot be named without the platform.",
+    );
+  }
+  return platformUrl;
+}
+
+/**
+ * The card version MCAS's card will describe, saved with MCAS's identity: the
+ * version's pid (a row of project.system in the project's own database) and the
+ * project it was made in. One POST makes the project's next
+ * card version. Called only when the card is about to be written, never on the
+ * run that finds it seeded.
+ */
+export async function systemForProject(project, options = {}) {
+  const fetchImpl = options.fetchImpl ?? fetch;
+  if (!project) {
+    throw new Error(
+      "Say which project to seed MCAS into: `node scripts/seed_mcas.mjs <pid>` " +
+        "or SEED_PROJECT=<pid>.",
+    );
+  }
+  const url = `${platformBase(options)}/projects/${encodeURIComponent(project)}/system-versions`;
+  const version = await platformCall(
+    "name MCAS's system",
+    url,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        name: QUALIFICATION.systemName,
+        version: QUALIFICATION.systemVersion,
+        provider: QUALIFICATION.company,
+        description: QUALIFICATION.description,
+      }),
+    },
+    fetchImpl,
+  );
+  return { projectId: version.project_id, systemId: version.pid };
+}
+
 /**
  * Put the MCAS walkthrough in the database, once.
  *
- * The migrate container runs this on every `docker compose up`, so a second run
- * has to be a no-op: it leaves the row alone rather than adding a second copy,
- * and it does not overwrite a card someone has since edited. `force` (or
- * SEED_FORCE=1) replaces it, which is what you want after changing the fixture.
+ * `prisma` is a client on the project's own database: the card names no project,
+ * the database is the project.
+ *
+ * A second run is a no-op: it leaves the row alone rather than adding a second
+ * copy, and it does not overwrite a card someone has since edited. `force` (or
+ * SEED_FORCE=1) replaces it, which is what you want after changing the fixture:
+ * the platform names the system first, then the old card is deleted and the new
+ * one made in one transaction, so a failure leaves the old card in place. A card
+ * with a history (a link, a correction, an agent draft) is never replaced: the
+ * history is append-only and points at it.
+ *
+ * @param {import("@prisma/client").PrismaClient} prisma
+ * @param {{ force?: boolean, project?: string,
+ *           platform?: { projectId: string, systemId: string } }} [options]
+ *        `platform` is the answer the platform would give, for a caller that
+ *        already has it (the tests); otherwise it is asked for.
  */
-export async function seedMcas(prisma, { force = false } = {}) {
+export async function seedMcas(
+  prisma,
+  { force = false, project, platform } = {},
+) {
   const existing = await prisma.qualification.findUnique({
     where: { id: MCAS_ID },
     select: { id: true },
@@ -180,31 +275,54 @@ export async function seedMcas(prisma, { force = false } = {}) {
     return existing;
   }
   if (existing) {
-    // Cascades to answers, risks and the stored knowledge graph.
-    await prisma.qualification.delete({ where: { id: existing.id } });
+    const history = await prisma.cardHistory.count({
+      where: { qualificationId: existing.id },
+    });
+    if (history > 0) {
+      throw new Error(
+        `${QUALIFICATION.systemName} (${existing.id}) has a history of ${history} change(s), ` +
+          "which is append-only and points at it: it is not replaced. Seed a new project instead.",
+      );
+    }
   }
 
-  const created = await prisma.qualification.create({
-    data: {
-      id: MCAS_ID,
-      systemName: QUALIFICATION.systemName,
-      systemVersion: QUALIFICATION.systemVersion,
-      company: QUALIFICATION.company,
-      description: QUALIFICATION.description,
-      targetUseCase: QUALIFICATION.targetUseCase,
-      targetUsers: QUALIFICATION.targetUsers,
-      intendedDeployers: QUALIFICATION.intendedDeployers,
-      targetSystemTags: QUALIFICATION.targetSystemTags,
-      sectorTags: QUALIFICATION.sectorTags,
-      marketFormTags: QUALIFICATION.marketFormTags,
-      localityTags: QUALIFICATION.localityTags,
-      ontologyExtracted,
-      ontologyAt: new Date(),
-      answers: { create: buildAnswers() },
-      risks: { create: RISKS },
-    },
-    select: { id: true, systemName: true },
-  });
+  // The system is named only here: finding the card already seeded must not
+  // make a version nobody asked for, and a card of a system nothing else can
+  // point at would be a dead end (the database refuses it anyway).
+  const { systemId } = platform ?? (await systemForProject(project));
+
+  const make = (db) =>
+    db.qualification.create({
+      data: {
+        id: MCAS_ID,
+        systemId,
+        systemName: QUALIFICATION.systemName,
+        systemVersion: QUALIFICATION.systemVersion,
+        company: QUALIFICATION.company,
+        description: QUALIFICATION.description,
+        targetUseCase: QUALIFICATION.targetUseCase,
+        targetUsers: QUALIFICATION.targetUsers,
+        intendedDeployers: QUALIFICATION.intendedDeployers,
+        systemType: QUALIFICATION.systemType,
+        purpose: QUALIFICATION.purpose,
+        targetSystemTags: QUALIFICATION.targetSystemTags,
+        sectorTags: QUALIFICATION.sectorTags,
+        marketFormTags: QUALIFICATION.marketFormTags,
+        localityTags: QUALIFICATION.localityTags,
+        ontologyExtracted,
+        ontologyAt: new Date(),
+        answers: { create: buildAnswers() },
+        risks: { create: RISKS },
+      },
+      select: { id: true, systemName: true },
+    });
+  const created = existing
+    ? await prisma.$transaction(async (tx) => {
+        // Cascades to answers, risks and the stored knowledge graph.
+        await tx.qualification.delete({ where: { id: existing.id } });
+        return make(tx);
+      })
+    : await make(prisma);
   console.log(`  + ${created.systemName} (${created.id})`);
   return created;
 }
@@ -214,9 +332,24 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  const prisma = new PrismaClient();
-  console.log("Seeding MCAS qualification");
-  seedMcas(prisma, { force: process.env.SEED_FORCE === "1" })
+  const project = process.argv[2] || process.env.SEED_PROJECT || "";
+  // Only a pid names a project's database; a slug is refused rather than guessed at.
+  if (!PROJECT_ID.test(project)) {
+    console.error(
+      `Say which project to seed MCAS into by its pid: \`node scripts/seed_mcas.mjs <pid>\` ` +
+        `or SEED_PROJECT=<pid> (${project ? `${JSON.stringify(project)} is not a pid` : "none given"}).`,
+    );
+    process.exit(2);
+  }
+  // The project's own database, from PROJECT_DATABASE_URL.
+  const prisma = new PrismaClient({
+    datasourceUrl: projectDatabaseUrl(
+      project,
+      process.env.PROJECT_DATABASE_URL ?? "",
+    ),
+  });
+  console.log(`Seeding MCAS qualification into project ${project}`);
+  seedMcas(prisma, { force: process.env.SEED_FORCE === "1", project })
     .catch((err) => {
       console.error(err);
       process.exit(1);

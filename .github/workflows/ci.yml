@@ -1,0 +1,39 @@
+# The tests that need nothing outside this repository. The database tests and the shared-code
+# check run in the aisc repository's CI, which checks this one out with the code it shares.
+name: ci
+
+on:
+  push:
+    branches: [feat/unified-modules, main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx tsc --noEmit -p .
+      - run: npx vitest run test/unit test/vendor
+
+  services:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [agents, ontology, prefill, system_card_renderer]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - working-directory: services/${{ matrix.service }}
+        run: |
+          dev=""
+          [ -f requirements-dev.txt ] && dev="--with-requirements requirements-dev.txt"
+          uv run --no-project --python 3.12 --with-requirements requirements.txt $dev \
+            --with pytest --with httpx python -m pytest -q -p no:cacheprovider -p no:warnings
