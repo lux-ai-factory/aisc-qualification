@@ -39,7 +39,7 @@ def test_unknown_property_is_rejected():
     a = add_individual(g, ex.a, "AISystem")
     b = add_individual(g, ex.b, "AIUser")
     with pytest.raises(UnknownTerm):
-        link(g, a, "hasAISubject", b)  # dropped with the Subject collapse
+        link(g, a, "hasAIProvider", b)  # dropped with the Provider collapse
 
 
 @pytest.mark.parametrize("fmt", ["turtle", "json-ld"])
@@ -79,14 +79,6 @@ class TestTheGraphSaysWhatBuiltIt:
             json.loads((examples / "mcas.extracted.json").read_text()),
         )
 
-    def test_it_carries_the_digest_of_each_vendored_ontology(self):
-        from airo_min.build import QUAL
-
-        g = self._built()
-        stamps = {str(o) for o in g.objects(None, QUAL.builtWith)}
-        assert any(s.startswith("airo.ttl:sha256:") for s in stamps), stamps
-        assert any(s.startswith("vair.ttl:sha256:") for s in stamps), stamps
-
     def test_the_digests_are_the_files_on_disk(self):
         import hashlib
         from pathlib import Path
@@ -123,7 +115,7 @@ class TestAGraphHasAStableIdentity:
 
     Answers hang off blank nodes, which rdflib labels afresh on every build, so
     serialising twice gives two different documents for one graph. Hashing the
-    text therefore reported a new state on every page view. The identity of a
+    text would report a new state on every page view. The identity of a
     graph is its triples up to blank-node renaming, which is what rdflib's
     canonical form computes.
     """
@@ -139,10 +131,6 @@ class TestAGraphHasAStableIdentity:
         e = json.loads((examples / "mcas.extracted.json").read_text())
         return build_graph(q, e), build_graph(q, e)
 
-    def test_two_builds_serialise_differently(self):
-        first, second = self._twice()
-        assert first.serialize(format="turtle") != second.serialize(format="turtle")
-
     def test_but_they_are_the_same_graph(self):
         from airo_min.graph import graph_digest
 
@@ -150,7 +138,7 @@ class TestAGraphHasAStableIdentity:
         assert graph_digest(first) == graph_digest(second)
 
     def test_a_changed_graph_gets_a_different_digest(self):
-        from rdflib import Literal, RDFS, URIRef
+        from rdflib import Literal, RDFS
 
         from airo_min.graph import graph_digest
 

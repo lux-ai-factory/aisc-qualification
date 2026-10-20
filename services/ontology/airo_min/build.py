@@ -3,25 +3,32 @@
 Two kinds of input, kept apart on purpose:
 
   * Structured form fields (tags, pickers, risk rows) map deterministically onto
-    AIRO properties. No judgment, no model.
+    AIRO properties. No judgment, no model. Wherever VAIR has a vocabulary for a field the
+    form offers only VAIR's terms, so the node is typed with the term the author
+    chose and, where the field has no text of its own, named with VAIR's label.
   * Two properties live inside prose: `usesTechnique` in answer 2(a) and
     `hasComponent` in 2(c). They come from the `extracted` argument, which is the
     slot an agent's output fills. Without it they are absent rather than invented.
 
 The Annex IV answers themselves are preserved verbatim as annotations in our own
 namespace (`qual:`), attached to the AISystem with their Annex IV citation. That
-keeps the AIRO structure at exactly the 19 properties of the minimal schema while
+keeps the AIRO structure at exactly the 24 properties of the minimal schema while
 the graph still carries 100% of the technical documentation.
 """
+import json
 from typing import Any, Iterable
 
 from rdflib import BNode, Graph, Literal, Namespace, RDF, RDFS, URIRef
 
 from .graph import add_individual, link, new_graph
 from .schema import AIRO, SCHEMA_VERSION
-from .vair_map import VAIR, vair_capability, vair_sector
-from .vair_terms import every_vair_term, is_term_for
-from .pickers import PICKERS
+from .vair_terms import VAIR, every_vair_term, is_term_for
+from .vair_vocab import MODEL_TERMS, label_of
+from .annex_points import annex_citation
+
+#: The seeded questions' scopes. Their answers add no triples of their own, so a
+#: card filled with the default form builds the same graph as a card with no form.
+_SEEDED_SCOPES = frozenset({"annex-1", "annex-2"})
 
 # Our own vocabulary, for what AIRO does not model: the source answers and their
 # citations. Never mixed into the airo: namespace.
@@ -35,22 +42,28 @@ _AFFECTED_CLASS = {"operator": "isProvidedBy", "user": "hasAIUser"}
 LABEL_MAX = 60
 
 
-#: Kept for callers that only need "does VAIR name this at all"; use
+#: For callers that only need "does VAIR name this at all"; use
 #: vair_terms.is_term_for to decide whether a term fits a particular node.
 VAIR_TERMS = every_vair_term()
 
 
-def _typed(g: Graph, node: URIRef, term: str | None) -> None:
+def _typed(g: Graph, node: URIRef, term: str | None, as_class: str | None = None) -> None:
     """Add a VAIR type, refusing anything that is not a term for this node's class.
 
     Membership of the VAIR namespace is not enough. vair:Police is a real term
     and a nonsense type for a Purpose node, and 101 of VAIR's names hang off no
     class at all, so nothing should ever be typed with them. The class comes from
-    the node itself, which already carries its airo:* type by this point.
+    the node itself, which already carries its airo:* type by this point, unless
+    `as_class` names the class whose terms apply: VAIR subdivides AIComponent, not
+    its subclass AIModel, so a model's type is one of AIComponent's terms.
     """
     if not term:
         return
-    cls = _airo_class(g, node)
+    _check_term(as_class or _airo_class(g, node), term)
+    g.add((node, RDF.type, URIRef(VAIR + term)))
+
+
+def _check_term(cls: str | None, term: str) -> None:
     if not is_term_for(cls, term):
         if term in VAIR_TERMS:
             raise ValueError(
@@ -58,7 +71,6 @@ def _typed(g: Graph, node: URIRef, term: str | None) -> None:
                 f"it belongs to another class or to none"
             )
         raise ValueError(f"{term!r} is not a term VAIR defines")
-    g.add((node, RDF.type, URIRef(VAIR + term)))
 
 
 def _airo_class(g: Graph, node: URIRef) -> str | None:
@@ -83,19 +95,34 @@ def shorten(text: str) -> str:
     return cut.rstrip(" ,;:.") + "..."
 
 
+def _name_for(entry: Any, text: str) -> tuple[str | None, bool]:
+    """A curated name, and whether an agent drafted it. A drafted name carries the text it
+    was written for, and names nothing once that text changed (or moved to another row)."""
+    if isinstance(entry, str):
+        return entry or None, False
+    if isinstance(entry, dict) and " ".join(str(entry.get("of", "")).split()) == " ".join(text.split()):
+        return entry.get("name") or None, True
+    return None, False
+
+
 def named(
-    g: Graph, iri: URIRef, cls: str, text: str, name: str | None = None
+    g: Graph, iri: URIRef, cls: str, text: str, name: Any = None
 ) -> URIRef:
     """add_individual with the label rule applied: short name, full text alongside.
 
-    `name` is a curated noun phrase from the `extracted` slot. Truncation is only the
-    fallback: a cut sentence satisfies the length rule but is not a name.
+    `name` is a curated noun phrase from the `extracted` slot: a string, or a drafted
+    `{"name", "of"}` entry that applies only to the text it was written for and marks the
+    node `qual:nameDrafted`. Truncation is only the fallback: a cut sentence satisfies the
+    length rule but is not a name.
     """
     text = " ".join(text.split())
+    name, drafted = _name_for(name, text)
     if name:
         node = add_individual(g, iri, cls, shorten(name))
         if text != name:
             g.add((node, QUAL.fullLabel, Literal(text)))
+        if drafted:
+            g.add((node, QUAL.nameDrafted, Literal(True)))
         _provenance(g, node, "form")
         return node
     node = add_individual(g, iri, cls, shorten(text))
@@ -113,8 +140,9 @@ def named(
 #:   sentence         the label is a clause, not a name
 #:   unsupported-term the term was chosen where the answer says nothing about it
 #:   uncovered        the answer supports this property but nothing was proposed
+#:   inconsistent     the card's own answers say otherwise, quoted
 REVIEW_FLAGS = frozenset(
-    {"ungrounded", "inflated", "sentence", "unsupported-term", "uncovered"}
+    {"ungrounded", "inflated", "sentence", "unsupported-term", "uncovered", "inconsistent"}
 )
 
 
@@ -122,13 +150,6 @@ def _provenance(g: Graph, node: URIRef, source: str) -> None:
     """Where this node's content came from: a form field, or a prose extraction."""
     g.remove((node, QUAL.provenance, None))
     g.add((node, QUAL.provenance, Literal(source)))
-
-
-def _vocab_entry(group: str, id_: str) -> dict | None:
-    for entry in PICKERS[group]:
-        if entry["id"] == id_:
-            return entry
-    return None
 
 
 def _build_stamp() -> list[str]:
@@ -151,6 +172,32 @@ def _build_stamp() -> list[str]:
     return stamps
 
 
+#: The AIRO property an engine component is linked by, and the class of its node.
+COMPONENT_RANGE = {
+    "hasModel": "AIModel",
+    "hasTrainingData": "Data",
+    "hasTestingData": "Data",
+    "hasValidationData": "Data",
+    "hasComponent": "AIComponent",
+}
+
+
+#: A row of the card's Components block, by its kind: the AIRO class of its node and the property
+#: the system has it by. Data the system is built on is a component (it can be
+#: what an assessment is about); a test set is not a kind: it is what an assessment uses.
+COMPONENT_KINDS = {
+    "model": ("AIModel", "hasModel"),
+    "llm": ("AIModel", "hasModel"),
+    "rule_engine": ("AIComponent", "hasComponent"),
+    "training_data": ("Data", "hasTrainingData"),
+    "validation_data": ("Data", "hasValidationData"),
+    "other_data": ("Data", "hasComponent"),
+    "pipeline": ("AIComponent", "hasComponent"),
+    "interface": ("AIComponent", "hasComponent"),
+    "other": ("AIComponent", "hasComponent"),
+}
+
+
 def build_graph(
     qualification: dict[str, Any],
     extracted: dict[str, Iterable[str]] | None = None,
@@ -158,15 +205,15 @@ def build_graph(
 ) -> Graph:
     """Build the AIRO graph for one qualification.
 
-    `qualification` is the export shape produced by scripts/export_qualification.mjs:
-    metadata, resolved `targetSystems` / `sectors` labels, picker ids, `answers`
-    and `risks`.
+    `qualification` is the export shape produced by QualificationExporter.toExport:
+    metadata, the VAIR terms the author chose (`systemType`, `purpose`, the four tag
+    sets, each component's `vairType`, each risk field's `...Term`), `answers` and `risks`.
     `extracted` may carry {"techniques": [...], "components": [...]}.
     """
     extracted = extracted or {}
     # Curated noun-phrase names for the prose-fed nodes, keyed by node local name
     # ("purpose", "users", "risk0_control", ...). Truncation is the fallback.
-    names: dict[str, str] = dict(extracted.get("names") or {})
+    names: dict[str, Any] = dict(extracted.get("names") or {})
     qid = qualification.get("id", "unsaved")
     g, ex = new_graph(base or f"https://lux-ai-factory.github.io/qualification/q/{qid}#")
     g.bind("qual", QUAL)
@@ -175,93 +222,100 @@ def build_graph(
         g,
         ex.system,
         "AISystem",
-        f"{qualification['systemName']} {qualification['systemVersion']}".strip(),
+        f"{qualification.get('systemName', '')} {qualification.get('systemVersion', '')}".strip(),
     )
     g.add((system, QUAL.qualificationId, Literal(qid)))
-    g.add((system, QUAL.description, Literal(qualification["description"])))
+    # A form may leave a block out: it then arrives as "" (or is missing) and adds nothing.
+    if qualification.get("description", ""):
+        g.add((system, QUAL.description, Literal(qualification["description"])))
 
-    # ── capabilities: our tag, plus its VAIR type where one exists ───────────
-    for i, ts in enumerate(qualification.get("targetSystems", [])):
-        pair = f"{ts['category']} / {ts['subcategory']}"
-        # The subcategory is the name; the pair is context, kept as fullLabel.
-        node = named(
-            g,
-            ex[f"capability{i}"],
-            "AICapability",
-            pair,
-            ts["subcategory"] if len(pair) > LABEL_MAX else None,
-        )
-        g.add((node, QUAL.formTag, Literal(ts["tag"])))
-        vair = vair_capability(ts["tag"])
-        if vair:
-            g.add((node, RDF.type, URIRef(vair)))
-        link(g, system, "hasCapability", node)
+    # The system's own type, when the author chose one.
+    _typed(g, system, qualification.get("systemType"))
 
-    # ── domains ──────────────────────────────────────────────────────────────
-    for i, sector in enumerate(qualification.get("sectors", [])):
-        node = named(g, ex[f"domain{i}"], "Domain", sector["name"])
-        g.add((node, QUAL.formTag, Literal(sector["id"])))
-        vair = vair_sector(sector["id"])
-        if vair:
-            g.add((node, RDF.type, URIRef(vair)))
-        link(g, system, "isAppliedWithinDomain", node)
-
-    # ── pickers whose ids are already VAIR terms ─────────────────────────────
-    for group, prop, cls, prefix in (
-        ("marketForm", "hasModality", "Modality", "modality"),
-        ("locality", "isUsedWithinLocality", "LocalityOfUse", "locality"),
+    # The four tag sets: one node per VAIR term, named by VAIR
+    for field, prop, cls, prefix in (
+        ("targetSystemTags", "hasCapability", "AICapability", "capability"),
+        ("sectorTags", "isAppliedWithinDomain", "Domain", "domain"),
+        ("marketFormTags", "hasModality", "Modality", "modality"),
+        ("localityTags", "isUsedWithinLocality", "LocalityOfUse", "locality"),
     ):
-        for i, id_ in enumerate(qualification.get(f"{group}Tags", [])):
-            entry = _vocab_entry(group, id_)
-            if entry is None:
-                raise ValueError(f"unknown {group} id: {id_}")
-            node = named(g, ex[f"{prefix}{i}"], cls, entry["label"])
-            g.add((node, QUAL.formTag, Literal(id_)))
-            if entry.get("vair"):
-                g.add((node, RDF.type, URIRef(f"https://w3id.org/vair#{entry['vair']}")))
+        for i, term in enumerate(qualification.get(field) or []):
+            node = named(g, ex[f"{prefix}{i}"], cls, label_of(term))
+            _typed(g, node, term)
+            g.add((node, QUAL.formTag, Literal(term)))
             link(g, system, prop, node)
 
-    # ── purpose, operators, users ────────────────────────────────────────────
-    link(
-        g,
-        system,
-        "hasPurpose",
-        named(g, ex.purpose, "Purpose", qualification["targetUseCase"], names.get("purpose")),
-    )
-    link(
-        g,
-        system,
-        "isProvidedBy",
-        named(g, ex.provider, "AIOperator", qualification["company"], names.get("provider")),
-    )
+    # Purpose, operators, users
+    # One Purpose node: named by the use case the author wrote, typed with the VAIR purpose they
+    # chose. A form without the use-case block still has the purpose, named by VAIR.
+    purpose_term = qualification.get("purpose")
+    if qualification.get("targetUseCase", "") or purpose_term:
+        purpose = named(
+            g,
+            ex.purpose,
+            "Purpose",
+            qualification.get("targetUseCase") or label_of(purpose_term),
+            names.get("purpose"),
+        )
+        _typed(g, purpose, purpose_term)
+        link(g, system, "hasPurpose", purpose)
+    provider = named(g, ex.provider, "AIOperator", qualification.get("company", ""), names.get("provider"))
+    _typed(g, provider, qualification.get("providerTerm"))
+    link(g, system, "isProvidedBy", provider)
     if qualification.get("intendedDeployers"):
+        deployer = named(
+            g,
+            ex.deployer,
+            "AIOperator",
+            qualification["intendedDeployers"],
+            names.get("deployer"),
+        )
+        _typed(g, deployer, qualification.get("deployerTerm"))
+        link(g, system, "isDeployedBy", deployer)
+    if qualification.get("targetUsers", ""):
         link(
             g,
             system,
-            "isDeployedBy",
-            named(
-                g,
-                ex.deployer,
-                "AIOperator",
-                qualification["intendedDeployers"],
-                names.get("deployer"),
-            ),
+            "hasAIUser",
+            named(g, ex.users, "AIUser", qualification["targetUsers"], names.get("users")),
         )
-    link(
-        g,
-        system,
-        "hasAIUser",
-        named(g, ex.users, "AIUser", qualification["targetUsers"], names.get("users")),
-    )
 
-    # ── prose-derived, supplied by an agent ──────────────────────────────────
+    # The Components block: one node per row, named by its stable key
+    # A card with rows says what its parts are; the extraction's guesses then give way to them.
+    rows = qualification.get("systemComponents") or []
+    component_nodes: dict[str, URIRef] = {}
+    for row in rows:
+        if row["kind"] not in COMPONENT_KINDS:
+            raise ValueError(f"{row['kind']!r} is not a component kind; expected one of {', '.join(COMPONENT_KINDS)}")
+        cls, prop = COMPONENT_KINDS[row["kind"]]
+        vair_type = _component_vair_type(row)
+        node = named(g, ex["component-" + row["key"]], cls, row["name"])
+        _typed(g, node, vair_type, as_class="AIComponent")
+        if vair_type is None:
+            # One of our own types: the author chose it because VAIR has no term for the part,
+            # which is what a reviewer's "no term applies" records too.
+            g.add((node, QUAL.termNotApplicable, Literal(True)))
+        g.add((node, QUAL.componentKey, Literal(row["key"])))
+        g.add((node, QUAL.kind, Literal(row["kind"])))
+        if row.get("role"):
+            g.add((node, QUAL.role, Literal(row["role"])))
+        g.add((node, QUAL.provider, Literal(row.get("provider") or "in_house")))
+        if row.get("providerName"):
+            g.add((node, QUAL.providerName, Literal(row["providerName"])))
+        _provenance(g, node, "form")
+        link(g, system, prop, node)
+        component_nodes[row["key"]] = node
+
+    # Prose-derived, supplied by an agent
     for prop, key, cls, prefix, citation in (
         ("usesTechnique", "techniques", "AITechnique", "technique", "Annex IV(2)(a)"),
         ("hasComponent", "components", "AIComponent", "component", "Annex IV(2)(c)"),
     ):
+        if key == "components" and rows:
+            continue
         for i, entry in enumerate(extracted.get(key, [])):
             # The drafting prompt asks for {"label": ..., "vair": ...}; a plain string is
-            # accepted so earlier extractions keep working.
+            # accepted so extractions in the older shape still work.
             label = entry["label"] if isinstance(entry, dict) else entry
             term = entry.get("vair") if isinstance(entry, dict) else None
             node = named(g, ex[f"{prefix}{i}"], cls, label)
@@ -270,24 +324,50 @@ def build_graph(
             g.add((node, QUAL.derivedFrom, Literal(citation)))
             link(g, system, prop, node)
 
-    # ── risk rows: one full chain each ───────────────────────────────────────
+    # Engine components the card links, each by its AIRO property
+    # One node per engine component, named by its engine pid, so the card joins
+    # what the engine tests. The free-text components above stay as they are.
+    for entry in qualification.get("engineComponents") or []:
+        prop = entry["property"]
+        if prop not in COMPONENT_RANGE:
+            raise ValueError(
+                f"{prop!r} is not a component property; expected one of "
+                f"{', '.join(sorted(COMPONENT_RANGE))}"
+            )
+        node = add_individual(
+            g, URIRef("urn:aisc:component:" + entry["pid"]), COMPONENT_RANGE[prop], entry.get("name")
+        )
+        g.add((node, QUAL.objectName, Literal(entry.get("objectName", ""))))
+        link(g, system, prop, node)
+        if entry.get("componentKey"):
+            if entry["componentKey"] not in component_nodes:
+                raise ValueError(f"engine component {entry['pid']} names component {entry['componentKey']!r},"
+                                 " which is not on this card")
+            g.add((node, QUAL.implements, component_nodes[entry["componentKey"]]))
+
+    # Risk rows: one full chain each
     # AreaOfImpact nodes are shared across risks, exactly as the stakeholder
     # nodes are: "Fundamental rights" is one concept however many risks cite it.
     areas: dict[str, URIRef] = {}
     for row in qualification.get("risks", []):
         _add_risk(g, ex, system, row, areas, names)
 
-    # ── VAIR terms for nodes no mapping can reach ────────────────────────────
+    # VAIR terms for nodes no mapping can reach
     # The risk half has terms available but the choice depends on the row's text,
     # so it arrives through `extracted`, the same slot the agent fills. Applied
-    # last, once every node exists.
+    # last, once every node exists. A node that already carries a VAIR type (the
+    # author's choice on the form) keeps it alone; the entry is still checked.
     for node_id, term in (extracted.get("types") or {}).items():
         node = ex[node_id]
         if (node, RDF.type, None) not in g:
             continue  # a stale entry, e.g. after the form changed
+        if any(str(t).startswith(VAIR) for t in g.objects(node, RDF.type)):
+            if term:
+                _check_term(_airo_class(g, node), term)
+            continue
         _typed(g, node, term)
 
-    # ── the draft's own review findings ──────────────────────────────────────
+    # The draft's own review findings
     # The filler agent reviews its draft before anyone sees it and publishes
     # whatever it could not settle. A flag rides on the node, next to its
     # provenance, because that is where the person clearing it is looking.
@@ -303,19 +383,86 @@ def build_graph(
                 )
             g.add((node, QUAL.reviewFlag, Literal(flag)))
 
-    # ── what built this graph, so an exported file can be checked ────────────
+    # A consistency finding carries its reason and the words it rests on. It is
+    # written for one text, so it is kept only while the node still shows that text.
+    for node_id, notes in (extracted.get("notes") or {}).items():
+        node = ex[node_id]
+        if (node, RDF.type, None) not in g:
+            continue  # a stale entry, e.g. after the form changed
+        shown = {
+            " ".join(str(v).split())
+            for v in (g.value(node, RDFS.label), g.value(node, QUAL.fullLabel))
+            if v
+        }
+        for note in notes:
+            if not all(isinstance(note.get(k), str) for k in ("why", "quote", "of")):
+                raise ValueError(
+                    f"a note for {node_id!r} needs a why, a quote and an of, all text"
+                )
+            if " ".join(str(note.get("of", "")).split()) not in shown:
+                continue  # written for another text, or another row now at this position
+            g.add((node, QUAL.reviewFlag, Literal("inconsistent")))
+            body = json.dumps({"why": note["why"], "quote": note["quote"]}, ensure_ascii=False)
+            g.add((node, QUAL.flagNote, Literal(body)))
+
+    # What built this graph, so an exported file can be checked
     for stamp in _build_stamp():
         g.add((system, QUAL.builtWith, Literal(stamp)))
 
-    # ── the Annex IV answers, verbatim ───────────────────────────────────────
+    # The Annex IV answers, verbatim
+    # An answer exported with a form carries its question's `annexPoint`. Tagged,
+    # it is an answer under that point's citation; untagged (None), it is not
+    # Annex IV documentation and stays out of the graph: the card lists it
+    # under "Additional documentation" instead. An answer with no annexPoint key
+    # (an export made without a form) gets the citation rebuilt from its id.
     for answer in qualification.get("answers", []):
+        if "annexPoint" in answer and answer["annexPoint"] is None:
+            continue
         node = BNode()
         g.add((system, QUAL.answer, node))
-        g.add((node, QUAL.citation, Literal(_annex_citation(answer))))
+        if "annexPoint" in answer:
+            point = str(answer["annexPoint"])
+            try:
+                citation = annex_citation(point)
+            except KeyError:
+                raise ValueError(f"{point!r} is not an Annex IV point") from None
+            g.add((node, QUAL.citation, Literal(citation)))
+        else:
+            g.add((node, QUAL.citation, Literal(_annex_citation(answer))))
         g.add((node, QUAL.questionId, Literal(f"{answer['toolId']}:{answer['questionId']}")))
         g.add((node, QUAL.text, Literal(answer["answer"])))
+        if "annexPoint" in answer and answer["toolId"] not in _SEEDED_SCOPES:
+            # A custom question: which point it answers, and the source it cites.
+            g.add((node, QUAL.annexPoint, Literal(point)))
+            if answer.get("citation"):
+                g.add((node, QUAL.sourceCitation, Literal(answer["citation"])))
 
     return g
+
+
+#: The kinds a component of one of our own types has: the types VAIR has no term for.
+OWN_COMPONENT_KINDS = frozenset(COMPONENT_KINDS) - {"model"}
+
+
+def _component_vair_type(row: dict[str, Any]) -> str | None:
+    """A row's VAIR type, checked against its kind.
+
+    The form has one Type list: VAIR's AIComponent terms, plus our own only where VAIR has none.
+    A VAIR term decides the kind (a term under vair:Model makes a model, any other term makes
+    `other`); one of our own types is its kind and has no term. A row where the two disagree was
+    not written by the form, and the graph would say two things about the same part.
+    """
+    kind, term = row["kind"], row.get("vairType")
+    if term:
+        if not is_term_for("AIComponent", term):
+            raise ValueError(f"{term!r} is not a term VAIR defines for AIComponent")
+        expected = "model" if term in MODEL_TERMS else "other"
+        if kind != expected:
+            raise ValueError(f"component {row.get('name')!r}: a {term} is of kind {expected}, not {kind}")
+        return term
+    if kind not in OWN_COMPONENT_KINDS:
+        raise ValueError(f"component {row.get('name')!r}: a {kind} needs its VAIR type")
+    return None
 
 
 def _annex_citation(answer: dict[str, Any]) -> str:
@@ -336,12 +483,10 @@ def _add_risk(
     system: URIRef,
     row: dict[str, Any],
     areas: dict[str, URIRef],
-    names: dict[str, str],
+    names: dict[str, Any],
 ) -> None:
     i = row["position"]
     affected = row["affected"]
-    if affected not in _AFFECTED_CLASS:
-        raise ValueError(f"unknown affected value: {affected!r} (expected operator or user)")
 
     risk = named(g, ex[f"risk{i}"], "Risk", row["risk"], names.get(f"risk{i}"))
     link(g, system, "hasRisk", risk)
@@ -349,6 +494,7 @@ def _add_risk(
     source = named(
         g, ex[f"risk{i}_source"], "RiskSource", row["source"], names.get(f"risk{i}_source")
     )
+    _typed(g, source, row.get("sourceTerm"))
     link(g, source, "isRiskSourceFor", risk)
     if row.get("vulnerability"):
         link(
@@ -371,6 +517,7 @@ def _add_risk(
         row["consequence"],
         names.get(f"risk{i}_consequence"),
     )
+    _typed(g, consequence, row.get("consequenceTerm"))
     link(g, risk, "hasConsequence", consequence)
 
     # The Impact node has no field of its own: name it after the risk it realises.
@@ -381,24 +528,33 @@ def _add_risk(
         row["risk"],
         names.get(f"risk{i}_impact") or names.get(f"risk{i}"),
     )
+    _typed(g, impact, row.get("impactTerm"))
     link(g, consequence, "hasImpact", impact)
-    # The affected stakeholder is the system's own operator or user node, so the
-    # graph has one node per stakeholder rather than one per risk.
-    stakeholder_prop = _AFFECTED_CLASS[affected]
-    stakeholder = next(iter(g.objects(system, URIRef(AIRO + stakeholder_prop))))
-    link(g, impact, "hasImpactOnStakeholder", stakeholder)
+    # The affected stakeholder is the system's own operator or user node, or one
+    # shared AISubject node per VAIR subject, so the graph has one node per
+    # stakeholder rather than one per risk.
+    if affected in _AFFECTED_CLASS:
+        # A form without the users block has no AIUser node: the chain then has no
+        # stakeholder rather than failing.
+        stakeholder = next(iter(g.objects(system, URIRef(AIRO + _AFFECTED_CLASS[affected]))), None)
+    elif is_term_for("AISubject", affected):
+        stakeholder = ex[f"subject_{affected}"]
+        if (stakeholder, RDF.type, None) not in g:
+            stakeholder = named(g, stakeholder, "AISubject", label_of(affected))
+            _typed(g, stakeholder, affected)
+            link(g, system, "hasAISubject", stakeholder)
+    else:
+        raise ValueError(f"unknown affected value: {affected!r} (expected operator, user or a VAIR subject)")
+    if stakeholder is not None:
+        link(g, impact, "hasImpactOnStakeholder", stakeholder)
 
-    for area_id in row.get("impactAreas", []):
-        node = areas.get(area_id)
+    for term in row.get("impactAreas", []):
+        node = areas.get(term)
         if node is None:
-            entry = _vocab_entry("impactArea", area_id)
-            if entry is None:
-                raise ValueError(f"unknown impactArea id: {area_id}")
-            node = named(g, ex[f"area_{area_id}"], "AreaOfImpact", entry["label"])
-            g.add((node, QUAL.formTag, Literal(area_id)))
-            if entry.get("vair"):
-                g.add((node, RDF.type, URIRef(f"https://w3id.org/vair#{entry['vair']}")))
-            areas[area_id] = node
+            node = named(g, ex[f"area_{term}"], "AreaOfImpact", label_of(term))
+            _typed(g, node, term)
+            g.add((node, QUAL.formTag, Literal(term)))
+            areas[term] = node
         link(g, impact, "hasImpactOnArea", node)
 
     control = named(
@@ -408,6 +564,7 @@ def _add_risk(
         row["control"],
         names.get(f"risk{i}_control"),
     )
+    _typed(g, control, row.get("controlTerm"))
     link(g, control, "modifiesRiskConcept", risk)
     if row.get("followUpControl"):
         follow_up = named(
@@ -417,6 +574,7 @@ def _add_risk(
             row["followUpControl"],
             names.get(f"risk{i}_control_followup"),
         )
+        _typed(g, follow_up, row.get("followUpControlTerm"))
         link(g, control, "isFollowedByControl", follow_up)
 
 

@@ -19,7 +19,7 @@ from typing import Any
 from rdflib import Graph, Literal, RDF, RDFS, URIRef
 
 from .build import QUAL, VAIR_TERMS
-from .vair_map import VAIR
+from .vair_terms import VAIR
 from .vair_terms import is_term_for
 
 from .schema import AIRO as AIRO_NS
@@ -49,6 +49,8 @@ def apply_patch(g: Graph, patch: dict[str, dict[str, Any]] | None) -> None:
                 g.add((node, QUAL.generatedLabel, generated))
             g.remove((node, RDFS.label, None))
             g.add((node, RDFS.label, Literal(change["label"])))
+            # A person's wording is not an AI name.
+            g.remove((node, QUAL.nameDrafted, None))
 
         if "vair" in change:
             for existing in list(g.objects(node, RDF.type)):
@@ -89,6 +91,7 @@ def apply_patch(g: Graph, patch: dict[str, dict[str, Any]] | None) -> None:
 
         # A person has looked at this node, so its flags are settled.
         g.remove((node, QUAL.reviewFlag, None))
+        g.remove((node, QUAL.flagNote, None))
 
         g.remove((node, QUAL.provenance, None))
         g.add((node, QUAL.provenance, Literal("reviewed")))

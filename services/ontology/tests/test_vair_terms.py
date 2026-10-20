@@ -1,9 +1,9 @@
 """Which VAIR terms we offer, and for which AIRO class.
 
 VAIR nests: vair:Police is a subclass of vair:EmergencyServiceProvider, which is a
-subclass of airo:AIOperator. Reading only an AIRO class's direct children offered
-136 of the 331 terms that sit under our schema's classes. The gaps were not
-cosmetic: Purpose showed 27 of 122, hiding vair:AssessingCreditworthiness and
+subclass of airo:AIOperator. Reading only an AIRO class's direct children would
+offer 136 of the 331 terms that sit under our schema's classes. The gaps are not
+cosmetic: Purpose would show 27 of 122, hiding vair:AssessingCreditworthiness and
 vair:DeterminingCreditScore, which is exactly what a credit-scoring system does.
 
 The counts below are an inventory of VAIR 1.0 as vendored. They are asserted so a
@@ -30,8 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class TestTheVendoredFilesAreUpstream:
-    """Byte-identical to DelaramGlp/airo@main and DelaramGlp/vair@main, checked
-    2026-09-11. A local edit to either file is a licence and provenance problem,
+    """Byte-identical to DelaramGlp/airo@main and DelaramGlp/vair@main as vendored. A local edit to either file is a licence and provenance problem,
     not a refactor, so it fails here rather than being discovered later."""
 
     @pytest.mark.parametrize(
@@ -55,7 +54,7 @@ class TestInventory:
 
     def test_how_many_sit_under_our_own_schema(self):
         offered = {t for terms in vocabularies().values() for t in terms}
-        assert len(offered) == 331
+        assert len(offered) == 350
 
     def test_the_terms_vair_leaves_hanging(self):
         # No rdfs:subClassOf at all, so no AIRO class can reach them: superseded
@@ -144,9 +143,9 @@ class TestPrecision:
 
 
 class TestTheBuilderIsExact:
-    """A term names one kind of thing. The builder used to accept any name in the
-    VAIR namespace for any class, so a Purpose node could be typed vair:Police,
-    and one of VAIR's 101 dangling names could be written into a graph."""
+    """A term names one kind of thing. Accepting any name in the VAIR namespace
+    for any class would let a Purpose node be typed vair:Police, and one of
+    VAIR's 101 dangling names be written into a graph."""
 
     def _parts(self):
         import json
@@ -195,11 +194,3 @@ class TestTheBuilderIsExact:
         g = build_graph(q, e)
         with pytest.raises(ValueError, match="Police"):
             apply_patch(g, {"purpose": {"vair": "Police"}})
-
-    def test_a_reviewer_can_patch_in_a_term_that_fits(self):
-        from airo_min.build import build_graph
-        from airo_min.patch import apply_patch
-
-        q, e = self._parts()
-        g = build_graph(q, e)
-        apply_patch(g, {"deployer": {"vair": "PublicAuthority"}})

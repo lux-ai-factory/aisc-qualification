@@ -87,7 +87,7 @@ def test_a_qualification_missing_a_required_field_is_a_client_error(client):
 def test_the_vocabularies_endpoint_lists_the_terms_the_ui_offers(client):
     body = client.get("/vocabularies").json()
     # VAIR nests, so a class's terms include its grandchildren: reading only the
-    # direct children offered 5 techniques out of 17 and hid DeepLearning.
+    # direct children would offer 5 techniques out of 17 and hide DeepLearning.
     assert body["AITechnique"] == [
         "BayesianEstimation",
         "BayesianOptimisation",
@@ -111,7 +111,7 @@ def test_the_vocabularies_endpoint_lists_the_terms_the_ui_offers(client):
     assert "DecisionTree" in body["AIComponent"]
     assert "API" not in body["AIComponent"]  # malformed IRI in VAIR 1.0
     assert len(body["AICapability"]) == 35
-    assert sum(len(v) for v in body.values()) == 331
+    assert sum(len(v) for v in body.values()) == 350
 
 
 def test_the_endpoint_covers_every_class_the_card_can_show(client):
@@ -129,3 +129,42 @@ def test_the_build_response_carries_the_graphs_identity(client, payload):
     second = client.post("/build", json=payload).json()
     assert first["digest"] == second["digest"]
     assert first["turtle"] != second["turtle"], "blank nodes are relabelled"
+
+
+# Forms that leave blocks out
+
+
+def test_description_use_case_and_users_are_optional_now(client, payload):
+    """A form may leave those blocks out; the request then omits them."""
+    q = {
+        k: v
+        for k, v in payload["qualification"].items()
+        if k not in ("description", "targetUseCase", "targetUsers", "purpose")
+    }
+    q["risks"] = [r for r in q["risks"] if r["affected"] == "operator"]
+    r = client.post("/build", json={"qualification": q})
+    assert r.status_code == 200, r.text
+    rows = [row["property"] for row in r.json()["view"]["rows"]]
+    assert "hasPurpose" not in rows and "hasAIUser" not in rows
+
+
+def test_a_request_without_a_form_gets_no_coverage_keys(client, payload):
+    view = client.post("/build", json=payload).json()["view"]
+    assert not {"form", "coverage", "additionalDocumentation"} & set(view)
+
+
+def _row_node(view, prop):
+    return next(r for r in view["rows"] if r["property"] == prop)["nodes"][0]
+
+
+def test_the_operator_terms_and_a_subject_as_affected_reach_the_graph_over_http(client, payload):
+    q = payload["qualification"]
+    risks = [{**q["risks"][0], "affected": "JobApplicant"}, *q["risks"][1:]]
+    r = client.post("/build", json={**payload, "qualification": {
+        **q, "providerTerm": "PublicAuthority", "deployerTerm": "EducationalInstitution", "risks": risks}})
+    assert r.status_code == 200
+    view = r.json()["view"]
+    assert _row_node(view, "isDeployedBy")["vair"] == "EducationalInstitution"
+    assert _row_node(view, "isProvidedBy")["vair"] == "PublicAuthority"
+    stakeholder = view["chains"][0]["stakeholder"]
+    assert stakeholder["cls"] == "AISubject" and stakeholder["vair"] == "JobApplicant"

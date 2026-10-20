@@ -49,8 +49,8 @@ def test_domain_violation_is_reported():
 
 def test_unknown_airo_property_in_the_graph_is_reported():
     g, ex = _valid_graph()
-    g.add((ex.system, URIRef(AIRO + "hasAISubject"), ex.staff))
-    assert any("hasAISubject" in p for p in validate(g))
+    g.add((ex.system, URIRef(AIRO + "hasAIProvider"), ex.staff))
+    assert any("hasAIProvider" in p for p in validate(g))
 
 
 def test_unknown_airo_class_in_the_graph_is_reported():

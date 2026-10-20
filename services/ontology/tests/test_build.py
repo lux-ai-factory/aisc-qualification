@@ -4,10 +4,12 @@ Everything the form captures as a structured field is deterministic. The two
 properties that live inside prose (usesTechnique from 2(a), hasComponent from
 2(c)) come from the `extracted` slot, which is where an agent's output lands.
 """
-from rdflib import RDF, RDFS, URIRef
+from rdflib import Namespace, RDF, RDFS, URIRef
 import pytest
 
 from airo_min.build import QUAL, build_graph
+from airo_min.patch import apply_patch
+from airo_min.view import node_view
 from airo_min.schema import AIRO, PROPERTIES
 from airo_min.validate import validate
 
@@ -24,21 +26,10 @@ def _qualification(**over):
         "targetUseCase": "Evaluate creditworthiness for EUR 100 to 5,000 loans.",
         "targetUsers": "Bank customers and loan officers.",
         "intendedDeployers": "Retail banks in DE, FR and NL.",
-        "targetSystems": [
-            {
-                "tag": "natural-language-processing:question-answering",
-                "category": "Natural Language Processing",
-                "subcategory": "Question Answering",
-            },
-            {
-                "tag": "predictive-analytical-ai:risk-scoring-assessment",
-                "category": "Predictive & Analytical AI",
-                "subcategory": "Risk Scoring / Assessment",
-            },
-        ],
-        "sectors": [{"id": "finance-and-insurance", "name": "Finance and insurance"}],
-        "marketFormTags": ["software"],
-        "localityTags": ["workplace"],
+        "targetSystemTags": ["QuestionAnswering", "Profiling"],
+        "sectorTags": ["PrivateService"],
+        "marketFormTags": ["Software"],
+        "localityTags": ["Workplace"],
         "answers": [
             {"toolId": "annex-2", "questionId": "2d", "answer": "620,000 loan outcomes."},
             {"toolId": "annex-1", "questionId": "1a", "answer": "v1.2.0 follows v1.1.x."},
@@ -51,7 +42,7 @@ def _qualification(**over):
                 "vulnerability": "Features assume complete bureau coverage",
                 "consequence": "A creditworthy applicant is routed to Reject",
                 "affected": "user",
-                "impactAreas": ["right"],
+                "impactAreas": ["Right"],
                 "control": "Every Reject goes to a loan officer first",
                 "followUpControl": "Officer override with written justification",
             },
@@ -62,7 +53,7 @@ def _qualification(**over):
                 "vulnerability": None,
                 "consequence": "Degraded accuracy across a market",
                 "affected": "operator",
-                "impactAreas": ["safety", "right"],
+                "impactAreas": ["Safety", "Right"],
                 "control": "Signed ingestion and checksummed artefacts",
                 "followUpControl": None,
             },
@@ -112,28 +103,14 @@ def test_structured_fields_fill_their_properties():
         assert len(list(g.objects(sys_, _a(prop)))) == n, prop
 
 
-def test_a_mapped_tag_gets_its_vair_type_as_well_as_the_airo_one():
+def test_a_tag_gets_its_vair_type_as_well_as_the_airo_one():
     g = build_graph(_qualification())
     qa = URIRef(VAIR + "QuestionAnswering")
     typed = [s for s in g.subjects(RDF.type, qa)]
     assert len(typed) == 1
     assert (typed[0], RDF.type, _a("AICapability")) in g
-    # finance-and-insurance maps to the Annex III private-services domain
+    assert str(g.value(typed[0], RDFS.label)) == "Question Answering"
     assert list(g.subjects(RDF.type, URIRef(VAIR + "PrivateService")))
-
-
-def test_an_unmapped_tag_stays_a_label_only_node_with_no_vair_type():
-    g = build_graph(_qualification())
-    risk_scoring = [
-        s
-        for s in g.subjects(RDF.type, _a("AICapability"))
-        if "Risk Scoring" in str(g.value(s, RDFS.label))
-    ]
-    assert len(risk_scoring) == 1
-    vair_types = [
-        o for o in g.objects(risk_scoring[0], RDF.type) if str(o).startswith(VAIR)
-    ]
-    assert vair_types == []
 
 
 def test_each_risk_row_becomes_a_full_chain():
@@ -195,18 +172,25 @@ def test_every_annex_iv_answer_is_preserved_verbatim_with_its_citation():
     assert "Annex IV(1)(a)" in citations
 
 
-def test_annotations_use_our_namespace_so_the_airo_structure_is_untouched():
-    g = build_graph(_qualification(), EXTRACTED)
-    airo_props = {
-        str(p).replace(AIRO, "") for p in set(g.predicates()) if str(p).startswith(AIRO)
-    }
-    assert airo_props <= set(PROPERTIES), airo_props - set(PROPERTIES)
-    assert str(QUAL).startswith("http")
-    assert validate(g) == []
-
-
-def test_a_full_qualification_exercises_all_nineteen_properties():
-    g = build_graph(_qualification(), EXTRACTED)
+def test_a_full_qualification_exercises_every_property():
+    """Every property of the schema, the four component properties included: the
+    Components block gives the model and the data the system is built on, and a test set the card
+    links from the engine gives hasTestingData (a test set is not a component)."""
+    rows = [
+        {"key": "00000000-0000-4000-8000-000000000001", "name": "Scoring model", "role": None, "kind": "model",
+         "vairType": "DecisionTree", "provider": "in_house", "providerName": None},
+        {"key": "00000000-0000-4000-8000-000000000002", "name": "Training data", "role": None,
+         "kind": "training_data", "vairType": None, "provider": "in_house", "providerName": None},
+        {"key": "00000000-0000-4000-8000-000000000003", "name": "Validation data", "role": None,
+         "kind": "validation_data", "vairType": None, "provider": "in_house", "providerName": None},
+        {"key": "00000000-0000-4000-8000-000000000004", "name": "Policy rules", "role": None,
+         "kind": "rule_engine", "vairType": None, "provider": "in_house", "providerName": None},
+    ]
+    linked = [{"pid": "e0e0e0e0-0000-4000-8000-000000000001", "name": "Holdout set", "componentType": "dataset",
+               "objectName": "holdout.csv", "property": "hasTestingData"}]
+    q = _qualification(systemComponents=rows, engineComponents=linked)
+    q["risks"][0]["affected"] = "JobApplicant"  # a VAIR subject gives hasAISubject
+    g = build_graph(q, EXTRACTED)
     used = {
         str(p).replace(AIRO, "") for p in set(g.predicates()) if str(p).startswith(AIRO)
     }
@@ -225,16 +209,16 @@ def test_areas_of_impact_are_shared_across_risks_not_duplicated():
     same way both point at one User node. Anything else inflates the graph with
     copies of the same concept."""
     q = _qualification()
-    q["risks"][1]["impactAreas"] = ["right", "safety"]  # row 0 also has "right"
+    q["risks"][1]["impactAreas"] = ["Right", "Safety"]  # row 0 also has "Right"
     g = build_graph(q)
     areas = list(g.subjects(RDF.type, _a("AreaOfImpact")))
     labels = sorted(str(g.value(a, RDFS.label)) for a in areas)
-    assert labels == ["Fundamental rights", "Safety"], labels
+    assert labels == ["Right", "Safety"], labels
     # the edges are still per-risk: 1 + 2 = 3
     assert len(list(g.subject_objects(_a("hasImpactOnArea")))) == 3
 
 
-# ── the label rule: names on nodes, prose in qual:text ──────────────────────
+# The label rule: names on nodes, prose in qual:text
 
 
 def _labels(g):
@@ -250,7 +234,7 @@ def test_no_node_label_is_longer_than_sixty_characters():
         "recommendation, alongside influential factors and an explanation."
     )
     g = build_graph(q, EXTRACTED)
-    too_long = {l for l in _labels(g) if len(l) > 60}
+    too_long = {label for label in _labels(g) if len(label) > 60}
     assert too_long == set(), too_long
 
 
@@ -343,7 +327,7 @@ def test_an_unknown_name_key_is_ignored_rather_than_crashing():
     assert validate(g) == []
 
 
-# ── the extracted shape the drafting prompt asks for ────────────────────────
+# The extracted shape the drafting prompt asks for
 
 
 SKILL_SHAPED = {
@@ -369,20 +353,13 @@ def test_extracted_accepts_the_label_plus_vair_objects_the_prompt_asks_for():
     assert validate(g) == []
 
 
-def test_plain_strings_still_work_so_older_extractions_do_not_break():
-    g = build_graph(_qualification(), EXTRACTED)
-    sys_ = next(g.subjects(RDF.type, _a("AISystem")))
-    assert len(list(g.objects(sys_, _a("usesTechnique")))) == 2
-    assert validate(g) == []
-
-
 def test_a_vair_term_that_is_not_a_real_term_is_refused():
     bad = {"techniques": [{"label": "Magic", "vair": "Telepathy"}]}
     with pytest.raises(ValueError, match="Telepathy"):
         build_graph(_qualification(), bad)
 
 
-# ── labels the builder generates itself must also be names ──────────────────
+# Labels the builder generates itself must also be names
 
 
 def test_the_impact_node_is_named_after_the_risk_not_prefixed_prose():
@@ -390,23 +367,8 @@ def test_the_impact_node_is_named_after_the_risk_not_prefixed_prose():
     g = build_graph(q, {"names": {"risk0": "Applicant wrongly ranked high risk"}})
     impacts = [str(g.value(i, RDFS.label)) for i in g.subjects(RDF.type, _a("Impact"))]
     assert "Applicant wrongly ranked high risk" in " ".join(impacts)
-    assert not any(l.startswith("Impact of:") for l in impacts)
-    assert all(len(l) <= 60 for l in impacts)
-
-
-def test_a_long_capability_pair_keeps_the_subcategory_as_its_name():
-    q = _qualification()
-    q["targetSystems"] = [
-        {
-            "tag": "tabular-structured-data:tabular-classification-regression",
-            "category": "Tabular & Structured Data",
-            "subcategory": "Tabular Classification & Regression",
-        }
-    ]
-    g = build_graph(q)
-    cap = next(g.subjects(RDF.type, _a("AICapability")))
-    assert str(g.value(cap, RDFS.label)) == "Tabular Classification & Regression"
-    assert "Tabular & Structured Data" in str(g.value(cap, QUAL.fullLabel))
+    assert not any(i.startswith("Impact of:") for i in impacts)
+    assert all(len(i) <= 60 for i in impacts)
 
 
 def test_no_label_in_a_realistic_graph_ends_in_an_ellipsis():
@@ -423,7 +385,7 @@ def test_no_label_in_a_realistic_graph_ends_in_an_ellipsis():
     assert truncated == set(), truncated
 
 
-# ── extracted.types: VAIR terms for nodes no mapping can reach ──────────────
+# Extracted.types: VAIR terms for nodes no mapping can reach
 
 
 def test_types_map_assigns_vair_terms_to_risk_half_nodes():
@@ -476,15 +438,114 @@ def test_a_types_entry_for_an_unknown_node_is_ignored():
     assert validate(g) == []
 
 
-def test_a_types_entry_does_not_override_a_mapped_term():
-    """A capability the mapping already typed keeps its mapped term unless the
-    types map names that same node deliberately."""
-    g = build_graph(_qualification(), {"types": {}})
-    qa = list(g.subjects(RDF.type, URIRef(VAIR + "QuestionAnswering")))
-    assert len(qa) == 1
+def test_a_types_entry_does_not_override_a_term_from_the_form():
+    """A capability the author chose keeps its term, and only that term: a types
+    entry for the same node neither replaces it nor adds a second VAIR type."""
+    g = build_graph(_qualification(), {"types": {"capability0": "Profiling"}})
+    node = EX.capability0  # EX is defined below; resolved when the test runs
+    vair_types = {str(t) for t in g.objects(node, RDF.type) if str(t).startswith(VAIR)}
+    assert vair_types == {VAIR + "QuestionAnswering"}
 
 
-def test_types_can_fill_the_capability_the_mapping_deliberately_left_alone():
-    g = build_graph(_qualification(), {"types": {"capability1": "Profiling"}})
-    node = next(g.subjects(RDF.type, URIRef(VAIR + "Profiling")))
-    assert "Risk Scoring" in str(g.value(node, RDFS.label))
+EX = Namespace("https://lux-ai-factory.github.io/qualification/q/q123#")
+LONG = "Assess the creditworthiness of consumer loan applicants for retail banks in Germany, France and the Netherlands"
+
+
+def _drafted(of=LONG):
+    return {"names": {"purpose": {"name": "Consumer credit assessment", "of": of}}}
+
+
+def test_a_name_for_this_text_is_used_and_marked():
+    q = {**_qualification(), "targetUseCase": LONG}
+    g = build_graph(q, _drafted())
+    assert str(g.value(EX.purpose, RDFS.label)) == "Consumer credit assessment"
+    assert g.value(EX.purpose, QUAL.nameDrafted) is not None
+    assert str(g.value(EX.purpose, QUAL.fullLabel)) == LONG
+    assert node_view(g, EX.purpose)["nameDrafted"] is True
+
+
+def test_a_name_for_this_text_ignores_whitespace_differences():
+    q = {**_qualification(), "targetUseCase": LONG}
+    g = build_graph(q, _drafted("  " + LONG.replace(" ", "  ") + "\n"))
+    assert str(g.value(EX.purpose, RDFS.label)) == "Consumer credit assessment"
+
+
+def test_a_name_for_other_text_is_ignored():
+    q = {**_qualification(), "targetUseCase": LONG + " and Belgium"}
+    g = build_graph(q, _drafted())
+    assert str(g.value(EX.purpose, RDFS.label)).endswith("...")
+    assert g.value(EX.purpose, QUAL.nameDrafted) is None
+    assert "nameDrafted" not in node_view(g, EX.purpose)
+
+
+def test_a_reviewed_label_is_no_longer_an_ai_name():
+    q = {**_qualification(), "targetUseCase": LONG}
+    g = build_graph(q, _drafted())
+    apply_patch(g, {"purpose": {"label": "Credit scoring"}})
+    assert str(g.value(EX.purpose, RDFS.label)) == "Credit scoring"
+    assert g.value(EX.purpose, QUAL.nameDrafted) is None
+
+
+def test_an_old_string_name_still_applies_and_is_not_marked_as_drafted():
+    q = {**_qualification(), "targetUseCase": LONG}
+    g = build_graph(q, {"names": {"purpose": "Consumer credit assessment"}})
+    assert str(g.value(EX.purpose, RDFS.label)) == "Consumer credit assessment"
+    assert str(g.value(EX.purpose, QUAL.provenance)) == "form"
+    assert g.value(EX.purpose, QUAL.nameDrafted) is None
+
+
+def _note(q, **over):
+    return {"why": "the answer names a hosted LLM", "quote": "a hosted third-party LLM",
+            "of": q["risks"][0]["control"], **over}
+
+
+def test_a_note_rides_on_its_node():
+    from rdflib import Literal
+    q = _qualification()
+    note = _note(q)
+    g = build_graph(q, {"notes": {"risk0_control": [note]}})
+    assert (EX.risk0_control, QUAL.reviewFlag, Literal("inconsistent")) in g
+    assert node_view(g, EX.risk0_control)["flagNotes"] == [{"why": note["why"], "quote": note["quote"]}]
+
+
+def test_a_note_for_other_text_is_ignored():
+    q = _qualification()
+    g = build_graph(q, {"notes": {"risk0_control": [_note(q, of="a control that is no longer there")]}})
+    assert (EX.risk0_control, QUAL.reviewFlag, None) not in g
+    assert (EX.risk0_control, QUAL.flagNote, None) not in g
+
+
+def test_a_note_for_a_node_that_is_gone_is_ignored():
+    q = _qualification()
+    g = build_graph(q, {"notes": {"risk9_control": [_note(q)]}})
+    assert (EX.risk9_control, None, None) not in g
+
+
+def test_a_reviewer_edit_clears_the_notes_with_the_flag():
+    q = _qualification()
+    g = build_graph(q, {"notes": {"risk0_control": [_note(q)]}})
+    apply_patch(g, {"risk0_control": {"label": "Manual review"}})
+    assert (EX.risk0_control, QUAL.reviewFlag, None) not in g
+    assert (EX.risk0_control, QUAL.flagNote, None) not in g
+    assert "flagNotes" not in node_view(g, EX.risk0_control)
+
+
+def test_a_note_keeps_a_separator_inside_its_reason_and_its_quote():
+    q = _qualification()
+    note = _note(q, why="says A | but B", quote="the model | is hosted")
+    g = build_graph(q, {"notes": {"risk0_control": [note]}})
+    assert node_view(g, EX.risk0_control)["flagNotes"] == [{"why": note["why"], "quote": note["quote"]}]
+
+
+def test_a_node_with_an_ai_name_still_takes_a_note_for_the_authors_text():
+    q = {**_qualification(), "targetUseCase": LONG}
+    note = {"why": "w", "quote": "q", "of": LONG}
+    g = build_graph(q, {**_drafted(), "notes": {"purpose": [note]}})
+    assert str(g.value(EX.purpose, RDFS.label)) == "Consumer credit assessment"
+    assert node_view(g, EX.purpose)["flagNotes"] == [{"why": "w", "quote": "q"}]
+
+
+def test_a_note_missing_its_reason_is_refused():
+    q = _qualification()
+    with pytest.raises(ValueError):
+        build_graph(q, {"notes": {"risk0_control": [{"quote": "q", "of": q["risks"][0]["control"]}]}})

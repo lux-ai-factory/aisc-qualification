@@ -1,18 +1,18 @@
 [
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#locality1",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1_control_followup",
     "@type": [
-      "https://w3id.org/airo#LocalityOfUse",
-      "https://w3id.org/vair#Workplace"
+      "https://w3id.org/airo#RiskControl",
+      "https://w3id.org/vair#Interruption"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Other setting"
+        "@value": "Suspend scoring for the market"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
       {
-        "@value": "other"
+        "@value": "Suspend automated scoring for the affected market and fall back to manual underwriting until the next recalibration clears the band"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
@@ -22,19 +22,19 @@
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk3_source",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_source",
     "@type": [
       "https://w3id.org/airo#RiskSource",
-      "https://w3id.org/vair#SystemRiskSource"
+      "https://w3id.org/vair#ErroneousInputData"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Retrieval index out of date"
+        "@value": "Thin or stale bureau data"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
       {
-        "@value": "The retrieval index over the bank's policy documentation falls out of date after a policy change"
+        "@value": "Credit bureau coverage is incomplete or stale for that applicant, so the model scores them on thin data"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
@@ -44,12 +44,258 @@
     ],
     "https://w3id.org/airo#exploitsVulnerability": [
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk3_vulnerability"
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_vulnerability"
       }
     ],
     "https://w3id.org/airo#isRiskSourceFor": [
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk3"
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_Freedom",
+    "@type": [
+      "https://w3id.org/airo#AreaOfImpact",
+      "https://w3id.org/vair#Freedom"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Freedom"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
+      {
+        "@value": "Freedom"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk3_impact",
+    "@type": [
+      "https://w3id.org/airo#Impact",
+      "https://w3id.org/vair#UnfavourableTreatment"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Explanation cites the wrong policy clause"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "The explanation shown to an applicant cites the wrong policy clause"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://w3id.org/airo#hasImpactOnArea": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_Right"
+      }
+    ],
+    "https://w3id.org/airo#hasImpactOnStakeholder": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#users"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#purpose",
+    "@type": [
+      "https://w3id.org/airo#Purpose",
+      "https://w3id.org/vair#AssessingCreditworthiness"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Creditworthiness assessment for consumer loans"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "Retail banking and consumer micro-finance in the EU (deployed in Germany, France, and the Netherlands). Evaluates creditworthiness for €100–€5,000 consumer loans, returns a 0–1000 credit score, a Low/Medium/High risk category, and an Approve/Review/Reject recommendation, alongside influential factors and a natural-language explanation surfaced via the bank's web portal, mobile app, and staff dashboard. The subjects of the system are individual loan applicants whose access to credit is affected by its outputs."
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000009",
+    "@type": [
+      "https://w3id.org/airo#Data"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Validation data"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#componentKey": [
+      {
+        "@value": "00000000-0000-4000-8000-000000000009"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#kind": [
+      {
+        "@value": "validation_data"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provider": [
+      {
+        "@value": "in_house"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#role": [
+      {
+        "@value": "Temporally held-out set of the most recent 90,000 applications, plus a per-market split for DE, FR and NL."
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#termNotApplicable": [
+      {
+        "@type": "http://www.w3.org/2001/XMLSchema#boolean",
+        "@value": true
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000002",
+    "@type": [
+      "https://w3id.org/airo#AIModel",
+      "https://w3id.org/vair#DecisionTree"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Credit scoring model"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#componentKey": [
+      {
+        "@value": "00000000-0000-4000-8000-000000000002"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#kind": [
+      {
+        "@value": "model"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provider": [
+      {
+        "@value": "in_house"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#role": [
+      {
+        "@value": "Monotonic gradient-boosted decision tree that estimates the probability of default over the loan term, mapped to a 0-1000 score and to Approve, Review or Reject by fixed thresholds."
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1",
+    "@type": [
+      "https://w3id.org/airo#Risk"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Approval rates diverge across groups"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "Approval rates diverge across protected groups"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://w3id.org/airo#hasConsequence": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1_consequence"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_vulnerability",
+    "@type": [
+      "https://w3id.org/airo#Vulnerability"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Bureau records ingested unsigned"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "Recalibration ingests bureau records without provenance signing, so a tampered batch is indistinguishable from a genuine one"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability0",
+    "@type": [
+      "https://w3id.org/airo#AICapability",
+      "https://w3id.org/vair#Profiling"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Profiling"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
+      {
+        "@value": "Profiling"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#modality0",
+    "@type": [
+      "https://w3id.org/airo#Modality",
+      "https://w3id.org/vair#Software"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Software"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
+      {
+        "@value": "Software"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
       }
     ]
   },
@@ -75,68 +321,19 @@
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk3_control",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#technique2",
     "@type": [
-      "https://w3id.org/airo#RiskControl",
-      "https://w3id.org/vair#OperationalMeasure"
+      "https://w3id.org/airo#AITechnique",
+      "https://w3id.org/vair#KnowledgeBasedTechnique"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Index refresh signed off by compliance"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "Quarterly index refresh signed off by compliance, and every explanation records the index version it was generated from so any answer can be reproduced"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ],
-    "https://w3id.org/airo#modifiesRiskConcept": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk3"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability1",
-    "@type": [
-      "https://w3id.org/airo#AICapability",
-      "https://w3id.org/vair#Profiling"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Predictive & Analytical AI / Risk Scoring & Assessment"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
-      {
-        "@value": "predictive-analytical-ai:risk-scoring-assessment"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component0",
-    "@type": [
-      "https://w3id.org/airo#AIComponent",
-      "https://w3id.org/vair#Model"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Scoring model"
+        "@value": "Policy-document retrieval"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#derivedFrom": [
       {
-        "@value": "Annex IV(2)(c)"
+        "@value": "Annex IV(2)(a)"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
@@ -146,592 +343,45 @@
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1_source",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#technique0",
     "@type": [
-      "https://w3id.org/airo#RiskSource",
-      "https://w3id.org/vair#DataRiskSource"
+      "https://w3id.org/airo#AITechnique",
+      "https://w3id.org/vair#MachineLearning"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Postal-code features as a proxy"
+        "@value": "Gradient-boosted decision tree"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "Postal-code and transaction features act as proxies for ethnicity and socio-economic status even though protected attributes are excluded as direct inputs"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ],
-    "https://w3id.org/airo#isRiskSourceFor": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#provider",
-    "@type": [
-      "https://w3id.org/airo#AIOperator"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Creditum AI SARL"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "Creditum AI SARL (Luxembourg)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_impact",
-    "@type": [
-      "https://w3id.org/airo#Impact",
-      "https://w3id.org/vair#Harm"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Training data poisoned via the bureau feed"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "Training data is poisoned through the bureau ingestion path"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ],
-    "https://w3id.org/airo#hasImpactOnArea": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_safety"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_right"
-      }
-    ],
-    "https://w3id.org/airo#hasImpactOnStakeholder": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#provider"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#system",
-    "@type": [
-      "https://w3id.org/airo#AISystem",
-      "https://w3id.org/vair#NarrowAI"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "MicroCredit Assist Score (MCAS) v1.2.0"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#answer": [
-      {
-        "@id": "_:N94b2494779014d8782069cde581b493e"
-      },
-      {
-        "@id": "_:N27caa2ecd4fc4d2f8390408807393009"
-      },
-      {
-        "@id": "_:Nd18f771e0daf4e789a8a5229f0d3da04"
-      },
-      {
-        "@id": "_:N7e2412c2c54a45218a0fb2ccbd9881b1"
-      },
-      {
-        "@id": "_:N26a965ff275942dbb0d89d4fddb35b92"
-      },
-      {
-        "@id": "_:Na1d487280eb24c69a7b5256959c7cebb"
-      },
-      {
-        "@id": "_:N303a4bc3b8af4680b433974ed96f66ee"
-      },
-      {
-        "@id": "_:Nca02be7b137a4d2bb59af660c2aa6f56"
-      },
-      {
-        "@id": "_:N4e873989a0b044a5a5e8e5f92118b852"
-      },
-      {
-        "@id": "_:N324c878eabe044a7b59aea032f65313e"
-      },
-      {
-        "@id": "_:N64406fd069d8485aa2c5c86e22928032"
-      },
-      {
-        "@id": "_:N3968713d308c4fa69577cf5aec9142a7"
-      },
-      {
-        "@id": "_:N80eabe9ee69b44dd95ef781d9368f7f4"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#builtWith": [
-      {
-        "@value": "airo_min:1.0"
-      },
-      {
-        "@value": "airo.ttl:sha256:6274d2d8711e046cf38f1b5b2980188094d4aa87b5af79804005a06468fd8469"
-      },
-      {
-        "@value": "vair.ttl:sha256:6b42323726e7a82a5c4782a6d9398fc44db21bd4e0ca9fd4807558190c173605"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#description": [
-      {
-        "@value": "Credit scoring system that evaluates creditworthiness for short-term consumer loans (€100–€5,000). It combines a gradient-boosted decision tree on applicant data with an LLM chatbot that produces natural-language explanations and answers customer questions from policy documentation. Licensing: proprietary, on-premise with audit access. Documentation: https://docs.microcreditassist.ai (public technical docs, API specs, deployment guides)."
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#qualificationId": [
-      {
-        "@value": "cmtvr6g8z0000c8pi3hisc5oa"
-      }
-    ],
-    "https://w3id.org/airo#hasAIUser": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#users"
-      }
-    ],
-    "https://w3id.org/airo#hasCapability": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability0"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability1"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability2"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability3"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability4"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability5"
-      }
-    ],
-    "https://w3id.org/airo#hasComponent": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component0"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component1"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component2"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component3"
-      }
-    ],
-    "https://w3id.org/airo#hasModality": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#modality0"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#modality1"
-      }
-    ],
-    "https://w3id.org/airo#hasPurpose": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#purpose"
-      }
-    ],
-    "https://w3id.org/airo#hasRisk": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk3"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4"
-      }
-    ],
-    "https://w3id.org/airo#isAppliedWithinDomain": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#domain0"
-      }
-    ],
-    "https://w3id.org/airo#isDeployedBy": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#deployer"
-      }
-    ],
-    "https://w3id.org/airo#isProvidedBy": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#provider"
-      }
-    ],
-    "https://w3id.org/airo#isUsedWithinLocality": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#locality0"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#locality1"
-      }
-    ],
-    "https://w3id.org/airo#usesTechnique": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#technique0"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#technique1"
-      },
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#technique2"
-      }
-    ]
-  },
-  {
-    "@id": "_:N94b2494779014d8782069cde581b493e",
-    "https://lux-ai-factory.github.io/qualification/ns#citation": [
-      {
-        "@value": "Annex IV(1)(a)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
-      {
-        "@value": "annex-1:1a"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#text": [
-      {
-        "@value": "v1.2.0 follows v1.1.x. It recalibrates the scoring model on 2025 outcome data, adds the Dutch market, and moves the LLM explanation module from a single prompt to a retrieval-grounded one so explanations cite the applicable policy clause. The Approve/Review/Reject thresholds are unchanged from v1.1.3. v1.0.x is end-of-life; v1.1.3 remains supported until the next annual recalibration."
-      }
-    ]
-  },
-  {
-    "@id": "_:N27caa2ecd4fc4d2f8390408807393009",
-    "https://lux-ai-factory.github.io/qualification/ns#citation": [
-      {
-        "@value": "Annex IV(1)(b)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
-      {
-        "@value": "annex-1:1b"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#text": [
-      {
-        "@value": "MCAS is not used standalone. It ingests credit bureau records over the bureaux' own APIs, reads PSD2-authorised account data through the bank's aggregation layer, and returns scores and recommendations into the bank's core lending system over a documented REST interface. The LLM explanation module calls a hosted third-party model. The web portal, mobile app and staff dashboard that show the outputs belong to the deployer bank, not to the provider."
-      }
-    ]
-  },
-  {
-    "@id": "_:Nd18f771e0daf4e789a8a5229f0d3da04",
-    "https://lux-ai-factory.github.io/qualification/ns#citation": [
-      {
-        "@value": "Annex IV(1)(c)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
-      {
-        "@value": "annex-1:1c"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#text": [
-      {
-        "@value": "Deployed as the 1.2.x scoring service (Python 3.11, on-premise container) alongside the 0.9.x retrieval index for policy documentation. It requires the bank's aggregation layer at API version 3 or later. Patch releases may be applied by the bank within its own change window. Any recalibration of the model, any change to a decision threshold, and any change of the underlying LLM require re-validation and a fresh compliance sign-off before they are enabled in production."
-      }
-    ]
-  },
-  {
-    "@id": "_:N7e2412c2c54a45218a0fb2ccbd9881b1",
-    "https://lux-ai-factory.github.io/qualification/ns#citation": [
-      {
-        "@value": "Annex IV(1)(d)-(e)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
-      {
-        "@value": "annex-1:1de"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#text": [
-      {
-        "@value": "MCAS is put into service as a proprietary on-premise deployment inside each deployer bank's own data centre, with contractual audit access for the provider and the bank's regulator; there is no public download and no multi-tenant hosted form. Validated on x86-64 servers with 16 vCPU and 64 GB RAM; the gradient-boosted model runs on CPU, while the retrieval index requires 100 GB of local SSD. The third-party LLM is reached as an external API, so no GPU is required on the bank's premises."
-      }
-    ]
-  },
-  {
-    "@id": "_:N26a965ff275942dbb0d89d4fddb35b92",
-    "https://lux-ai-factory.github.io/qualification/ns#citation": [
-      {
-        "@value": "Annex IV(1)(g)-(h)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
-      {
-        "@value": "annex-1:1gh"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#text": [
-      {
-        "@value": "Loan officers and compliance staff use a case dashboard showing the 0-1000 score, the risk category, the recommendation, the influential factors, the generated explanation with its cited policy clause, and the full decision audit trail; it is also where an override is entered. Instructions for use ship as a versioned PDF plus an in-product help centre keyed to the running version, covering intended purpose, the supported loan range and markets, accuracy bounds, known limitations, the mandatory human review of every rejection and Review-bucket case, the written-justification requirement for overrides, and the escalation path to the bank's risk committee."
-      }
-    ]
-  },
-  {
-    "@id": "_:Na1d487280eb24c69a7b5256959c7cebb",
-    "https://lux-ai-factory.github.io/qualification/ns#citation": [
+    "https://lux-ai-factory.github.io/qualification/ns#derivedFrom": [
       {
         "@value": "Annex IV(2)(a)"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
       {
-        "@value": "annex-2:2a"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#text": [
-      {
-        "@value": "The scoring model was built in-house: feature engineering on bureau, transaction and application data, then a gradient-boosted decision tree trained on the bank's historical loan outcomes. No pre-trained model is used for scoring. The explanation module wraps a hosted third-party LLM, used as-is with no fine-tuning, constrained by a retrieval index over the bank's own policy documentation and by a fixed system prompt held in version control. Policy rules (debt-to-income limits, age requirements, bankruptcy triggers) are hand-written and reviewed by compliance. Every stage has a named owner and a sign-off recorded in the design log."
+        "@value": "extracted"
       }
     ]
   },
   {
-    "@id": "_:N303a4bc3b8af4680b433974ed96f66ee",
-    "https://lux-ai-factory.github.io/qualification/ns#citation": [
-      {
-        "@value": "Annex IV(2)(b)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
-      {
-        "@value": "annex-2:2b"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#text": [
-      {
-        "@value": "The model estimates probability of default over the loan term from bureau history, twelve months of aggregated transaction features, and application data; that probability is mapped to a 0-1000 score and then to Low/Medium/High and Approve/Review/Reject by fixed thresholds. It optimises for ranking quality (AUC) rather than raw accuracy, because the thresholds are set separately by the bank's risk appetite; the rationale is that a mis-ranked applicant is the real error, while the cut-off is a policy choice. Key assumptions: bureau coverage is complete for the deployment markets, twelve months of account history exist, and every rejection is reviewed by a human. The subjects are individual loan applicants, so protected attributes are excluded as direct features and monitored as fairness strata instead. Expected output is a score, a category, a recommendation, the influential factors, and a plain-language explanation citing a policy clause. The trade-off accepted for Chapter III Section 2 is the choice of a monotonic gradient-boosted tree over a higher-scoring unconstrained ensemble: it costs about 0.9 AUC points and buys per-factor explanations a loan officer can defend to an applicant."
-      }
-    ]
-  },
-  {
-    "@id": "_:Nca02be7b137a4d2bb59af660c2aa6f56",
-    "https://lux-ai-factory.github.io/qualification/ns#citation": [
-      {
-        "@value": "Annex IV(2)(c)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
-      {
-        "@value": "annex-2:2c"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#text": [
-      {
-        "@value": "Five components: an ingest and feature service that pulls bureau, PSD2 and application data and computes features; the scoring model; a policy-rule engine applying the hard eligibility rules; a retrieval-grounded explanation service that calls the external LLM; and a case and audit service backing the staff dashboard. The rule engine can veto an Approve recommendation but never creates one, so policy rules are always the tighter constraint. Components run as separate on-premise containers over an internal queue. Training and quarterly recalibration use a 32-vCPU CPU cluster, roughly 40 core-hours per run; no GPU is used on-premise, and validation runs on the same hardware as production."
-      }
-    ]
-  },
-  {
-    "@id": "_:N4e873989a0b044a5a5e8e5f92118b852",
-    "https://lux-ai-factory.github.io/qualification/ns#citation": [
-      {
-        "@value": "Annex IV(2)(d)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
-      {
-        "@value": "annex-2:2d"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#text": [
-      {
-        "@value": "Training used about 620,000 loan outcomes from the bank's last seven years (default/no-default labels), credit bureau records ingested under DPA-compliant contracts, twelve-month aggregated transaction features from PSD2-authorised access, and coarse demographic fields (age band, postal-code area). Provenance, licensing and consent basis are recorded per source in the data registry. Selection is stratified across the three deployment markets and across age bands, income deciles and postal-code clusters, with oversampling of historically under-represented postal areas. Labels come from the bank's own repayment records rather than manual annotation; the definition of default follows the regulatory 90-days-past-due rule. Cleaning removes duplicate applications, drops records with incomplete bureau coverage, winsorises transaction features at the 1st and 99th percentiles, and excludes the 2020-2021 payment-holiday period from the default definition to avoid encoding a policy artefact as credit risk."
-      }
-    ]
-  },
-  {
-    "@id": "_:N324c878eabe044a7b59aea032f65313e",
-    "https://lux-ai-factory.github.io/qualification/ns#citation": [
-      {
-        "@value": "Annex IV(2)(e)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
-      {
-        "@value": "annex-2:2e"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#text": [
-      {
-        "@value": "Article 14 oversight is structural: every rejection and every Review-bucket case goes to a trained loan officer before any binding decision reaches the applicant, and no adverse decision is ever issued on the model's output alone. Officers can approve, reject or override with a mandatory written justification recorded against the case, and can suspend automated scoring for a branch or market from the dashboard. The LLM chatbot is explicitly non-binding and refuses appeal advice; appeals are human-only. For Article 13(3), point (d), each case shows the score, the risk category, the influential factors with their direction and magnitude, the policy clause cited by the explanation, and a distribution plot placing the applicant against the recent population, so an officer can see how the recommendation arose and how confident it is. Because agreement with the model is the path of least resistance, the dashboard also tracks each officer's override rate against the branch median and flags officers who never diverge, and refresher training covers automation bias explicitly."
-      }
-    ]
-  },
-  {
-    "@id": "_:N64406fd069d8485aa2c5c86e22928032",
-    "https://lux-ai-factory.github.io/qualification/ns#citation": [
-      {
-        "@value": "Annex IV(2)(f)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
-      {
-        "@value": "annex-2:2f"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#text": [
-      {
-        "@value": "Two pre-determined changes are in scope. First, an annual recalibration of the scoring model on the most recent outcome data, on a fixed schedule with unchanged features and unchanged thresholds. Second, a quarterly refresh of the retrieval index when the bank's policy documentation changes. Both are covered by a written change procedure: the recalibrated model must clear the same validation suite and the same fairness acceptance bands as the release it replaces, the comparison is signed off by compliance before deployment, and the previous version stays deployable for rollback for one quarter. Changes to features, thresholds or the underlying LLM are explicitly outside the pre-determined set and require a full re-qualification."
-      }
-    ]
-  },
-  {
-    "@id": "_:N3968713d308c4fa69577cf5aec9142a7",
-    "https://lux-ai-factory.github.io/qualification/ns#citation": [
-      {
-        "@value": "Annex IV(2)(g)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
-      {
-        "@value": "annex-2:2g"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#text": [
-      {
-        "@value": "Validation uses a temporally held-out set of the most recent 90,000 applications, so the model is always tested on outcomes later than anything it trained on, plus a per-market split for DE, FR and NL. Reported metrics are AUC and KS for ranking quality, calibration error by score decile, approval and default rates per threshold band, and stability of the score distribution against the production baseline. Robustness is tested by withholding each data source in turn, since bureau or PSD2 outages happen in production. Potentially discriminatory impact is measured quarterly as demographic parity and equal-opportunity difference across age band, gender via bureau proxy, and postal-code SES proxy, together with override rates by stratum to catch bias entering through human review; the last two audits showed no disparity above the 5% acceptance threshold in any deployed market. Test logs, the fairness audit and the dated, signed validation report are retained for 10 years in the release record."
-      }
-    ]
-  },
-  {
-    "@id": "_:N80eabe9ee69b44dd95ef781d9368f7f4",
-    "https://lux-ai-factory.github.io/qualification/ns#citation": [
-      {
-        "@value": "Annex IV(2)(h)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
-      {
-        "@value": "annex-2:2h"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#text": [
-      {
-        "@value": "The deployment is on-premise with no inbound internet exposure; bureau, PSD2 and LLM calls leave through an egress proxy with an allow-list. Applicant data is encrypted at rest and in transit, and the payload sent to the external LLM is restricted to the derived explanation factors, never raw applicant identifiers or account data. Container images are signed and verified at deploy; secrets live in the bank's vault. The dashboard enforces SSO with role separation between loan officer, compliance and administrator, and every read of an applicant case is written to an append-only audit log. Dependencies are pinned and scanned on each build with a documented patch window for critical CVEs; model artefacts are checksummed at load; and the prompt and retrieval index are version-controlled so an explanation can always be reproduced from the release record."
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_consequence",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_vulnerability",
     "@type": [
-      "https://w3id.org/airo#Consequence",
-      "https://w3id.org/vair#ImpairedDecisionMaking"
+      "https://w3id.org/airo#Vulnerability"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Human review becomes a formality"
+        "@value": "Recommendation shown before the factors"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
       {
-        "@value": "The mandatory human review becomes a formality, so an incorrect score is issued as a binding decision with no effective safeguard"
+        "@value": "The dashboard presents the recommendation before the underlying factors, which anchors the officer on the model's answer"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
       {
         "@value": "form"
-      }
-    ],
-    "https://w3id.org/airo#hasImpact": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_impact"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_impact",
-    "@type": [
-      "https://w3id.org/airo#Impact",
-      "https://w3id.org/vair#UnfavourableTreatment"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Applicant wrongly ranked high risk"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "An applicant is wrongly ranked as high risk and routed to Reject"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ],
-    "https://w3id.org/airo#hasImpactOnArea": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_right"
-      }
-    ],
-    "https://w3id.org/airo#hasImpactOnStakeholder": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#users"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_control",
-    "@type": [
-      "https://w3id.org/airo#RiskControl",
-      "https://w3id.org/vair#MonitoringMeasure"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Override rates tracked against the median"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "Officer override rates are tracked against the branch median, officers who never diverge are flagged for review, and refresher training covers automation bias explicitly"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ],
-    "https://w3id.org/airo#isFollowedByControl": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_control_followup"
-      }
-    ],
-    "https://w3id.org/airo#modifiesRiskConcept": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2"
       }
     ]
   },
@@ -785,10 +435,10 @@
     ],
     "https://w3id.org/airo#hasImpactOnArea": [
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_right"
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_Right"
       },
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_freedom"
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_Freedom"
       }
     ],
     "https://w3id.org/airo#hasImpactOnStakeholder": [
@@ -798,41 +448,19 @@
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_control_followup",
-    "@type": [
-      "https://w3id.org/airo#RiskControl",
-      "https://w3id.org/vair#OrganisationalMeasure"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Withdraw approval rights pending retraining"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "Withdraw the officer's approval rights pending retraining and route their queue to a second reviewer"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_source",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_source",
     "@type": [
       "https://w3id.org/airo#RiskSource",
-      "https://w3id.org/vair#Attack"
+      "https://w3id.org/vair#InsufficientHumanOversightMeasure"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Attack on a bureau feed"
+        "@value": "Automation bias under throughput targets"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
       {
-        "@value": "An attacker with access to a bureau feed injects records designed to shift the score distribution for a chosen segment"
+        "@value": "Automation bias: agreeing with the model is faster than justifying a divergence, and the queue is measured on throughput"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
@@ -842,50 +470,61 @@
     ],
     "https://w3id.org/airo#exploitsVulnerability": [
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_vulnerability"
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_vulnerability"
       }
     ],
     "https://w3id.org/airo#isRiskSourceFor": [
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4"
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2"
       }
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_vulnerability",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk3_source",
     "@type": [
-      "https://w3id.org/airo#Vulnerability"
+      "https://w3id.org/airo#RiskSource",
+      "https://w3id.org/vair#ErroneousInputData"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "No low-coverage path in the features"
+        "@value": "Retrieval index out of date"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
       {
-        "@value": "The features assume complete bureau history in every deployment market; there is no explicit low-coverage path"
+        "@value": "The retrieval index over the bank's policy documentation falls out of date after a policy change"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
       {
         "@value": "form"
       }
+    ],
+    "https://w3id.org/airo#exploitsVulnerability": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk3_vulnerability"
+      }
+    ],
+    "https://w3id.org/airo#isRiskSourceFor": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk3"
+      }
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability2",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#modality1",
     "@type": [
-      "https://w3id.org/airo#AICapability",
-      "https://w3id.org/vair#Profiling"
+      "https://w3id.org/airo#Modality",
+      "https://w3id.org/vair#Service"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Predictive & Analytical AI / Predictive Analytics"
+        "@value": "Service"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#formTag": [
       {
-        "@value": "predictive-analytical-ai:predictive-analytics"
+        "@value": "Service"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
@@ -895,19 +534,18 @@
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_source",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2",
     "@type": [
-      "https://w3id.org/airo#RiskSource",
-      "https://w3id.org/vair#DataRiskSource"
+      "https://w3id.org/airo#Risk"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Thin or stale bureau data"
+        "@value": "Officers rubber-stamp the recommendation"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
       {
-        "@value": "Credit bureau coverage is incomplete or stale for that applicant, so the model scores them on thin data"
+        "@value": "Loan officers rubber-stamp the recommendation instead of reviewing it"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
@@ -915,14 +553,86 @@
         "@value": "form"
       }
     ],
-    "https://w3id.org/airo#exploitsVulnerability": [
+    "https://w3id.org/airo#hasConsequence": [
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_vulnerability"
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_consequence"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000006",
+    "@type": [
+      "https://w3id.org/airo#Data"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Policy documentation retrieval index"
       }
     ],
-    "https://w3id.org/airo#isRiskSourceFor": [
+    "https://lux-ai-factory.github.io/qualification/ns#componentKey": [
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0"
+        "@value": "00000000-0000-4000-8000-000000000006"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#kind": [
+      {
+        "@value": "other_data"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provider": [
+      {
+        "@value": "in_house"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#role": [
+      {
+        "@value": "Version-controlled index over the bank's own policy documentation that grounds the explanations; refreshed quarterly when the policies change."
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#termNotApplicable": [
+      {
+        "@type": "http://www.w3.org/2001/XMLSchema#boolean",
+        "@value": true
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1_impact",
+    "@type": [
+      "https://w3id.org/airo#Impact",
+      "https://w3id.org/vair#DiscriminatoryTreatment"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Approval rates diverge across groups"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "Approval rates diverge across protected groups"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://w3id.org/airo#hasImpactOnArea": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_Right"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_Freedom"
+      }
+    ],
+    "https://w3id.org/airo#hasImpactOnStakeholder": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#users"
       }
     ]
   },
@@ -985,19 +695,41 @@
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_control_followup",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#technique1",
     "@type": [
-      "https://w3id.org/airo#RiskControl",
-      "https://w3id.org/vair#MitigationMeasure"
+      "https://w3id.org/airo#AITechnique",
+      "https://w3id.org/vair#LogicBasedTechnique"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Roll back and notify the authority"
+        "@value": "Policy eligibility rules"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+    "https://lux-ai-factory.github.io/qualification/ns#derivedFrom": [
       {
-        "@value": "Roll back to the previous signed model, which stays deployable for one quarter, and notify the deployer banks and the market surveillance authority"
+        "@value": "Annex IV(2)(a)"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "extracted"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_Right",
+    "@type": [
+      "https://w3id.org/airo#AreaOfImpact",
+      "https://w3id.org/vair#Right"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Right"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
+      {
+        "@value": "Right"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
@@ -1007,19 +739,41 @@
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_source",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability2",
     "@type": [
-      "https://w3id.org/airo#RiskSource",
-      "https://w3id.org/vair#OrganisationalRiskSource"
+      "https://w3id.org/airo#AICapability",
+      "https://w3id.org/vair#QuestionAnswering"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Automation bias under throughput targets"
+        "@value": "Question Answering"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
+      {
+        "@value": "QuestionAnswering"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_consequence",
+    "@type": [
+      "https://w3id.org/airo#Consequence",
+      "https://w3id.org/vair#DegradedAccuracy"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Recalibrated model misranks a segment"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
       {
-        "@value": "Automation bias: agreeing with the model is faster than justifying a divergence, and the queue is measured on throughput"
+        "@value": "The recalibrated model systematically misranks a segment of applicants, and the drift is inside the normal seasonal range so monitoring does not catch it"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
@@ -1027,14 +781,260 @@
         "@value": "form"
       }
     ],
-    "https://w3id.org/airo#exploitsVulnerability": [
+    "https://w3id.org/airo#hasImpact": [
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_vulnerability"
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_impact"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000004",
+    "@type": [
+      "https://w3id.org/airo#AIComponent"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Explanation service"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#componentKey": [
+      {
+        "@value": "00000000-0000-4000-8000-000000000004"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#kind": [
+      {
+        "@value": "interface"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provider": [
+      {
+        "@value": "in_house"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#role": [
+      {
+        "@value": "Retrieval-grounded service that writes the plain-language explanation citing the applicable policy clause, and answers customer questions from the policy documentation; it calls the hosted LLM."
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#termNotApplicable": [
+      {
+        "@type": "http://www.w3.org/2001/XMLSchema#boolean",
+        "@value": true
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_Safety",
+    "@type": [
+      "https://w3id.org/airo#AreaOfImpact",
+      "https://w3id.org/vair#Safety"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Safety"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
+      {
+        "@value": "Safety"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0",
+    "@type": [
+      "https://w3id.org/airo#Risk"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Applicant wrongly ranked high risk"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "An applicant is wrongly ranked as high risk and routed to Reject"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://w3id.org/airo#hasConsequence": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_consequence"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_control",
+    "@type": [
+      "https://w3id.org/airo#RiskControl",
+      "https://w3id.org/vair#HumanOversightMeasure"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Officer review of every Reject"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "Every Reject and every Review case goes to a trained loan officer before any decision reaches the applicant; bureau coverage below the configured threshold forces the case into Review"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://w3id.org/airo#isFollowedByControl": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_control_followup"
+      }
+    ],
+    "https://w3id.org/airo#modifiesRiskConcept": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_consequence",
+    "@type": [
+      "https://w3id.org/airo#Consequence",
+      "https://w3id.org/vair#ImpairedDecisionMaking"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Human review becomes a formality"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "The mandatory human review becomes a formality, so an incorrect score is issued as a binding decision with no effective safeguard"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://w3id.org/airo#hasImpact": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_impact"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_control",
+    "@type": [
+      "https://w3id.org/airo#RiskControl",
+      "https://w3id.org/vair#MonitoringMeasure"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Override rates tracked against the median"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "Officer override rates are tracked against the branch median, officers who never diverge are flagged for review, and refresher training covers automation bias explicitly"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://w3id.org/airo#isFollowedByControl": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_control_followup"
+      }
+    ],
+    "https://w3id.org/airo#modifiesRiskConcept": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_control_followup",
+    "@type": [
+      "https://w3id.org/airo#RiskControl",
+      "https://w3id.org/vair#OverridingOutcome"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Override with written justification"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "The officer may override the recommendation with a mandatory written justification recorded against the case, and the applicant is told how to contest the outcome"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1_source",
+    "@type": [
+      "https://w3id.org/airo#RiskSource",
+      "https://w3id.org/vair#BiasedTrainingData"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Postal-code features as a proxy"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "Postal-code and transaction features act as proxies for ethnicity and socio-economic status even though protected attributes are excluded as direct inputs"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
       }
     ],
     "https://w3id.org/airo#isRiskSourceFor": [
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2"
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_vulnerability",
+    "@type": [
+      "https://w3id.org/airo#Vulnerability"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "No low-coverage path in the features"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "The features assume complete bureau history in every deployment market; there is no explicit low-coverage path"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
       }
     ]
   },
@@ -1051,7 +1051,7 @@
     ],
     "https://lux-ai-factory.github.io/qualification/ns#formTag": [
       {
-        "@value": "workplace"
+        "@value": "Workplace"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
@@ -1061,138 +1061,135 @@
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component3",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#provider",
     "@type": [
-      "https://w3id.org/airo#AIComponent",
-      "https://w3id.org/vair#ApplicationPlatform"
+      "https://w3id.org/airo#AIOperator"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "On-premise service tier"
+        "@value": "Creditum AI SARL"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#derivedFrom": [
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
       {
-        "@value": "Annex IV(2)(c)"
+        "@value": "Creditum AI SARL (Luxembourg)"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
       {
-        "@value": "extracted"
+        "@value": "form"
       }
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability3",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1_control",
+    "@type": [
+      "https://w3id.org/airo#RiskControl",
+      "https://w3id.org/vair#BiasDetection"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Quarterly fairness audit, 5% band"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "Quarterly fairness audit measuring demographic parity and equal-opportunity difference across age band, gender proxy and postal-code SES proxy, with a 5% acceptance band, plus override rates by stratum to catch bias entering through human review"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://w3id.org/airo#isFollowedByControl": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1_control_followup"
+      }
+    ],
+    "https://w3id.org/airo#modifiesRiskConcept": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4",
+    "@type": [
+      "https://w3id.org/airo#Risk"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Training data poisoned via the bureau feed"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "Training data is poisoned through the bureau ingestion path"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://w3id.org/airo#hasConsequence": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_consequence"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability1",
     "@type": [
       "https://w3id.org/airo#AICapability",
       "https://w3id.org/vair#NaturalLanguageGeneration"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Text Generation & Summarization"
+        "@value": "Natural Language Generation"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#formTag": [
       {
-        "@value": "natural-language-processing:text-generation-summarization"
+        "@value": "NaturalLanguageGeneration"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_impact",
+    "@type": [
+      "https://w3id.org/airo#Impact",
+      "https://w3id.org/vair#UnfavourableTreatment"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Applicant wrongly ranked high risk"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
       {
-        "@value": "Natural Language Processing / Text Generation & Summarization"
+        "@value": "An applicant is wrongly ranked as high risk and routed to Reject"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
       {
         "@value": "form"
       }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_freedom",
-    "@type": [
-      "https://w3id.org/airo#AreaOfImpact",
-      "https://w3id.org/vair#Freedom"
     ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
+    "https://w3id.org/airo#hasImpactOnArea": [
       {
-        "@value": "Freedom"
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_Right"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
+    "https://w3id.org/airo#hasImpactOnStakeholder": [
       {
-        "@value": "freedom"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_safety",
-    "@type": [
-      "https://w3id.org/airo#AreaOfImpact",
-      "https://w3id.org/vair#Safety"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Safety"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
-      {
-        "@value": "safety"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_vulnerability",
-    "@type": [
-      "https://w3id.org/airo#Vulnerability"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Bureau records ingested unsigned"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "Recalibration ingests bureau records without provenance signing, so a tampered batch is indistinguishable from a genuine one"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability5",
-    "@type": [
-      "https://w3id.org/airo#AICapability",
-      "https://w3id.org/vair#InformationRetrieval"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Knowledge & Retrieval / Retrieval-Augmented Generation (RAG)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
-      {
-        "@value": "knowledge-retrieval:retrieval-augmented-generation-rag"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#subject_NaturalPerson"
       }
     ]
   },
@@ -1224,19 +1221,14 @@
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#modality1",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#subject_NaturalPerson",
     "@type": [
-      "https://w3id.org/airo#Modality",
-      "https://w3id.org/vair#Service"
+      "https://w3id.org/airo#AISubject",
+      "https://w3id.org/vair#NaturalPerson"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Service (online service or API)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
-      {
-        "@value": "service"
+        "@value": "Natural Person"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
@@ -1246,79 +1238,10 @@
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#modality0",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_impact",
     "@type": [
-      "https://w3id.org/airo#Modality",
-      "https://w3id.org/vair#Software"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Software (download or installed package)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
-      {
-        "@value": "software"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component1",
-    "@type": [
-      "https://w3id.org/airo#AIComponent",
-      "https://w3id.org/vair#Algorithm"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Policy-rule engine"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#derivedFrom": [
-      {
-        "@value": "Annex IV(2)(c)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "extracted"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0",
-    "@type": [
-      "https://w3id.org/airo#Risk"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Applicant wrongly ranked high risk"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "An applicant is wrongly ranked as high risk and routed to Reject"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ],
-    "https://w3id.org/airo#hasConsequence": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_consequence"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4",
-    "@type": [
-      "https://w3id.org/airo#Risk"
+      "https://w3id.org/airo#Impact",
+      "https://w3id.org/vair#DetrimentalTreatment"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
@@ -1335,188 +1258,103 @@
         "@value": "form"
       }
     ],
-    "https://w3id.org/airo#hasConsequence": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_consequence"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1_control",
-    "@type": [
-      "https://w3id.org/airo#RiskControl",
-      "https://w3id.org/vair#MonitoringMeasure"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Quarterly fairness audit, 5% band"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "Quarterly fairness audit measuring demographic parity and equal-opportunity difference across age band, gender proxy and postal-code SES proxy, with a 5% acceptance band, plus override rates by stratum to catch bias entering through human review"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ],
-    "https://w3id.org/airo#isFollowedByControl": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1_control_followup"
-      }
-    ],
-    "https://w3id.org/airo#modifiesRiskConcept": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#technique0",
-    "@type": [
-      "https://w3id.org/airo#AITechnique",
-      "https://w3id.org/vair#MachineLearning"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Gradient-boosted decision tree"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#derivedFrom": [
-      {
-        "@value": "Annex IV(2)(a)"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "extracted"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1",
-    "@type": [
-      "https://w3id.org/airo#Risk"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Approval rates diverge across groups"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "Approval rates diverge across protected groups"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ],
-    "https://w3id.org/airo#hasConsequence": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1_consequence"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#users",
-    "@type": [
-      "https://w3id.org/airo#AIUser"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Loan applicants, officers and compliance staff"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "Primary: bank customers aged 18+ applying for consumer loans through the bank's web portal or mobile app. Secondary: bank loan officers and compliance staff who monitor decisions, conduct manual reviews of borderline cases, and can approve, reject, or override outcomes with mandatory written justification."
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_control_followup",
-    "@type": [
-      "https://w3id.org/airo#RiskControl",
-      "https://w3id.org/vair#OperationalMeasure"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Override with written justification"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "The officer may override the recommendation with a mandatory written justification recorded against the case, and the applicant is told how to contest the outcome"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_vulnerability",
-    "@type": [
-      "https://w3id.org/airo#Vulnerability"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Recommendation shown before the factors"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "The dashboard presents the recommendation before the underlying factors, which anchors the officer on the model's answer"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1_impact",
-    "@type": [
-      "https://w3id.org/airo#Impact",
-      "https://w3id.org/vair#DiscriminatoryTreatment"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Approval rates diverge across groups"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "Approval rates diverge across protected groups"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ],
     "https://w3id.org/airo#hasImpactOnArea": [
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_right"
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_Safety"
       },
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_freedom"
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_Right"
       }
     ],
     "https://w3id.org/airo#hasImpactOnStakeholder": [
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#users"
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#provider"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_control_followup",
+    "@type": [
+      "https://w3id.org/airo#RiskControl",
+      "https://w3id.org/vair#Intervention"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Roll back and notify the authority"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "Roll back to the previous signed model, which stays deployable for one quarter, and notify the deployer banks and the market surveillance authority"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000007",
+    "@type": [
+      "https://w3id.org/airo#AIComponent"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Case and audit service"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#componentKey": [
+      {
+        "@value": "00000000-0000-4000-8000-000000000007"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#kind": [
+      {
+        "@value": "interface"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provider": [
+      {
+        "@value": "in_house"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#role": [
+      {
+        "@value": "Backs the staff dashboard: the cases loan officers review, their overrides with written justification, and the append-only audit log of every read of an applicant case."
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#termNotApplicable": [
+      {
+        "@type": "http://www.w3.org/2001/XMLSchema#boolean",
+        "@value": true
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_control_followup",
+    "@type": [
+      "https://w3id.org/airo#RiskControl",
+      "https://w3id.org/vair#OrganisationalMeasure"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Withdraw approval rights pending retraining"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "Withdraw the officer's approval rights pending retraining and route their queue to a second reviewer"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
       }
     ]
   },
@@ -1542,117 +1380,541 @@
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1_control_followup",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#system",
     "@type": [
-      "https://w3id.org/airo#RiskControl",
-      "https://w3id.org/vair#OperationalMeasure"
+      "https://w3id.org/airo#AISystem",
+      "https://w3id.org/vair#NarrowAI"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Suspend scoring for the market"
+        "@value": "MicroCredit Assist Score (MCAS) v1.2.0"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+    "https://lux-ai-factory.github.io/qualification/ns#answer": [
       {
-        "@value": "Suspend automated scoring for the affected market and fall back to manual underwriting until the next recalibration clears the band"
+        "@id": "_:N0033404e981f45ea95b50d419b931bed"
+      },
+      {
+        "@id": "_:N74dfe7ef9e8f4e918dd8f1f7398efc9c"
+      },
+      {
+        "@id": "_:N684c860c1fff40b99b5dbe7629d649ef"
+      },
+      {
+        "@id": "_:Ne5be9927e1b74d4f9f4b3cdc05f735ab"
+      },
+      {
+        "@id": "_:N1ace5d6cffb7478b88f35b8224365818"
+      },
+      {
+        "@id": "_:N4c7be330d5604f5ba58580b07eea120e"
+      },
+      {
+        "@id": "_:Nea247e02ea0845b2b1d606786c7fde91"
+      },
+      {
+        "@id": "_:N151c317b66184ce49b3e880aef7c9f23"
+      },
+      {
+        "@id": "_:Nf5934ec650bc4a868f137449693205a8"
+      },
+      {
+        "@id": "_:Nfdf568017a3c4d3aa8d7e493c317fc6a"
+      },
+      {
+        "@id": "_:N91e85cc18303433fa5070cbc5447dfc7"
+      },
+      {
+        "@id": "_:N783e524d8c584070a958e09cc5b781bd"
+      },
+      {
+        "@id": "_:N1daeee7a5d3c49918626990a58094bac"
+      },
+      {
+        "@id": "_:N88a42095b1e9490081f20bf0c0708f8b"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#builtWith": [
+      {
+        "@value": "airo_min:1.1"
+      },
+      {
+        "@value": "airo.ttl:sha256:6274d2d8711e046cf38f1b5b2980188094d4aa87b5af79804005a06468fd8469"
+      },
+      {
+        "@value": "vair.ttl:sha256:6b42323726e7a82a5c4782a6d9398fc44db21bd4e0ca9fd4807558190c173605"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#description": [
+      {
+        "@value": "Credit scoring system that evaluates creditworthiness for short-term consumer loans (€100–€5,000). It combines a gradient-boosted decision tree on applicant data with an LLM chatbot that produces natural-language explanations and answers customer questions from policy documentation. Licensing: proprietary, on-premise with audit access. Documentation: https://docs.microcreditassist.ai (public technical docs, API specs, deployment guides)."
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
       {
         "@value": "form"
       }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#qualificationId": [
+      {
+        "@value": "cmtvr6g8z0000c8pi3hisc5oa"
+      }
+    ],
+    "https://w3id.org/airo#hasAISubject": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#subject_NaturalPerson"
+      }
+    ],
+    "https://w3id.org/airo#hasAIUser": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#users"
+      }
+    ],
+    "https://w3id.org/airo#hasCapability": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability0"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability1"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability2"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability3"
+      }
+    ],
+    "https://w3id.org/airo#hasComponent": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000001"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000003"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000004"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000006"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000007"
+      }
+    ],
+    "https://w3id.org/airo#hasModality": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#modality0"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#modality1"
+      }
+    ],
+    "https://w3id.org/airo#hasModel": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000002"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000005"
+      }
+    ],
+    "https://w3id.org/airo#hasPurpose": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#purpose"
+      }
+    ],
+    "https://w3id.org/airo#hasRisk": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk1"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk3"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4"
+      }
+    ],
+    "https://w3id.org/airo#hasTrainingData": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000008"
+      }
+    ],
+    "https://w3id.org/airo#hasValidationData": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000009"
+      }
+    ],
+    "https://w3id.org/airo#isAppliedWithinDomain": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#domain0"
+      }
+    ],
+    "https://w3id.org/airo#isDeployedBy": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#deployer"
+      }
+    ],
+    "https://w3id.org/airo#isProvidedBy": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#provider"
+      }
+    ],
+    "https://w3id.org/airo#isUsedWithinLocality": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#locality0"
+      }
+    ],
+    "https://w3id.org/airo#usesTechnique": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#technique0"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#technique1"
+      },
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#technique2"
+      }
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#technique2",
-    "@type": [
-      "https://w3id.org/airo#AITechnique",
-      "https://w3id.org/vair#KnowledgeBasedTechnique"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
+    "@id": "_:N0033404e981f45ea95b50d419b931bed",
+    "https://lux-ai-factory.github.io/qualification/ns#citation": [
       {
-        "@value": "Policy-document retrieval"
+        "@value": "Annex IV(1)(a)"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#derivedFrom": [
+    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
+      {
+        "@value": "annex-1:1a"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#text": [
+      {
+        "@value": "v1.2.0 follows v1.1.x. It recalibrates the scoring model on 2025 outcome data, adds the Dutch market, and moves the LLM explanation module from a single prompt to a retrieval-grounded one so explanations cite the applicable policy clause. The Approve/Review/Reject thresholds are unchanged from v1.1.3. v1.0.x is end-of-life; v1.1.3 remains supported until the next annual recalibration."
+      }
+    ]
+  },
+  {
+    "@id": "_:N74dfe7ef9e8f4e918dd8f1f7398efc9c",
+    "https://lux-ai-factory.github.io/qualification/ns#citation": [
+      {
+        "@value": "Annex IV(1)(b)"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
+      {
+        "@value": "annex-1:1b"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#text": [
+      {
+        "@value": "MCAS is not used standalone. It ingests credit bureau records over the bureaux' own APIs, reads PSD2-authorised account data through the bank's aggregation layer, and returns scores and recommendations into the bank's core lending system over a documented REST interface. The LLM explanation module calls a hosted third-party model. The web portal, mobile app and staff dashboard that show the outputs belong to the deployer bank, not to the provider."
+      }
+    ]
+  },
+  {
+    "@id": "_:N684c860c1fff40b99b5dbe7629d649ef",
+    "https://lux-ai-factory.github.io/qualification/ns#citation": [
+      {
+        "@value": "Annex IV(1)(c)"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
+      {
+        "@value": "annex-1:1c"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#text": [
+      {
+        "@value": "Deployed as the 1.2.x scoring service (Python 3.11, on-premise container) alongside the 0.9.x retrieval index for policy documentation. It requires the bank's aggregation layer at API version 3 or later. Patch releases may be applied by the bank within its own change window. Any recalibration of the model, any change to a decision threshold, and any change of the underlying LLM require re-validation and a fresh compliance sign-off before they are enabled in production."
+      }
+    ]
+  },
+  {
+    "@id": "_:Ne5be9927e1b74d4f9f4b3cdc05f735ab",
+    "https://lux-ai-factory.github.io/qualification/ns#citation": [
+      {
+        "@value": "Annex IV(1)(d)-(e)"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
+      {
+        "@value": "annex-1:1de"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#text": [
+      {
+        "@value": "MCAS is put into service as a proprietary on-premise deployment inside each deployer bank's own data centre, with contractual audit access for the provider and the bank's regulator; there is no public download and no multi-tenant hosted form. Validated on x86-64 servers with 16 vCPU and 64 GB RAM; the gradient-boosted model runs on CPU, while the retrieval index requires 100 GB of local SSD. The third-party LLM is reached as an external API, so no GPU is required on the bank's premises."
+      }
+    ]
+  },
+  {
+    "@id": "_:N1ace5d6cffb7478b88f35b8224365818",
+    "https://lux-ai-factory.github.io/qualification/ns#citation": [
+      {
+        "@value": "Annex IV(1)(f)"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
+      {
+        "@value": "annex-1:1f"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#text": [
+      {
+        "@value": "No physical product. MCAS is software: it runs as a set of containers on the deployer bank's own servers and reaches its users through the bank's web portal, mobile app and staff dashboard. There is nothing to photograph, no markings and no internal arrangement to describe, so no drawings are held."
+      }
+    ]
+  },
+  {
+    "@id": "_:N4c7be330d5604f5ba58580b07eea120e",
+    "https://lux-ai-factory.github.io/qualification/ns#citation": [
+      {
+        "@value": "Annex IV(1)(g)-(h)"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
+      {
+        "@value": "annex-1:1gh"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#text": [
+      {
+        "@value": "Loan officers and compliance staff use a case dashboard showing the 0-1000 score, the risk category, the recommendation, the influential factors, the generated explanation with its cited policy clause, and the full decision audit trail; it is also where an override is entered. Instructions for use ship as a versioned PDF plus an in-product help centre keyed to the running version, covering intended purpose, the supported loan range and markets, accuracy bounds, known limitations, the mandatory human review of every rejection and Review-bucket case, the written-justification requirement for overrides, and the escalation path to the bank's risk committee."
+      }
+    ]
+  },
+  {
+    "@id": "_:Nea247e02ea0845b2b1d606786c7fde91",
+    "https://lux-ai-factory.github.io/qualification/ns#citation": [
       {
         "@value": "Annex IV(2)(a)"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
       {
-        "@value": "extracted"
+        "@value": "annex-2:2a"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#text": [
+      {
+        "@value": "The scoring model was built in-house: feature engineering on bureau, transaction and application data, then a gradient-boosted decision tree trained on the bank's historical loan outcomes. No pre-trained model is used for scoring. The explanation module wraps a hosted third-party LLM, used as-is with no fine-tuning, constrained by a retrieval index over the bank's own policy documentation and by a fixed system prompt held in version control. Policy rules (debt-to-income limits, age requirements, bankruptcy triggers) are hand-written and reviewed by compliance. Every stage has a named owner and a sign-off recorded in the design log."
       }
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_consequence",
-    "@type": [
-      "https://w3id.org/airo#Consequence",
-      "https://w3id.org/vair#DecreasedSecurity"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
+    "@id": "_:N151c317b66184ce49b3e880aef7c9f23",
+    "https://lux-ai-factory.github.io/qualification/ns#citation": [
       {
-        "@value": "Recalibrated model misranks a segment"
+        "@value": "Annex IV(2)(b)"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
       {
-        "@value": "The recalibrated model systematically misranks a segment of applicants, and the drift is inside the normal seasonal range so monitoring does not catch it"
+        "@value": "annex-2:2b"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+    "https://lux-ai-factory.github.io/qualification/ns#text": [
       {
-        "@value": "form"
-      }
-    ],
-    "https://w3id.org/airo#hasImpact": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_impact"
+        "@value": "The model estimates probability of default over the loan term from bureau history, twelve months of aggregated transaction features, and application data; that probability is mapped to a 0-1000 score and then to Low/Medium/High and Approve/Review/Reject by fixed thresholds. It optimises for ranking quality (AUC) rather than raw accuracy, because the thresholds are set separately by the bank's risk appetite; the rationale is that a mis-ranked applicant is the real error, while the cut-off is a policy choice. Key assumptions: bureau coverage is complete for the deployment markets, twelve months of account history exist, and every rejection is reviewed by a human. The subjects are individual loan applicants, so protected attributes are excluded as direct features and monitored as fairness strata instead. Expected output is a score, a category, a recommendation, the influential factors, and a plain-language explanation citing a policy clause. The trade-off accepted for Chapter III Section 2 is the choice of a monotonic gradient-boosted tree over a higher-scoring unconstrained ensemble: it costs about 0.9 AUC points and buys per-factor explanations a loan officer can defend to an applicant."
       }
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component2",
-    "@type": [
-      "https://w3id.org/airo#AIComponent",
-      "https://w3id.org/vair#Tool"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Hosted explanation LLM"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#derivedFrom": [
+    "@id": "_:Nf5934ec650bc4a868f137449693205a8",
+    "https://lux-ai-factory.github.io/qualification/ns#citation": [
       {
         "@value": "Annex IV(2)(c)"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
       {
-        "@value": "extracted"
+        "@value": "annex-2:2c"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#text": [
+      {
+        "@value": "Five components: an ingest and feature service that pulls bureau, PSD2 and application data and computes features; the scoring model; a policy-rule engine applying the hard eligibility rules; a retrieval-grounded explanation service that calls the external LLM; and a case and audit service backing the staff dashboard. The rule engine can veto an Approve recommendation but never creates one, so policy rules are always the tighter constraint. Components run as separate on-premise containers over an internal queue. Training and quarterly recalibration use a 32-vCPU CPU cluster, roughly 40 core-hours per run; no GPU is used on-premise, and validation runs on the same hardware as production."
       }
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#technique1",
+    "@id": "_:Nfdf568017a3c4d3aa8d7e493c317fc6a",
+    "https://lux-ai-factory.github.io/qualification/ns#citation": [
+      {
+        "@value": "Annex IV(2)(d)"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
+      {
+        "@value": "annex-2:2d"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#text": [
+      {
+        "@value": "Training used about 620,000 loan outcomes from the bank's last seven years (default/no-default labels), credit bureau records ingested under DPA-compliant contracts, twelve-month aggregated transaction features from PSD2-authorised access, and coarse demographic fields (age band, postal-code area). Provenance, licensing and consent basis are recorded per source in the data registry. Selection is stratified across the three deployment markets and across age bands, income deciles and postal-code clusters, with oversampling of historically under-represented postal areas. Labels come from the bank's own repayment records rather than manual annotation; the definition of default follows the regulatory 90-days-past-due rule. Cleaning removes duplicate applications, drops records with incomplete bureau coverage, winsorises transaction features at the 1st and 99th percentiles, and excludes the 2020-2021 payment-holiday period from the default definition to avoid encoding a policy artefact as credit risk."
+      }
+    ]
+  },
+  {
+    "@id": "_:N91e85cc18303433fa5070cbc5447dfc7",
+    "https://lux-ai-factory.github.io/qualification/ns#citation": [
+      {
+        "@value": "Annex IV(2)(e)"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
+      {
+        "@value": "annex-2:2e"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#text": [
+      {
+        "@value": "Article 14 oversight is structural: every rejection and every Review-bucket case goes to a trained loan officer before any binding decision reaches the applicant, and no adverse decision is ever issued on the model's output alone. Officers can approve, reject or override with a mandatory written justification recorded against the case, and can suspend automated scoring for a branch or market from the dashboard. The LLM chatbot is explicitly non-binding and refuses appeal advice; appeals are human-only. For Article 13(3), point (d), each case shows the score, the risk category, the influential factors with their direction and magnitude, the policy clause cited by the explanation, and a distribution plot placing the applicant against the recent population, so an officer can see how the recommendation arose and how confident it is. Because agreement with the model is the path of least resistance, the dashboard also tracks each officer's override rate against the branch median and flags officers who never diverge, and refresher training covers automation bias explicitly."
+      }
+    ]
+  },
+  {
+    "@id": "_:N783e524d8c584070a958e09cc5b781bd",
+    "https://lux-ai-factory.github.io/qualification/ns#citation": [
+      {
+        "@value": "Annex IV(2)(f)"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
+      {
+        "@value": "annex-2:2f"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#text": [
+      {
+        "@value": "Two pre-determined changes are in scope. First, an annual recalibration of the scoring model on the most recent outcome data, on a fixed schedule with unchanged features and unchanged thresholds. Second, a quarterly refresh of the retrieval index when the bank's policy documentation changes. Both are covered by a written change procedure: the recalibrated model must clear the same validation suite and the same fairness acceptance bands as the release it replaces, the comparison is signed off by compliance before deployment, and the previous version stays deployable for rollback for one quarter. Changes to features, thresholds or the underlying LLM are explicitly outside the pre-determined set and require a full re-qualification."
+      }
+    ]
+  },
+  {
+    "@id": "_:N1daeee7a5d3c49918626990a58094bac",
+    "https://lux-ai-factory.github.io/qualification/ns#citation": [
+      {
+        "@value": "Annex IV(2)(g)"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
+      {
+        "@value": "annex-2:2g"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#text": [
+      {
+        "@value": "Validation uses a temporally held-out set of the most recent 90,000 applications, so the model is always tested on outcomes later than anything it trained on, plus a per-market split for DE, FR and NL. Reported metrics are AUC and KS for ranking quality, calibration error by score decile, approval and default rates per threshold band, and stability of the score distribution against the production baseline. Robustness is tested by withholding each data source in turn, since bureau or PSD2 outages happen in production. Potentially discriminatory impact is measured quarterly as demographic parity and equal-opportunity difference across age band, gender via bureau proxy, and postal-code SES proxy, together with override rates by stratum to catch bias entering through human review; the last two audits showed no disparity above the 5% acceptance threshold in any deployed market. Test logs, the fairness audit and the dated, signed validation report are retained for 10 years in the release record."
+      }
+    ]
+  },
+  {
+    "@id": "_:N88a42095b1e9490081f20bf0c0708f8b",
+    "https://lux-ai-factory.github.io/qualification/ns#citation": [
+      {
+        "@value": "Annex IV(2)(h)"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#questionId": [
+      {
+        "@value": "annex-2:2h"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#text": [
+      {
+        "@value": "The deployment is on-premise with no inbound internet exposure; bureau, PSD2 and LLM calls leave through an egress proxy with an allow-list. Applicant data is encrypted at rest and in transit, and the payload sent to the external LLM is restricted to the derived explanation factors, never raw applicant identifiers or account data. Container images are signed and verified at deploy; secrets live in the bank's vault. The dashboard enforces SSO with role separation between loan officer, compliance and administrator, and every read of an applicant case is written to an append-only audit log. Dependencies are pinned and scanned on each build with a documented patch window for critical CVEs; model artefacts are checksummed at load; and the prompt and retrieval index are version-controlled so an explanation can always be reproduced from the release record."
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#users",
     "@type": [
-      "https://w3id.org/airo#AITechnique",
-      "https://w3id.org/vair#LogicBasedTechnique"
+      "https://w3id.org/airo#AIUser"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Policy eligibility rules"
+        "@value": "Loan applicants, officers and compliance staff"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#derivedFrom": [
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
       {
-        "@value": "Annex IV(2)(a)"
+        "@value": "Primary: bank customers aged 18+ applying for consumer loans through the bank's web portal or mobile app. Secondary: bank loan officers and compliance staff who monitor decisions, conduct manual reviews of borderline cases, and can approve, reject, or override outcomes with mandatory written justification."
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
       {
-        "@value": "extracted"
+        "@value": "form"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000001",
+    "@type": [
+      "https://w3id.org/airo#AIComponent"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Ingest and feature service"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#componentKey": [
+      {
+        "@value": "00000000-0000-4000-8000-000000000001"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#kind": [
+      {
+        "@value": "pipeline"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provider": [
+      {
+        "@value": "in_house"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#role": [
+      {
+        "@value": "Pulls credit bureau records, PSD2-authorised account data and application data, and computes the features the scoring model reads."
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#termNotApplicable": [
+      {
+        "@type": "http://www.w3.org/2001/XMLSchema#boolean",
+        "@value": true
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#domain0",
+    "@type": [
+      "https://w3id.org/airo#Domain",
+      "https://w3id.org/vair#PrivateService"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Private Service"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
+      {
+        "@value": "PrivateService"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
       }
     ]
   },
@@ -1660,7 +1922,7 @@
     "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_consequence",
     "@type": [
       "https://w3id.org/airo#Consequence",
-      "https://w3id.org/vair#DegradedAccuracy"
+      "https://w3id.org/vair#ImpairedDecisionMaking"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
@@ -1684,19 +1946,45 @@
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_control",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability3",
     "@type": [
-      "https://w3id.org/airo#RiskControl",
-      "https://w3id.org/vair#ManualControl"
+      "https://w3id.org/airo#AICapability",
+      "https://w3id.org/vair#InformationRetrieval"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Officer review of every Reject"
+        "@value": "Information Retrieval"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
       {
-        "@value": "Every Reject and every Review case goes to a trained loan officer before any decision reaches the applicant; bureau coverage below the configured threshold forces the case into Review"
+        "@value": "InformationRetrieval"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000005",
+    "@type": [
+      "https://w3id.org/airo#AIModel"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Hosted LLM"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#componentKey": [
+      {
+        "@value": "00000000-0000-4000-8000-000000000005"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#kind": [
+      {
+        "@value": "llm"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
@@ -1704,123 +1992,147 @@
         "@value": "form"
       }
     ],
-    "https://w3id.org/airo#isFollowedByControl": [
+    "https://lux-ai-factory.github.io/qualification/ns#provider": [
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0_control_followup"
+        "@value": "third_party"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#providerName": [
+      {
+        "@value": "Hosted third-party LLM provider (not named in the documentation)"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#role": [
+      {
+        "@value": "Used as-is with no fine-tuning, behind a fixed system prompt held in version control; receives only the derived explanation factors, never raw applicant data."
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#termNotApplicable": [
+      {
+        "@type": "http://www.w3.org/2001/XMLSchema#boolean",
+        "@value": true
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000003",
+    "@type": [
+      "https://w3id.org/airo#AIComponent"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Policy-rule engine"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#componentKey": [
+      {
+        "@value": "00000000-0000-4000-8000-000000000003"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#kind": [
+      {
+        "@value": "rule_engine"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provider": [
+      {
+        "@value": "in_house"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#role": [
+      {
+        "@value": "Applies the hand-written eligibility rules (debt-to-income limits, age requirements, bankruptcy triggers); it can veto an Approve recommendation but never creates one."
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#termNotApplicable": [
+      {
+        "@type": "http://www.w3.org/2001/XMLSchema#boolean",
+        "@value": true
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_source",
+    "@type": [
+      "https://w3id.org/airo#RiskSource",
+      "https://w3id.org/vair#DataPoisoning"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Attack on a bureau feed"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "An attacker with access to a bureau feed injects records designed to shift the score distribution for a chosen segment"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
+      }
+    ],
+    "https://w3id.org/airo#exploitsVulnerability": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4_vulnerability"
+      }
+    ],
+    "https://w3id.org/airo#isRiskSourceFor": [
+      {
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk4"
+      }
+    ]
+  },
+  {
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk3_control",
+    "@type": [
+      "https://w3id.org/airo#RiskControl",
+      "https://w3id.org/vair#LoggingMeasure"
+    ],
+    "http://www.w3.org/2000/01/rdf-schema#label": [
+      {
+        "@value": "Index refresh signed off by compliance"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+      {
+        "@value": "Quarterly index refresh signed off by compliance, and every explanation records the index version it was generated from so any answer can be reproduced"
+      }
+    ],
+    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+      {
+        "@value": "form"
       }
     ],
     "https://w3id.org/airo#modifiesRiskConcept": [
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk0"
+        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk3"
       }
     ]
   },
   {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#purpose",
+    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#component-00000000-0000-4000-8000-000000000008",
     "@type": [
-      "https://w3id.org/airo#Purpose",
-      "https://w3id.org/vair#Assessment"
+      "https://w3id.org/airo#Data"
     ],
     "http://www.w3.org/2000/01/rdf-schema#label": [
       {
-        "@value": "Creditworthiness assessment for consumer loans"
+        "@value": "Training data"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
+    "https://lux-ai-factory.github.io/qualification/ns#componentKey": [
       {
-        "@value": "Retail banking and consumer micro-finance in the EU (deployed in Germany, France, and the Netherlands). Evaluates creditworthiness for €100–€5,000 consumer loans, returns a 0–1000 credit score, a Low/Medium/High risk category, and an Approve/Review/Reject recommendation, alongside influential factors and a natural-language explanation surfaced via the bank's web portal, mobile app, and staff dashboard. The subjects of the system are individual loan applicants whose access to credit is affected by its outputs."
+        "@value": "00000000-0000-4000-8000-000000000008"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+    "https://lux-ai-factory.github.io/qualification/ns#kind": [
       {
-        "@value": "form"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#domain0",
-    "@type": [
-      "https://w3id.org/airo#Domain",
-      "https://w3id.org/vair#PrivateService"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Finance and insurance"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
-      {
-        "@value": "finance-and-insurance"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability4",
-    "@type": [
-      "https://w3id.org/airo#AICapability",
-      "https://w3id.org/vair#QuestionAnswering"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Natural Language Processing / Question Answering"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
-      {
-        "@value": "natural-language-processing:question-answering"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#capability0",
-    "@type": [
-      "https://w3id.org/airo#AICapability",
-      "https://w3id.org/vair#Profiling"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Tabular Classification & Regression"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
-      {
-        "@value": "tabular-structured-data:tabular-classification-regression"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "Tabular & Structured Data / Tabular Classification & Regression"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2",
-    "@type": [
-      "https://w3id.org/airo#Risk"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Officers rubber-stamp the recommendation"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "Loan officers rubber-stamp the recommendation instead of reviewing it"
+        "@value": "training_data"
       }
     ],
     "https://lux-ai-factory.github.io/qualification/ns#provenance": [
@@ -1828,63 +2140,20 @@
         "@value": "form"
       }
     ],
-    "https://w3id.org/airo#hasConsequence": [
+    "https://lux-ai-factory.github.io/qualification/ns#provider": [
       {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk2_consequence"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_right",
-    "@type": [
-      "https://w3id.org/airo#AreaOfImpact",
-      "https://w3id.org/vair#Right"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Fundamental rights"
+        "@value": "in_house"
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#formTag": [
+    "https://lux-ai-factory.github.io/qualification/ns#role": [
       {
-        "@value": "right"
+        "@value": "About 620,000 loan outcomes from the bank's last seven years, credit bureau records, twelve-month aggregated PSD2 transaction features and coarse demographic fields (age band, postal-code area)."
       }
     ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
+    "https://lux-ai-factory.github.io/qualification/ns#termNotApplicable": [
       {
-        "@value": "form"
-      }
-    ]
-  },
-  {
-    "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#risk3_impact",
-    "@type": [
-      "https://w3id.org/airo#Impact",
-      "https://w3id.org/vair#DetrimentalTreatment"
-    ],
-    "http://www.w3.org/2000/01/rdf-schema#label": [
-      {
-        "@value": "Explanation cites the wrong policy clause"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#fullLabel": [
-      {
-        "@value": "The explanation shown to an applicant cites the wrong policy clause"
-      }
-    ],
-    "https://lux-ai-factory.github.io/qualification/ns#provenance": [
-      {
-        "@value": "form"
-      }
-    ],
-    "https://w3id.org/airo#hasImpactOnArea": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#area_right"
-      }
-    ],
-    "https://w3id.org/airo#hasImpactOnStakeholder": [
-      {
-        "@id": "https://lux-ai-factory.github.io/qualification/q/cmtvr6g8z0000c8pi3hisc5oa#users"
+        "@type": "http://www.w3.org/2001/XMLSchema#boolean",
+        "@value": true
       }
     ]
   }

@@ -35,8 +35,7 @@ def _a(name: str) -> URIRef:
     return URIRef(AIRO + name)
 
 
-# ── the export itself: every new form element is actually filled ─────────────
-# (an earlier seed wrote these as empty arrays, which this catches)
+# The export itself: every form element is actually filled, not an empty array.
 
 
 def test_the_export_fills_every_new_form_element(qualification):
@@ -44,12 +43,12 @@ def test_the_export_fills_every_new_form_element(qualification):
     assert qualification["localityTags"], "locality picker is empty"
     assert qualification["intendedDeployers"], "intended deployers is empty"
     assert len(qualification["risks"]) >= 3
-    assert len(qualification["answers"]) == 13  # all but 1(f), not a physical product
+    assert len(qualification["answers"]) == 14  # every sub-item answered
 
 
 def test_the_risk_rows_exercise_both_stakeholders_and_the_optional_fields(qualification):
     rows = qualification["risks"]
-    assert {r["affected"] for r in rows} == {"operator", "user"}
+    assert {r["affected"] for r in rows} == {"operator", "user", "NaturalPerson"}
     assert any(r["vulnerability"] for r in rows)
     assert any(not r["vulnerability"] for r in rows)
     assert any(r["followUpControl"] for r in rows)
@@ -57,20 +56,22 @@ def test_the_risk_rows_exercise_both_stakeholders_and_the_optional_fields(qualif
     assert all(r["impactAreas"] for r in rows)
 
 
-# ── the graph ────────────────────────────────────────────────────────────────
+# The graph
 
 
 def test_the_graph_is_valid_airo(graph):
     assert validate(graph) == []
 
 
-def test_it_exercises_all_nineteen_properties(graph):
+def test_it_exercises_every_property_but_the_engine_test_link(graph):
     used = {
         str(p).replace(AIRO, "")
         for p in set(graph.predicates())
         if str(p).startswith(AIRO)
     }
-    assert used == set(PROPERTIES), set(PROPERTIES) - used
+    # MCAS links no test set from the engine, and a test set is not a component: hasTestingData is the
+    # one property only such a link gives (test_build.py exercises it).
+    assert used == set(PROPERTIES) - {"hasTestingData"}, set(PROPERTIES) - used
 
 
 def test_the_airo_namespace_carries_nothing_outside_the_minimal_schema(graph):
@@ -99,7 +100,8 @@ def test_each_answer_is_labelled_with_its_annex_iv_citation(graph):
     assert "Annex IV(1)(d)-(e)" in citations  # the merged sub-item
     assert "Annex IV(1)(g)-(h)" in citations
     assert "Annex IV(2)(h)" in citations
-    assert len(citations) == 13
+    assert "Annex IV(1)(f)" in citations
+    assert len(citations) == 14
 
 
 def test_the_mapped_tags_carry_their_vair_types(graph):
@@ -113,22 +115,14 @@ def test_the_mapped_tags_carry_their_vair_types(graph):
     assert list(graph.subjects(RDF.type, URIRef(VAIR + "Workplace")))
 
 
-def test_the_credit_scoring_capability_is_typed_by_a_human_not_the_mapping(graph):
+def test_the_credit_scoring_capability_is_the_one_the_author_chose(graph):
     """vair:Profiling is a compliance judgment (Art 5(1)(c) prohibits social
-    scoring), so the mechanical map must not assert it. It reaches the graph
-    through the curated `types` map instead: a decision someone owns."""
-    from airo_min.vair_map import CAPABILITY_TO_VAIR
-
-    assert (
-        "predictive-analytical-ai:risk-scoring-assessment" not in CAPABILITY_TO_VAIR
-    )
-    scoring = [
-        s
-        for s in graph.subjects(RDF.type, _a("AICapability"))
-        if "Risk Scoring" in str(graph.value(s, RDFS.label))
-    ]
+    scoring), so no mapping asserts it: the author picks it from VAIR's list on the
+    form, a decision someone owns."""
+    scoring = list(graph.subjects(RDF.type, URIRef(VAIR + "Profiling")))
     assert len(scoring) == 1
-    assert (scoring[0], RDF.type, URIRef(VAIR + "Profiling")) in graph
+    assert (scoring[0], RDF.type, _a("AICapability")) in graph
+    assert str(graph.value(scoring[0], RDFS.label)) == "Profiling"
 
 
 def test_nothing_is_left_untyped_that_could_have_been_typed(graph, extracted):
@@ -140,7 +134,8 @@ def test_nothing_is_left_untyped_that_could_have_been_typed(graph, extracted):
     untyped_but_typeable = []
     for node in {s for s in graph.subjects() if isinstance(s, URIRef)}:
         has_vair = any(str(o).startswith(VAIR) for o in graph.objects(node, RDF.type))
-        if has_vair:
+        # a part of one of our own types says itself that VAIR has no term for it
+        if has_vair or graph.value(node, QUAL.termNotApplicable) is not None:
             continue
         cls = next(
             (
@@ -227,3 +222,24 @@ def test_the_committed_jsonld_is_the_same_graph():
     ttl = Graph().parse(EXAMPLES / "mcas.ttl", format="turtle")
     jsonld = Graph().parse(EXAMPLES / "mcas.jsonld", format="json-ld")
     assert len(jsonld) == len(ttl)
+
+
+# The example answers 1(f)
+
+
+def test_the_graph_is_456_triples_and_the_view_62_nodes(graph):
+    """The form speaks VAIR: four VAIR capabilities and no "Other" locality (VAIR has none); the
+    example's nine Components rows add five nodes in the view (the data and model rows hang off
+    their own properties); and nothing the form fills is left for an agent to type."""
+    from airo_min.view import build_view
+
+    assert len(graph) == 456
+    view = build_view(graph)
+    assert view["counts"]["nodes"] == 62
+    assert view["counts"]["needsTerm"] == 0
+
+
+def test_the_1f_answer_sits_right_after_1de(qualification):
+    ids = [a["questionId"] for a in qualification["answers"]]
+    assert ids.index("1f") == ids.index("1de") + 1
+    assert next(a for a in qualification["answers"] if a["questionId"] == "1f")["toolId"] == "annex-1"

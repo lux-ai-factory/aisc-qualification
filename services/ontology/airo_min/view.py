@@ -4,19 +4,21 @@ Computed here rather than in the frontend, so the app needs no RDF library and t
 ontology logic stays in one language. Mirrors AIRO's Figure 3: a system half of
 property rows, and a risk half of one chain per risk.
 """
+import json
 from typing import Any
 
 from rdflib import Graph, RDF, RDFS, URIRef
 
 from .build import QUAL
+from .coverage import additional_documentation, coverage
 from .mapping import FORM_MAPPING
-from .schema import AIRO, CLASSES
+from .schema import AIRO
 from .vair_terms import typeable_classes
-from .vair_map import VAIR
-from .pickers import PICKERS
+from .vair_terms import VAIR
+from .vair_vocab import form_vocab
 
-# Areas of impact display in the form's own order, not alphabetically.
-_AREA_ORDER = {e["id"]: i for i, e in enumerate(PICKERS["impactArea"])}
+# Areas of impact display in the order the form offers them.
+_AREA_ORDER = {e["id"]: i for i, e in enumerate(form_vocab()["classes"]["AreaOfImpact"])}
 
 
 #: The classes VAIR subdivides, from the module that owns that question.
@@ -72,11 +74,19 @@ def node_view(g: Graph, node: URIRef) -> dict[str, Any]:
     if g.value(node, QUAL.termNotApplicable) is not None:
         # A reviewer determined the vocabulary has nothing that fits.
         out["termNotApplicable"] = True
+    if g.value(node, QUAL.nameDrafted) is not None:
+        # An agent wrote this name; it stays marked until a reviewer edits it.
+        out["nameDrafted"] = True
     flags = [str(o) for o in g.objects(node, QUAL.reviewFlag)]
     if flags:
         # Sorted for a stable card, and because the order a set yields is not an
         # order. The builder writes them from a list; RDF does not keep it.
         out["flags"] = sorted(flags)
+    notes = sorted(str(o) for o in g.objects(node, QUAL.flagNote))
+    if notes:
+        # Each note is one JSON literal {"why", "quote"}: both are free text, so
+        # no separator would be safe.
+        out["flagNotes"] = [json.loads(n) for n in notes]
     if not _expects_a_term(airo_cls):
         # No term can describe this node: either VAIR does not subdivide the
         # class, or its terms name a population the node is not part of. Said
@@ -100,8 +110,17 @@ def _opt(g: Graph, node: URIRef, prop: URIRef) -> str | None:
     return str(value) if value is not None else None
 
 
-def build_view(g: Graph) -> dict[str, Any]:
-    """The whole card view for one filled graph."""
+def build_view(
+    g: Graph,
+    form: dict[str, Any] | None = None,
+    answers: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """The whole card view for one filled graph.
+
+    With the form version the card was filled with (and its answers), the view
+    also says how much of Annex IV it covers and what it documents beyond it.
+    Without one, the view has neither.
+    """
     system = next(g.subjects(RDF.type, URIRef(AIRO + "AISystem")))
 
     rows = []
@@ -126,7 +145,7 @@ def build_view(g: Graph) -> dict[str, Any]:
     ]
 
     named = {s for s in g.subjects() if isinstance(s, URIRef)}
-    return {
+    view = {
         "system": node_view(g, system),
         "answers": _answers(g, system),
         "rows": rows,
@@ -153,14 +172,23 @@ def build_view(g: Graph) -> dict[str, Any]:
                 and g.value(n, QUAL.termNotApplicable) is None
             ),
             # nothing to act on: either VAIR does not subdivide this class, or
-            # its terms name a population this node does not belong to
+            # its terms name a population this node does not belong to, or
+            # someone settled that no term applies (a reviewer, or the author
+            # picking one of our own types). With needsTerm, it is every untyped node.
             "unclassifiable": sum(
                 1
                 for n in named
-                if _untyped(g, n) and not _expects_a_term(_airo_class(g, n))
+                if _untyped(g, n)
+                and (not _expects_a_term(_airo_class(g, n))
+                     or g.value(n, QUAL.termNotApplicable) is not None)
             ),
         },
     }
+    if form is not None:
+        view["form"] = {"name": form.get("name", ""), "version": form.get("version")}
+        view["coverage"] = coverage(form, answers or [])
+        view["additionalDocumentation"] = additional_documentation(form, answers or [])
+    return view
 
 
 def _expects_a_term(cls: str | None) -> bool:

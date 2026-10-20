@@ -1,6 +1,6 @@
 """FastAPI service that turns a qualification into a filled AIRO 3.1 graph.
 
-The third sidecar next to services/llm and services/system_card_renderer. The
+A sidecar next to services/system_card_renderer. The
 Next.js app POSTs a qualification (as exported by scripts/export_qualification.mjs),
 optionally an agent's prose extraction and a reviewer's patch, and gets back the
 view model the card renders plus both serialisations.
@@ -24,8 +24,14 @@ from airo_min.patch import apply_patch
 from airo_min.vair_terms import vocabularies as vair_vocabularies
 from airo_min.validate import validate
 from airo_min.view import build_view
+from service_token import ServiceTokens
 
 app = FastAPI(title="AIRO Ontology Service", version="0.1.0")
+# Two callers, a token each: qualification-web and the card agent.
+app.add_middleware(
+    ServiceTokens,
+    names=("QUALIFICATION_WEB_TO_ONTOLOGY_TOKEN", "QUALIFICATION_AGENTS_TO_ONTOLOGY_TOKEN"),
+)
 
 
 class Qualification(BaseModel):
@@ -35,16 +41,32 @@ class Qualification(BaseModel):
     systemName: str
     systemVersion: str
     company: str
-    description: str
-    targetUseCase: str
-    targetUsers: str
+    # A form may leave these blocks out.
+    description: str = ""
+    targetUseCase: str = ""
+    targetUsers: str = ""
     intendedDeployers: str | None = None
-    targetSystems: list[dict[str, Any]] = Field(default_factory=list)
-    sectors: list[dict[str, Any]] = Field(default_factory=list)
+    # The VAIR terms the author chose: the builder types each node with its term.
+    systemType: str | None = None
+    purpose: str | None = None
+    #: The operators' terms. Declared, or pydantic drops them and the provider and the
+    #: deployer are never typed however the author answered.
+    providerTerm: str | None = None
+    deployerTerm: str | None = None
+    targetSystemTags: list[str] = Field(default_factory=list)
+    sectorTags: list[str] = Field(default_factory=list)
     marketFormTags: list[str] = Field(default_factory=list)
     localityTags: list[str] = Field(default_factory=list)
     answers: list[dict[str, Any]] = Field(default_factory=list)
     risks: list[dict[str, Any]] = Field(default_factory=list)
+    #: The form version the card was filled with, as toExport sends it. Declared,
+    #: or pydantic would drop it without a word and the view would lose coverage.
+    form: dict[str, Any] | None = None
+    #: The engine components the card links, and the card's Components block rows.
+    #: Declared for the same reason: undeclared, pydantic drops them and the graph
+    #: would lose the engine items and the parts of the system.
+    engineComponents: list[dict[str, Any]] = Field(default_factory=list)
+    systemComponents: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class BuildRequest(BaseModel):
@@ -94,8 +116,14 @@ def build(request: BuildRequest) -> BuildResponse:
         # A bad VAIR term or an unknown picker id is the caller's mistake.
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+    form = qualification.get("form")
+    view = (
+        build_view(graph)
+        if form is None
+        else build_view(graph, form=form, answers=qualification["answers"])
+    )
     return BuildResponse(
-        view=build_view(graph),
+        view=view,
         turtle=graph.serialize(format="turtle"),
         jsonld=graph.serialize(format="json-ld"),
         problems=validate(graph),

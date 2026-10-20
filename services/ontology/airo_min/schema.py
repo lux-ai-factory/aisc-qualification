@@ -4,7 +4,11 @@ Subset of airo.ttl 1.0: 22 classes / 20 properties in the figure, minus the user
 simplification of stakeholders to Operator and User:
   - AIProvider and AIDeployer are dropped; isProvidedBy / isDeployedBy range over
     AIOperator (both were already subClassOf AIOperator in AIRO).
-  - AISubject and hasAISubject are dropped; affected persons are Users.
+  - AISubject is kept for the people a risk affects, typed by VAIR's 19 subject terms;
+    hasAISubject links them to the system.
+Added for the engine components an AI card links: AIModel
+and Data (both subClassOf AIComponent) and hasModel, hasTrainingData, hasTestingData,
+hasValidationData (sub-properties of hasComponent).
 Everything here is cross-checked against the vendored airo.ttl by tests/test_schema.py.
 """
 
@@ -12,7 +16,7 @@ AIRO = "https://w3id.org/airo#"
 
 #: Bumped when the subset changes: which classes and properties a graph may use
 #: is part of what produced it, and a card kept for the record should say so.
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 
 # class -> parent class within the subset (None for roots)
 CLASSES: dict[str, str | None] = {
@@ -25,9 +29,13 @@ CLASSES: dict[str, str | None] = {
     "Domain": None,
     "LocalityOfUse": None,  # the kind of setting: workplace, school, public space
     "AIComponent": None,
+    # what an engine component is to the system, for the links a card makes
+    "AIModel": "AIComponent",
+    "Data": "AIComponent",
     "Stakeholder": None,
     "AIOperator": "Stakeholder",
     "AIUser": "Stakeholder",
+    "AISubject": "Stakeholder",
     "AreaOfImpact": None,
     # risk
     "RiskConcept": None,
@@ -48,9 +56,15 @@ PROPERTIES: dict[str, tuple[tuple[str, ...], str]] = {
     "isAppliedWithinDomain": (("AISystem", "AIComponent"), "Domain"),
     "isUsedWithinLocality": (("AISystem", "AIComponent"), "LocalityOfUse"),
     "hasComponent": ((), "AIComponent"),
+    # sub-properties of hasComponent; airo.ttl declares no domain for them
+    "hasModel": ((), "AIModel"),
+    "hasTrainingData": ((), "Data"),
+    "hasTestingData": ((), "Data"),
+    "hasValidationData": ((), "Data"),
     "isProvidedBy": (("AISystem", "AIComponent"), "AIOperator"),
     "isDeployedBy": (("AISystem", "AIComponent"), "AIOperator"),
     "hasAIUser": (("AISystem",), "AIUser"),
+    "hasAISubject": (("AISystem",), "AISubject"),
     "hasRisk": ((), "Risk"),
     "isRiskSourceFor": (("RiskSource",), "Risk"),
     "exploitsVulnerability": (("RiskSource",), "Vulnerability"),

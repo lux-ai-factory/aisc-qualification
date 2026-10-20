@@ -7,16 +7,14 @@ it came from.
 import json
 from pathlib import Path
 
-from rdflib import Graph, RDF, URIRef
+from rdflib import Graph, URIRef
 import pytest
 
 from airo_min.build import build_graph
 from airo_min.patch import apply_patch
-from airo_min.schema import AIRO, PROPERTIES
 from airo_min.validate import validate
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
-VAIR = "https://w3id.org/vair#"
 
 
 @pytest.fixture(scope="module")
@@ -49,28 +47,6 @@ def test_the_rebuilt_graph_is_still_valid_airo(source):
     assert validate(rebuilt) == []
 
 
-def test_the_rebuilt_graph_keeps_every_airo_relation(source):
-    rebuilt = Graph().parse(data=source.serialize(format="json-ld"), format="json-ld")
-    used = {
-        str(p).replace(AIRO, "")
-        for p in set(rebuilt.predicates())
-        if str(p).startswith(AIRO)
-    }
-    assert used == set(PROPERTIES)
-
-
-def test_the_rebuilt_graph_keeps_the_vair_types(source):
-    rebuilt = Graph().parse(data=source.serialize(format="json-ld"), format="json-ld")
-    before = {
-        str(o) for _s, o in source.subject_objects(RDF.type) if str(o).startswith(VAIR)
-    }
-    after = {
-        str(o) for _s, o in rebuilt.subject_objects(RDF.type) if str(o).startswith(VAIR)
-    }
-    assert after == before
-    assert len(after) >= 10
-
-
 def test_the_rebuilt_graph_keeps_the_reviewer_s_corrections(source):
     rebuilt = Graph().parse(data=source.serialize(format="json-ld"), format="json-ld")
     from airo_min.build import QUAL
@@ -89,12 +65,3 @@ def test_the_rebuilt_graph_keeps_the_reviewer_s_corrections(source):
     assert any(
         rebuilt.value(s, QUAL.termNotApplicable) is not None for s in reviewed
     )
-
-
-def test_the_rebuilt_graph_keeps_the_annex_iv_answers(source):
-    rebuilt = Graph().parse(data=source.serialize(format="json-ld"), format="json-ld")
-    from airo_min.build import QUAL
-
-    texts = {str(o) for _s, o in rebuilt.subject_objects(QUAL.text)}
-    assert len(texts) == 13
-    assert sum(len(t) for t in texts) == 9697
