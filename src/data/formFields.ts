@@ -8,6 +8,8 @@ export type MetadataFieldId =
   | "targetUseCase"
   | "targetUsers"
   | "intendedDeployers"
+  | "systemType"
+  | "purpose"
   | "targetSystemTags"
   | "sectorTags"
   | "marketFormTags"
@@ -18,7 +20,7 @@ export const METADATA_FIELDS: Record<
   { label: string; citation: string }
 > = {
   systemName: { label: "System name", citation: "Annex IV 1(a)" },
-  systemVersion: { label: "Version", citation: "Annex IV 1(a)" },
+  systemVersion: { label: "System release", citation: "Annex IV 1(a)" },
   company: { label: "Company (provider)", citation: "Annex IV 1(a); Art 3(3)" },
   description: {
     label: "Short description",
@@ -36,12 +38,21 @@ export const METADATA_FIELDS: Record<
     label: "Intended deployers",
     citation: "Art 3(4); Annex IV 1(h)",
   },
+  // The VAIR fields: each offers VAIR's own list.
+  systemType: {
+    label: "Type of AI system",
+    citation: "Art 3(1)",
+  },
+  purpose: {
+    label: "Intended purpose",
+    citation: "Art 3(12); Annex III",
+  },
   targetSystemTags: {
-    label: "Target system: pick capabilities",
+    label: "Capabilities",
     citation: "Art 3(1); Annex IV 2(b)",
   },
   sectorTags: {
-    label: "Sectors: pick application domains",
+    label: "Application domains",
     citation: "Annex III; Annex IV 1(a)",
   },
   marketFormTags: {

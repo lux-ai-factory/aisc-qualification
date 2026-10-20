@@ -1,8 +1,14 @@
+import { shortDetail } from "./errorText";
+import { serviceTokenHeaders } from "./http";
+
+/** The renderer did not answer. A person reads the message, so it names neither the
+ *  renderer's address nor the network error; both are logged, and the error is the cause. */
 export class RendererUnreachableError extends Error {
   constructor(url: string, cause: unknown) {
-    const msg = cause instanceof Error ? cause.message : String(cause);
-    super(`Renderer service unreachable at ${url}: ${msg}`);
+    super("The PDF renderer did not answer.", { cause });
     this.name = "RendererUnreachableError";
+    const msg = cause instanceof Error ? cause.message : String(cause);
+    console.warn(`renderer: unreachable at ${url}: ${msg}`);
   }
 }
 
@@ -11,7 +17,7 @@ export class RendererHttpError extends Error {
     public readonly status: number,
     body: string,
   ) {
-    super(`Renderer returned HTTP ${status}: ${body.slice(0, 300)}`);
+    super(`Renderer returned HTTP ${status}: ${shortDetail(body)}`);
     this.name = "RendererHttpError";
   }
 }
@@ -20,6 +26,8 @@ export class SystemCardRendererClient {
   constructor(
     private readonly baseUrl: string = process.env.SYSTEM_CARD_RENDERER_URL ??
       "http://localhost:8005",
+    /** This app's token for the renderer: it refuses a caller without one. */
+    private readonly serviceToken: string = process.env.QUALIFICATION_WEB_TO_PDF_TOKEN ?? "",
   ) {}
 
   async renderPdf(card: unknown): Promise<ArrayBuffer> {
@@ -27,7 +35,7 @@ export class SystemCardRendererClient {
     try {
       res = await fetch(`${this.baseUrl}/render/pdf`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...serviceTokenHeaders(this.serviceToken) },
         body: JSON.stringify(card),
       });
     } catch (err) {

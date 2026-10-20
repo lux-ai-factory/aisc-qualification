@@ -11,10 +11,17 @@ export type RiskExample = {
   consequence: string;
   /** One of the AFFECTED vocabulary ids. */
   affected: string;
-  /** IMPACT_AREAS ids. */
+  /** VAIR AreaOfImpact terms. */
   areas: string[];
   control: string;
   followUpControl: string;
+  /** The VAIR term of each typeable field ("" for none): RiskSource, Consequence, Impact,
+   *  RiskControl. Optional, so an example without VAIR terms still loads. */
+  sourceTerm?: string;
+  consequenceTerm?: string;
+  impactTerm?: string;
+  controlTerm?: string;
+  followUpControlTerm?: string;
 };
 
 export type FormExample = {
@@ -26,6 +33,13 @@ export type FormExample = {
     targetUseCase: string;
     targetUsers: string;
     intendedDeployers: string;
+    /** VAIR AISystem and Purpose terms, "" when open; optional on an example. */
+    systemType?: string;
+    purpose?: string;
+    /** VAIR AIOperator terms for the provider and the deployer, "" when open. */
+    providerTerm?: string;
+    deployerTerm?: string;
+    /** VAIR terms: AICapability, Domain, Modality, LocalityOfUse. */
     targetSystemTags: string[];
     sectorTags: string[];
     marketFormTags: string[];
@@ -34,4 +48,19 @@ export type FormExample = {
   /** Keyed by the form field name, `q:<group>:<id>`. */
   answers: Record<string, string>;
   risks: RiskExample[];
+  /** The Components block's rows; optional on an example. */
+  components?: ComponentExample[];
+};
+
+/** A component row as the form starts from it. `key` is "" for a new row or a suggestion; a
+ *  suggestion (from the filler's extraction) is shown as such until the author keeps it. `type`
+ *  is one entry of the Type list (componentFields.COMPONENT_TYPES), "" when not chosen. */
+export type ComponentExample = {
+  key: string;
+  name: string;
+  role: string;
+  type: string;
+  provider: "in_house" | "third_party";
+  providerName: string;
+  suggested?: boolean;
 };

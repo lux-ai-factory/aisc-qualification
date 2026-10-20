@@ -2,11 +2,15 @@ import type {
   PrismaClient,
   Prisma,
   Qualification,
+  CardComponent,
   QualificationAnswer,
   QualificationRisk,
+  QualificationComponent,
 } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { projectDbPastDoor } from "@/lib/projectDb";
+import { beforeTransaction } from "@/vendor/aisc-ledger/emit";
 import type { RiskInput } from "@/server/forms/QualificationFormParser";
+import type { KeyedComponent } from "@/domain/systemComponents";
 
 export type AnswerInput = {
   toolId: string;
@@ -15,79 +19,230 @@ export type AnswerInput = {
 };
 
 export type CreateQualificationInput = {
+  /** The card version it describes: a row of project.system in this project's
+   *  own database, as named by the platform (uuid). */
+  systemId: string;
   systemName: string;
   systemVersion: string;
   company: string;
   description: string;
   targetUseCase: string;
   targetUsers: string;
-  intendedDeployers: string;
+  /** null when the card's form does not include the deployers block. */
+  intendedDeployers: string | null;
+  /** VAIR AISystem and Purpose terms; null when left open. */
+  systemType: string | null;
+  purpose: string | null;
+  /** VAIR AIOperator terms; null when left open. */
+  providerTerm: string | null;
+  deployerTerm: string | null;
+  /** VAIR terms: AICapability, Domain, Modality, LocalityOfUse. */
   targetSystemTags: string[];
   sectorTags: string[];
   marketFormTags: string[];
   localityTags: string[];
   answers: AnswerInput[];
   risks: RiskInput[];
+  /** The Components block's rows, with their keys assigned. */
+  systemComponents?: KeyedComponent[];
+  /** The questionnaire version the card was filled with. */
+  questionnaireVersionId: string;
+  /** The review it takes from the card before it (QualificationService.carriedReview). */
+  ontologyPatch?: Prisma.InputJsonValue;
+  ontologyExtracted?: Prisma.InputJsonValue;
 };
 
 export type QualificationWithAnswers = Qualification & {
   answers: QualificationAnswer[];
   risks: QualificationRisk[];
+  /** The engine components the card links, oldest link first. */
+  components: CardComponent[];
+  /** The Components block's rows, in order. */
+  systemComponents: QualificationComponent[];
 };
 
+/** What a qualification is read with: its answers, and its risks and links in order. */
+const WITH_ANSWERS = {
+  answers: true,
+  risks: { orderBy: { position: "asc" } },
+  components: { orderBy: { linkedAt: "asc" } },
+  systemComponents: { orderBy: { position: "asc" } },
+} as const satisfies Prisma.QualificationInclude;
+
+/**
+ * The cards of one project: a repository is bound to that project's own
+ * database, so every query is inside the project without naming it. A card id
+ * from another project is not in this database.
+ */
+/** One row of a card's history: what a change would otherwise overwrite. */
+export type CardHistoryInput = {
+  qualificationId: string;
+  kind:
+    | "component_linked"
+    | "component_relinked"
+    | "component_unlinked"
+    | "node_corrected"
+    | "corrections_discarded"
+    | "extracted_replaced"
+    | "review_carried";
+  subject?: string | null;
+  before?: Prisma.InputJsonValue | null;
+  after?: Prisma.InputJsonValue | null;
+  changedBy?: "person" | "agent";
+  runId?: string | null;
+};
+
+/** A transaction client: what Prisma hands an interactive transaction (and the ledger emitter takes). */
+export type Tx = Prisma.TransactionClient;
+
 export class QualificationRepository {
-  constructor(private readonly db: PrismaClient = prisma) {}
+  constructor(private readonly db: PrismaClient) {}
+
+  /**
+   * Run `fn` in one transaction: a change, its history row and its ledger event
+   * commit together or not at all. Inside, `repo` is bound to the
+   * transaction and `tx` is what the emitter writes on.
+   */
+  async transaction<T>(
+    fn: (repo: QualificationRepository, tx: Tx) => Promise<T>,
+  ): Promise<T> {
+    await beforeTransaction(); // the request id, resolved outside the transaction
+    return this.db.$transaction((tx) =>
+      fn(new QualificationRepository(tx as unknown as PrismaClient), tx),
+    );
+  }
+
+  /** Keep what a change would overwrite (append-only: card_history). */
+  async recordHistory(row: CardHistoryInput): Promise<void> {
+    await this.db.cardHistory.create({
+      data: {
+        qualificationId: row.qualificationId,
+        kind: row.kind,
+        subject: row.subject ?? null,
+        before: row.before ?? undefined,
+        after: row.after ?? undefined,
+        changedBy: row.changedBy ?? "person",
+        runId: row.runId ?? null,
+      },
+    });
+  }
+
+  /** The card's history, oldest first. */
+  history(qualificationId: string) {
+    return this.db.cardHistory.findMany({
+      where: { qualificationId },
+      orderBy: { id: "asc" },
+    });
+  }
+
+  /**
+   * Lock the card's row until the transaction ends (inside `transaction`): a second change of
+   * the same card waits here, then reads what the first one committed.
+   */
+  async lockCard(id: string): Promise<void> {
+    await this.db
+      .$queryRaw`SELECT id FROM qualification.qualification WHERE id = ${id} FOR UPDATE`;
+  }
+
+  /** The card's corrections, its row locked until the transaction ends (inside `transaction`). */
+  async lockedPatch(id: string): Promise<Prisma.JsonValue | null> {
+    const rows = await this.db.$queryRaw<{ patch: Prisma.JsonValue | null }[]>`
+      SELECT "ontologyPatch" AS patch FROM qualification.qualification WHERE id = ${id} FOR UPDATE`;
+    return rows[0]?.patch ?? null;
+  }
+
+  /** The card's corrections and extracted draft as stored now (for what a change replaces). */
+  ontologyState(id: string) {
+    return this.db.qualification.findFirst({
+      where: { id },
+      select: { ontologyPatch: true, ontologyExtracted: true },
+    });
+  }
 
   create(input: CreateQualificationInput): Promise<{ id: string }> {
-    const { answers, risks, ...rest } = input;
+    const { answers, risks, systemComponents, ...rest } = input;
     return this.db.qualification.create({
       data: {
         ...rest,
         answers: { create: answers },
         risks: { create: risks },
+        systemComponents: { create: systemComponents ?? [] },
       },
       select: { id: true },
     });
   }
 
+  /**
+   * One qualification of this project, or null.
+   *
+   * The id comes out of a URL; the database this repository is bound to is what
+   * says whose it is, so a card of another project is not found here.
+   */
   find(id: string): Promise<QualificationWithAnswers | null> {
-    return this.db.qualification.findUnique({
+    return this.db.qualification.findFirst({
       where: { id },
-      include: { answers: true, risks: { orderBy: { position: "asc" } } },
+      include: WITH_ANSWERS,
+    });
+  }
+
+  /** The AI card of one version of the project's system, if it has one. One
+   *  card per version: the database holds that too (system_id is unique). */
+  findBySystem(systemId: string): Promise<{
+    id: string;
+    systemId: string;
+    systemName: string;
+    systemVersion: string;
+  } | null> {
+    return this.db.qualification.findFirst({
+      where: { systemId },
+      select: {
+        id: true,
+        systemId: true,
+        systemName: true,
+        systemVersion: true,
+      },
+    });
+  }
+
+  /** The qualifications of this project, newest first. */
+  /** Each card's id and the version it belongs to: what card standing needs, without the cards. */
+  cardRefs(): Promise<{ id: string; systemId: string }[]> {
+    return this.db.qualification.findMany({
+      orderBy: { createdAt: "desc" },
+      select: { id: true, systemId: true },
     });
   }
 
   list(): Promise<QualificationWithAnswers[]> {
     return this.db.qualification.findMany({
       orderBy: { createdAt: "desc" },
-      include: { answers: true, risks: { orderBy: { position: "asc" } } },
+      include: WITH_ANSWERS,
     });
   }
 
   /** Everything an AI card needs that is not in the graph: the facts the
-   *  form collects, plus the generated prose if any exists. */
-  cardSummary(id: string): Promise<
-    | (Pick<
-        Qualification,
-        | "id"
-        | "systemName"
-        | "systemVersion"
-        | "company"
-        | "description"
-        | "targetUseCase"
-        | "targetUsers"
-        | "targetSystemTags"
-        | "sectorTags"
-      > & {
-        systemCardJson: Prisma.JsonValue | null;
-      })
-    | null
-  > {
-    return this.db.qualification.findUnique({
+   *  form collects. */
+  cardSummary(
+    id: string,
+  ): Promise<Pick<
+    Qualification,
+    | "id"
+    | "systemId"
+    | "systemName"
+    | "systemVersion"
+    | "company"
+    | "description"
+    | "targetUseCase"
+    | "targetUsers"
+    | "targetSystemTags"
+    | "sectorTags"
+    | "questionnaireVersionId"
+  > | null> {
+    return this.db.qualification.findFirst({
       where: { id },
       select: {
         id: true,
-        systemCardJson: true,
+        systemId: true,
         systemName: true,
         systemVersion: true,
         company: true,
@@ -96,6 +251,7 @@ export class QualificationRepository {
         targetUsers: true,
         targetSystemTags: true,
         sectorTags: true,
+        questionnaireVersionId: true,
       },
     });
   }
@@ -137,15 +293,27 @@ export class QualificationRepository {
     });
   }
 
-  saveSystemCard(
-    id: string,
-    json: Prisma.InputJsonValue,
-  ): Promise<Qualification> {
-    return this.db.qualification.update({
-      where: { id },
-      data: { systemCardJson: json, systemCardAt: new Date() },
-    });
+  /**
+   * Whether this card version is the latest in this project's database: the
+   * rule the only-latest triggers enforce (qualification.card_is_latest). It is
+   * for a caller with no user behind it (the card agent), which the platform's
+   * /system-versions/latest would not answer.
+   */
+  async isLatest(systemId: string): Promise<boolean> {
+    const rows = await this.db.$queryRaw<{ latest: boolean }[]>`
+      SELECT qualification.card_is_latest(${systemId}::uuid) AS latest`;
+    return rows[0]?.latest === true;
   }
 }
 
-export const qualificationRepository = new QualificationRepository();
+/** Opens the repository of one project. */
+export type RepositoryFor = (
+  project: string,
+) => Promise<QualificationRepository>;
+
+/**
+ * The repository of a project whose door has already been passed (a page under
+ * the middleware, a service called after an action's or a route's door).
+ */
+export const repositoryFor: RepositoryFor = async (project) =>
+  new QualificationRepository(await projectDbPastDoor(project));

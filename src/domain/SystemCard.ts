@@ -1,4 +1,4 @@
-import { findSector, parseTargetSystemTag } from "@/data";
+import { isVairTerm, vairLabel } from "@/data/vairVocab";
 
 /** Slug for a filename. */
 function fileSlug(systemName: string): string {
@@ -25,36 +25,28 @@ export type CardFacts = {
 
 /**
  * The payload the PDF renderer is sent: the form's own facts plus the graph.
- *
- * `generated` is merged in first where a written card exists, so the form's
- * facts override it: prose can be older than the last edit to the form.
  */
 export function systemCardPayload(
   facts: CardFacts,
-  generated: Record<string, unknown> | null,
   ontology: unknown | null,
   now: Date = new Date(),
 ): Record<string, unknown> {
-  const targetSystems = facts.targetSystemTags
-    .map(parseTargetSystemTag)
-    .filter((t): t is NonNullable<typeof t> => t !== null);
-
   return {
-    ...(generated ?? {}),
     system_name: facts.systemName,
     system_version: facts.systemVersion,
     provider: facts.company,
     description: facts.description,
     target_use_case: facts.targetUseCase,
     target_users: facts.targetUsers,
+    // VAIR terms: a capability is a flat term, so it has no category; the renderer
+    // then shows its label alone. A value that is not a VAIR term of its class is left out.
     classification: {
-      target_systems: targetSystems.map((t) => ({
-        category: t.category.name,
-        subcategory: t.sub.name,
-      })),
+      target_systems: facts.targetSystemTags
+        .filter((t) => isVairTerm("AICapability", t))
+        .map((t) => ({ subcategory: vairLabel("AICapability", t) })),
       sectors: facts.sectorTags
-        .map((id) => findSector(id)?.name)
-        .filter((name): name is string => Boolean(name)),
+        .filter((t) => isVairTerm("Domain", t))
+        .map((t) => vairLabel("Domain", t)),
     },
     generated_at: now.toISOString().slice(0, 16).replace("T", " ") + " UTC",
     qualification_id: facts.id,
@@ -86,25 +78,44 @@ export function aiCardExport(
     graph = null;
   }
   return {
-    ...systemCardPayload(facts, null, build.view, now),
+    ...systemCardPayload(facts, build.view, now),
     ontology_graph: graph,
     ontology_problems: build.problems,
   };
 }
 
-/** A version with exactly one leading "v". Providers type it themselves about
- *  half the time, and every place that showed "v{version}" showed "vv1.2.0"
- *  when they did. Mirrors SystemCard.version_label in the renderer. */
+/** A version with exactly one leading "v". Providers often type the "v"
+ *  themselves, and prefixing another would show "vv1.2.0". Mirrors
+ *  SystemCard.version_label in the renderer. */
 export function versionLabel(version: string): string {
   const v = version.trim();
   return v.toLowerCase().startsWith("v") ? v : `v${v}`;
 }
 
+/** The system's own software number as the page shows it, without a "v": "v"
+ *  is kept for AI card versions, so the two numbers are never confused. */
+export function releaseLabel(version: string): string {
+  return `System release ${version.trim().replace(/^v/i, "")}`;
+}
+
+/** The button that opens the form again, naming the AI card version that
+ *  saving makes. With no version yet, saving makes the first card. */
+export function updateAnswersLabel(latest: number | undefined): string {
+  return latest
+    ? `Update the answers (makes v${latest + 1})`
+    : "Create the AI card";
+}
+
 /** The filename a download offers: slugged system name, the version once, and
- *  what the file is. `suffix` is e.g. "ontology.jsonld", "system_card.pdf". */
+ *  what the file is. `suffix` is e.g. "ontology.jsonld", "system_card.pdf".
+ *  The version is slugged too, keeping its dots: a header can carry no character
+ *  past Latin-1 and no quote, and "2.0 – beta" would make the download fail. */
 export function cardFileName(
   facts: Pick<CardFacts, "systemName" | "systemVersion">,
   suffix: string,
 ): string {
-  return `${fileSlug(facts.systemName)}_${versionLabel(facts.systemVersion)}_${suffix}`;
+  const version = versionLabel(facts.systemVersion)
+    .replace(/[^a-zA-Z0-9.-]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return `${fileSlug(facts.systemName)}_${version}_${suffix}`;
 }

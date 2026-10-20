@@ -2,7 +2,7 @@
 // Annex IV (technical documentation), points 1 and 2. Self-contained: each entry
 // carries its own question text, its Annex IV citation, and a topic group for
 // display. Answers are stored as (toolId = group, questionId = id) and the form
-// field is `q:<group>:<id>`, keeping the existing storage/parse convention.
+// field is `q:<group>:<id>`.
 //
 // Annex IV points 1 and 2 have 16 lettered sub-items; they compress to 14
 // questions here:
@@ -13,8 +13,8 @@
 //     the hardware it runs on are one answer in practice.
 //   - 1(g) and 1(h) merge: the Annex repeats "a basic description of the
 //     user-interface provided to the deployer" verbatim under (h).
-// Points 3 to 9 of Annex IV are not covered yet; adding them is a
-// pure data edit to this file.
+// Points 3 to 9 of Annex IV are not covered; adding them is a data edit
+// to this file.
 
 export type KeyQuestion = {
   /** Stable, unique within its group. Used as the stored questionId. */
@@ -29,24 +29,24 @@ export type KeyQuestion = {
   text: string;
   /**
    * True for the sub-items Annex IV itself qualifies with "where applicable" or
-   * "where relevant". Optional questions may be left blank on the form and are
-   * simply not stored.
+   * "where relevant". Optional questions may be left blank on the form; a blank
+   * answer is not stored.
    */
   optional?: boolean;
 };
 
 const GROUP_1 = {
   group: "annex-1",
-  groupLabel: "About the system",
+  groupLabel: "General description",
 } as const;
 
 const GROUP_2 = {
   group: "annex-2",
-  groupLabel: "How the system was built",
+  groupLabel: "Development and design",
 } as const;
 
 export const KEY_QUESTIONS: KeyQuestion[] = [
-  // ── Annex IV(1) — general description ────────────────────────────────────
+  // Annex IV(1): general description
   {
     ...GROUP_1,
     id: "1a",
@@ -86,7 +86,7 @@ export const KEY_QUESTIONS: KeyQuestion[] = [
     text: "What does the system look like to the companies that use it, and what instructions do you provide to them?",
   },
 
-  // ── Annex IV(2) — elements of the system and its development ────────────
+  // Annex IV(2): elements of the system and its development
   {
     ...GROUP_2,
     id: "2a",
@@ -139,35 +139,7 @@ export const KEY_QUESTIONS: KeyQuestion[] = [
   },
 ];
 
-/** Ordered, de-duplicated topic groups, derived from KEY_QUESTIONS. */
-export const KEY_QUESTION_GROUPS: { id: string; label: string }[] = (() => {
-  const seen = new Set<string>();
-  const groups: { id: string; label: string }[] = [];
-  for (const q of KEY_QUESTIONS) {
-    if (seen.has(q.group)) continue;
-    seen.add(q.group);
-    groups.push({ id: q.group, label: q.groupLabel });
-  }
-  return groups;
-})();
-
 /** The form field name for a question, e.g. `q:annex-1:1a`. */
 export function keyQuestionField(q: KeyQuestion): string {
   return `q:${q.group}:${q.id}`;
-}
-
-export function isKeyQuestion(group: string, id: string): boolean {
-  return KEY_QUESTIONS.some((k) => k.group === group && k.id === id);
-}
-
-export function resolveKeyQuestion(
-  group: string,
-  id: string,
-): KeyQuestion | null {
-  return KEY_QUESTIONS.find((k) => k.group === group && k.id === id) ?? null;
-}
-
-/** Set of valid `<group>:<id>` composite keys, for answer validation. */
-export function keyQuestionIdSet(): Set<string> {
-  return new Set(KEY_QUESTIONS.map((k) => `${k.group}:${k.id}`));
 }

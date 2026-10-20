@@ -16,6 +16,9 @@ export type OntologyNode = {
   /** The full source text, when the label was shortened from it. */
   fullText: string | null;
   provenance: Provenance;
+  /** The label is a name the AI drafted from the author's text. Cleared once a
+   *  reviewer saves the label, edited or kept. */
+  nameDrafted?: boolean;
   /** Present once a reviewer has changed the label. */
   generatedLabel?: string;
   /** Present once a reviewer has justified a change. */
@@ -25,6 +28,8 @@ export type OntologyNode = {
   /** Findings the filler's own review could not settle, from the closed set in
    *  airo_min/build.py. A reviewer's edit clears them. */
   flags?: string[];
+  /** Consistency findings: the reason and the words it rests on. */
+  flagNotes?: Array<{ why: string; quote: string }>;
   /** False when the class has VAIR terms but they name a population this node
    *  does not belong to: VAIR's 17 AIOperator terms are all Annex III public
    *  bodies, so a commercial provider is complete without one. Absent means a
@@ -65,7 +70,37 @@ export type OntologyAnswer = {
   text: string;
 };
 
+/** How much of Annex IV a card covers, out of 14 points, and per custom form how
+ *  many of its questions are answered. Computed by services/ontology/airo_min/coverage.py. */
+export type Coverage = {
+  annex: {
+    covered: number;
+    total: number;
+    points: Array<{ id: string; citation: string; covered: boolean }>;
+    /** Points left uncovered that only optional questions of the form answer. */
+    optionalBlank?: number;
+  };
+  forms: Array<{ name: string; answered: number; total: number }>;
+  /** One line, e.g. "Annex IV coverage: 13 of 14 points." */
+  summary: string;
+};
+
+/** Answers to questions tagged with no Annex IV point, per owner form. */
+export type AdditionalSection = {
+  form: string;
+  entries: Array<{
+    key: string;
+    question: string;
+    citation: string;
+    answer: string;
+  }>;
+};
+
 export type OntologyView = {
+  /** Present when the card was built with its form version. */
+  form?: { name: string; version: number };
+  coverage?: Coverage;
+  additionalDocumentation?: AdditionalSection[];
   system: OntologyNode;
   answers: OntologyAnswer[];
   rows: OntologyRow[];
@@ -102,7 +137,37 @@ export type OntologyPatch = Record<string, NodePatch>;
 export type OntologyExtracted = {
   techniques?: Array<string | { label: string; vair?: string }>;
   components?: Array<string | { label: string; vair?: string }>;
-  names?: Record<string, string>;
+  /** node id -> a curated name, or a drafted one with the text it was written for. */
+  names?: Record<string, string | { name: string; of: string }>;
   /** node id -> VAIR term, for nodes no mechanical mapping can reach. */
   types?: Record<string, string>;
+  /** node id -> consistency findings, each with the text it was written for. */
+  notes?: Record<string, Array<{ why: string; quote: string; of: string }>>;
 };
+
+/** A node of the view by its id, wherever it sits: the system, a row, or a risk chain. */
+export function findNode(view: OntologyView, id: string | null): OntologyNode | null {
+  if (!id) return null;
+  for (const row of view.rows) {
+    const hit = row.nodes.find((n) => n.id === id);
+    if (hit) return hit;
+  }
+  for (const chain of view.chains) {
+    for (const key of [
+      "risk",
+      "source",
+      "vulnerability",
+      "consequence",
+      "impact",
+      "stakeholder",
+      "control",
+      "followUp",
+    ] as const) {
+      const candidate = chain[key];
+      if (candidate && candidate.id === id) return candidate;
+    }
+    const area = chain.areas.find((a) => a.id === id);
+    if (area) return area;
+  }
+  return view.system.id === id ? view.system : null;
+}
