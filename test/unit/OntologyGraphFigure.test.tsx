@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { ReactFlowProvider } from "@xyflow/react";
 
-import OntologyGraph from "@/app/qualify/[id]/OntologyGraph";
+import OntologyGraph from "@/app/p/[project]/qualify/[id]/OntologyGraph";
 import { installReactFlowEnv } from "../support/reactFlowEnv";
 import { hubId } from "@/domain/ontologyFigure";
 import type { OntologyNode, OntologyView } from "@/domain/OntologyView";
@@ -177,10 +177,7 @@ describe("OntologyGraph, Figure 3 bands and collapsible groups", () => {
     const labels = [...container.querySelectorAll(".onto-band-label")].map(
       (e) => e.textContent,
     );
-    expect(labels).toEqual([
-      "Concepts regarding AI system and its use",
-      "Concepts regarding risk",
-    ]);
+    expect(labels).toEqual(["Identification and use", "Risk identification"]);
   });
 
   it("separates the two bands vertically, system above risk", () => {

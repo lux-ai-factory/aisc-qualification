@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import { readFileSync } from "node:fs";
-import SubmitOverlay, { STAGES } from "@/app/qualify/new/SubmitOverlay";
+import SubmitOverlay, {
+  STAGES,
+} from "@/app/p/[project]/qualify/new/SubmitOverlay";
 
 afterEach(() => {
   cleanup();
@@ -50,15 +52,18 @@ describe("the overlay while a qualification is being turned into a card", () => 
     const all = items.join(" ");
     expect(all).toMatch(/answers/i);
     expect(all).toMatch(/sav/i);
-    // and nothing that no longer happens here
+    // and nothing that saving does not do
     expect(all).not.toMatch(/assembling/i);
+    // in the reader's words, not the graph's
+    expect(all).not.toMatch(/\bnodes?\b/i);
   });
 
   it("moves through the stages while it waits", () => {
     vi.useFakeTimers();
     render(<SubmitOverlay open />);
     const current = () =>
-      document.body.querySelector(".submit-stage.is-current")?.textContent ?? "";
+      document.body.querySelector(".submit-stage.is-current")?.textContent ??
+      "";
     expect(current()).toBe(STAGES[0]);
     act(() => {
       vi.advanceTimersByTime(1400);
@@ -75,13 +80,15 @@ describe("the overlay while a qualification is being turned into a card", () => 
       vi.advanceTimersByTime(1400 * (STAGES.length + 6));
     });
     const current =
-      document.body.querySelector(".submit-stage.is-current")?.textContent ?? "";
+      document.body.querySelector(".submit-stage.is-current")?.textContent ??
+      "";
     expect(current).toBe(STAGES[STAGES.length - 1]);
   });
 
   it("shows no percentage", () => {
     render(<SubmitOverlay open />);
-    const text = document.body.querySelector(".submit-overlay")!.textContent ?? "";
+    const text =
+      document.body.querySelector(".submit-overlay")!.textContent ?? "";
     expect(text).not.toMatch(/%|\d+ *of *\d+/);
   });
 

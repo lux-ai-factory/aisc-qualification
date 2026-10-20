@@ -13,15 +13,19 @@ const facts: CardFacts = {
   description: "Scores consumer loan applications.",
   targetUseCase: "Pre-screening consumer loans.",
   targetUsers: "Loan officers; applicants.",
-  targetSystemTags: ["predictive-analytical-ai:risk-scoring-assessment"],
-  sectorTags: ["economy"],
+  targetSystemTags: ["Profiling"],
+  sectorTags: ["PrivateService"],
 };
 
-const ontology = { system: { id: "system", label: "MCAS" }, rows: [], chains: [] };
+const ontology = {
+  system: { id: "system", label: "MCAS" },
+  rows: [],
+  chains: [],
+};
 
 describe("the payload the renderer is sent", () => {
   it("is a complete card from the form alone, with no generated prose", () => {
-    const payload = systemCardPayload(facts, null, ontology);
+    const payload = systemCardPayload(facts, ontology);
     // every field the renderer requires
     expect(payload.system_name).toBe("MicroCredit Assist Score (MCAS)");
     expect(payload.system_version).toBe("v1.2.0");
@@ -33,52 +37,22 @@ describe("the payload the renderer is sent", () => {
   });
 
   it("resolves the tags to names, since a PDF reader cannot read ids", () => {
-    const payload = systemCardPayload(facts, null, null);
+    const payload = systemCardPayload(facts, null);
+    // VAIR terms: a capability is flat, so it has no category
     expect(payload.classification).toEqual({
-      target_systems: [
-        {
-          category: "Predictive & Analytical AI",
-          subcategory: "Risk Scoring & Assessment",
-        },
-      ],
-      sectors: ["Economy"],
+      target_systems: [{ subcategory: "Profiling" }],
+      sectors: ["Private Service"],
     });
   });
 
   it("carries the filled graph", () => {
-    const payload = systemCardPayload(facts, null, ontology);
+    const payload = systemCardPayload(facts, ontology);
     expect(payload.ontology).toBe(ontology);
   });
 
   it("leaves the graph out when it could not be built", () => {
-    const payload = systemCardPayload(facts, null, null);
+    const payload = systemCardPayload(facts, null);
     expect("ontology" in payload).toBe(false);
-  });
-
-  it("merges the written prose when someone generated it", () => {
-    const payload = systemCardPayload(
-      facts,
-      {
-        overview: "MCAS scores short-term loan applications.",
-        findings: [{ title: "Data governance", summary: "Applicant data only.", points: [] }],
-        open_issues: ["No post-market monitoring plan yet."],
-      },
-      ontology,
-    );
-    expect(payload.overview).toBe("MCAS scores short-term loan applications.");
-    expect((payload.findings as unknown[]).length).toBe(1);
-    expect(payload.open_issues).toEqual(["No post-market monitoring plan yet."]);
-    // the prose never replaces the graph
-    expect(payload.ontology).toBe(ontology);
-  });
-
-  it("keeps the form's own facts even when a stale generated card disagrees", () => {
-    const payload = systemCardPayload(
-      facts,
-      { system_version: "v0.9.0", overview: "old" } as Record<string, unknown>,
-      null,
-    );
-    expect(payload.system_version).toBe("v1.2.0");
   });
 });
 
@@ -87,8 +61,25 @@ describe("the download filename", () => {
     expect(cardFileName(facts, "ontology.jsonld")).toBe(
       "microcredit_assist_score_mcas_v1.2.0_ontology.jsonld",
     );
-    expect(cardFileName({ ...facts, systemVersion: "2.0" }, "ai_card.pdf")).toBe(
-      "microcredit_assist_score_mcas_v2.0_ai_card.pdf",
-    );
+    expect(
+      cardFileName({ ...facts, systemVersion: "2.0" }, "ai_card.pdf"),
+    ).toBe("microcredit_assist_score_mcas_v2.0_ai_card.pdf");
+  });
+
+  it("fits a Content-Disposition header whatever the version holds", () => {
+    for (const systemVersion of ["2.0 – beta", "1.0 β", '1.0 "rc"', "1.0\\x"]) {
+      const name = cardFileName({ ...facts, systemVersion }, "ai_card.pdf");
+      expect(name, systemVersion).toMatch(/^[a-z0-9._-]+$/i);
+      expect(
+        () =>
+          new Headers({
+            "Content-Disposition": `attachment; filename="${name}"`,
+          }),
+        systemVersion,
+      ).not.toThrow();
+    }
+    expect(
+      cardFileName({ ...facts, systemVersion: "2.0 – beta" }, "ai_card.pdf"),
+    ).toBe("microcredit_assist_score_mcas_v2.0_beta_ai_card.pdf");
   });
 });

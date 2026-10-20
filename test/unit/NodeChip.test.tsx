@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import NodeChip from "@/app/qualify/[id]/NodeChip";
+import NodeChip from "@/app/p/[project]/qualify/[id]/NodeChip";
 import type { OntologyNode } from "@/domain/OntologyView";
 
 // vitest runs with globals: false, so Testing Library's automatic cleanup does
@@ -149,7 +149,11 @@ describe("a node the filler agent flagged", () => {
 
   it("shows the flag, because that is the queue", () => {
     render(
-      <NodeChip node={flagged(["ungrounded"])} vocabularies={{}} onEdit={() => {}} />,
+      <NodeChip
+        node={flagged(["ungrounded"])}
+        vocabularies={{}}
+        onEdit={() => {}}
+      />,
     );
     expect(screen.getByText("ungrounded")).toBeTruthy();
   });
@@ -170,9 +174,15 @@ describe("a node the filler agent flagged", () => {
 
   it("marks the chip so it stands out from a settled one", () => {
     const { container } = render(
-      <NodeChip node={flagged(["sentence"])} vocabularies={{}} onEdit={() => {}} />,
+      <NodeChip
+        node={flagged(["sentence"])}
+        vocabularies={{}}
+        onEdit={() => {}}
+      />,
     );
-    expect(container.querySelector(".onto-node")!.className).toContain("onto-flagged");
+    expect(container.querySelector(".onto-node")!.className).toContain(
+      "onto-flagged",
+    );
   });
 
   it("leaves an unflagged node alone", () => {
@@ -187,5 +197,54 @@ describe("a node the filler agent flagged", () => {
     expect(container.querySelector(".onto-node")!.className).not.toContain(
       "onto-flagged",
     );
+  });
+});
+
+describe("NodeChip drafted name", () => {
+  it("marks a drafted name, and shows the author's text on hover", () => {
+    render(
+      <NodeChip
+        node={node({
+          id: "purpose",
+          label: "Consumer credit",
+          cls: "Purpose",
+          nameDrafted: true,
+          fullText: "Assess the creditworthiness...",
+        })}
+        vocabularies={{}}
+        onEdit={() => {}}
+      />,
+    );
+    expect(screen.getByText("AI name")).toBeTruthy();
+    expect(screen.getByRole("button").getAttribute("title")).toBe(
+      "Assess the creditworthiness...",
+    );
+  });
+
+  it("shows no mark on a name a person wrote or kept", () => {
+    render(<NodeChip node={node()} vocabularies={{}} onEdit={() => {}} />);
+    expect(screen.queryByText("AI name")).toBeNull();
+  });
+});
+
+describe("NodeChip consistency finding", () => {
+  it("says check for an inconsistent flag, not the raw flag", () => {
+    const { container } = render(
+      <NodeChip
+        node={node({
+          flags: ["inconsistent"],
+          flagNotes: [
+            {
+              why: "the answer says it wraps an LLM",
+              quote: "wraps a hosted third-party LLM",
+            },
+          ],
+        })}
+        vocabularies={{}}
+        onEdit={() => {}}
+      />,
+    );
+    expect(container.querySelector(".onto-flag")!.textContent).toBe("check");
+    expect(screen.queryByText("inconsistent")).toBeNull();
   });
 });

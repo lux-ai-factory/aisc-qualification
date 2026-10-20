@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import NodeEditor from "@/app/qualify/[id]/NodeEditor";
+import NodeEditor from "@/app/p/[project]/qualify/[id]/NodeEditor";
 import type { OntologyNode } from "@/domain/OntologyView";
 
 afterEach(cleanup);
@@ -79,7 +79,7 @@ describe("NodeEditor as a pop-up", () => {
     const { panel } = mount({ cls: "Risk", vair: null });
     expect(panel.querySelector("select")).toBeNull();
     expect(
-      screen.getByText(/vocabulary defines no term for this kind of node/i),
+      screen.getByText(/vocabulary defines no term for this kind of item/i),
     ).toBeTruthy();
   });
 
@@ -163,8 +163,8 @@ describe("NodeEditor as a pop-up", () => {
 
   /**
    * Rendered through a portal to document.body, not inside the ontology
-   * section. The section is about to break out of the page's 820px column to
-   * use the full width, and any transformed or filtered ancestor would turn
+   * section. The section breaks out of the page's 820px column to use the
+   * full width, and any transformed or filtered ancestor would turn
    * this dialog's `position: fixed` into `absolute`, trapping the backdrop
    * inside the section.
    */
@@ -189,6 +189,22 @@ describe("NodeEditor as a pop-up", () => {
     );
   });
 
+  // The server replaces the node's entry with what the editor sends, so the
+  // editor says "no term" outright when the mark is ticked (the generated graph may carry one).
+  it("sends no term (vair null) when 'none applies' is ticked over a term", () => {
+    const onSave = vi.fn();
+    const { panel } = mount({}, { onSave });
+    fireEvent.click(
+      panel.querySelector('[data-testid="term-not-applicable"]') as HTMLElement,
+    );
+    (panel.querySelector('[data-testid="save"]') as HTMLElement).click();
+    expect(onSave).toHaveBeenCalledWith({
+      label: "Officer review of every Reject",
+      termNotApplicable: true,
+      vair: null,
+    });
+  });
+
   it("explains a vocabulary that names a different population", () => {
     const { panel } = mount({
       cls: "AIOperator",
@@ -196,13 +212,15 @@ describe("NodeEditor as a pop-up", () => {
       termExpected: false,
     });
     // The terms are still offered: a deployer that IS a public authority should
-    // carry one. What goes is the "none applies" mark, which existed only to
-    // silence a flag that is no longer raised.
+    // carry one. There is no "none applies" mark here: no flag is raised for
+    // this node, so there is nothing to silence.
     expect(panel.querySelector("select")).toBeTruthy();
     expect(
       panel.querySelector('[data-testid="term-not-applicable"]'),
     ).toBeNull();
-    expect(screen.getByText(/name a population this node is not part of/i)).toBeTruthy();
+    expect(
+      screen.getByText(/name a population this item is not part of/i),
+    ).toBeTruthy();
   });
 
   it("saves a term picked from a partial vocabulary, without any mark", () => {
@@ -243,5 +261,45 @@ describe("NodeEditor as a pop-up", () => {
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({ termNotApplicable: false }),
     );
+  });
+
+  it("explains a drafted name, and saves its label unchanged so keeping it clears the mark", () => {
+    const { panel, props } = mount({ nameDrafted: true });
+    expect(panel.textContent).toContain(
+      "This name was proposed by the AI from the text below. Saving the label, even unchanged, makes it yours.",
+    );
+    (panel.querySelector('[data-testid="save"]') as HTMLElement).click();
+    expect(props.onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ label: "Officer review of every Reject" }),
+    );
+  });
+
+  it("says nothing about an AI name on a node that was not drafted", () => {
+    const { panel } = mount();
+    expect(panel.textContent).not.toContain("proposed by the AI");
+  });
+});
+
+describe("NodeEditor consistency finding", () => {
+  it("shows why the AI points here, with the quote in quotation marks", () => {
+    const { panel } = mount({
+      flags: ["inconsistent"],
+      flagNotes: [
+        {
+          why: "the answer says it wraps an LLM",
+          quote: "wraps a hosted third-party LLM",
+        },
+      ],
+    });
+    expect(screen.getByText("Why the AI points here")).toBeTruthy();
+    expect(panel.textContent).toContain("the answer says it wraps an LLM");
+    expect(panel.textContent).toContain(
+      "\u201Cwraps a hosted third-party LLM\u201D",
+    );
+  });
+
+  it("has no such heading when there is no note", () => {
+    mount({ flags: ["ungrounded"] });
+    expect(screen.queryByText("Why the AI points here")).toBeNull();
   });
 });

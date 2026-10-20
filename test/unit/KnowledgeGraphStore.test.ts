@@ -88,28 +88,38 @@ describe("one knowledge graph per system", () => {
     // Two serialisations of one graph differ, because blank nodes are
     // relabelled. What someone downloads has to be the bytes we kept.
     await store.save("q1", built("abc", "@prefix ex: <stored> ."));
-    const doc = await store.document("q1", built("abc", "@prefix ex: <fresh> ."), "turtle");
+    const doc = await store.document(
+      "q1",
+      built("abc", "@prefix ex: <fresh> ."),
+      "turtle",
+    );
     expect(doc).toContain("stored");
   });
 
   it("falls back to the fresh build when nothing is stored", async () => {
-    const doc = await store.document("q1", built("abc", "@prefix ex: <fresh> ."), "turtle");
+    const doc = await store.document(
+      "q1",
+      built("abc", "@prefix ex: <fresh> ."),
+      "turtle",
+    );
     expect(doc).toContain("fresh");
   });
 
   it("falls back when the stored graph is a different one", async () => {
     // A stale row must not be served as though it were the current graph.
     await store.save("q1", built("old", "@prefix ex: <old> ."));
-    const doc = await store.document("q1", built("new", "@prefix ex: <new> ."), "turtle");
+    const doc = await store.document(
+      "q1",
+      built("new", "@prefix ex: <new> ."),
+      "turtle",
+    );
     expect(doc).toContain("new");
   });
 });
 
 describe("reading the build stamp", () => {
   it("pulls every builtWith value out of the turtle, sorted", () => {
-    expect(
-      stampOf(`<x> <ns#builtWith> "b", "a" .`),
-    ).toEqual(["a", "b"]);
+    expect(stampOf(`<x> <ns#builtWith> "b", "a" .`)).toEqual(["a", "b"]);
   });
 
   it("returns nothing for a graph with no stamp", () => {
@@ -141,13 +151,16 @@ describe("serving a graph when the builder is unavailable", () => {
       saveKnowledgeGraph: vi.fn(async () => stored),
     };
     const store = new KnowledgeGraphStore(repo as never);
-    const doc = await store.deliver("q1", "turtle", async () =>
-      ({
-        digest: "def",
-        turtle: "@prefix ex: <fresh> .",
-        jsonld: "{}",
-        view: { counts: { nodes: 1, triples: 1 } },
-      }) as never,
+    const doc = await store.deliver(
+      "q1",
+      "turtle",
+      async () =>
+        ({
+          digest: "def",
+          turtle: "@prefix ex: <fresh> .",
+          jsonld: "{}",
+          view: { counts: { nodes: 1, triples: 1 } },
+        }) as never,
     );
     expect(doc.document).toContain("fresh");
     expect(doc.fromStore).toBe(false);

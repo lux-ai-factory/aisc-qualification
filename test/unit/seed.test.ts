@@ -1,20 +1,42 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
-import { seedMcas, MCAS_SEED, MCAS_ID } from "../../scripts/seed_mcas.mjs";
+import { seedMcas, MCAS_ID } from "../../scripts/seed_mcas.mjs";
 
 const root = path.join(__dirname, "..", "..");
+
+// The seed names MCAS's system on the platform before it writes anything, so
+// that the qualification belongs to a project and to a system the engine and
+// the dashboard can point at too. These tests are about what the seed writes,
+// so the platform's answer is handed to it rather than asked for.
+const PLATFORM = {
+  projectId: "01399e17-4b01-4be9-997a-7f5e3574ab22",
+  systemId: "5f1b0000-0000-4000-8000-000000000001",
+};
 const read = (p: string) => readFileSync(path.join(root, p), "utf8");
 
 // A fake standing in for Prisma: it records what the seed asked of it, so the
 // seed's own decisions are what gets tested, not a database.
 function fakePrisma(
   rows: { id: string; systemName: string; systemVersion: string }[] = [],
+  historyRows = 0,
 ) {
   const calls: string[] = [];
-  return {
+  const db: any = {
     calls,
     rows,
+    async $transaction(fn: (tx: unknown) => Promise<unknown>) {
+      calls.push("begin");
+      const out = await fn(db);
+      calls.push("commit");
+      return out;
+    },
+    cardHistory: {
+      async count() {
+        calls.push("countHistory");
+        return historyRows;
+      },
+    },
     qualification: {
       async findUnique({ where }: any) {
         calls.push("findUnique");
@@ -26,6 +48,7 @@ function fakePrisma(
           id: data.id ?? `seeded-${rows.length}`,
           systemName: data.systemName,
           systemVersion: data.systemVersion,
+          sectorTags: data.sectorTags,
           answers: data.answers.create,
           risks: data.risks.create,
         };
@@ -40,12 +63,16 @@ function fakePrisma(
       },
     },
   };
+  return db as {
+    calls: string[];
+    rows: { id: string; systemName: string; systemVersion: string }[];
+  };
 }
 
 describe("the MCAS seed", () => {
   it("writes the system on an empty database", async () => {
     const db = fakePrisma();
-    await seedMcas(db as any);
+    await seedMcas(db as any, { platform: PLATFORM });
     expect(db.rows.length).toBe(1);
     expect(db.rows[0].systemName).toBe("MicroCredit Assist Score (MCAS)");
   });
@@ -55,18 +82,18 @@ describe("the MCAS seed", () => {
     // system card records it as its provenance). A fresh cuid per install would
     // break every one of those references.
     const db = fakePrisma();
-    await seedMcas(db as any);
+    await seedMcas(db as any, { platform: PLATFORM });
     expect(db.rows[0].id).toBe(MCAS_ID);
     expect(MCAS_ID).toMatch(/^c[a-z0-9]{20,}$/);
   });
 
   it("carries the whole walkthrough: every answer and every risk", async () => {
     const db = fakePrisma();
-    await seedMcas(db as any);
+    await seedMcas(db as any, { platform: PLATFORM });
     const row = db.rows[0] as any;
     expect(row.answers.length).toBe(14);
     expect(row.risks.length).toBe(5);
-    // The Annex IV ids the form asks under, not the question set they replaced.
+    // The Annex IV ids the form asks under.
     expect(
       row.answers.map((a: any) => `${a.toolId}:${a.questionId}`),
     ).toContain("annex-1:1de");
@@ -76,19 +103,56 @@ describe("the MCAS seed", () => {
     // The migrate container runs on every `docker compose up`. A second run must
     // not add a second copy, and must not overwrite a card someone has edited.
     const db = fakePrisma();
-    await seedMcas(db as any);
-    await seedMcas(db as any);
+    await seedMcas(db as any, { platform: PLATFORM });
+    await seedMcas(db as any, { platform: PLATFORM });
     expect(db.rows.length).toBe(1);
     expect(db.calls.filter((c) => c === "create").length).toBe(1);
   });
 
   it("replaces the seeded system when asked to", async () => {
     const db = fakePrisma();
-    await seedMcas(db as any);
-    await seedMcas(db as any, { force: true });
+    await seedMcas(db as any, { platform: PLATFORM });
+    await seedMcas(db as any, { force: true, platform: PLATFORM });
     expect(db.rows.length).toBe(1);
     expect(db.calls).toContain("delete");
     expect(db.calls.filter((c) => c === "create").length).toBe(2);
+  });
+
+  // With force, the seed deleted the card first and named the system on the platform after,
+  // outside any transaction, so a refused platform call left the card deleted and never re-created;
+  // and card_history (append-only, no ON DELETE) made the delete fail once the card had a history.
+  it("replaces it in one transaction, after the platform has named the system", async () => {
+    const db = fakePrisma();
+    await seedMcas(db as any, { platform: PLATFORM });
+    db.calls.length = 0;
+    await seedMcas(db as any, { force: true, platform: PLATFORM });
+    const begin = db.calls.indexOf("begin");
+    expect(begin).toBeGreaterThan(-1);
+    expect(db.calls.slice(begin)).toEqual([
+      "begin",
+      "delete",
+      "create",
+      "commit",
+    ]);
+  });
+
+  it("keeps the card when the platform cannot name the system", async () => {
+    const db = fakePrisma();
+    await seedMcas(db as any, { platform: PLATFORM });
+    // no platform answer handed in and no project to ask about: the platform step fails
+    await expect(seedMcas(db as any, { force: true })).rejects.toThrow();
+    expect(db.rows.length).toBe(1);
+    expect(db.calls).not.toContain("delete");
+  });
+
+  it("refuses to replace a card that has a history, and keeps it", async () => {
+    const db = fakePrisma([], 1);
+    await seedMcas(db as any, { platform: PLATFORM });
+    await expect(
+      seedMcas(db as any, { force: true, platform: PLATFORM }),
+    ).rejects.toThrow(/history/);
+    expect(db.rows.length).toBe(1);
+    expect(db.calls).not.toContain("delete");
   });
 
   it("is the seed Prisma runs, so the install seeds itself", () => {
@@ -109,29 +173,17 @@ describe("the MCAS seed", () => {
       expect(runner).toContain(dir);
     }
   });
-
-  it("reads only files that exist", () => {
-    const source = read("scripts/seed_mcas.mjs");
-    const imports = [...source.matchAll(/from\s+"(\.[^"]+)"/g)].map(
-      (m) => m[1],
-    );
-    expect(imports.length).toBeGreaterThan(0);
-    for (const rel of imports) {
-      expect(existsSync(path.join(root, "scripts", rel))).toBe(true);
-    }
-    expect(MCAS_SEED.systemName).toBe("MicroCredit Assist Score (MCAS)");
-  });
 });
 
 describe("the two MCAS fixtures", () => {
   it("agree, so the seeded system and the prefilled form are one system", async () => {
     const { MCAS } = await import("@/data/examples/mcas");
-    expect(MCAS_SEED.systemName).toBe(MCAS.metadata.systemName);
-    expect(MCAS_SEED.systemVersion).toBe(MCAS.metadata.systemVersion);
-    expect(MCAS_SEED.sectorTags).toEqual(MCAS.metadata.sectorTags);
-
     const db = fakePrisma();
-    await seedMcas(db as any);
+    await seedMcas(db as any, { platform: PLATFORM });
+    const row = db.rows[0] as any;
+    expect(row.systemName).toBe(MCAS.metadata.systemName);
+    expect(row.systemVersion).toBe(MCAS.metadata.systemVersion);
+    expect(row.sectorTags).toEqual(MCAS.metadata.sectorTags);
     const seeded = (db.rows[0] as any).answers
       .map((a: any) => `q:${a.toolId}:${a.questionId}`)
       .sort();

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, beforeAll } from "vitest";
 import { cleanup, render } from "@testing-library/react";
-import OntologyView from "@/app/qualify/[id]/OntologyView";
+import OntologyView from "@/app/p/[project]/qualify/[id]/OntologyView";
 import type { OntologyView as View } from "@/domain/OntologyView";
 import { installReactFlowEnv } from "../support/reactFlowEnv";
 
@@ -43,7 +43,11 @@ const view: View = {
       risk: node("risk0", "A creditworthy applicant is rejected", "Risk"),
       source: node("risk0_source", "Postcode proxies", "RiskSource"),
       vulnerability: null,
-      consequence: node("risk0_consequence", "Loss of credit access", "Consequence"),
+      consequence: node(
+        "risk0_consequence",
+        "Loss of credit access",
+        "Consequence",
+      ),
       impact: node("risk0_impact", "Economic harm", "Impact"),
       stakeholder: node("user", "Applicants", "AIUser"),
       control: node("risk0_control", "Officer review", "RiskControl"),
@@ -66,6 +70,7 @@ const view: View = {
 function mount() {
   return render(
     <OntologyView
+      projectId="proj"
       qualificationId="abc"
       initialView={view}
       initialProblems={[]}
@@ -98,7 +103,7 @@ describe("the card's chrome around the ontology", () => {
     const modes = [...container.querySelectorAll(".onto-modes button")].map(
       (b) => b.textContent,
     );
-    expect(modes).toEqual(["Graph", "Vertical"]);
+    expect(modes).toEqual(["Diagram", "List"]);
   });
 
   it("ends at the canvas: nothing is rendered below the ontology", () => {

@@ -1,0 +1,59 @@
+import { describe, it, expect, vi } from "vitest";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
+
+const { redirect } = vi.hoisted(() => ({ redirect: vi.fn() }));
+vi.mock("next/navigation", () => ({ redirect }));
+
+// A project has one AI system, edited and versioned; there is no "new
+// qualification" to make. Every way into the form is "edit the system", and
+// the /qualify/new address only redirects there, so a link to it cannot come back
+// unnoticed.
+
+function sources(dir: string): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const path = join(dir, name);
+    return statSync(path).isDirectory()
+      ? sources(path)
+      : /\.tsx?$/.test(name)
+        ? [path]
+        : [];
+  });
+}
+
+const OLD_FORM = "src/app/p/[project]/qualify/new/page.tsx";
+
+describe("one AI system, edited", () => {
+  it("nothing links to the old create-a-qualification form", () => {
+    // a link or a redirect to it; the form's own components still live there
+    const linking = sources("src").filter(
+      (file) =>
+        file !== OLD_FORM &&
+        /(href=|redirect\(|push\()[^\n]*qualify\/new/.test(
+          readFileSync(file, "utf8"),
+        ),
+    );
+    expect(linking).toEqual([]);
+  });
+
+  it("the old address redirects to editing the system", async () => {
+    const { default: OldNewQualificationPage } =
+      await import("@/app/p/[project]/qualify/new/page");
+    await OldNewQualificationPage({
+      params: Promise.resolve({ project: "p-abc" }),
+    });
+    expect(redirect).toHaveBeenCalledExactlyOnceWith("/p/p-abc/system/edit");
+  });
+
+  it("no page offers a new qualification", () => {
+    // what a person reads: the pages and components, not class names in code
+    const offering = sources("src")
+      .filter((file) => file.endsWith(".tsx"))
+      .filter((file) =>
+        /New qualification|Start a qualification|first qualification|Qualify an AI system/.test(
+          readFileSync(file, "utf8"),
+        ),
+      );
+    expect(offering).toEqual([]);
+  });
+});

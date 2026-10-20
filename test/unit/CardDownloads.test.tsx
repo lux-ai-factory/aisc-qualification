@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, beforeAll } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import CardDownloads from "@/app/qualify/[id]/CardDownloads";
-import OntologyView from "@/app/qualify/[id]/OntologyView";
+import CardDownloads from "@/app/p/[project]/qualify/[id]/CardDownloads";
+import OntologyView from "@/app/p/[project]/qualify/[id]/OntologyView";
 import type { OntologyView as View } from "@/domain/OntologyView";
 import { installReactFlowEnv } from "../support/reactFlowEnv";
 
@@ -83,7 +83,9 @@ describe("the card's downloads", () => {
   it("asks the browser to save the JSON rather than show it", () => {
     const { container } = render(<CardDownloads downloads={DOWNLOADS} />);
     expect(
-      container.querySelector(`a[href="${DOWNLOADS.json}"]`)!.hasAttribute("download"),
+      container
+        .querySelector(`a[href="${DOWNLOADS.json}"]`)!
+        .hasAttribute("download"),
     ).toBe(true);
   });
 
@@ -98,6 +100,7 @@ describe("the card's downloads", () => {
 function mountCard() {
   return render(
     <OntologyView
+      projectId="proj"
       qualificationId="abc"
       initialView={view}
       initialProblems={[]}
@@ -120,15 +123,13 @@ describe("where the downloads sit", () => {
 
   it("stay there when the vertical view is open", () => {
     const { container } = mountCard();
-    fireEvent.click(screen.getByRole("button", { name: "Vertical" }));
-    expect(
-      container.querySelector(".onto-head .onto-downloads"),
-    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "List" }));
+    expect(container.querySelector(".onto-head .onto-downloads")).toBeTruthy();
   });
 
   it("are offered once, not once per view", () => {
     const { container } = mountCard();
-    fireEvent.click(screen.getByRole("button", { name: "Vertical" }));
+    fireEvent.click(screen.getByRole("button", { name: "List" }));
     expect(container.querySelectorAll(".onto-downloads").length).toBe(1);
     expect(
       container.querySelectorAll(`a[href="${DOWNLOADS.pdf}"]`).length,

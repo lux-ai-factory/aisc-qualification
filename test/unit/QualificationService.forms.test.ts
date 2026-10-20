@@ -1,0 +1,318 @@
+import { describe, it, expect, vi } from "vitest";
+import { QualificationService } from "@/server/services/QualificationService";
+import { FormValidationError } from "@/server/forms/QualificationFormParser";
+import {
+  customQuestion,
+  defaultVersionLiteral,
+  formVersion,
+} from "../support/forms";
+import { transactional } from "../support/ledgerRepo";
+
+// Saving a card stores the form version it was filled with, and the form's
+// definition always comes from the server, never from the request.
+//
+// QualificationService's fourth constructor argument gives the questionnaire resolver of a
+// project, (project) => Promise<QuestionnaireResolver>, so a card is filled with its own
+// project's forms; the resolver returns null for an unknown id. The posted field is
+// questionnaireVersionId (formVersionId is read when it is absent); the stored field is
+// questionnaireVersionId; startingPoint() names fromQuestionnaireVersionId.
+
+const version = (number: number) => ({
+  pid: `v${number}`,
+  number,
+  project_id: "core-project-1",
+  name: "Acme Vision",
+  version: "1.0",
+  provider: null,
+  description: null,
+  created_at: "2026-09-25T09:00:00Z",
+  created_by: null,
+});
+
+const acmeV2 = formVersion({
+  versionId: "acme-v2",
+  versionNumber: 2,
+  questions: [
+    customQuestion("acme", "q1", {
+      text: "Server-side wording",
+      required: true,
+    }),
+  ],
+});
+
+function parsed(over: Record<string, unknown> = {}) {
+  return {
+    systemName: "Acme Vision",
+    systemVersion: "1.0",
+    company: "Acme",
+    description: "A vision system.",
+    targetUseCase: "",
+    targetUsers: "",
+    intendedDeployers: null,
+    targetSystemTags: [],
+    sectorTags: [],
+    marketFormTags: [],
+    localityTags: [],
+    answers: [],
+    risks: [],
+    ...over,
+  };
+}
+
+function setup(
+  opts: {
+    resolved?: unknown;
+    parsed?: Record<string, unknown>;
+    cards?: unknown[];
+  } = {},
+) {
+  const platform = {
+    createVersion: vi.fn(async () => version(2)),
+    listVersions: vi.fn(async () => [version(1)]),
+  };
+  const repo = transactional({
+    create: vi.fn(async () => ({ id: "card-2" })),
+    list: vi.fn(async () => opts.cards ?? []),
+    cardRefs: vi.fn(async () =>
+      (opts.cards ?? []).map((c) => {
+        const { id, systemId } = c as { id: string; systemId: string };
+        return { id, systemId };
+      }),
+    ),
+    find: vi.fn(
+      async (id: string) =>
+        (opts.cards ?? []).find((c) => (c as { id: string }).id === id) ?? null,
+    ),
+    update: vi.fn(async () => ({ id: "card-1" })),
+  });
+  const parser = { parse: vi.fn(() => parsed(opts.parsed)) };
+  const forms = {
+    resolve: vi.fn(async (id: string | null) =>
+      "resolved" in opts
+        ? opts.resolved
+        : id === null
+          ? defaultVersionLiteral()
+          : acmeV2,
+    ),
+  };
+  const formsFor = vi.fn(async (_project: string) => forms);
+  const svc = new (QualificationService as unknown as new (
+    ...args: unknown[]
+  ) => QualificationService)(repo, parser, platform, formsFor);
+  return { svc, platform, repo, parser, forms, formsFor };
+}
+
+const posted = (entries: Record<string, string>) => {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(entries)) fd.set(k, v);
+  return fd;
+};
+
+describe("saving a card with a form", () => {
+  it("the questionnaire version is resolved in the card's own project", async () => {
+    const { svc, formsFor } = setup();
+    await svc.createFromForm(
+      "mcas",
+      posted({ questionnaireVersionId: "acme-v2" }),
+    );
+    expect(formsFor).toHaveBeenCalledWith("mcas");
+  });
+
+  it("the parser gets the version loaded server side, not anything the request says about it", async () => {
+    const { svc, parser, forms } = setup();
+    const fd = posted({
+      questionnaireVersionId: "acme-v2",
+      "q:f-acme:q1": "Answer",
+      required: "false",
+      blocks: "[]",
+    });
+    await svc.createFromForm("mcas", fd);
+    expect(forms.resolve).toHaveBeenCalledWith("acme-v2");
+    expect(parser.parse).toHaveBeenCalledTimes(1);
+    const [data, form] = parser.parse.mock.calls[0] as unknown as [
+      FormData,
+      typeof acmeV2,
+    ];
+    expect(data).toBe(fd);
+    expect(form).toBe(acmeV2);
+  });
+
+  it("the repository stores the version id as questionnaireVersionId", async () => {
+    const { svc, repo } = setup();
+    await svc.createFromForm(
+      "mcas",
+      posted({ questionnaireVersionId: "acme-v2" }),
+    );
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questionnaireVersionId: "acme-v2",
+        systemId: "v2",
+      }),
+    );
+    // the card names no project: its database is the project
+    expect((repo.create.mock.calls[0] as unknown[])[0]).not.toHaveProperty(
+      "projectId",
+    );
+    expect((repo.create.mock.calls[0] as unknown[])[0]).not.toHaveProperty(
+      "formVersionId",
+    );
+  });
+
+  it("the old field name formVersionId is still read when questionnaireVersionId is absent", async () => {
+    const { svc, repo, forms } = setup();
+    await svc.createFromForm("mcas", posted({ formVersionId: "acme-v2" }));
+    expect(forms.resolve).toHaveBeenCalledWith("acme-v2");
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ questionnaireVersionId: "acme-v2" }),
+    );
+  });
+
+  it("questionnaireVersionId wins over formVersionId when both are posted", async () => {
+    const { svc, forms } = setup();
+    await svc.createFromForm(
+      "mcas",
+      posted({ questionnaireVersionId: "acme-v2", formVersionId: "old-v1" }),
+    );
+    expect(forms.resolve).toHaveBeenCalledWith("acme-v2");
+    expect(forms.resolve).not.toHaveBeenCalledWith("old-v1");
+  });
+
+  it("no version field means the default version, stored explicitly", async () => {
+    const { svc, repo, forms, parser } = setup();
+    await svc.createFromForm("mcas", posted({}));
+    expect(forms.resolve).toHaveBeenCalledWith(null);
+    expect((parser.parse.mock.calls[0] as unknown[])[1]).toMatchObject({
+      versionId: "annex-iv-default-v1",
+    });
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questionnaireVersionId: "annex-iv-default-v1",
+      }),
+    );
+  });
+
+  it("an unknown version is refused before the platform is asked for anything", async () => {
+    const { svc, platform, repo } = setup({ resolved: null });
+    const save = svc.createFromForm(
+      "mcas",
+      posted({ questionnaireVersionId: "gone" }),
+    );
+    await expect(save).rejects.toBeInstanceOf(FormValidationError);
+    await expect(
+      setup({ resolved: null }).svc.createFromForm(
+        "mcas",
+        posted({ questionnaireVersionId: "gone" }),
+      ),
+    ).rejects.toThrow(
+      "The questionnaire this was filled with no longer exists. Reload the page.",
+    );
+    expect(platform.createVersion).not.toHaveBeenCalled();
+    expect(repo.create).not.toHaveBeenCalled();
+  });
+
+  it("a form without the description block names the version with no description", async () => {
+    const { svc, platform } = setup({ parsed: { description: "" } });
+    await svc.createFromForm(
+      "mcas",
+      posted({ questionnaireVersionId: "acme-v2" }),
+    );
+    expect(platform.createVersion).toHaveBeenCalledWith(
+      "mcas",
+      expect.objectContaining({
+        name: "Acme Vision",
+        version: "1.0",
+        provider: "Acme",
+        description: null,
+      }),
+    );
+  });
+
+  it("a description is passed on as it was", async () => {
+    const { svc, platform } = setup();
+    await svc.createFromForm(
+      "mcas",
+      posted({ questionnaireVersionId: "acme-v2" }),
+    );
+    expect(platform.createVersion).toHaveBeenCalledWith(
+      "mcas",
+      expect.objectContaining({ description: "A vision system." }),
+    );
+  });
+});
+
+describe("where the next card starts", () => {
+  const card = (questionnaireVersionId: string | null) => ({
+    id: "card-1",
+    systemId: "v1",
+    projectId: "core-project-1",
+    questionnaireVersionId,
+    systemName: "Acme Vision",
+    systemVersion: "1.0",
+    company: "Acme",
+    description: "d",
+    targetUseCase: "u",
+    targetUsers: "t",
+    intendedDeployers: null,
+    targetSystemTags: [],
+    sectorTags: [],
+    marketFormTags: [],
+    localityTags: [],
+    answers: [],
+    risks: [],
+    components: [],
+  });
+
+  it("names the previous card's questionnaire version", async () => {
+    const { svc } = setup({ cards: [card("acme-v2")] });
+    const start = await svc.startingPoint("mcas");
+    expect(start.fromQuestionnaireVersionId).toBe("acme-v2");
+  });
+
+  it("a legacy previous card resolves to the default version", async () => {
+    const { svc } = setup({ cards: [card(null)] });
+    expect((await svc.startingPoint("mcas")).fromQuestionnaireVersionId).toBe(
+      "annex-iv-default-v1",
+    );
+  });
+
+  it("a first card has no previous questionnaire", async () => {
+    const { svc } = setup({ cards: [] });
+    expect(
+      (await svc.startingPoint("mcas")).fromQuestionnaireVersionId,
+    ).toBeNull();
+  });
+});
+
+describe("moving a card to another questionnaire version", () => {
+  const acmeV3 = formVersion({
+    versionId: "acme-v3",
+    versionNumber: 3,
+    questions: [
+      customQuestion("acme", "q1", {
+        text: "Reworded server-side",
+        setVersionId: "acme-v2",
+      }),
+    ],
+  });
+
+  it("saving with a newer version V makes the next card, filled with V, and never updates the previous card", async () => {
+    const { svc, repo, forms, platform } = setup({ resolved: acmeV3 });
+    await svc.createFromForm(
+      "mcas",
+      posted({
+        questionnaireVersionId: "acme-v3",
+        "q:f-acme:q1": "Kept answer",
+      }),
+    );
+    expect(forms.resolve).toHaveBeenCalledWith("acme-v3");
+    expect(platform.createVersion).toHaveBeenCalledTimes(1);
+    expect(repo.create).toHaveBeenCalledTimes(1);
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questionnaireVersionId: "acme-v3",
+        systemId: "v2",
+      }),
+    );
+    expect(repo.update).not.toHaveBeenCalled();
+  });
+});

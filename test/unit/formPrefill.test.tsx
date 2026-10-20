@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, render } from "@testing-library/react";
-import QualifyForm from "@/app/qualify/new/QualifyForm";
+import { IMPACT_AREAS, SUBJECTS } from "@/data/vairVocab";
+import QualifyForm from "@/app/p/[project]/qualify/new/QualifyForm";
 import { findExample } from "@/data/examples";
-import { sectors, targetSystems } from "@/data";
 import { KEY_QUESTIONS } from "@/data/keyQuestions";
 
 afterEach(cleanup);
@@ -11,14 +11,7 @@ afterEach(cleanup);
 const example = findExample("mcas")!;
 
 const mount = (initial = example) =>
-  render(
-    <QualifyForm
-      keyQuestions={KEY_QUESTIONS}
-      targetSystems={targetSystems}
-      sectors={sectors}
-      initial={initial}
-    />,
-  );
+  render(<QualifyForm project="p" initial={initial} />);
 
 describe("opening the form on a worked example", () => {
   it("fills the metadata, so it can be read and corrected", () => {
@@ -34,15 +27,14 @@ describe("opening the form on a worked example", () => {
   it("preselects the tags as hidden inputs the parser will read", () => {
     const { container } = mount();
     const hidden = (name: string) =>
-      [...container.querySelectorAll(`input[type="hidden"][name="${name}"]`)].map(
-        (i) => (i as HTMLInputElement).value,
-      );
-    expect(hidden("targetSystemTags")).toContain(
-      "predictive-analytical-ai:risk-scoring-assessment",
-    );
-    expect(hidden("sectorTags")).toEqual(["finance-and-insurance"]);
-    expect(hidden("marketFormTags")).toEqual(["software", "service"]);
-    expect(hidden("localityTags")).toContain("workplace");
+      [
+        ...container.querySelectorAll(`input[type="hidden"][name="${name}"]`),
+      ].map((i) => (i as HTMLInputElement).value);
+    // VAIR terms
+    expect(hidden("targetSystemTags")).toContain("Profiling");
+    expect(hidden("sectorTags")).toEqual(["PrivateService"]);
+    expect(hidden("marketFormTags")).toEqual(["Software", "Service"]);
+    expect(hidden("localityTags")).toContain("Workplace");
   });
 
   it("fills every Annex IV answer it has one for", () => {
@@ -67,33 +59,31 @@ describe("opening the form on a worked example", () => {
     ).toMatch(/wrongly ranked as high risk/);
     expect(
       (first.querySelector('[name$=":affected"]') as HTMLSelectElement).value,
-    ).toBe("user");
+    ).toBe("NaturalPerson");
     const areas = [
       ...first.querySelectorAll('input[type="hidden"][name$=":area"]'),
     ].map((i) => (i as HTMLInputElement).value);
-    expect(areas).toContain("right");
+    expect(areas).toContain("Right");
   });
 
   it("stays empty when no example is asked for", () => {
-    const { container } = render(
-      <QualifyForm
-        keyQuestions={KEY_QUESTIONS}
-        targetSystems={targetSystems}
-        sectors={sectors}
-      />,
-    );
+    const { container } = render(<QualifyForm project="p" />);
     expect(
-      (container.querySelector('[name="systemName"]') as HTMLInputElement).value,
+      (container.querySelector('[name="systemName"]') as HTMLInputElement)
+        .value,
     ).toBe("");
     expect(container.querySelectorAll("fieldset.qf-risk").length).toBe(1);
     expect(
-      container.querySelectorAll('input[type="hidden"][name="sectorTags"]').length,
+      container.querySelectorAll('input[type="hidden"][name="sectorTags"]')
+        .length,
     ).toBe(0);
   });
 
   it("stays editable", () => {
     const { container } = mount();
-    const name = container.querySelector('[name="systemName"]') as HTMLInputElement;
+    const name = container.querySelector(
+      '[name="systemName"]',
+    ) as HTMLInputElement;
     expect(name.readOnly).toBe(false);
     expect(name.disabled).toBe(false);
   });
@@ -128,9 +118,11 @@ describe("the worked example itself", () => {
   });
 
   it("uses only vocabulary ids the pickers offer", () => {
-    const areaIds = new Set(["health", "safety", "right", "freedom"]);
+    const areaIds = new Set(IMPACT_AREAS.map((a) => a.id));
     for (const row of example.risks) {
-      expect(["operator", "user"]).toContain(row.affected);
+      expect(["operator", "user", ...SUBJECTS.map((s) => s.id)]).toContain(
+        row.affected,
+      );
       for (const area of row.areas) expect(areaIds.has(area)).toBe(true);
     }
   });
