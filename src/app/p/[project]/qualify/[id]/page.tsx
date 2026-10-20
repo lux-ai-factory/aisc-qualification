@@ -1,0 +1,266 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { qualificationService } from "@/server/services/QualificationService";
+import { releaseLabel, updateAnswersLabel } from "@/domain/SystemCard";
+import { ontologyService } from "@/server/services/OntologyService";
+import { OntologyClient } from "@/server/services/OntologyClient";
+import { answeredFormParts } from "./AnsweredForm";
+import FillStatus from "./FillStatus";
+import CarriedNotice from "./CarriedNotice";
+import { placesToCheck } from "@/domain/placesToCheck";
+import OntologyView from "./OntologyView";
+import QualificationMenu from "./QualificationMenu";
+import ProjectNav from "@/components/ProjectNav";
+import { questionnairesFor } from "@/server/services/QuestionnaireService";
+import { newerVersion } from "@/domain/forms/moveCard";
+import { annexDefaultVersion } from "@/domain/forms/legacy";
+import FormLine from "../../FormLine";
+import { repositoryFor } from "@/server/repositories/QualificationRepository";
+import { emitEvent, isServerAction } from "@/vendor/aisc-ledger/emit";
+
+export default async function QualificationDetailPage({
+  params,
+}: {
+  params: Promise<{ project: string; id: string }>;
+}) {
+  const { project, id } = await params;
+
+  // Raw <a href> links are not rewritten by Next's basePath, so prefix them here
+  // (as SiteHeader does) for the downloads to work when served under a subpath.
+  const basePath = process.env.NEXT_BASE_PATH || "";
+
+  // Looked up in this project's own database: a card of another project is not
+  // there. The middleware has already asked the platform about this project.
+  const q = await qualificationService.get(project, id);
+  if (!q) notFound();
+
+  // One system; its card in versions: this card is the latest version's, or
+  // history. Only the latest changes; when the platform cannot say, nothing is
+  // offered for editing either.
+  const standing = await qualificationService
+    .standing(project, { systemId: q.systemId })
+    .catch(() => null);
+  const readOnly = !standing?.current;
+
+  // Who opened which card version is recorded in the ledger as qualification.opened. It is a read:
+  // the page never fails for it, and a failure to record is logged, not shown. A server action
+  // re-renders this page in its own POST (Next-Action): that is the action, not an opening.
+  if (!(await isServerAction()))
+    await repositoryFor(project)
+      .then((repo) =>
+        repo.transaction((_r, tx) =>
+          emitEvent(tx, {
+            action: "qualification.opened",
+            itemType: "qualification",
+            itemId: q.id,
+            details: {
+              version: standing?.versionNumber ?? null,
+              read_only: readOnly,
+            },
+          }),
+        ),
+      )
+      .catch((err: unknown) =>
+        console.warn(
+          `ledger: qualification.opened not recorded for ${q.id}: ${String(err)}`,
+        ),
+      );
+
+  // The ontology IS the card: built on read from the form, the agent's
+  // extraction and the reviewer's patch. A sidecar that is down must not take
+  // the page down with it, so the failure is reported inside the AI card part and
+  // the answered form is unaffected.
+  let ontology: Awaited<ReturnType<typeof ontologyService.build>> | null = null;
+  let ontologyError: string | null = null;
+  let vocabularies: Record<string, string[]> = {};
+  try {
+    ontology = await ontologyService.build(project, q.id);
+    vocabularies = await OntologyClient.fromEnv().vocabularies();
+  } catch (err) {
+    ontologyError =
+      err instanceof Error ? err.message : "The AI card could not be built.";
+  }
+
+  // The questionnaire version the card was filled with; a card from before
+  // questionnaires is the default version, and so is one whose version cannot
+  // be found. Only the current card is offered a newer version to move to.
+  const questionnaires = await questionnairesFor(project);
+  const form =
+    (await questionnaires.resolve(q.questionnaireVersionId ?? null)) ??
+    annexDefaultVersion();
+  const newer = standing?.current
+    ? newerVersion(
+        form,
+        await questionnaires
+          .latestVersion(form.questionnaireId)
+          .catch(() => null),
+      )
+    : null;
+
+  // What this version took from the review of the one before it; a failure to read it hides the
+  // notice, never the card.
+  const carried = await qualificationService
+    .carriedReview(project, q.id)
+    .catch(() => null);
+
+  const savedAt = q.createdAt.toISOString().slice(0, 16).replace("T", " ");
+
+  return (
+    <main className="qualify-page qualify-page--wide qualify-page--menu">
+      <QualificationMenu
+        header={
+          <>
+            <header className="qualify-header">
+              <div className="qf-header-row">
+                <div>
+                  {standing && standing.versionNumber > 0 && (
+                    <p className="qf-row-sysver">
+                      AI card v{standing.versionNumber}
+                    </p>
+                  )}
+                  <h1>{q.systemName}</h1>
+                  <p>
+                    {q.company} · {releaseLabel(q.systemVersion)} · saved{" "}
+                    {savedAt} UTC
+                  </p>
+                  <FormLine
+                    project={project}
+                    questionnaireId={form.questionnaireId}
+                    questionnaireName={form.questionnaireName}
+                    versionNumber={form.versionNumber}
+                    basePath={basePath}
+                    newer={newer}
+                  />
+                </div>
+                {standing?.current && (
+                  <div className="qf-header-actions">
+                    <Link
+                      className="btn qf-header-btn"
+                      href={`/p/${project}/system/edit`}
+                    >
+                      {updateAnswersLabel(standing.versionNumber)}
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </header>
+
+            {readOnly && (
+              <p className="qf-prefilled">
+                v{standing?.versionNumber || "?"}, kept as it was: only the
+                latest version changes.{" "}
+                {standing?.currentCardId && (
+                  <Link
+                    href={`/p/${project}/qualify/${standing.currentCardId}`}
+                  >
+                    Open the latest card
+                  </Link>
+                )}
+              </p>
+            )}
+          </>
+        }
+        parts={answeredFormParts({
+          form,
+          metadata: {
+            systemName: q.systemName,
+            systemVersion: q.systemVersion,
+            company: q.company,
+            description: q.description,
+            targetUseCase: q.targetUseCase,
+            targetUsers: q.targetUsers,
+            intendedDeployers: q.intendedDeployers,
+            providerTerm: q.providerTerm,
+            deployerTerm: q.deployerTerm,
+            systemType: q.systemType,
+            purpose: q.purpose,
+            targetSystemTags: q.targetSystemTags,
+            sectorTags: q.sectorTags,
+            marketFormTags: q.marketFormTags,
+            localityTags: q.localityTags,
+          },
+          answers: q.answers.map((a) => ({
+            id: a.id,
+            toolId: a.toolId,
+            questionId: a.questionId,
+            answer: a.answer,
+          })),
+          systemComponents: (q.systemComponents ?? []).map((c) => ({
+            id: c.id,
+            name: c.name,
+            role: c.role,
+            kind: c.kind,
+            vairType: c.vairType,
+            provider: c.provider,
+            providerName: c.providerName,
+          })),
+          risks: q.risks.map((r) => ({
+            id: r.id,
+            risk: r.risk,
+            source: r.source,
+            sourceTerm: r.sourceTerm,
+            vulnerability: r.vulnerability,
+            consequence: r.consequence,
+            consequenceTerm: r.consequenceTerm,
+            impactTerm: r.impactTerm,
+            affected: r.affected,
+            impactAreas: r.impactAreas,
+            control: r.control,
+            controlTerm: r.controlTerm,
+            followUpControl: r.followUpControl,
+            followUpControlTerm: r.followUpControlTerm,
+          })),
+        })}
+        nav={
+          <ProjectNav
+            project={project}
+            withSystem={false}
+            className="qf-sidemenu-nav"
+          />
+        }
+        card={
+          <>
+            {carried && (
+              <CarriedNotice
+                review={carried.review}
+                fromHref={`/p/${project}/qualify/${carried.fromCardId}`}
+              />
+            )}
+            {/* Let AI suggest additions, in the AI card part only: the card is built from the
+                form alone, and the filler runs on top of it when a person asks. */}
+            {!readOnly && (
+              <FillStatus
+                project={project}
+                qualificationId={q.id}
+                statusUrl={`${basePath}/p/${project}/api/qualifications/${q.id}/fill`}
+                places={ontology ? placesToCheck(ontology.view) : 0}
+              />
+            )}
+            {ontology ? (
+              <OntologyView
+                projectId={project}
+                qualificationId={q.id}
+                initialView={ontology.view}
+                initialProblems={ontology.problems}
+                vocabularies={vocabularies}
+                readOnly={readOnly}
+                downloads={{
+                  pdf: `${basePath}/p/${project}/api/qualifications/${q.id}/ai-card.pdf`,
+                  json: `${basePath}/p/${project}/api/qualifications/${q.id}/ai-card.json`,
+                  jsonld: `${basePath}/p/${project}/api/qualifications/${q.id}/ontology.jsonld`,
+                }}
+              />
+            ) : (
+              <section className="qf-section">
+                <p className="qf-help">
+                  This system&rsquo;s AI card could not be built:{" "}
+                  {ontologyError} The answered form is unaffected.
+                </p>
+              </section>
+            )}
+          </>
+        }
+      />
+    </main>
+  );
+}

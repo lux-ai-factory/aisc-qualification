@@ -1,0 +1,136 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { rerunFill } from "./fill-actions";
+
+// Refine with AI, and its progress.
+//
+// The card is built from the form alone. The filler runs only when
+// a person presses Refine with AI, and reads only the answers to the questions:
+// the form's structured fields are VAIR terms their author chose, so what is left
+// is the techniques answer 2(a) describes. A run takes a minute or several on a reasoning
+// model, so while it is in flight this says so, and brings the result in when it
+// lands.
+const POLL_MS = 2000;
+
+type State = "idle" | "queued" | "running" | "done" | "failed";
+
+export default function FillStatus({
+  project,
+  qualificationId,
+  statusUrl,
+  places = 0,
+}: {
+  project: string;
+  qualificationId: string;
+  /** Where this card's run state is read: the fill route under its project. */
+  statusUrl: string;
+  /** How many places the card asks a person to check, counted on the card itself. */
+  places?: number;
+}) {
+  const [state, setState] = useState<State>("idle");
+  // Bumped by each regenerate, which starts the poll over for the new run.
+  const [run, setRun] = useState(0);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  // Held in a ref and kept out of the effect's dependencies: the effect starts a
+  // poll, and a router object with a new identity would restart it on every
+  // state change, which is a loop rather than a poll.
+  const routerRef = useRef(router);
+  routerRef.current = router;
+
+  useEffect(() => {
+    let live = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // Only a run this mount saw in flight (or started, with Refine with AI) is
+    // brought in. The agent keeps a finished run's "done" until it restarts, so
+    // "done" on the first look is an earlier run whose draft the page already
+    // shows: refreshing then would render the page twice and record a second
+    // opening.
+    let inFlight = run > 0;
+
+    const ask = async () => {
+      try {
+        const res = await fetch(statusUrl, { cache: "no-store" });
+        if (!res.ok) return;
+        const body = (await res.json()) as { state?: State };
+        if (!live) return;
+        const next = body.state ?? "idle";
+        setState(next);
+        if (next === "queued" || next === "running") {
+          inFlight = true;
+          timer = setTimeout(ask, POLL_MS);
+        } else if (next === "done" && inFlight) {
+          // Once only: the draft is in the graph now, and the card is built on
+          // read, so a refresh is what makes it appear.
+          inFlight = false;
+          routerRef.current.refresh();
+        }
+      } catch {
+        // No status service, or none reachable. The card is complete without
+        // it; saying nothing is better than an error about an extra.
+      }
+    };
+
+    ask();
+    return () => {
+      live = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [qualificationId, statusUrl, run]);
+
+  const regenerate = async () => {
+    setStarting(true);
+    setError(null);
+    const result = await rerunFill(project, qualificationId);
+    setStarting(false);
+    if (!result.ok) {
+      setError(result.error ?? "Could not start the card agent.");
+      return;
+    }
+    setState("queued");
+    setRun((n) => n + 1);
+  };
+
+  if (state !== "queued" && state !== "running") {
+    return (
+      <div className="fill-rerun">
+        {state === "failed" && (
+          <p className="fill-status" role="status" aria-live="polite">
+            The AI suggestions could not finish. The card below is built from
+            your answers.
+          </p>
+        )}
+        {state !== "failed" && places > 0 && (
+          <p className="fill-status" role="status" aria-live="polite">
+            {places === 1 ? "1 item to review" : `${places} items to review`}
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn ghost qf-header-btn"
+          onClick={regenerate}
+          disabled={starting}
+        >
+          {starting ? "Starting..." : "Let AI suggest additions"}
+        </button>
+        {error && (
+          <span className="fill-rerun-error" role="alert">
+            {error}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="fill-status" role="status" aria-live="polite">
+      <span className="fill-status-spinner" aria-hidden="true" />
+      AI is suggesting additions: proposing what your answers support beyond
+      what the card already lists, and reviewing it. This card will fill in by
+      itself.
+    </div>
+  );
+}

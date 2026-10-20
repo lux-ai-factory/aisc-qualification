@@ -1,13 +1,23 @@
+import SiteHeader from "@/components/SiteHeader";
 import { KEY_QUESTIONS } from "@/data/keyQuestions";
 import { RISK_FIELDS } from "@/data/riskFields";
-import { AFFECTED, IMPACT_AREAS, LOCALITIES, MARKET_FORMS } from "@/data/airoVocab";
+import { AFFECTED } from "@/data/airoVocab";
+import {
+  CAPABILITIES,
+  DOMAINS,
+  IMPACT_AREAS,
+  LOCALITIES,
+  MODALITIES,
+  PURPOSES,
+  SYSTEM_TYPES,
+} from "@/data/vairVocab";
 import { OntologyClient } from "@/server/services/OntologyClient";
 import Methodology, { type MethodologyFacts } from "./Methodology";
 
 export const metadata = {
-  title: "Methodology",
+  title: "How the AI card is built",
   description:
-    "How a qualification becomes an AI card: the EU AI Act questions, the AIRO ontology, the VAIR vocabulary, and the knowledge graph they produce.",
+    "How a qualification becomes an AI card: the EU AI Act questions, the AIRO ontology, the VAIR vocabulary, and the AI card they produce.",
 };
 
 export default async function MethodologyPage() {
@@ -32,7 +42,11 @@ export default async function MethodologyPage() {
     optionalQuestions: KEY_QUESTIONS.filter((q) => q.optional).length,
     riskFields: RISK_FIELDS.length,
     pickers: {
-      marketForm: MARKET_FORMS.length,
+      systemType: SYSTEM_TYPES.length,
+      purpose: PURPOSES.length,
+      capability: CAPABILITIES.length,
+      domain: DOMAINS.length,
+      marketForm: MODALITIES.length,
       locality: LOCALITIES.length,
       impactArea: IMPACT_AREAS.length,
       affected: AFFECTED.length,
@@ -44,15 +58,18 @@ export default async function MethodologyPage() {
   };
 
   return (
-    <main className="qualify-page">
-      <header className="qualify-header">
-        <h1>Methodology</h1>
-        <p>
-          Eight steps from a filled form to an AI card you can download, each
-          with what goes in, the text that authorises it and what comes out.
-        </p>
-      </header>
-      <Methodology facts={facts} />
-    </main>
+    <>
+      <SiteHeader />
+      <main className="qualify-page">
+        <header className="qualify-header">
+          <h1>How the AI card is built</h1>
+          <p>
+            Eight steps from a filled form to an AI card you can download, each
+            with what goes in, the text that authorises it and what comes out.
+          </p>
+        </header>
+        <Methodology facts={facts} />
+      </main>
+    </>
   );
 }
