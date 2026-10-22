@@ -69,13 +69,14 @@ browser ── gateway (Caddy + oauth2-proxy + Keycloak) ── qualification-we
 The app is the submodule `apps/qualification` of the aisc repo. Its services are defined in the aisc
 repo's `docker-compose.development.yml`: `qualification-web`, `qualification-migrate`,
 `qualification-ontology`, `qualification-agents`, `qualification-prefill` and `qualification-pdf`.
-From the aisc repo root:
+From the aisc folder:
 
 ```bash
-./scripts/secrets.sh        # once: writes env.secrets and env.runtime (the service tokens among them)
-docker compose -p aisc --env-file env.runtime -f docker-compose.plugin_downloader.yml \
-  -f docker-compose-infra.development.yml -f docker-compose.development.yml up -d --build
+uv run scripts/aisc.py start
 ```
+
+It makes the secrets if they are missing (the service tokens among them), builds and starts the stack,
+and keeps port 443 answering on an https install.
 
 The compose file refuses to start the qualification services until `scripts/secrets.sh` has written
 their tokens. `qualification-migrate` runs first: it applies `prisma migrate deploy` to every project
