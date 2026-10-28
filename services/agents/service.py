@@ -21,7 +21,7 @@ import logging
 import threading
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Literal
+from typing import Any
 
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException
 
@@ -29,8 +29,6 @@ from agent import fill_one
 from fill import ledger
 from fill.errors import safe_error
 from service_token import ServiceTokens
-
-State = Literal["queued", "running", "done", "failed"]
 
 log = logging.getLogger("qualification-agents")
 

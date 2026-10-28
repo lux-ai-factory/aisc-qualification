@@ -13,8 +13,6 @@ from typing import Literal
 #: `extracted` payload, and each comes from one Annex IV sub-item.
 Property = Literal["techniques", "components", "risk_types"]
 
-PROPERTIES: tuple[Property, ...] = ("techniques", "components", "risk_types")
-
 #: The AIRO class each property's nodes take, which decides the term list.
 CLASS_OF: dict[Property, str] = {
     "techniques": "AITechnique",

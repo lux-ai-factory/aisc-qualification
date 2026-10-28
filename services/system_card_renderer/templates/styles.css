@@ -117,13 +117,6 @@ dl.kv dd {
   page-break-inside: avoid;
 }
 
-.refs {
-  color: #565656;
-  font-size: 9pt;
-  font-style: italic;
-  margin-top: -4pt;
-}
-
 .muted {
   color: #565656;
 }
@@ -157,7 +150,6 @@ code {
   background: #fce7ee;
   color: #8a1242;
 }
-
 
 /* Ontology section */
 .onto-pdf h3 {

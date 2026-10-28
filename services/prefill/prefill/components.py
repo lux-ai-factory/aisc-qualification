@@ -58,7 +58,6 @@ _BY_LABEL = sorted(
     ((label, field) for field, labels in _LABELS.items() for label in labels),
     key=lambda pair: -len(pair[0]),
 )
-FIELDS = ("key", "name", "role", "type", "provider", "providerName")
 
 
 def section_lines(lines: list[str]) -> set[int]:
