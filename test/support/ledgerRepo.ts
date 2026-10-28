@@ -24,7 +24,6 @@ export function transactional<T extends Repoish>(repo: T, tx = fakeTx()) {
     ontologyExtracted: null,
   }));
   out.lockedPatch ??= vi.fn(async () => null);
-  out.lockCard ??= vi.fn(async () => undefined);
   return Object.assign(out, { ledgerTx: tx }) as T & {
     ledgerTx: ReturnType<typeof fakeTx>;
   };

@@ -135,15 +135,6 @@ export class QualificationRepository {
     });
   }
 
-  /**
-   * Lock the card's row until the transaction ends (inside `transaction`): a second change of
-   * the same card waits here, then reads what the first one committed.
-   */
-  async lockCard(id: string): Promise<void> {
-    await this.db
-      .$queryRaw`SELECT id FROM qualification.qualification WHERE id = ${id} FOR UPDATE`;
-  }
-
   /** The card's corrections, its row locked until the transaction ends (inside `transaction`). */
   async lockedPatch(id: string): Promise<Prisma.JsonValue | null> {
     const rows = await this.db.$queryRaw<{ patch: Prisma.JsonValue | null }[]>`

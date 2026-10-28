@@ -241,12 +241,6 @@ export class QualificationService {
     return cardStanding(versions, cards, card.systemId);
   }
 
-  /** Each version's number, by its pid, for labelling the cards. */
-  async versionNumbers(project: string): Promise<Map<string, number>> {
-    const versions = await this.platform.listVersions(project);
-    return new Map(versions.map((v) => [v.pid, v.number]));
-  }
-
   /** The card versions, highest number first. */
   versions(project: string) {
     return this.platform.listVersions(project);
