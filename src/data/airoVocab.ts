@@ -1,6 +1,5 @@
 // Our own picker lists, only for what VAIR has no vocabulary for: who a risk affects.
-// Everything VAIR covers is in vairVocab.ts. services/ontology reads the same JSON file, so the
-// ids are the same on both sides.
+// Everything VAIR covers is in vairVocab.ts.
 import vocab from "./airo_vocab.json";
 import { SUBJECTS } from "./vairVocab";
 

@@ -1,5 +1,5 @@
 {
-  "_comment": "The fields a document can propose, shared with services/prefill the way airo_vocab.json is shared with services/ontology. test/unit/prefillFields.test.ts checks it against the form, so the two cannot drift.",
+  "_comment": "The fields a document can propose, shared with services/prefill. test/unit/prefillFields.test.ts checks it against the form, so the two cannot drift.",
   "metadata": [
     "systemName",
     "systemVersion",
