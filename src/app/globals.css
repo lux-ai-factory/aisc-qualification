@@ -190,31 +190,6 @@ a:hover {
   color: #ffffff;
 }
 
-/* Tabs */
-.tabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 22px;
-}
-.tabs button {
-  flex: 1;
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  color: var(--muted);
-  padding: 10px 8px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
-  margin-bottom: -1px;
-  font-family: inherit;
-}
-.tabs button.active {
-  color: var(--primary);
-  border-bottom-color: var(--accent);
-}
-
 .error {
   background: #fdecf2;
   border: 1px solid #f5b8cd;
@@ -523,40 +498,6 @@ a:hover {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.qualify-form .qf-cat {
-  color: var(--muted);
-  font-size: 12px;
-}
-.qualify-form .qf-refs {
-  display: block;
-  color: var(--muted);
-  font-size: 11px;
-  margin-top: 4px;
-}
-
-.qualify-form .qf-part h3 {
-  margin: 0 0 12px;
-  font-size: 12px;
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 800;
-}
-.qualify-form .qf-subsection {
-  border-top: 1px solid var(--border);
-  padding-top: 14px;
-  margin-top: 14px;
-}
-.qualify-form .qf-subsection:first-child {
-  border-top: 0;
-  padding-top: 0;
-  margin-top: 0;
-}
-.qualify-form .qf-subsection h4 {
-  margin: 0 0 4px;
-  font-size: 14px;
-  font-weight: 800;
-}
 
 .qualify-form .qf-actions {
   display: flex;
@@ -586,57 +527,6 @@ a:hover {
   width: auto;
   padding: 9px 16px;
   font-size: 13px;
-}
-.qf-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.qf-list-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px 22px;
-  box-shadow: 0 1px 2px rgba(0, 15, 223, 0.03);
-}
-.qf-list-main {
-  flex: 1;
-  min-width: 0;
-}
-.qf-list-main h3 {
-  margin: 0 0 4px;
-  font-size: 17px;
-}
-.qf-list-meta {
-  margin: 0 0 8px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
-}
-.qf-list-desc {
-  margin: 0;
-  color: var(--text);
-  font-size: 14px;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.qf-list-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0 0 8px;
-}
-.qf-tag--sector {
-  background: #fce7ee;
-  border-color: #f5b8cd;
-  color: #8a1242;
 }
 
 /* Tag picker (multi-select) */
@@ -672,12 +562,6 @@ a:hover {
   align-content: flex-start;
   padding: 4px 0;
 }
-.qf-picker-placeholder {
-  color: var(--muted);
-  font-size: 13px;
-  font-style: italic;
-  padding-top: 8px;
-}
 .qf-picker-selected {
   display: flex;
   flex-wrap: wrap;
@@ -702,12 +586,6 @@ a:hover {
 }
 .qf-selected-chip:hover {
   background: var(--accent);
-}
-.qf-selected-chip--sector {
-  background: var(--accent);
-}
-.qf-selected-chip--sector:hover {
-  background: var(--accent-hover);
 }
 .qf-selected-x {
   display: inline-flex;
@@ -873,42 +751,12 @@ a:hover {
   color: var(--graph-muted);
 }
 
-/* The per-node editor */
-.onto-edit {
-  border: 1px solid var(--primary);
-  border-radius: var(--radius);
-  padding: 12px;
-  background: var(--panel);
-  display: grid;
-  gap: 10px;
-  min-width: 320px;
-}
-.onto-edit label {
-  display: grid;
-  gap: 4px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
-  font-weight: 700;
-}
-.onto-edit input,
-.onto-edit select {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 8px 10px;
-  font-family: inherit;
-  font-size: 13px;
-  text-transform: none;
-  letter-spacing: normal;
-  color: var(--text);
-  font-weight: 400;
-}
 .onto-count {
   font-size: 10px;
   color: var(--muted);
   font-weight: 400;
 }
+/* The per-node editor */
 .onto-edit-actions {
   display: flex;
   gap: 8px;
@@ -1151,12 +999,6 @@ a:hover {
 .onto-expander-count {
   font-size: 9px;
   font-weight: 700;
-}
-.onto-hint {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 10px 0 0;
 }
 .onto-collapse-all {
   background: none;
@@ -2050,10 +1892,6 @@ body:has(.qf-sidemenu) .site-header .site-nav {
 }
 .method-diagram-edge--loop {
   stroke: var(--accent);
-}
-.method-diagram-edge--soft {
-  stroke: var(--graph-line-soft);
-  stroke-dasharray: 3 3;
 }
 .method-diagram-head {
   fill: var(--graph-line);
