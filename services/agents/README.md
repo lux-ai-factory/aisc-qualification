@@ -1,10 +1,17 @@
 # Ontology filler (the card agent)
 
-Reads the prose answers of a qualification, drafts the ontology nodes they
-support, reviews its own draft, and publishes it to the graph flagged for a
-person to edit. In the AISC stack this is the `qualification-agents` service:
-qualification-web starts a run with `POST /fill/{pid}/{id}` after each save and
-reads its state with `GET /fill/{pid}/{id}`.
+The card agent is the AI assistant of step 1 (Qualify the AI system). It reads
+the prose answers of an AI card, drafts the graph nodes they support, reviews
+its own draft, and publishes it to the card, flagged for a person to check. In
+the AISC stack it is the `qualification-agents` service.
+
+It runs only when a person presses **Let AI suggest additions** on the card
+page, never on save. qualification-web then starts a run with
+`POST /fill/{pid}/{id}` and the card page polls its state through the app's
+`GET /p/{pid}/api/qualifications/{id}/fill`, which asks this service's
+`GET /fill/{pid}/{id}`. Pressing the button again while a run is in flight
+starts nothing. What the step is for is in `docs/appendices/1-qualify.md` of the
+aisc repo; how AISC fits together is in `docs/architecture.md`.
 
 One of the graph's properties cannot be filled from form fields, because the
 Annex IV answer it comes from is a paragraph (`DRAFTED` in `fill/workflow.py`):
@@ -39,9 +46,11 @@ load ──► draft ──► controls ──► critic ──► revise
    label is a name, label's words are in the answer, no two nodes carrying one
    term, no answer with content left empty. Cheapest first, so the critic is
    never paid to look at a draft that cannot be written.
-3. **critic** a second model, given the answer and the draft but not the
-   draft's justification, raises at most one finding per node and says why in
-   its `why` (the prompt asks it to quote the span there; nothing checks it).
+3. **critic** the same model in a second role: `_writer` and `_critic` in
+   `fill/workflow.py` share the one completion function `agent.py` builds per
+   run. Given the answer and the draft but not the draft's justification, it
+   raises at most one finding per node and says why in its `why` (the prompt
+   asks it to quote the span there; nothing checks it).
 4. **revise** the writer is shown its draft by node id and the findings, and
    answers with the whole list again: the named nodes fixed or removed, the
    rest kept, what is missing added. That list replaces the draft, and the
@@ -67,7 +76,9 @@ rejects, such as a VAIR term the vocabulary does not have: stored, it would
 break the card's graph on every read. The run then fails with the app's
 message, and the card keeps the draft it had.
 
-`GET /fill/{pid}/{id}` reports `queued`, `running`, `done` or `failed`. The
+`GET /fill/{pid}/{id}` reports `queued`, `running`, `done` or `failed`, and
+404 for a card with no run. Runs are kept in the service's memory, so a restart
+forgets them; the published draft is in the card and stays. The
 final state is written whatever the ledger does, so a ledger error cannot leave
 a run `running`. A failed run's `error` is a short text (at most 300 characters)
 with anything key-like taken out; qualification-web passes it on to editors and owners only (a viewer
@@ -92,8 +103,12 @@ fill/baf_llm.py      the provider table, and the model a project chose on the pl
 fill/names.py        short names for long answers
 fill/consistency.py  the pass that compares card choices with the answers
 fill/ledger.py       a run's ledger events, sent to the platform when LEDGER_MODE is on
+fill/errors.py       a failed run's short, credential-free error text
+fill/view_nodes.py   every node of a card view as one list
 fill/models.py       Draft, Node, Finding, Round, Outcome
 prompts/             the review, naming and consistency prompts
+service_token.py     the X-AISC-Service-Token check (the same file in each service)
+Dockerfile.stack     the image the AISC stack builds
 ```
 
 The drafting prompt is **not** here: it is
@@ -103,8 +118,9 @@ a change to the rule cannot apply to half the system.
 
 ## The model
 
-A BAF LLM wrapper, with the credential held in BAF's property store. The model
-is the one the card's project chose on the platform ("AI assistant models and keys", under Manage > AI assistants),
+A BAF LLM wrapper, with the credential held in BAF's property store. One model
+serves the whole run: the writer, the critic and both further passes. It is the
+one the card's project chose on the platform (under Manage > AI assistants),
 read through the platform's internal route with `PLATFORM_URL` and
 `PLATFORM_INTERNAL_TOKEN`. A project without a choice uses the model named by
 the environment (`config_from_env` in `fill/baf_llm.py`):
@@ -140,9 +156,13 @@ BAF_LLM_MODEL=claude-sonnet-5
 ANTHROPIC_API_KEY=...
 ```
 
-In the AISC stack these variables come from the aisc repo's environment files;
-the stack sets no provider key for this service by default, so a run there uses
-the project's own choice. The Next.js app makes no model calls at all.
+In the AISC stack, compose sets `BAF_LLM_PROVIDER`, `BAF_LLM_MODEL` and `BAF_LLM_BASE_URL` from
+`QUALIFICATION_AGENTS_LLM_PROVIDER`, `QUALIFICATION_AGENTS_LLM_MODEL` and
+`QUALIFICATION_AGENTS_LLM_BASE_URL` (defaults `ollama`, `mistral:latest` and
+`http://host.docker.internal:11434`: a model on the host, which needs no key, as for control
+objectives) and passes `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` and `MISTRAL_API_KEY` through. The
+project's own choice under Manage > AI assistants wins over all of these. The platform's answer is
+awaited for `LLM_RESOLVE_TIMEOUT` seconds (default 5). The Next.js app makes no model calls at all.
 
 BAF imports each provider SDK lazily and only logs a warning when one is
 missing, so a missing package appears as a `None` client at the first
@@ -150,6 +170,18 @@ prediction rather than at startup. `requirements.txt` pins `openai`,
 `anthropic` and `ollama` for that reason, each to an exact version.
 
 ## Running it
+
+In the AISC stack, from the aisc folder:
+
+```bash
+uv run scripts/aisc.py start
+```
+
+compose builds this service from `Dockerfile.stack` and gives it its URLs, tokens and model
+settings. Then open step 1 of a project, save the form, and press Let AI suggest additions on the
+card page.
+
+On its own:
 
 ```bash
 python3.12 -m venv .venv && . .venv/bin/activate
@@ -167,7 +199,15 @@ QUALIFICATION_WEB_TO_AGENTS_TOKEN=... uvicorn service:app --port 8012   # the HT
 ```
 
 The image is built from `Dockerfile.stack` (this directory as the context, the
-ontology prompts as a named context).
+ontology prompts as the named context `ontology-prompts`).
+
+Its other settings: `APP_URL` (default `http://localhost:3399`; stack
+`http://qualification-web:3000/qualification`), `ONTOLOGY_SERVICE_URL` (default
+`http://localhost:8011`), `HTTP_TIMEOUT` (seconds per HTTP call, default 120),
+`PLATFORM_URL` and `PLATFORM_INTERNAL_TOKEN` (to read the project's model; stack
+token `PLATFORM_CARD_AGENT_TOKEN`), `LEDGER_MODE` and `PLATFORM_LEDGER_AGENTS_TOKEN`
+(default `off`; stack `record`), and `FILL_PROMPTS_PATH` (a directory searched
+first for the prompt files).
 
 No call sets a temperature, so the provider's default applies: two runs on the
 same card can draft differently.
@@ -204,7 +244,7 @@ model and a fake publisher.
 `fill/workflow.py` holds the state machine, and `run_fill()` runs the same steps
 as a plain function. That duplication is deliberate: the machine is the readable
 description of the flow, tested against the same steps, and a function is what
-an HTTP request should call. Nothing starts the machine today.
+an HTTP request should call. Nothing starts the machine.
 
 BAF checks state-body signatures by inspecting annotations, so a body must be
 written `def body(session: Session) -> None:` with no `from __future__ import

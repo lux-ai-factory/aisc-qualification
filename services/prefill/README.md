@@ -1,21 +1,47 @@
 # Pre-fill
 
-Upload the document you already wrote, and the qualification form opens with
-its answers in place. You amend them and save; nothing here is stored. The same
-service reads and writes the files of question sets and questionnaires.
+Upload the document you already wrote, and the AI card form of step 1 (Qualify
+the AI system) opens with its answers in place. You amend them and save; nothing
+here is stored. The same service reads and writes the files of question sets and
+questionnaires. It uses text rules only, no model.
 
 In the AISC stack this is the `qualification-prefill` service (port 8012). Its
 only caller is qualification-web (`PREFILL_URL`), which sends
-`QUALIFICATION_WEB_TO_PREFILL_TOKEN` in `X-AISC-Service-Token`. The image is
-built from the app root (`docker build -f services/prefill/Dockerfile .`),
-because it copies `src/data/prefillFields.json` and `src/data/vair_vocab.json`.
+`QUALIFICATION_WEB_TO_PREFILL_TOKEN` in `X-AISC-Service-Token`; any other caller
+is refused (401, or 503 when the token is not set), except on `GET /health`.
+What step 1 is for is in `docs/appendices/1-qualify.md` of the aisc repo.
+
+## Run it
+
+In the AISC stack, `uv run scripts/aisc.py start` from the aisc folder builds and
+starts it with its token. The image is built from the app root
+(`docker build -f services/prefill/Dockerfile .`), because it copies
+`src/data/prefillFields.json` and `src/data/vair_vocab.json`.
+
+On its own, and its tests (no network, no model):
+
+    python3.12 -m venv .venv && . .venv/bin/activate
+    pip install -r requirements.txt -r requirements-dev.txt && python -m pytest
+    QUALIFICATION_WEB_TO_PREFILL_TOKEN=dev-web uvicorn app:app --port 8012
+
+## Settings
+
+| Variable | Meaning | Default |
+|---|---|---|
+| `QUALIFICATION_WEB_TO_PREFILL_TOKEN` | the token qualification-web sends | none (503); the stack sets it from `scripts/secrets.sh` |
+| `PREFILL_MAX_BYTES` | largest upload accepted | `10485760` (10 MiB) |
+| `PREFILL_MAX_UNZIPPED_BYTES` | largest total size of the parts of a .docx | `52428800` (50 MiB) |
+| `PREFILL_FIELDS_PATH`, `PREFILL_VAIR_VOCAB_PATH` | where the field mapping and the VAIR lists are read from | beside the package (the image), else `src/data` |
+
+## Reading a document: POST /prefill
 
     POST /prefill
-      file     the document: .pdf, .docx, .txt or .md
+      file     the document: .pdf, .docx, .txt, .text, .md or .markdown
       mode     "empty" (fill only blank answers, the default) or "replace"
-      current  what the form holds now, as JSON
+      current  what the form holds, as JSON
 
-      current_risks  the risk rows the form holds now, as a JSON list
+      current_risks       the risk rows the form holds, as a JSON list
+      current_components  the Components block's rows the form holds, as a JSON list
 
       fields     (optional) the field names the form has, as a JSON list:
                  the identity, its blocks ("risks" when it has the risk block)
@@ -23,28 +49,29 @@ because it copies `src/data/prefillFields.json` and `src/data/vair_vocab.json`.
       questions  (optional) the form's questions, as a JSON list of
                  {field, text, citation, annexPoint}
 
-    -> { values, filled, kept, proposed, read, source, model,
-         risks, risksKept, risksProposed }
+    -> { values, filled, kept, proposed, read, source, model (always null),
+         risks, risksKept, risksProposed,
+         components, componentsKept, componentsProposed,
+         picks, picksProposed }
 
-Without `fields` and `questions` the form is the default Annex IV form and the
+Without `fields` and `questions` the form is the default questionnaire (Annex IV points 1 and 2) and the
 reading is exactly as below. With them, a form's own question is found by its
 wording: a line that is its text, its citation, or both (also as `Label: value`),
 with the answer running to the next line that names something. A question
 tagged with an Annex IV point is also answered by that point's heading. When
 `fields` has no `"risks"`, the risks are not read (`risks` is null).
 
-Two signals, both deterministic, so this works on an install with no model
+The signals are all deterministic, so this works on an install with no model
 configured:
 
-* **the Annex.** The form's fourteen questions are the points of EU AI Act
-  Annex IV, and technical documentation is usually written against the same
+* **the Annex.** The default questionnaire's fourteen questions are the points
+  of EU AI Act Annex IV, and technical documentation is usually written against the same
   Annex, so a heading of `Annex IV(1)(a)` or `1(a)` names the question. A
   line over 500 characters is never read as a heading.
 * **labels.** `System name:`, `Provider:`, `Intended purpose:` and the usual
   variants, whether the value is on the line or under it. The separator is a
   colon or a dash with a space before it (`System name - Credit scorer`), so a
   hyphenated word (`System-level logging ...`) is prose, not a label.
-
 * **risks.** Under a `Risks` heading (or `Risk register`, `Annex IV(5)`), one
   block per risk, started by `Risk 1` or by the next `Risk:` line. The section
   ends at the next `#` heading, the Components heading, or an Annex heading (a
@@ -65,9 +92,22 @@ configured:
   "Affected" that names neither users nor the operator is left for the person
   to choose. The rows are one list: "empty" fills them only when no row has
   anything in it, "replace" swaps them for the document's.
+* **components.** Under a `Components` heading, one block per part, started
+  by `Component 1`, each field on a labelled line (`Name:`, `Type:`,
+  `Provider:`, `Role:`). The type is matched to a VAIR AIComponent term by id or
+  label, else to one of AISC's own kinds; a word that matches neither is left
+  for the person to choose (prefill/components.py). The Components block is on
+  every card, so it is always read. The rows follow the same rule as the risks.
+* **VAIR picks.** Labelled lines such as `System type:`, `VAIR purpose:`,
+  `Kind of provider:`, `Capabilities:`, `Application domains:`, `Market form:`
+  and `Locality:`, each value a VAIR id or label, several separated by commas.
+  A value that names no VAIR term of its field's class is left out, never
+  guessed (prefill/picks.py).
 
 A field the document says nothing about always keeps what it had, under both
 modes: an upload must never empty a form.
+
+## Question set and questionnaire files
 
     POST /forms/import
       file     a form file: .csv, .md (or .markdown) or .docx
@@ -76,8 +116,8 @@ modes: an upload must never empty a form.
     -> 413 larger than PREFILL_MAX_BYTES
     -> 422 { detail } empty, another format, unreadable, or more than 200 questions
 
-Reads a form's questions out of a file, for the person to review before they
-save a form. Text rules only (prefill/form_import.py), no model, nothing
+Reads a question set's questions out of a file, for the person to review
+before they save it (the question sets' Import page). Text rules only (prefill/form_import.py), no model, nothing
 stored. A CSV has one question per row (a header row is recognised by a first
 cell of `question`, `questions`, `text` or `question text`, and its
 citation/required columns are found by name); Markdown and Word have one per
@@ -103,7 +143,8 @@ into the same questions.
                       "a form has at most 200 questions"
                       "question <n> names an Annex IV point that does not exist"
 
-Writes one form version as a file, the counterpart of `/forms/import`
+Writes one question set version, or a questionnaire's questions, as a CSV or
+Markdown file, the counterpart of `/forms/import`
 (prefill/form_export.py, standard library only, no model, nothing read or
 stored). `annexPoint` is required in every question (`null` when there is
 none); a missing key or a wrong type is pydantic's own 422. The CSV has the
@@ -170,9 +211,3 @@ alike), the sizes of its parts are added up; more than
 `PREFILL_MAX_UNZIPPED_BYTES` (default 52428800, 50 MiB; a missing,
 non-integer or non-positive value means the default) is a 422 that says so,
 and a file that is not a zip is a 422 "this .docx could not be read".
-
-Run and test:
-
-    python3.12 -m venv .venv && . .venv/bin/activate
-    pip install -r requirements.txt -r requirements-dev.txt && python -m pytest
-    QUALIFICATION_WEB_TO_PREFILL_TOKEN=dev-web uvicorn app:app --port 8012

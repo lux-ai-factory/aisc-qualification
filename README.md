@@ -6,18 +6,20 @@
 
 ## What it is
 
-This is step 1 of AISC, the AI Assessment Sandbox Configurator. AISC walks a project through four
-steps: 1 Qualify the AI system, 2 Set control objectives, 3 Choose tests and checklists, 4 Collect
-evidence (answer the checklists, run the tests, look at the results, compose the report). In this step a person
-describes the project's AI system by answering the questions Annex IV of the EU AI Act
-([Regulation (EU) 2024/1689](https://eur-lex.europa.eu/eli/reg/2024/1689/oj)) asks a provider to
-document. The app turns the answers into the system's **AI card**: a knowledge graph shaped by the
-[AIRO](https://w3id.org/airo) ontology and typed with the [VAIR](https://w3id.org/vair) vocabulary.
-The card can be downloaded as JSON-LD, Turtle, JSON or PDF. Step 2 (control objectives) reads it to
-start an assessment. Every save makes a new card version, and earlier versions stay readable.
+This is step 1 of AISC, **1. Qualify the AI system**: the compose service `qualification-web` and the services
+beside it (`qualification-prefill`, `qualification-agents`, `qualification-ontology`, `qualification-pdf`,
+`qualification-migrate`). A person describes the project's AI system by answering a questionnaire; by default it
+asks what Annex IV of the EU AI Act ([Regulation (EU) 2024/1689](https://eur-lex.europa.eu/eli/reg/2024/1689/oj))
+points 1 and 2 ask a provider to document. The answers become the system's **AI card**: a knowledge graph shaped by
+the [AIRO](https://w3id.org/airo) ontology and typed with the [VAIR](https://w3id.org/vair) vocabulary. Every save
+makes the next **AI card version** (v1, v2, ...), which step 2 and step 4 read.
 
-The app decides nothing about the system. Annex III classification is a legal judgement; this
-records what Annex IV asks to document.
+The step decides nothing about the system. In particular it does not determine the AI Act risk class: Annex III
+classification is a legal judgement. The form's Application domains field tags the Annex III areas that apply, and
+whoever composes the report states the class (step 4, Risk classification block).
+
+What a person does in this step, and what later steps take from it, is in `docs/appendices/1-qualify.md` of the
+aisc repo. How the whole of AISC fits together is in `docs/architecture.md` of the aisc repo.
 
 ## How it works
 
@@ -32,35 +34,51 @@ browser ── gateway (Caddy + oauth2-proxy + Keycloak) ── qualification-we
                      uses a model)    form answers)                   ledger relay)
 ```
 
-- **qualification-web** (`src/`) is a Next.js 15.5 app (React 19). It serves the form, the card pages and the
-  download routes under `/qualification/p/<project pid>/...`. It stores everything in the
-  `qualification` schema of the project's own Postgres database (one database per project, made by
-  the platform), through Prisma. For every request under `/p/` it asks the platform whether the
-  signed-in person is in the project and may change it (`src/middleware.ts`), and every page asks
-  again where it opens the project's database (`projectDbPastDoor`, once per request), so a request
-  that got past the middleware without access gets not found and nothing is read. It makes no model calls itself. It cites the gateway's request id
-  (`X-AISC-Request-Id`) in ledger events and on its calls to the platform and the card agent only
-  when the request came through the gateway: the gateway token must verify against the realm's
-  keys and have been issued to the gateway's client (see `AUTH_ENABLED` below).
+1. The person fills the form (`/qualification/p/<project pid>/system/edit`). Uploading a document first asks
+   `qualification-prefill` to propose answers.
+2. Saving asks the platform to make the next AI card version, stores the answers in the project's database, and
+   opens the card page (`/qualification/p/<project pid>/qualify/<id>`). The card is built from the form alone; no model runs on save.
+3. The card page asks `qualification-ontology` to build the graph and shows it as a diagram or a list. From there
+   the person can download it (JSON-LD, Turtle, JSON or PDF), correct nodes by hand, or press **Let AI suggest
+   additions**, which starts the card agent.
+4. The card agent (`qualification-agents`) reads the card, drafts the nodes only prose can give, reviews its own
+   draft, and publishes it back to the card for the person to check.
+
+The parts in detail:
+
+- **qualification-web** (`src/`) is a Next.js 15.5 app (React 19). It serves the form, the card pages, the question
+  set and questionnaire pages, and the download routes under `/qualification/p/<project pid>/...`. It stores
+  everything in the `qualification` schema of the project's own Postgres database (one database per project, made
+  by the platform), through Prisma. For every request under `/p/` it asks the platform whether the signed-in person
+  is in the project and may change it (`src/middleware.ts`), and every page asks again where it opens the project's
+  database (`projectDbPastDoor`, once per request), so a request that got past the middleware without access gets
+  not found and nothing is read. It makes no model calls itself. It cites the gateway's request id
+  (`X-AISC-Request-Id`) in ledger events and on its calls to the platform and the card agent only when the request
+  came through the gateway: the gateway token must verify against the realm's keys and have been issued to the
+  gateway's client (see `AUTH_ENABLED` below).
 - **Python services** under `services/`, each a small FastAPI app with its own Dockerfile:
 
   | Directory | Compose service | Port | What it does |
   | --- | --- | --- | --- |
-  | `services/ontology` | `qualification-ontology` | 8011 | Holds AIRO and VAIR. `POST /build` turns a card's answers, the agent's extraction and a reviewer's edits into the filled AIRO graph and the card view. No model. Without it the app can store answers but cannot build or export a card. See [its README](services/ontology/README.md). |
-  | `services/agents` | `qualification-agents` | 8012 | The card agent, built on the [BESSER Agentic Framework](https://github.com/BESSER-PEARL/BESSER-Agentic-Framework) (BAF). When a person presses Refine with AI on the card, the app calls `POST /fill/{pid}/{id}`. The agent reads the card from the app, drafts the nodes that only a prose answer can give (the techniques, from Annex IV 2(a)), checks the draft, has a second model review it, and publishes it back to the app with flags on what it could not settle. It also proposes short names for long answers and points out choices that contradict the answers. It uses the model the project chose on the platform, or the `BAF_LLM_*` variables. See [its README](services/agents/README.md). |
-  | `services/prefill` | `qualification-prefill` | 8012 | Reads a document someone already wrote (.pdf, .docx, .txt, .md) and proposes answers for the form (`POST /prefill`). It also imports and exports question sets and questionnaires as CSV, Markdown, Word or JSON files. Text rules only, no model, stores nothing. See [its README](services/prefill/README.md). |
+  | `services/ontology` | `qualification-ontology` | 8011 | Holds AIRO and VAIR. `POST /build` turns a card's answers, the agent's draft and a reviewer's corrections into the filled AIRO graph and the card view. No model. Without it the app can store answers but cannot build or export a card. See [its README](services/ontology/README.md). |
+  | `services/agents` | `qualification-agents` | 8012 | The card agent, an AI assistant built on the [BESSER Agentic Framework](https://github.com/BESSER-PEARL/BESSER-Agentic-Framework) (BAF). It runs only when a person presses Let AI suggest additions on the card page; the app then calls `POST /fill/{pid}/{id}`. The agent reads the card from the app, drafts the nodes that only a prose answer can give (the techniques, from Annex IV 2(a)), checks the draft, reviews it, and publishes it back to the app with flags on what it could not settle. The writer and the reviewer are one model in two roles. It also proposes short names for long answers and points out choices that contradict the answers. It uses the model the project chose under Manage > AI assistants, or the `BAF_LLM_*` variables. See [its README](services/agents/README.md). |
+  | `services/prefill` | `qualification-prefill` | 8012 | Reads a document someone already wrote (.pdf, .docx, .txt, .md) and proposes answers for the form (`POST /prefill`). It also reads and writes question set and questionnaire files (CSV, Markdown, Word or JSON). Text rules only, no model, stores nothing. See [its README](services/prefill/README.md). |
   | `services/system_card_renderer` | `qualification-pdf` | 8005 | Renders a card as HTML or PDF with Jinja and WeasyPrint (`POST /render/pdf`). |
 
   Every service except `/health` refuses a caller that does not send its own token in the
-  `X-AISC-Service-Token` header (`service_token.py`, the same file in each service). A service whose
-  expected tokens are not set answers 503.
+  `X-AISC-Service-Token` header (`service_token.py`, the same file in each service): a wrong or missing token is
+  401, and a service whose expected tokens are not set answers 503.
 - **Platform** (`platform/` in the aisc repo): the app asks it who may see or change a project
   (`/authz/projects/{pid}?want={method}`, through `src/vendor/aisc-access/`, a copy of the aisc repo's
-  `shared/access-ts/` that a test keeps identical), asks it to create the next card version (a row of `project.system`),
-  and reads the project's model choice through it. When the ledger is on, each change writes its
-  event with `ledger.emit` in the project database, in the same transaction as the change, and the
-  platform relays it to the immudb ledger.
-- **Engine backend** (`aisc-backend`): read only, to list the AI system components a card can link.
+  `shared/access-ts/` that a test keeps identical), and asks it to create the next card version
+  (`POST /projects/{pid}/system-versions`). The versions are rows of `project.system` in the project's database,
+  and only the platform writes them: if the platform does not answer, nothing is saved. After a save the app asks the
+  platform to bring the project's assessment targets up to date (`POST /projects/{pid}/targets/sync`, best effort).
+  When the ledger is on, each change writes its event with `ledger.emit` in the project database, in the same
+  transaction as the change, and the platform relays it to the immudb ledger.
+- **Engine backend** (`aisc-backend`): read only, to list the AI system components a card can link. Every save
+  writes the card's links to them, with a snapshot of each (`qualification.card_component`), so the system page can
+  flag a component that changed in the engine since the card was saved.
 
 ## Install and run
 
@@ -157,7 +175,7 @@ instead. In the stack, open the form with `?example=mcas` as above.
 | `PREFILL_URL` | The prefill service. | none (document reading and form files are unavailable) |
 | `SYSTEM_CARD_RENDERER_URL` | The PDF renderer. | `http://localhost:8005` |
 | `NEXT_BASE_PATH` | Path prefix the app is served under. A build argument and a runtime variable (`next.config.ts` reads it at start). | empty (served at `/`); the stack uses `/qualification` |
-| `LEDGER_MODE` | `off`, `record` or `enforce`. Events are written only in `record` and `enforce`. | `off` |
+| `LEDGER_MODE` | `off`, `record` or `enforce`. Events are written only in `record` and `enforce`. | `off` (stack: `record`) |
 | `AUTH_ENABLED` | Whether the request id a caller presents must be proven by a gateway token before it is cited. `1`, `true`, `yes` or `on` is on; anything else is off, and the presented id is kept unchecked (local work only). | on |
 | `KEYCLOAK_ISSUER`, `KEYCLOAK_JWKS_URL` | The realm's issuer and its JWKS address, used to verify the gateway token (RS256, issuer, expiry with 30 s leeway) and any Bearer token, which must name the same person. | none: with `AUTH_ENABLED` on, no request id is cited, so with `LEDGER_MODE=enforce` the platform refuses card-version writes |
 | `AISC_GATEWAY_CLIENT_ID` | The client (`azp`) the gateway token must have been issued to. | `aisc-gateway` |
@@ -172,23 +190,36 @@ All tokens are generated by `scripts/secrets.sh` in the aisc repo. Never commit 
 | Service | Variable | Meaning | Default |
 | --- | --- | --- | --- |
 | ontology | `QUALIFICATION_WEB_TO_ONTOLOGY_TOKEN`, `QUALIFICATION_AGENTS_TO_ONTOLOGY_TOKEN` | Tokens of its two callers. | none (503) |
-| ontology | `ANNEX_POINTS_PATH` | Override where `annex_points.json` is read from. The service no longer reads `airo_vocab.json` (only the form does). | beside the package (image), else `src/data` |
+| ontology | `ANNEX_POINTS_PATH` | Override where the Annex IV points are read from. This is the only file of `src/data` the service reads; `airo_vocab.json` is the form's alone. | `src/data/annexPoints.json` when run from the app, else `annex_points.json` beside the package (the image) |
 | agents | `QUALIFICATION_WEB_TO_AGENTS_TOKEN` | Token of its caller (the app). | none (503) |
 | agents | `QUALIFICATION_AGENTS_TO_WEB_TOKEN`, `QUALIFICATION_AGENTS_TO_ONTOLOGY_TOKEN` | Tokens it sends to the app and to the ontology service. | none |
 | agents | `APP_URL` | The app, including its base path. | `http://localhost:3399` |
 | agents | `ONTOLOGY_SERVICE_URL` | The ontology service. | `http://localhost:8011` |
 | agents | `HTTP_TIMEOUT` | Seconds for each HTTP call. | `120` |
 | agents | `PLATFORM_URL`, `PLATFORM_INTERNAL_TOKEN` | Where and with which token it reads the model the project chose. | none (the environment's model is used) |
-| agents | `BAF_LLM_PROVIDER`, `BAF_LLM_MODEL` | The model used when the project chose none. | `mistral`, `mistral-large-latest` |
-| agents | `BAF_LLM_BASE_URL`, `BAF_LLM_API_KEY` | Endpoint and key for the `ollama` and `compatible` providers. | none |
-| agents | `MISTRAL_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, ... | The provider's key; the full table is in [services/agents/README.md](services/agents/README.md). | none |
-| agents | `LEDGER_MODE`, `PLATFORM_LEDGER_AGENTS_TOKEN` | Whether a run's events go to the platform's ledger route, and the token for it. | `off`, none |
+| agents | `BAF_LLM_PROVIDER`, `BAF_LLM_MODEL` | The model used when the project chose none. | `mistral`, `mistral-large-latest` (stack: `ollama`, `mistral:latest`, from `QUALIFICATION_AGENTS_LLM_*`) |
+| agents | `BAF_LLM_BASE_URL`, `BAF_LLM_API_KEY` | Endpoint and key for the `ollama` and `compatible` providers. | none (stack: `http://host.docker.internal:11434`, from `QUALIFICATION_AGENTS_LLM_BASE_URL`) |
+| agents | `MISTRAL_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, ... | The provider's key; the full table is in [services/agents/README.md](services/agents/README.md). | none (stack: the first three are passed through from the stack's environment) |
+| agents | `LLM_RESOLVE_TIMEOUT` | Seconds to wait for the platform's answer about the project's model. | `5` |
+| agents | `LEDGER_MODE`, `PLATFORM_LEDGER_AGENTS_TOKEN` | Whether a run's events go to the platform's ledger route, and the token for it. | `off`, none (stack: `record` and its token) |
 | agents | `FILL_PROMPTS_PATH` | A directory searched first for the prompt files. | none |
 | prefill | `QUALIFICATION_WEB_TO_PREFILL_TOKEN` | Token of its caller. | none (503) |
 | prefill | `PREFILL_MAX_BYTES` | Largest upload accepted. | `10485760` (10 MiB) |
 | prefill | `PREFILL_MAX_UNZIPPED_BYTES` | Largest total size of the parts of a .docx. | `52428800` (50 MiB) |
-| prefill | `PREFILL_FIELDS_PATH`, `PREFILL_VAIR_VOCAB_PATH` | Override where the field mapping and the VAIR lists are read from. | beside the package (image), else `src/data` |
+| prefill | `PREFILL_FIELDS_PATH`, `PREFILL_VAIR_VOCAB_PATH` | Override where the field mapping and the VAIR lists are read from. | beside the package (the image), else `src/data` |
 | pdf | `QUALIFICATION_WEB_TO_PDF_TOKEN` | Token of its caller. | none (503) |
+
+## Routes
+
+| Route (under `/qualification/p/<pid>`) | What it is |
+| --- | --- |
+| `api/qualifications/[id]/ontology.jsonld` | The card's knowledge graph as JSON-LD. |
+| `api/qualifications/[id]/ontology.ttl` | The same graph as Turtle. |
+| `api/qualifications/[id]/ai-card.json` | The card view and the graph together, with the Act citations. |
+| `api/qualifications/[id]/ai-card.pdf` | The card rendered as PDF (`system-card.pdf` is the same handler). |
+| `api/system-versions/[systemPid]/ontology.jsonld` | The graph of one card version, which step 2 reads. |
+
+Downloads serve the stored graph, so they keep working while the ontology service restarts.
 
 ## Tests
 
@@ -286,18 +317,6 @@ Namespace `https://w3id.org/vair#`. [w3id.org/vair](https://w3id.org/vair) ·
 Both name the EU AI Act and the ISO 31000 series as their sources, and VAIR also names
 ISO/IEC 22989:2023. The app's `/methodology` page repeats this attribution beside the step that uses
 each one.
-
-## What you get back
-
-| Route (under `/qualification/p/<pid>`) | What it is |
-| --- | --- |
-| `api/qualifications/[id]/ontology.jsonld` | The card's knowledge graph as JSON-LD. |
-| `api/qualifications/[id]/ontology.ttl` | The same graph as Turtle. |
-| `api/qualifications/[id]/ai-card.json` | The card view and the graph together, with the Act citations. |
-| `api/qualifications/[id]/ai-card.pdf` | The card rendered as PDF (`system-card.pdf` is the same handler). |
-| `api/system-versions/[systemPid]/ontology.jsonld` | The graph of one card version, which step 2 reads. |
-
-Downloads serve the stored graph, so they keep working while the ontology service restarts.
 
 ## License
 
