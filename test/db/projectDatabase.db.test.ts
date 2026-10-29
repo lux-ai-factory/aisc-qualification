@@ -243,6 +243,11 @@ async function shape(c: PrismaClient, live: boolean): Promise<string[]> {
   // A card's history (20261003000000_ledger_history) is newer as well: its table, index,
   // trigger and function are pinned by ledger.db.test.ts.
   lines = lines.filter((l) => !/card_history/.test(l));
+  // The rendered-card columns the live shape still has were dropped since
+  // (20261029000000_no_rendered_card_columns); the test below pins that they are gone.
+  const renderedCardLine =
+    /^column qualification\.(systemCard|systemCardJson|system_card_at|systemCardPdfPath) /;
+  lines = lines.filter((l) => !renderedCardLine.test(l));
   if (!formsOnBranch)
     lines = lines.filter((l) => !formsLine.test(l) && !formsIndex.test(l));
   else lines = lines.filter((l) => !formsLine.test(l) && !twoLevelLine.test(l));
@@ -301,6 +306,17 @@ describe.skipIf(!enabled)(
           AND confrelid::regclass::text NOT LIKE 'qualification.%' AND confrelid::regclass::text <> 'project.system'`,
       );
       expect(outside).toEqual([]);
+    });
+
+    it("qualification.qualification has none of the rendered-card columns", async () => {
+      expect(why).toBe("");
+      const rows = await tryQuery<{ n: bigint }>(
+        admin(A),
+        `SELECT count(*) AS n FROM information_schema.columns
+        WHERE table_schema = 'qualification' AND table_name = 'qualification'
+          AND column_name IN ('systemCard', 'systemCardJson', 'system_card_at', 'systemCardPdfPath')`,
+      );
+      expect(rows).toEqual([{ n: 0n }]);
     });
 
     it("qualification.qualification has no project_id column", async () => {

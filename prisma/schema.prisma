@@ -34,16 +34,12 @@ model Qualification {
   providerTerm      String?               @map("provider_term")
   deployerTerm      String?               @map("deployer_term")
   purpose           String?
-  systemCard        String?
-  systemCardJson    Json?
   // The filled AIRO graph is the system card. `ontologyExtracted` holds the
   // agent's prose extraction, `ontologyPatch` a reviewer's corrections keyed by
   // node id; the graph itself is rebuilt from them, never stored as the truth.
   ontologyExtracted Json?
   ontologyPatch     Json?
   ontologyAt        DateTime?             @map("ontology_at") @db.Timestamptz(3)
-  systemCardAt      DateTime?             @map("system_card_at") @db.Timestamptz(3)
-  systemCardPdfPath String?
   createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
   answers           QualificationAnswer[]

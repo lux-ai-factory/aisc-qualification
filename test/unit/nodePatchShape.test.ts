@@ -22,7 +22,6 @@ const card = {
   sectorTags: [],
   marketFormTags: [],
   localityTags: [],
-  systemCardJson: null,
   ontologyExtracted: null,
   ontologyPatch: null,
   createdAt: new Date(),

@@ -881,6 +881,9 @@ function revertToLive(): string {
       EXECUTE 'DROP FUNCTION IF EXISTS qualification.' || f || '() CASCADE';
     END LOOP; END $$;
   ALTER TABLE qualification.qualification DROP COLUMN questionnaire_version_id;
+  -- The rendered-card columns a later migration drops were still there.
+  ALTER TABLE qualification.qualification ADD COLUMN "systemCard" text, ADD COLUMN system_card_at timestamptz(3),
+    ADD COLUMN "systemCardJson" jsonb, ADD COLUMN "systemCardPdfPath" text;
   DROP INDEX qualification.qualification_answer_qualification_id_tool_id_question_id_key;
   -- Rows only the new key allows (the same questionId under two scopes, as an earlier test commits) could not
   -- exist before it: drop them, so the test does not depend on which tests ran first.

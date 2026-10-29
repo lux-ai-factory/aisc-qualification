@@ -21,13 +21,9 @@ function row(over: Partial<QualificationWithAnswers> = {}) {
     sectorTags: ["PrivateService", "finance-and-insurance"],
     marketFormTags: ["Software"],
     localityTags: ["Workplace"],
-    systemCard: null,
-    systemCardJson: null,
     ontologyExtracted: null,
     ontologyPatch: null,
     ontologyAt: null,
-    systemCardAt: null,
-    systemCardPdfPath: null,
     createdAt: new Date("2026-09-10"),
     updatedAt: new Date("2026-09-10"),
     answers: [
