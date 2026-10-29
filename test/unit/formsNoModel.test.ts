@@ -63,11 +63,6 @@ const REQUIRED = [
   "src/app/p/[project]/questionnaires/import/page.tsx",
   "src/app/p/[project]/questionnaires/import/actions.ts",
   "src/app/p/[project]/questionnaires/import/QuestionnaireImport.tsx",
-  "src/app/p/[project]/forms/page.tsx",
-  "src/app/p/[project]/forms/new/page.tsx",
-  "src/app/p/[project]/forms/[formId]/edit/page.tsx",
-  "src/app/p/[project]/forms/[formId]/export/route.ts",
-  "src/app/p/[project]/forms/import/page.tsx",
 ];
 
 const files = () => [
@@ -76,7 +71,6 @@ const files = () => [
     ...sources("src/domain/forms"),
     ...sources("src/app/p/[project]/question-sets"),
     ...sources("src/app/p/[project]/questionnaires"),
-    ...sources("src/app/p/[project]/forms"),
   ]),
 ];
 
@@ -98,8 +92,7 @@ describe("form assembly calls no model", () => {
   });
 
   // The prefill service token is a service-to-service token, not a model credential, so it is
-  // allowed. NEXT_BASE_PATH is allowed because the /forms export redirect's Location carries
-  // the base path.
+  // allowed. NEXT_BASE_PATH is allowed because the library pages build links with the base path.
   it("the only environment names any of them reads are PREFILL_URL, PLATFORM_URL, NEXT_BASE_PATH and QUALIFICATION_WEB_TO_PREFILL_TOKEN", () => {
     const allowed = [
       "PREFILL_URL",
@@ -132,6 +125,8 @@ describe("form assembly calls no model", () => {
       "src/app/p/[project]/forms/libraryData.ts",
       "src/app/p/[project]/forms/import/FormImport.tsx",
       "src/app/p/[project]/forms/import/actions.ts",
+      "src/app/p/[project]/forms/page.tsx",
+      "src/app/p/[project]/forms/[formId]/export/route.ts",
     ]) {
       expect(existsSync(f), f).toBe(false);
     }

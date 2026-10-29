@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   FakeQuestionnaireStore,
   idCounter,
@@ -137,39 +137,6 @@ describe("the self-contained import re-validates groupLabel", () => {
       .sort((a, b) => a.position - b.position)
       .map((i) => i.groupLabel);
     expect(labels).toEqual([null, long, null]);
-  });
-});
-
-// The export redirect encodes the project
-
-describe("the old export route encodes every segment it interpolates", () => {
-  afterEach(() => vi.unstubAllEnvs());
-
-  async function location(project: string, formId: string) {
-    vi.stubEnv("NEXT_BASE_PATH", "");
-    const { GET } = await loadSrc(
-      "app/p/[project]/forms/[formId]/export/route.ts",
-    );
-    const res = (await GET(new Request("http://q/x/export?format=csv"), {
-      params: Promise.resolve({ project, formId }),
-    })) as Response;
-    expect(res.status).toBe(308);
-    return res.headers.get("location");
-  }
-
-  it("a project with characters that need escaping stays escaped in the Location", async () => {
-    expect(await location("a b", "acme")).toBe(
-      "/p/a%20b/questionnaires/acme/export?format=csv",
-    );
-    expect(await location("x/../y?z#w", "acme")).toBe(
-      "/p/x%2F..%2Fy%3Fz%23w/questionnaires/acme/export?format=csv",
-    );
-  });
-
-  it("a plain project is unchanged", async () => {
-    expect(await location("mcas", "acme")).toBe(
-      "/p/mcas/questionnaires/acme/export?format=csv",
-    );
   });
 });
 
