@@ -1,4 +1,4 @@
--- The form speaks VAIR. One control
+-- The form speaks VAIR (2026-09-30, docs/superpowers/vair-form-2026-09-30/01-plan.md). One control
 -- per thing: wherever VAIR has a vocabulary for a field the form offers only VAIR's terms, and the
 -- term the author chose is kept here, beside the text that names the node. Only nullable columns
 -- are added: a card saved before keeps every value it had, and dropping these columns undoes it.

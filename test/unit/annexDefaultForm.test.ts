@@ -8,7 +8,7 @@ import { FORM_BLOCKS, IDENTITY_FIELDS } from "@/domain/forms/blocks";
 // twin (annexDefaultVersion(): ResolvedQuestionnaireVersion) and the migration's seed must
 // both say exactly what the constant says, or every card saved before forms existed would
 // read back differently. The bytes of the applied migrations 20260925090000 and
-// 20260925120000 are pinned by twoLevelMigration.test.ts.
+// 20260925120000 are pinned, with every other applied migration, by twoLevelMigration.test.ts.
 
 // legacy.ts exports read through the module object, so a renamed or missing export fails the
 // test that needs it, not the whole file.

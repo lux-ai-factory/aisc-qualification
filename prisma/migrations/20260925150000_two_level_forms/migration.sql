@@ -1,4 +1,5 @@
 -- Two-level forms: question sets and questionnaires replace the form tables.
+-- Spec: docs/superpowers/two-level-forms-2026-09-25/01-spec.md, sections 3 and 4.
 --
 -- One implicit transaction: any RAISE EXCEPTION below rolls back the whole file, and the old
 -- tables, the old card column and every row stay as they were. Every name is qualified with the

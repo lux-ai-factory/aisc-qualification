@@ -1,4 +1,4 @@
--- The card's Components block: one row per part of the system,
+-- The card's Components block (targets plan v2, 2026-09-29): one row per part of the system,
 -- each with a stable key carried from one card version to the next, so the assessments of that
 -- part and their results can name it. Data the system is built on is a kind; a test set is not.
 CREATE TABLE qualification.qualification_component (
