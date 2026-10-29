@@ -240,7 +240,7 @@ test/unit, test/db  vitest tests; test/support and test/fixtures hold their help
 
 ## For contributors
 
-- **Branch:** `feat/unified-modules` is the only branch to work on.
+- **Branch:** `pilot` is the only branch to work on.
 - **Migrations:** add a new directory under `prisma/migrations`; never edit one that has been
   applied, because Prisma records each migration's checksum in every project database. Migrations
   run in each project database, which the platform creates with the `project` schema already in
