@@ -36,7 +36,10 @@ describe("PlatformClient and the card versions", () => {
   });
 });
 
-function service(opts: { version?: ReturnType<typeof version> }) {
+function service(opts: {
+  version?: ReturnType<typeof version>;
+  engine?: { components: (project: string) => Promise<unknown[]> };
+}) {
   const calls: string[] = [];
   const platform = {
     createVersion: vi.fn(async () => {
@@ -71,10 +74,14 @@ function service(opts: { version?: ReturnType<typeof version> }) {
     }),
   };
   // the service only uses these methods of its collaborators
+  const engine = opts.engine ?? { components: vi.fn(async () => []) };
   const svc = new QualificationService(
     repo as never,
     parser as never,
     platform as never,
+    undefined,
+    undefined,
+    engine as never,
   );
   return { svc, platform, repo, calls };
 }
@@ -94,5 +101,50 @@ describe("submitting an AI card", () => {
     expect((repo.create.mock.calls[0] as unknown[])[0]).not.toHaveProperty(
       "projectId",
     );
+  });
+});
+
+describe("the engine components a save links", () => {
+  const scorer = {
+    pid: "c0c0c0c0-0000-4000-8000-000000000001",
+    name: "Scorer",
+    component_type: "model",
+    data: "models/m.pkl",
+  };
+
+  it("every save writes the card's links to the engine's components, with their snapshot", async () => {
+    const components = vi.fn(async () => [scorer]);
+    const { svc, repo } = service({ engine: { components } });
+    await svc.createFromForm("mcas", new FormData());
+    expect(components).toHaveBeenCalledWith("mcas");
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        engineLinks: [
+          {
+            componentPid: scorer.pid,
+            airoProperty: "hasModel",
+            name: "Scorer",
+            componentType: "model",
+            objectName: "models/m.pkl",
+            componentKey: null,
+          },
+        ],
+      }),
+    );
+  });
+
+  it("an engine that does not answer does not stop the save: the card links nothing", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { svc, repo } = service({
+      engine: {
+        components: async () => {
+          throw new Error("The engine did not answer");
+        },
+      },
+    });
+    expect(await svc.createFromForm("mcas", new FormData())).toEqual({ id: "card-2" });
+    expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ engineLinks: [] }));
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/engine/i));
+    warn.mockRestore();
   });
 });

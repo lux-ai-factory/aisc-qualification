@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { ledgerSafe, NotCanonical } from "@/vendor/aisc-ledger/canonical";
 import { assignComponentKeys } from "@/domain/systemComponents";
+import { engineLinks, type LinkedComponent } from "@/domain/cardComponents";
+import { engineClient, type EngineClient } from "@/server/services/EngineClient";
 import {
   QualificationRepository,
   repositoryFor,
@@ -71,6 +73,8 @@ export class QualificationService {
     /** The questionnaires of each project: a card is filled with a version from its own project. */
     private readonly formsFor: (project: string) => Promise<QuestionnaireResolver> = questionnaireResolverFor,
     private readonly review: ReviewCarrier = ontologyService,
+    /** The engine, read for the components every save links. */
+    private readonly engine: Pick<EngineClient, "components"> = engineClient,
   ) {
     this.repos = typeof repos === "function" ? repos : async () => repos;
   }
@@ -120,10 +124,18 @@ export class QualificationService {
       }
       throw err;
     }
+    // The card links the engine's components as they are now, with a snapshot of each, so the
+    // system page can show what changed in the engine since. Read before anything is stored.
+    const links = await this.engineLinksOf(project);
     // What the new card takes from the review of the card before it, worked out before anything
     // is stored (the builder is asked, which no transaction should wait on).
     const review = start
-      ? await this.carryFrom(project, start, { ...parsed, systemComponents, questionnaireVersionId: form.versionId }, form)
+      ? await this.carryFrom(
+          project,
+          start,
+          { ...parsed, systemComponents, questionnaireVersionId: form.versionId, engineLinks: links },
+          form,
+        )
       : null;
     const version = await this.platform.createVersion(project, {
       name: parsed.systemName,
@@ -136,6 +148,7 @@ export class QualificationService {
     const made = await repo.transaction(async (r, tx) => {
       const created = await r.create({
         ...input,
+        engineLinks: links,
         ...(review?.carry.patch ? { ontologyPatch: review.carry.patch } : {}),
         ...(review?.carry.extracted ? { ontologyExtracted: review.carry.extracted } : {}),
       });
@@ -157,6 +170,17 @@ export class QualificationService {
         console.warn(`targets of project ${project} not synced after a card save: ${String(err)}`);
       });
     return { id: made.id };
+  }
+
+  /** The links to the engine's components a save writes. An engine that does not answer never
+   *  stops the save: the card then links nothing. */
+  private async engineLinksOf(project: string): Promise<LinkedComponent[]> {
+    try {
+      return engineLinks(await this.engine.components(project));
+    } catch (err) {
+      console.warn(`engine components of project ${project} not linked to the card: ${String(err)}`);
+      return [];
+    }
   }
 
   /** The project's card versions and its cards' ids. A project with no version
@@ -270,6 +294,6 @@ function pendingCard(input: Omit<CreateQualificationInput, "systemId">): Qualifi
     answers: input.answers.map((a, i) => ({ ...a, id: `pending-${i}`, qualificationId: "pending" })),
     risks: [...input.risks].sort((a, b) => a.position - b.position),
     systemComponents: [...(input.systemComponents ?? [])].sort((a, b) => a.position - b.position),
-    components: [],
+    components: input.engineLinks ?? [],
   } as unknown as QualificationWithAnswers;
 }

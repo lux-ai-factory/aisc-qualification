@@ -11,6 +11,7 @@ import { projectDbPastDoor } from "@/lib/projectDb";
 import { beforeTransaction } from "@/vendor/aisc-ledger/emit";
 import type { RiskInput } from "@/server/forms/QualificationFormParser";
 import type { KeyedComponent } from "@/domain/systemComponents";
+import type { LinkedComponent } from "@/domain/cardComponents";
 
 export type AnswerInput = {
   toolId: string;
@@ -45,6 +46,8 @@ export type CreateQualificationInput = {
   risks: RiskInput[];
   /** The Components block's rows, with their keys assigned. */
   systemComponents?: KeyedComponent[];
+  /** The card's links to the engine's components, with their snapshot (domain/cardComponents engineLinks). */
+  engineLinks?: LinkedComponent[];
   /** The questionnaire version the card was filled with. */
   questionnaireVersionId: string;
   /** The review it takes from the card before it (QualificationService.carriedReview). */
@@ -55,7 +58,7 @@ export type CreateQualificationInput = {
 export type QualificationWithAnswers = Qualification & {
   answers: QualificationAnswer[];
   risks: QualificationRisk[];
-  /** The engine components the card links, oldest link first. */
+  /** The engine components the card links, oldest link first (a save's links by pid). */
   components: CardComponent[];
   /** The Components block's rows, in order. */
   systemComponents: QualificationComponent[];
@@ -65,7 +68,7 @@ export type QualificationWithAnswers = Qualification & {
 const WITH_ANSWERS = {
   answers: true,
   risks: { orderBy: { position: "asc" } },
-  components: { orderBy: { linkedAt: "asc" } },
+  components: { orderBy: [{ linkedAt: "asc" }, { componentPid: "asc" }] },
   systemComponents: { orderBy: { position: "asc" } },
 } as const satisfies Prisma.QualificationInclude;
 
@@ -151,13 +154,14 @@ export class QualificationRepository {
   }
 
   create(input: CreateQualificationInput): Promise<{ id: string }> {
-    const { answers, risks, systemComponents, ...rest } = input;
+    const { answers, risks, systemComponents, engineLinks, ...rest } = input;
     return this.db.qualification.create({
       data: {
         ...rest,
         answers: { create: answers },
         risks: { create: risks },
         systemComponents: { create: systemComponents ?? [] },
+        components: { create: engineLinks ?? [] },
       },
       select: { id: true },
     });

@@ -29,6 +29,13 @@ const at = (template: string, database: string) => template.replace("{database}"
 
 const V1 = "c0c0c0c0-2222-4000-8000-000000000101";
 const V2 = "c0c0c0c0-2222-4000-8000-000000000102";
+const V3 = "c0c0c0c0-2222-4000-8000-000000000103";
+// The engine's components, as GET /api/v1/projects/{pid}/aisystem lists them: every save links them.
+const ENGINE = [
+  { pid: "e0e0e0e0-2222-4000-8000-000000000002", name: "Loans", component_type: "dataset", data: "data/loans.csv" },
+  { pid: "e0e0e0e0-2222-4000-8000-000000000001", name: "Scorer", component_type: "model", data: "models/m.pkl" },
+];
+const engine = { components: async () => ENGINE };
 let su: PrismaClient;
 let app: PrismaClient;
 
@@ -134,6 +141,7 @@ describe.skipIf(!enabled)("the next card's content, before it is stored", () => 
             return { patch: null, extracted: null, carried: [], left: [], draft: "none" };
           },
         },
+        engine as never,
       );
 
     const { id: before } = await service(V1).createFromForm(E, new FormData());
@@ -149,5 +157,43 @@ describe.skipIf(!enabled)("the next card's content, before it is stored", () => 
     expect(storedId).toBe(made);
     expect(made).not.toBe(before);
     expect(pending).toEqual(saved);
+    expect((saved as { engineComponents?: unknown[] }).engineComponents).toHaveLength(2);
+  });
+
+  it("every save links the engine's components, with their snapshot, so the system page sees no drift", async () => {
+    const { QualificationService } = await import("@/server/services/QualificationService");
+    const { QualificationRepository } = await import("@/server/repositories/QualificationRepository");
+    const { componentDrift, hasDrift } = await import("@/domain/cardComponents");
+    const form = annexDefaultVersion();
+    const repo = new QualificationRepository(app);
+    await version(V3, 103);
+    const { id } = await new QualificationService(
+      repo,
+      {
+        parse: () => ({
+          systemName: "MCAS", systemVersion: "1.3.0", company: "LIST", description: "d",
+          targetUseCase: "u", targetUsers: "t", intendedDeployers: null, systemType: null, purpose: null,
+          providerTerm: null, deployerTerm: null, targetSystemTags: [], sectorTags: [], marketFormTags: [],
+          localityTags: [], answers: [], risks: [], systemComponents: [], formVersionId: form.versionId,
+        }),
+      } as never,
+      { createVersion: async () => ({ pid: V3, project_id: E }), listVersions: async () => [], syncTargets: async () => undefined } as never,
+      async () => ({ resolve: async () => form }) as never,
+      undefined,
+      engine as never,
+    ).createFromForm(E, new FormData());
+
+    const card = (await repo.find(id))!;
+    expect(
+      card.components.map(({ componentPid, airoProperty, name, componentType, objectName, componentKey }) => ({
+        componentPid, airoProperty, name, componentType, objectName, componentKey,
+      })),
+    ).toEqual([
+      { componentPid: ENGINE[1].pid, airoProperty: "hasModel", name: "Scorer", componentType: "model", objectName: "models/m.pkl", componentKey: null },
+      { componentPid: ENGINE[0].pid, airoProperty: "hasComponent", name: "Loans", componentType: "dataset", objectName: "data/loans.csv", componentKey: null },
+    ].sort((a, b) => a.componentPid.localeCompare(b.componentPid)));
+    expect(hasDrift(componentDrift(card.components, ENGINE))).toBe(false);
+    // a re-upload in the engine is drift against what the card saved
+    expect(componentDrift(card.components, [ENGINE[0], { ...ENGINE[1], data: "models/m2.pkl" }]).changed).toHaveLength(1);
   });
 });

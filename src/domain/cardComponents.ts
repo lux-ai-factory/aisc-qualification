@@ -64,3 +64,25 @@ export function componentDrift(
 export function hasDrift(drift: ComponentDrift): boolean {
   return drift.removed.length + drift.added.length + drift.changed.length > 0;
 }
+
+/** The AIRO property an engine component is linked by. The engine says what a component is,
+ *  not what a dataset is used for (training, testing, validation), so a dataset is linked as a
+ *  part of the system, never as one of those. */
+function airoPropertyOf(componentType: string): string {
+  return componentType === "model" || componentType === "llm" ? "hasModel" : "hasComponent";
+}
+
+/** The links a save writes: one per engine component, with the snapshot drift is measured
+ *  against, in the order a card reads them back (by pid, all linked at once). Pure. */
+export function engineLinks(engine: EngineComponent[]): LinkedComponent[] {
+  return engine
+    .map((c) => ({
+      componentPid: c.pid,
+      airoProperty: airoPropertyOf(c.component_type),
+      name: c.name,
+      componentType: c.component_type,
+      objectName: c.data ?? "",
+      componentKey: null,
+    }))
+    .sort((a, b) => (a.componentPid < b.componentPid ? -1 : a.componentPid > b.componentPid ? 1 : 0));
+}

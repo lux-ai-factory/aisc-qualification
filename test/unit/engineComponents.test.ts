@@ -250,3 +250,23 @@ describe("the export shape carries the linked components (6b)", () => {
     ]);
   });
 });
+
+describe("the links a save writes", () => {
+  it("one per engine component, with its snapshot, by the AIRO property its type allows", async () => {
+    const { engineLinks } = await load(CARD_COMPONENTS);
+    const llm = { ...components[0], pid: "l1", name: "Chat", component_type: "llm", data: "gpt" };
+    const shape = { ...components[1], pid: "a1", name: "Shape", component_type: "datashape", data: "" };
+    expect(engineLinks([...components, llm, shape])).toEqual([
+      // the engine does not say whether a dataset trains, tests or validates: only that it is a part
+      { componentPid: "a1", airoProperty: "hasComponent", name: "Shape", componentType: "datashape", objectName: "", componentKey: null },
+      { componentPid: "d1", airoProperty: "hasComponent", name: "Holdout", componentType: "dataset", objectName: "data/h.csv", componentKey: null },
+      { componentPid: "l1", airoProperty: "hasModel", name: "Chat", componentType: "llm", objectName: "gpt", componentKey: null },
+      { componentPid: "m1", airoProperty: "hasModel", name: "Scorer", componentType: "model", objectName: "models/m.pkl", componentKey: null },
+    ]);
+  });
+
+  it("links made from the engine show no drift against it", async () => {
+    const { engineLinks, componentDrift, hasDrift } = await load(CARD_COMPONENTS);
+    expect(hasDrift(componentDrift(engineLinks(components), components))).toBe(false);
+  });
+});
