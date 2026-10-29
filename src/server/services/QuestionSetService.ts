@@ -255,12 +255,6 @@ export class QuestionSetService {
     return groups;
   }
 
-  /** One set version, whatever came after it; null for an unknown id. */
-  async resolveSetVersion(id: string): Promise<ResolvedSetVersion | null> {
-    const row = await this.repository.findSetVersion(id);
-    return row ? toResolvedSetVersion(row) : null;
-  }
-
   /** A set's latest version, or null. */
   async latest(setId: string): Promise<ResolvedSetVersion | null> {
     return this.atNumber(setId);

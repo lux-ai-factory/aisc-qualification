@@ -23,7 +23,6 @@ const { questionSetService, notFound, retireQuestionSet } = vi.hoisted(() => ({
     history: vi.fn(),
     atNumber: vi.fn(),
     latest: vi.fn(),
-    resolveSetVersion: vi.fn(),
     list: vi.fn(),
     groups: vi.fn(),
   },
@@ -117,12 +116,6 @@ function serve(
     async (_id: string, n?: number) => (versions[n ?? latest] ?? null) as never,
   );
   questionSetService.latest.mockResolvedValue(versions[latest]);
-  questionSetService.resolveSetVersion.mockImplementation(
-    async (id: string) =>
-      Object.values(versions).find(
-        (v) => (v as { versionId: string }).versionId === id,
-      ) ?? null,
-  );
 }
 
 async function page(

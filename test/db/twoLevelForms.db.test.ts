@@ -188,7 +188,7 @@ describe.skipIf(!enabled)(
       );
     });
 
-    it("QuestionSetService.resolveSetVersion('annex-iv-v1') with the real repository deep-equals the builtin set literal", async () => {
+    it("QuestionSetService.atNumber('annex-iv', 1) with the real repository deep-equals the builtin set literal", async () => {
       const { QuestionSetRepository } = await loadSrc(
         "server/repositories/QuestionSetRepository.ts",
       );
@@ -196,7 +196,7 @@ describe.skipIf(!enabled)(
         "server/services/QuestionSetService.ts",
       );
       const service = new QuestionSetService(new QuestionSetRepository(app));
-      expect(await service.resolveSetVersion("annex-iv-v1")).toEqual(
+      expect(await service.atNumber("annex-iv", 1)).toEqual(
         annexSetLiteral(),
       );
     });

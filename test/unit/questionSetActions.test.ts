@@ -18,7 +18,6 @@ const { questionSetService, callerName, redirect, notFound } = vi.hoisted(
       retire: vi.fn(),
       latest: vi.fn(),
       atNumber: vi.fn(),
-      resolveSetVersion: vi.fn(),
       history: vi.fn(async () => []),
       groups: vi.fn(async () => []),
       list: vi.fn(async () => []),

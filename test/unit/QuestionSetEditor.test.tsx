@@ -18,7 +18,7 @@ import { customQuestion, loadSrc, setVersion } from "../support/forms";
 // missing module fails each test, not the file.
 //
 // What these tests rely on: the edit page reads the set's latest version
-// through questionSetService.latest(setId) (atNumber and resolveSetVersion are mocked to the same
+// through questionSetService.latest(setId) (atNumber is mocked to the same
 // answer); the editor's question editor is the panel .qf-builder-editor holding a textarea, the
 // citation input, the "Required" checkbox and the "Answers Annex IV point" select; each row's Edit
 // and Remove buttons are named "Edit ..." / "Remove ..." after the row.
@@ -28,7 +28,6 @@ const { questionSetService, saveQuestionSet, retireQuestionSet, notFound } =
     questionSetService: {
       latest: vi.fn(),
       atNumber: vi.fn(),
-      resolveSetVersion: vi.fn(),
       list: vi.fn(),
       groups: vi.fn(),
       history: vi.fn(),
@@ -96,7 +95,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   questionSetService.latest.mockResolvedValue(acmeV3);
   questionSetService.atNumber.mockResolvedValue(acmeV3);
-  questionSetService.resolveSetVersion.mockResolvedValue(acmeV3);
 });
 
 async function mountNew(project = "mcas") {

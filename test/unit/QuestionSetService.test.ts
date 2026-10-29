@@ -13,7 +13,7 @@ import { ALL_BLOCKS, loadSrc } from "../support/forms";
 //   saveDraft(draft, { setId?, origin?, createdBy, alsoQuestionnaire? })
 //     -> { ok: true, setId, versionId, number, created, questionnaireId? } | { ok: false, error }
 //   list({ retired }) -> SetListRow[]; groups() -> SetGroup[]; history(setId) -> VersionStamp[]
-//   resolveSetVersion(id), latest(setId), atNumber(setId, n?) -> ResolvedSetVersion | null
+//   latest(setId), atNumber(setId, n?) -> ResolvedSetVersion | null
 //   retire(setId) -> { ok: true } | { ok: false, error }
 
 const SERVICE = "server/services/QuestionSetService.ts";
@@ -478,7 +478,7 @@ describe("editing a set makes its next version", () => {
         { setId: "acme", createdBy: "bob" },
       ),
     );
-    const v2 = await svc.resolveSetVersion("acme-v2");
+    const v2 = await svc.atNumber("acme", 2);
     expect(v2.questions.map((x: { text: string }) => x.text)).toEqual([
       "A",
       "B",
@@ -489,7 +489,7 @@ describe("editing a set makes its next version", () => {
     expect((await svc.atNumber("acme", 1)).versionId).toBe("acme-v1");
     expect((await svc.atNumber("acme")).versionNumber).toBe(3);
     expect(await svc.atNumber("acme", 9)).toBeNull();
-    expect(await svc.resolveSetVersion("nope")).toBeNull();
+    expect(await svc.latest("nope")).toBeNull();
   });
 });
 
@@ -531,7 +531,7 @@ describe("retiring a set", () => {
         questionId: "acme-q1",
       },
     ]);
-    const v = await (await service()).resolveSetVersion("acme-v1");
+    const v = await (await service()).atNumber("acme", 1);
     expect(v).toMatchObject({ setId: "acme", retired: true });
     expect(v.questions[0].text).toBe("Who signs off?");
   });
@@ -877,7 +877,6 @@ describe("question sets are install-wide", () => {
       expect.arrayContaining([
         "list",
         "groups",
-        "resolveSetVersion",
         "latest",
         "atNumber",
         "history",
@@ -892,6 +891,13 @@ describe("question sets are install-wide", () => {
     }
   });
 
+  it("a set version is reached by its set and number (latest, atNumber); there is no lookup by version id", async () => {
+    const { QuestionSetService } = await loadSrc(SERVICE);
+    expect(
+      Object.getOwnPropertyNames(QuestionSetService.prototype),
+    ).not.toContain("resolveSetVersion");
+  });
+
   it("a set saved from one project is listed, grouped and resolved identically for another", async () => {
     const r = await saved(
       (await service()).saveDraft(draft({ name: "Shared" }), {
@@ -904,8 +910,8 @@ describe("question sets are install-wide", () => {
       await a.list({ retired: false }),
     );
     expect(await b.groups()).toEqual(await a.groups());
-    expect(await b.resolveSetVersion(r.versionId)).toEqual(
-      await a.resolveSetVersion(r.versionId),
+    expect(await b.atNumber(r.setId, r.number)).toEqual(
+      await a.atNumber(r.setId, r.number),
     );
     expect(
       (await b.list({ retired: false })).map((x: { setId: string }) => x.setId),
