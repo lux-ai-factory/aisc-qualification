@@ -26,3 +26,13 @@ def test_the_model_clients_are_pinned():
     for pkg in ("openai", "anthropic", "ollama"):
         line = next(ln for ln in lines if ln.split("==")[0].split(">=")[0].strip() == pkg)
         assert "==" in line, line
+
+
+def test_requirements_say_when_the_app_calls_the_service():
+    """The comment over the web stack matches the README: a run starts from the card page's
+    button, never on save."""
+    from pathlib import Path
+
+    text = (Path(__file__).resolve().parents[1] / "requirements.txt").read_text()
+    assert "when a qualification is saved" not in text
+    assert "Let AI suggest additions" in text

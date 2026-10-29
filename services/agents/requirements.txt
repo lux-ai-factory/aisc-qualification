@@ -10,9 +10,9 @@ openai==3.24.0      # the ten OpenAI-compatible wrappers, Mistral included
 anthropic==1.11.0   # LLMAnthropic, which uses the native SDK
 ollama==0.6.3       # LLMOllama, for a model you host yourself
 
-# The HTTP entry point the app calls when a qualification is saved. Plain uvicorn,
-# not uvicorn[standard]: BAF 4.5.1 needs websockets==11.0.3 and uvicorn[standard]
-# 0.54 needs websockets>=13.
+# The HTTP entry point the app calls when a person presses "Let AI suggest additions"
+# on the card page, never on save. Plain uvicorn, not uvicorn[standard]: BAF 4.5.1
+# needs websockets==11.0.3 and uvicorn[standard] 0.54 needs websockets>=13.
 fastapi==0.142.2
 starlette==1.7.0
 uvicorn==0.54.0
