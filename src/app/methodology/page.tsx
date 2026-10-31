@@ -9,6 +9,7 @@ import {
   LOCALITIES,
   MODALITIES,
   PURPOSES,
+  SUBJECTS,
   SYSTEM_TYPES,
 } from "@/data/vairVocab";
 import { OntologyClient } from "@/server/services/OntologyClient";
@@ -49,6 +50,7 @@ export default async function MethodologyPage() {
       marketForm: MODALITIES.length,
       locality: LOCALITIES.length,
       impactArea: IMPACT_AREAS.length,
+      subject: SUBJECTS.length,
       affected: AFFECTED.length,
     },
     // The minimal AIRO subset, as services/ontology/airo_min/schema.py holds it.

@@ -134,7 +134,7 @@ export default function Methodology({ facts }: { facts: MethodologyFacts }) {
           <Step
             title="Describe each risk as a chain"
             what={`One row per risk, ${facts.riskFields} fields: what could go wrong, what causes it, which weakness it exploits, what follows, the kind of harm, who and what it affects, the control, and the control that follows if it is not enough.`}
-            input={`One row per risk, written by the provider. The cause, the result, the control and the follow-up each have their text and one VAIR term; the harm is a VAIR term; the areas affected come from VAIR (${facts.pickers.impactArea}); who is affected is ours (${facts.pickers.affected}), since VAIR has no list for it.`}
+            input={`One row per risk, written by the provider. The cause, the result, the control and the follow-up each have their text and one VAIR term; the harm is a VAIR term; the areas affected come from VAIR (${facts.pickers.impactArea}); who is affected is a term of VAIR's AISubject (${facts.pickers.subject}), or one of our own (${facts.pickers.affected}) when none of them fits.`}
             authority="Art 9(2) for the risk, its cause and its control; Art 15(5) for the weakness exploited; Art 9(5) and Art 14(4)(e) for the follow-up control; Art 9(9) for who is affected."
             output="A risk row, in the order AIRO's risk chain expects."
           />

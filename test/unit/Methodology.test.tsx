@@ -11,7 +11,7 @@ const facts: MethodologyFacts = {
   questions: 14,
   optionalQuestions: 4,
   riskFields: 8,
-  pickers: { marketForm: 4, locality: 4, impactArea: 4, affected: 2 },
+  pickers: { marketForm: 4, locality: 4, impactArea: 4, subject: 19, affected: 2 },
   schema: { classes: 19, properties: 19 },
   vocabulary: { classes: 19, terms: 331, typed: 14 },
 };
@@ -269,6 +269,17 @@ describe("the methodology page", () => {
   it("states what we implement, from the code rather than from prose", () => {
     const { container } = mount({ schema: { classes: 19, properties: 21 } });
     expect(container.textContent).toContain("21 properties");
+  });
+
+  it("says who is affected is a VAIR AISubject term first, and counts both lists", () => {
+    const { container } = mount({
+      pickers: { ...facts.pickers, subject: 19, affected: 2 },
+    });
+    const steps = [...container.querySelectorAll("ol.method-steps > li")];
+    const risk = steps[2].textContent ?? "";
+    expect(risk).not.toMatch(/VAIR has no list/);
+    expect(risk).toContain("AISubject (19)");
+    expect(risk).toMatch(/our own \(2\)/);
   });
 
   it("counts the form from the question set, not by hand", () => {
