@@ -5,7 +5,7 @@ import type {
 } from "@/domain/OntologyView";
 import type { QualificationExport } from "./QualificationExporter";
 import { shortDetail } from "./errorText";
-import { serviceTokenHeaders } from "./http";
+import { serviceTokenHeaders, serviceUrl } from "./http";
 
 export type OntologyBuild = {
   view: OntologyView;
@@ -52,7 +52,7 @@ export class OntologyClient {
     extracted?: OntologyExtracted | null,
     patch?: OntologyPatch | null,
   ): Promise<OntologyBuild> {
-    const res = await this.fetchImpl(`${this.serviceUrl}/build`, {
+    const res = await this.fetchImpl(serviceUrl(this.serviceUrl, "/build"), {
       method: "POST",
       headers: { "content-type": "application/json", ...serviceTokenHeaders(this.serviceToken) },
       body: JSON.stringify({
@@ -80,7 +80,7 @@ export class OntologyClient {
 
   /** The VAIR terms a reviewer may pick, per AIRO class. */
   async vocabularies(): Promise<Record<string, string[]>> {
-    const res = await this.fetchImpl(`${this.serviceUrl}/vocabularies`, {
+    const res = await this.fetchImpl(serviceUrl(this.serviceUrl, "/vocabularies"), {
       headers: serviceTokenHeaders(this.serviceToken),
       cache: "no-store",
     });

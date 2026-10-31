@@ -1,5 +1,5 @@
 import { shortDetail } from "./errorText";
-import { serviceTokenHeaders } from "./http";
+import { serviceTokenHeaders, serviceUrl } from "./http";
 
 /** The renderer did not answer. A person reads the message, so it names neither the
  *  renderer's address nor the network error; both are logged, and the error is the cause. */
@@ -33,7 +33,7 @@ export class SystemCardRendererClient {
   async renderPdf(card: unknown): Promise<ArrayBuffer> {
     let res: Response;
     try {
-      res = await fetch(`${this.baseUrl}/render/pdf`, {
+      res = await fetch(serviceUrl(this.baseUrl, "/render/pdf"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...serviceTokenHeaders(this.serviceToken) },
         body: JSON.stringify(card),
