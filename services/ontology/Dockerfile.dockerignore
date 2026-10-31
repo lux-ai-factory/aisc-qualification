@@ -1,0 +1,24 @@
+# Read by Docker for services/ontology/Dockerfile only, in place of the root .dockerignore:
+# the build context is apps/qualification, so every path is written from there.
+
+# What the root .dockerignore keeps out.
+node_modules
+.next
+.git
+.env
+.env.local
+postgres-data
+*.log
+.DS_Store
+.vscode
+.idea
+README.md
+DEPLOY.md
+*.docx
+
+# The ontology service's own: its environments, caches and tests.
+services/ontology/.venv
+services/ontology/**/__pycache__
+services/ontology/**/*.pyc
+services/ontology/.pytest_cache
+services/ontology/tests
