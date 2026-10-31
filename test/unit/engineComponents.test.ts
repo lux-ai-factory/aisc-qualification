@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-// The card's components link to the engine's real ones through AIRO (hasModel, hasTrainingData, hasTestingData,
-// hasValidationData, hasComponent). The engine is read, never written: its
+// The card's components link to the engine's real ones through AIRO (hasModel for a model,
+// hasComponent for every other type). The engine is read, never written: its
 // components come from GET /api/v1/projects?platform_project_id=<pid>, then
 // GET /api/v1/projects/{enginePid}/aisystem, with the caller's own token.
 // Drift between the latest card's links and the engine is shown, not fixed.

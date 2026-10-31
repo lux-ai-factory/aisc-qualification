@@ -3,8 +3,8 @@
  *
  * The card's components are the engine's real ones (its AIComponent rows),
  * linked by an AIRO property of the system: hasModel for a model or an LLM,
- * hasTrainingData / hasTestingData / hasValidationData for a dataset, and
- * hasComponent for anything else. Each link keeps a snapshot of the engine
+ * and hasComponent for every other type, datasets included (the engine does not
+ * say what a dataset is used for). Each link keeps a snapshot of the engine
  * component (its type and object name), so drift from the engine can be shown
  * rather than fixed silently.
  */
