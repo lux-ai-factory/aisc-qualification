@@ -17,9 +17,9 @@ import pytest
 
 from airo_min.schema import CLASSES
 from airo_min.vair_terms import (
-    DANGLING,
-    MISPREFIXED,
+    dangling,
     every_vair_term,
+    misprefixed,
     terms_for,
     terms_reachable_from_airo,
     typeable_classes,
@@ -60,19 +60,19 @@ class TestInventory:
         # No rdfs:subClassOf at all, so no AIRO class can reach them: superseded
         # spellings (SVM, EmergancyTriage) and Act roles left unparented
         # (AuthorisedRepresentative, NotifiedBody, Distributor, Importer).
-        assert len(DANGLING) == 101
+        assert len(dangling()) == 101
         for name in ("SVM", "EmergancyTriage", "Distributor", "NotifiedBody",
                      "SmallScaleProvider", "AuthorisedRepresentative"):
-            assert name in DANGLING
+            assert name in dangling()
 
     def test_the_terms_vair_declares_under_the_wrong_base(self):
         # VAIR's @base is http://www.semanticweb.org/owl/owlapi/turtle#, and 17
         # terms landed there instead of in the vair namespace. 16 have a correct
         # twin; API does not, so no IRI in the vair namespace names it.
-        assert len(MISPREFIXED) == 17
-        assert MISPREFIXED["API"]["twin"] is False
-        assert MISPREFIXED["API"]["parent"] == "AIComponent"
-        assert sum(1 for m in MISPREFIXED.values() if m["twin"]) == 16
+        assert len(misprefixed()) == 17
+        assert misprefixed()["API"]["twin"] is False
+        assert misprefixed()["API"]["parent"] == "AIComponent"
+        assert sum(1 for m in misprefixed().values() if m["twin"]) == 16
 
 
 class TestNesting:
@@ -130,7 +130,7 @@ class TestPrecision:
 
     def test_a_term_vair_leaves_hanging_is_never_offered(self):
         offered = {t for terms in vocabularies().values() for t in terms}
-        assert offered.isdisjoint(DANGLING)
+        assert offered.isdisjoint(dangling())
 
     def test_the_mis_prefixed_api_is_not_offered_as_a_component(self):
         # It is not addressable in the vair namespace, so the builder could not
@@ -194,3 +194,21 @@ class TestTheBuilderIsExact:
         g = build_graph(q, e)
         with pytest.raises(ValueError, match="Police"):
             apply_patch(g, {"purpose": {"vair": "Police"}})
+
+
+class TestImportIsCheap:
+    """The service imports this module on every start. What VAIR gets wrong is read only
+    when asked for, so importing the module never parses airo.ttl."""
+
+    def test_importing_the_module_does_not_read_airo(self):
+        import subprocess
+        import sys
+
+        probe = (
+            "import airo_min.vair_terms as v; "
+            "print(v.terms_reachable_from_airo.cache_info().currsize)"
+        )
+        out = subprocess.run(
+            [sys.executable, "-c", probe], cwd=ROOT, capture_output=True, text=True, check=True
+        )
+        assert out.stdout.strip() == "0"

@@ -10,17 +10,18 @@ the class that decides whether a system is high-risk, showed 27 of 122.
 The module also records what VAIR 1.0 gets wrong, because using all of a
 vocabulary precisely means knowing which parts of it are unusable:
 
-  DANGLING    101 terms with no rdfs:subClassOf at all, so under no class. A mix
-              of superseded spellings (SVM, EmergancyTriage, TrainingData) and
-              AI Act roles nobody wired up (AuthorisedRepresentative,
-              NotifiedBody, Distributor, Importer, SmallScaleProvider).
-  MISPREFIXED 17 terms that landed under VAIR's @base
-              (http://www.semanticweb.org/owl/owlapi/turtle#) instead of its own
-              namespace. 16 have a correctly-prefixed twin; API does not, so no
-              IRI in the vair namespace names it and nothing can refer to it.
+  dangling()    101 terms with no rdfs:subClassOf at all, so under no class. A
+                mix of superseded spellings (SVM, EmergancyTriage, TrainingData)
+                and AI Act roles nobody wired up (AuthorisedRepresentative,
+                NotifiedBody, Distributor, Importer, SmallScaleProvider).
+  misprefixed() 17 terms that landed under VAIR's @base
+                (http://www.semanticweb.org/owl/owlapi/turtle#) instead of its
+                own namespace. 16 have a correctly-prefixed twin; API does not, so
+                no IRI in the vair namespace names it and nothing can refer to it.
 
 Neither group is ever offered: a term we cannot address is a term we cannot
-write into a graph.
+write into a graph. Both are read on first call, not at import: the service
+never needs them, and they parse airo.ttl as well.
 """
 from functools import lru_cache
 from pathlib import Path
@@ -129,7 +130,8 @@ def terms_reachable_from_airo() -> frozenset[str]:
     return frozenset(_local(t, VAIR) for t in _descendants(roots))
 
 
-def _dangling() -> frozenset[str]:
+@lru_cache(maxsize=1)
+def dangling() -> frozenset[str]:
     g = _graph()
     reachable = terms_reachable_from_airo()
     return frozenset(
@@ -140,7 +142,8 @@ def _dangling() -> frozenset[str]:
     )
 
 
-def _misprefixed() -> dict[str, dict[str, object]]:
+@lru_cache(maxsize=1)
+def misprefixed() -> dict[str, dict[str, object]]:
     g = _graph()
     out: dict[str, dict[str, object]] = {}
     for subject in set(g.subjects()):
@@ -159,7 +162,3 @@ def _misprefixed() -> dict[str, dict[str, object]]:
         }
     return out
 
-
-#: See the module docstring. Computed once: these are facts about a fixed file.
-DANGLING: frozenset[str] = _dangling()
-MISPREFIXED: dict[str, dict[str, object]] = _misprefixed()
