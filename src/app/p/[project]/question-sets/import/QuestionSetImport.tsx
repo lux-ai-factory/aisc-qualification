@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState, type ReactNode } from "react";
+import { useServerAction } from "@/lib/serverAction";
 import { ANNEX_POINTS, isAnnexPoint } from "@/domain/forms/annexPoints";
 import type { SetEditorInit } from "@/domain/forms/setEditorState";
 import type { ImportedQuestion } from "@/server/services/FormImportClient";
@@ -33,8 +34,7 @@ const nameOf = (fileName: string) => {
 };
 
 export default function QuestionSetImport({ project, header }: Props) {
-  const [error, setError] = useState<string | null>(null);
-  const [reading, setReading] = useState(false);
+  const { run, busy: reading, error } = useServerAction();
   const [preview, setPreview] = useState<Preview | null>(null);
   const [editor, setEditor] = useState<SetEditorInit | null>(null);
   const ids = useId();
@@ -49,29 +49,22 @@ export default function QuestionSetImport({ project, header }: Props) {
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
-    setError(null);
-    setReading(true);
-    try {
-      const data = new FormData();
-      data.set("file", file);
-      const read = await readQuestionSetFile(project, data);
-      if (!read.ok) {
-        setError(read.error);
-        return;
-      }
-      setPreview({
-        fileName: file.name,
-        found: read.found,
-        warnings: read.warnings,
-        rows: read.questions.map((q, key) => ({
-          ...q,
-          annexPoint: isAnnexPoint(q.annexPoint) ? q.annexPoint : null,
-          key,
-        })),
-      });
-    } finally {
-      setReading(false);
-    }
+    const data = new FormData();
+    data.set("file", file);
+    const outcome = await run(() => readQuestionSetFile(project, data));
+    if (!outcome.ok) return;
+    const read = outcome.value;
+    if (!read.ok) return;
+    setPreview({
+      fileName: file.name,
+      found: read.found,
+      warnings: read.warnings,
+      rows: read.questions.map((q, key) => ({
+        ...q,
+        annexPoint: isAnnexPoint(q.annexPoint) ? q.annexPoint : null,
+        key,
+      })),
+    });
   };
 
   const change = (key: number, over: Partial<ImportedQuestion>) =>

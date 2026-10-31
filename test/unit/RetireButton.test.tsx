@@ -96,4 +96,22 @@ describe("the retire button", () => {
       "Archive Annex IV default? Cards and questionnaires that use it keep it.",
     );
   });
+
+  it("an action that throws shows a plain sentence and lets you try again", async () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    const action = vi.fn(async () => {
+      throw new Error("Failed to fetch");
+    });
+    const { container } = await mount(action);
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await waitFor(() =>
+      expect(container.querySelector("div.error")?.textContent).toBe(
+        "This could not be done just now. Try again.",
+      ),
+    );
+    expect((screen.getByRole("button", { name: "Archive" }) as HTMLButtonElement).disabled).toBe(false);
+    quiet.mockRestore();
+  });
 });
+

@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState, type ReactNode } from "react";
+import { useServerAction } from "@/lib/serverAction";
 import { annexCitation, isAnnexPoint } from "@/domain/forms/annexPoints";
 import type { BuilderInit } from "@/domain/forms/builderState";
 import type { SetGroup } from "@/domain/forms/library";
@@ -35,9 +36,8 @@ export default function QuestionnaireImport({
   groups,
   header,
 }: Props) {
-  const [reading, setReading] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const reader = useServerAction();
+  const creator = useServerAction();
   const [missing, setMissing] = useState<string[]>([]);
   const [builder, setBuilder] = useState<BuilderInit | null>(null);
   const [preview, setPreview] = useState<SelfContained | null>(null);
@@ -57,47 +57,38 @@ export default function QuestionnaireImport({
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
-    setError(null);
     setMissing([]);
     setPreview(null);
-    setReading(true);
-    try {
-      const data = new FormData();
-      data.set("file", file);
-      const read = await readQuestionnaireFile(project, data);
-      if (!read.ok) {
-        setError(read.error);
-        setMissing(read.missing ?? []);
-        return;
-      }
-      if (read.bundle === "references") setBuilder(read.open);
-      else
-        setPreview({
-          file: read.file,
-          fileName: read.fileName,
-          setName: `${read.file.name} questions`,
-          questionnaireName: read.file.name,
-        });
-    } finally {
-      setReading(false);
+    creator.setError(null);
+    const data = new FormData();
+    data.set("file", file);
+    const outcome = await reader.run(() => readQuestionnaireFile(project, data));
+    const read = outcome.value;
+    if (!read) return;
+    if (!read.ok) {
+      setMissing(read.missing ?? []);
+      return;
     }
+    if (read.bundle === "references") setBuilder(read.open);
+    else
+      setPreview({
+        file: read.file,
+        fileName: read.fileName,
+        setName: `${read.file.name} questions`,
+        questionnaireName: read.file.name,
+      });
   };
 
   const create = async () => {
     if (!preview) return;
-    setError(null);
-    setCreating(true);
-    try {
-      const result = await importSelfContained(
+    await creator.run(() =>
+      importSelfContained(
         project,
         JSON.stringify(preview.file),
         preview.setName,
         preview.questionnaireName,
-      );
-      if (result?.error) setError(result.error);
-    } finally {
-      setCreating(false);
-    }
+      ),
+    );
   };
 
   return (
@@ -114,13 +105,13 @@ export default function QuestionnaireImport({
                 id={`${ids}-file`}
                 type="file"
                 accept=".json"
-                disabled={reading}
+                disabled={reader.busy}
                 onChange={(e) => pick(e.target.files?.[0])}
               />
             </div>
           </div>
-          {reading && <p className="qf-help">Reading the file…</p>}
-          {error && !preview && <div className="error">{error}</div>}
+          {reader.busy && <p className="qf-help">Reading the file…</p>}
+          {reader.error && !preview && <div className="error">{reader.error}</div>}
           {missing.length > 0 && (
             <ul className="qf-import-missing">
               {missing.map((m) => (
@@ -193,12 +184,12 @@ export default function QuestionnaireImport({
                 />
               </div>
             </div>
-            {error && <div className="error">{error}</div>}
+            {creator.error && <div className="error">{creator.error}</div>}
             <div className="qf-actions">
               <button
                 type="button"
                 className="btn"
-                disabled={creating}
+                disabled={creator.busy}
                 onClick={create}
               >
                 Create question set and questionnaire

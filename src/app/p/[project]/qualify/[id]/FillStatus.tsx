@@ -34,6 +34,8 @@ export default function FillStatus({
   const [run, setRun] = useState(0);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Why the run failed, when the route gives it: only editors and owners get it.
+  const [runError, setRunError] = useState<string | null>(null);
   const router = useRouter();
   // Held in a ref and kept out of the effect's dependencies: the effect starts a
   // poll, and a router object with a new identity would restart it on every
@@ -51,14 +53,22 @@ export default function FillStatus({
     // opening.
     let inFlight = run > 0;
 
+    // A look that failed (no answer, or not a 2xx) is tried again while a run is in flight,
+    // so a passing hiccup does not leave the spinner up for good. With no run known it stays
+    // silent: the card is complete without the filler.
+    const lookFailed = () => {
+      if (live && inFlight) timer = setTimeout(ask, POLL_MS);
+    };
+
     const ask = async () => {
       try {
         const res = await fetch(statusUrl, { cache: "no-store" });
-        if (!res.ok) return;
-        const body = (await res.json()) as { state?: State };
+        if (!res.ok) return lookFailed();
+        const body = (await res.json()) as { state?: State; error?: unknown };
         if (!live) return;
         const next = body.state ?? "idle";
         setState(next);
+        setRunError(next === "failed" && typeof body.error === "string" && body.error ? body.error : null);
         if (next === "queued" || next === "running") {
           inFlight = true;
           timer = setTimeout(ask, POLL_MS);
@@ -71,6 +81,7 @@ export default function FillStatus({
       } catch {
         // No status service, or none reachable. The card is complete without
         // it; saying nothing is better than an error about an extra.
+        lookFailed();
       }
     };
 
@@ -101,6 +112,7 @@ export default function FillStatus({
           <p className="fill-status" role="status" aria-live="polite">
             The AI suggestions could not finish. The card below is built from
             your answers.
+            {runError && <> Reason: {runError}</>}
           </p>
         )}
         {state !== "failed" && places > 0 && (

@@ -787,6 +787,22 @@ describe("saving and using once", () => {
     );
   });
 
+  it("a save that throws shows a plain sentence and the button works again", async () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    saveQuestionnaire.mockRejectedValue(new Error("Failed to fetch"));
+    const { container } = await mount();
+    fireEvent.click(screen.getByRole("button", { name: "Save questionnaire" }));
+    await waitFor(() =>
+      expect(container.querySelector("div.error")?.textContent).toBe(
+        "This could not be done just now. Try again.",
+      ),
+    );
+    expect(
+      (screen.getByRole("button", { name: "Save questionnaire" }) as HTMLButtonElement).disabled,
+    ).toBe(false);
+    quiet.mockRestore();
+  });
+
   it("Use once sends the draft to useQuestionnaireOnce with the origin", async () => {
     useQuestionnaireOnce.mockResolvedValue(undefined);
     await browse();

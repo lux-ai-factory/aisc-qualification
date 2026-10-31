@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useReducer, useRef, useState } from "react";
+import { useServerAction } from "@/lib/serverAction";
 import {
   ANNEX_POINTS,
   annexCitation,
@@ -52,8 +53,7 @@ export default function QuestionSetEditor({
     initialSetEditorState,
   );
   const [editor, setEditor] = useState<Editor | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const { run, busy: saving, error } = useServerAction();
   const [focus, setFocus] = useState<{
     rowKey: string;
     dir: "up" | "down";
@@ -96,11 +96,9 @@ export default function QuestionSetEditor({
     setEditor(null);
   };
 
-  const submit = async () => {
-    setError(null);
-    setSaving(true);
-    try {
-      const result = await saveQuestionSet(
+  const submit = () =>
+    run(() =>
+      saveQuestionSet(
         project,
         JSON.stringify(toSetDraft(state)),
         state.setId ?? undefined,
@@ -110,12 +108,8 @@ export default function QuestionSetEditor({
           // the version this editor was opened on: a save after someone else's is refused
           ...(editing ? { baseNumber: editing.versionNumber } : {}),
         },
-      );
-      if (result?.error) setError(result.error);
-    } finally {
-      setSaving(false);
-    }
-  };
+      ),
+    );
 
   return (
     <div className="qualify-form qf-set-editor">

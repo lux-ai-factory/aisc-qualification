@@ -155,6 +155,17 @@ describe("importing a question-set file", () => {
     expect(container.querySelector('input[type="file"]')).toBeTruthy();
   });
 
+  it("a read that throws shows a plain sentence and the file can be picked again", async () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    readQuestionSetFile.mockRejectedValue(new Error("Failed to fetch"));
+    const { container } = await mount();
+    await upload(container);
+    await screen.findByText("This could not be done just now. Try again.");
+    expect(container.querySelector("p.qf-help")?.textContent ?? "").not.toContain("Reading the file");
+    expect((container.querySelector('input[type="file"]') as HTMLInputElement).disabled).toBe(false);
+    quiet.mockRestore();
+  });
+
   it("confirming mounts the set editor in place: new rows, the file name as the name, no builder", async () => {
     readQuestionSetFile.mockResolvedValue(found);
     const { container } = await mount();

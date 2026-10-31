@@ -405,6 +405,22 @@ describe("a new question set", () => {
       error.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
+
+  it("a save that throws shows a plain sentence and the button works again", async () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    saveQuestionSet.mockRejectedValue(new Error("Failed to fetch"));
+    const { container } = await mountNew();
+    fireEvent.click(screen.getByRole("button", { name: "Save question set" }));
+    await waitFor(() =>
+      expect(container.querySelector("div.error")?.textContent).toBe(
+        "This could not be done just now. Try again.",
+      ),
+    );
+    expect(
+      (screen.getByRole("button", { name: "Save question set" }) as HTMLButtonElement).disabled,
+    ).toBe(false);
+    quiet.mockRestore();
+  });
 });
 
 describe("editing a question set", () => {

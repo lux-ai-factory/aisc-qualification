@@ -163,6 +163,58 @@ describe("the card telling you the filler is working", () => {
     expect(screen.getByRole("status").textContent).toMatch(/could not|failed/i);
   });
 
+  it("shows the run's error text when the route gives it (to editors)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ state: "failed", run: 3, error: "provider answered 401: invalid key" }),
+      })),
+    );
+    await act(async () => {
+      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+    });
+    expect(screen.getByRole("status").textContent).toContain("provider answered 401: invalid key");
+  });
+
+  it("keeps asking after a failed look while a run is in flight", async () => {
+    vi.useFakeTimers();
+    let call = 0;
+    const answers = [
+      { ok: true, json: async () => ({ state: "running" }) },
+      { ok: false, status: 502, json: async () => ({}) },
+      "throw",
+      { ok: true, json: async () => ({ state: "done" }) },
+    ];
+    const fetchMock = vi.fn(async () => {
+      const next = answers[Math.min(call++, answers.length - 1)];
+      if (next === "throw") throw new TypeError("Failed to fetch");
+      return next;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await act(async () => {
+      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(7000);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not keep asking after a failed first look: no run is known", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn(async () => ({ ok: false, status: 502, json: async () => ({}) }));
+    vi.stubGlobal("fetch", fetchMock);
+    await act(async () => {
+      render(<FillStatus project={PROJECT} qualificationId="q1" statusUrl={STATUS_URL} />);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10000);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("stays silent when the status cannot be reached", async () => {
     vi.stubGlobal(
       "fetch",

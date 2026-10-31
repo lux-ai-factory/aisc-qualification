@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useServerAction } from "@/lib/serverAction";
 import { METADATA_FIELDS } from "@/data/formFields";
 import { RISK_BLOCK } from "@/data/riskFields";
 import {
@@ -70,8 +71,7 @@ export default function QuestionnaireBuilder({
     initialBuilderState,
   );
   const [search, setSearch] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const { run, busy: saving, error } = useServerAction();
   const [focus, setFocus] = useState<{
     rowKey: string;
     dir: "up" | "down";
@@ -132,27 +132,20 @@ export default function QuestionnaireBuilder({
     setFocus({ rowKey: row.rowKey, dir });
   };
 
-  const submit = async (action: "save" | "once") => {
-    setError(null);
-    setSaving(true);
-    try {
+  const submit = (action: "save" | "once") =>
+    run(() => {
       const json = JSON.stringify(toQuestionnaireDraft(state));
-      const result =
-        action === "save"
-          ? await saveQuestionnaire(
-              project,
-              json,
-              state.questionnaireId ?? undefined,
-              state.origin,
-              // the version this builder was opened on: a save after someone else's is refused
-              initial.edit?.versionNumber,
-            )
-          : await saveQuestionnaireForOnce(project, json, state.origin);
-      if (result?.error) setError(result.error);
-    } finally {
-      setSaving(false);
-    }
-  };
+      return action === "save"
+        ? saveQuestionnaire(
+            project,
+            json,
+            state.questionnaireId ?? undefined,
+            state.origin,
+            // the version this builder was opened on: a save after someone else's is refused
+            initial.edit?.versionNumber,
+          )
+        : saveQuestionnaireForOnce(project, json, state.origin);
+    });
 
   const editing = initial.edit;
 

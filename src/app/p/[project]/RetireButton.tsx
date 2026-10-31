@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useServerAction } from "@/lib/serverAction";
 
 /**
  * Archive a question set or a questionnaire. Asks once; the action's
@@ -15,19 +16,10 @@ export default function RetireButton({
   action: () => Promise<{ error?: string } | void>;
 }) {
   const [asking, setAsking] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { run, busy, error } = useServerAction();
 
   async function confirm() {
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await action();
-      if (result && result.error) setError(result.error);
-      else setAsking(false);
-    } finally {
-      setBusy(false);
-    }
+    if ((await run(action)).ok) setAsking(false);
   }
 
   return (

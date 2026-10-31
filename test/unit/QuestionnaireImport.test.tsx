@@ -275,6 +275,16 @@ describe("a reference file", () => {
       screen.queryByRole("region", { name: "Your questionnaire" }),
     ).toBeNull();
   });
+
+  it("a read that throws shows a plain sentence and the file can be picked again", async () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    readQuestionnaireFile.mockRejectedValue(new Error("Failed to fetch"));
+    const { container } = await mount();
+    await upload(container);
+    await screen.findByText("This could not be done just now. Try again.");
+    expect((container.querySelector('input[type="file"]') as HTMLInputElement).disabled).toBe(false);
+    quiet.mockRestore();
+  });
 });
 
 describe("a self-contained file", () => {
@@ -366,5 +376,31 @@ describe("a self-contained file", () => {
         name: "Create question set and questionnaire",
       }),
     ).toBeTruthy();
+  });
+
+  it("an import that throws shows a plain sentence and the button works again", async () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    readQuestionnaireFile.mockResolvedValue(SELF);
+    importSelfContained.mockRejectedValue(new Error("Failed to fetch"));
+    const { container } = await mount();
+    await upload(container);
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Create question set and questionnaire",
+      }),
+    );
+    await waitFor(() =>
+      expect(container.querySelector("div.error")?.textContent).toBe(
+        "This could not be done just now. Try again.",
+      ),
+    );
+    expect(
+      (
+        within(container).getByRole("button", {
+          name: "Create question set and questionnaire",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+    quiet.mockRestore();
   });
 });
