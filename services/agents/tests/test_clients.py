@@ -44,7 +44,7 @@ def sent(monkeypatch):
         )
         return FakeResponse({"ok": True})
 
-    monkeypatch.setattr(clients.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(clients, "open_service", fake_urlopen)
     return calls
 
 
@@ -78,7 +78,7 @@ def headers_sent(monkeypatch):
         calls.append((req.full_url, {k.lower(): v for k, v in req.header_items()}))
         return FakeResponse({"ok": True})
 
-    monkeypatch.setattr(clients.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(clients, "open_service", fake_urlopen)
     return calls
 
 

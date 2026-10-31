@@ -12,6 +12,8 @@ from typing import Any
 from urllib import error, request
 from urllib.parse import quote
 
+from fill.baf_llm import _NoRedirect
+
 ONTOLOGY_URL = os.environ.get("ONTOLOGY_SERVICE_URL", "http://localhost:8011")
 APP_URL = os.environ.get("APP_URL", "http://localhost:3399")
 TIMEOUT = float(os.environ.get("HTTP_TIMEOUT", "120"))
@@ -32,6 +34,17 @@ class ServiceError(RuntimeError):
     """A service answered with something unusable, or not at all."""
 
 
+#: Every call this service makes carries a service token, so it goes only where it was sent: no proxy
+#: from the environment sees it, and a redirect is an error instead of a second request elsewhere.
+#: Built as fill/baf_llm.py builds the one that reaches the platform.
+_OPENER = request.build_opener(request.ProxyHandler({}), _NoRedirect())
+
+
+def open_service(req: request.Request, timeout: float = TIMEOUT):
+    """Send `req` through the opener that follows no redirect and uses no proxy."""
+    return _OPENER.open(req, timeout=timeout)
+
+
 def _post(url: str, payload: dict, token: str, method: str = "POST", extra: dict | None = None) -> Any:
     body = json.dumps(payload).encode("utf-8")
     req = request.Request(
@@ -41,7 +54,7 @@ def _post(url: str, payload: dict, token: str, method: str = "POST", extra: dict
         headers={"Content-Type": "application/json", **_token_headers(token), **(extra or {})},
     )
     try:
-        with request.urlopen(req, timeout=TIMEOUT) as res:
+        with open_service(req) as res:
             return json.loads(res.read().decode("utf-8") or "null")
     except error.HTTPError as exc:
         raise ServiceError(f"{url} returned HTTP {exc.code}: {exc.read()[:200]!r}")
@@ -57,7 +70,7 @@ def vocabularies() -> dict[str, list[str]]:
     """
     req = request.Request(f"{ONTOLOGY_URL}/vocabularies", headers=_token_headers(ONTOLOGY_TOKEN_VAR))
     try:
-        with request.urlopen(req, timeout=TIMEOUT) as res:
+        with open_service(req) as res:
             return json.loads(res.read().decode("utf-8"))
     except (error.HTTPError, OSError) as exc:
         raise ServiceError(f"{ONTOLOGY_URL}/vocabularies unreachable: {exc}")
@@ -88,7 +101,7 @@ def qualification(pid: str, qualification_id: str) -> dict:
         headers=_token_headers(APP_TOKEN_VAR),
     )
     try:
-        with request.urlopen(req, timeout=TIMEOUT) as res:
+        with open_service(req) as res:
             return json.loads(res.read().decode("utf-8"))
     except (error.HTTPError, OSError) as exc:
         raise ServiceError(f"cannot read qualification {qualification_id}: {exc}")

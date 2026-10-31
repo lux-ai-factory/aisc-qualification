@@ -23,6 +23,8 @@ from contextlib import contextmanager
 from typing import Any, Callable, Iterator
 from urllib import error, request
 
+from fill import clients
+
 logger = logging.getLogger(__name__)
 
 #: The run being served: {"pid", "qualification", "run_id", "request_id", "model"}.
@@ -137,7 +139,7 @@ def emit(action: str, item_type: str, item_id: str | None, details: dict | None 
 def _send(url: str, body: bytes, hdrs: dict, timeout: float = TIMEOUT) -> int:
     req = request.Request(url, data=body, method="POST", headers=hdrs)
     try:
-        with request.urlopen(req, timeout=timeout) as res:
+        with clients.open_service(req, timeout=timeout) as res:
             return res.status
     except error.HTTPError as exc:
         return exc.code
