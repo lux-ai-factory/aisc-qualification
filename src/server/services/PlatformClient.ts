@@ -9,8 +9,7 @@
  */
 import { callerToken, type CallerToken } from "@/server/services/callerToken";
 import { currentRequestId } from "@/vendor/aisc-ledger/emit";
-import { shortDetail } from "@/server/services/errorText";
-import { bearerHeaders, serviceUrl } from "@/server/services/http";
+import { bearerHeaders, callService } from "@/server/services/http";
 
 export type SystemIdentity = {
   name: string;
@@ -34,6 +33,24 @@ export type CardVersion = {
 
 const READ_VERSIONS = "Could not read the AI card versions";
 
+/** A card version as the platform answers it, or undefined when the answer is not one. */
+function cardVersion(raw: unknown): CardVersion | undefined {
+  const v = raw as Partial<CardVersion> | null;
+  if (!v || typeof v !== "object") return undefined;
+  if (typeof v.pid !== "string" || typeof v.number !== "number" || typeof v.name !== "string") return undefined;
+  return v as CardVersion;
+}
+
+/** The latest version, or null when the project has none yet. */
+const latestOrNone = (raw: unknown): CardVersion | null | undefined => (raw === null ? null : cardVersion(raw));
+
+/** Every version, when each item is one. */
+function cardVersions(raw: unknown): CardVersion[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const versions = raw.map(cardVersion);
+  return versions.every((v) => v !== undefined) ? (versions as CardVersion[]) : undefined;
+}
+
 export class PlatformClient {
   constructor(
     private readonly baseUrl: string = process.env.PLATFORM_URL ?? "",
@@ -49,7 +66,13 @@ export class PlatformClient {
 
   /** A call to the platform as the person using this app. A failure's message starts with
    *  `failed`, what the person was doing, since it reaches them as it is. */
-  private async call<T>(failed: string, method: string, path: string, body?: unknown): Promise<T> {
+  private async call<T>(
+    failed: string,
+    method: "GET" | "POST",
+    path: string,
+    parse: (raw: unknown) => T | undefined,
+    body?: unknown,
+  ): Promise<T> {
     if (!this.baseUrl) {
       throw new Error(
         "PLATFORM_URL is not set: this app cannot name the system it is qualifying.",
@@ -58,37 +81,23 @@ export class PlatformClient {
     // The request the gateway witnessed for this person is passed on, so the platform's own event (a card
     // version, a target sync) cites it; with the ledger in `enforce` mode the platform needs it to accept the write.
     const requestId = await currentRequestId();
-    const headers = {
-      "Content-Type": "application/json",
-      ...bearerHeaders(await this.callerToken()),
-      ...(requestId ? { "X-AISC-Request-Id": requestId } : {}),
-    };
-    let res: Response;
-    try {
-      res = await this.fetchImpl(serviceUrl(this.baseUrl, path), {
-        method,
-        headers,
-        body: body === undefined ? undefined : JSON.stringify(body),
-        cache: "no-store",
-      });
-    } catch (cause) {
-      throw new Error(`${failed}: the platform did not answer.`, { cause });
-    }
-    if (!res.ok) {
-      // The person reads this: the platform's own detail when it gives one, on one short line.
-      const text = await res.text().catch(() => "");
-      let detail = text;
-      try {
-        const body = JSON.parse(text) as { detail?: unknown };
-        if (typeof body?.detail === "string") detail = body.detail;
-      } catch {
-        // not JSON: the text is the detail
-      }
-      throw new Error(
-        `${failed}: the platform answered ${res.status}. ${shortDetail(detail)}`.trim(),
-      );
-    }
-    return (await res.json()) as T;
+    const answer = await callService({
+      base: this.baseUrl,
+      path,
+      method,
+      headers: {
+        ...bearerHeaders(await this.callerToken()),
+        ...(requestId ? { "X-AISC-Request-Id": requestId } : {}),
+      },
+      body,
+      parse,
+      fetchImpl: this.fetchImpl,
+    });
+    if (answer.ok) return answer.value;
+    // The person reads this: the platform's own detail when it gives one, on one short line.
+    if (answer.status === null) throw new Error(`${failed}: the platform did not answer.`);
+    if (answer.status < 300) throw new Error(`${failed}: the platform gave an answer this could not read.`);
+    throw new Error(`${failed}: the platform answered ${answer.status}. ${answer.shownDetail ?? ""}`.trim());
   }
 
   private versions(project: string): string {
@@ -97,12 +106,12 @@ export class PlatformClient {
 
   /** The project's latest saved card version, or null when it has none yet. */
   latestVersion(project: string): Promise<CardVersion | null> {
-    return this.call(READ_VERSIONS, "GET", `${this.versions(project)}/latest`);
+    return this.call(READ_VERSIONS, "GET", `${this.versions(project)}/latest`, latestOrNone);
   }
 
   /** Every saved card version of the project, highest number first. */
   listVersions(project: string): Promise<CardVersion[]> {
-    return this.call(READ_VERSIONS, "GET", this.versions(project));
+    return this.call(READ_VERSIONS, "GET", this.versions(project), cardVersions);
   }
 
   /** The card's components may have changed: the platform brings the project's assessment
@@ -112,13 +121,14 @@ export class PlatformClient {
       "Could not update the assessment targets",
       "POST",
       `/projects/${encodeURIComponent(project)}/targets/sync`,
+      () => null,
       {},
     );
   }
 
   /** Save the next card version, with the system's identity as the form gives it. */
   createVersion(project: string, identity: SystemIdentity): Promise<CardVersion> {
-    return this.call("Could not name this system", "POST", this.versions(project), {
+    return this.call("Could not name this system", "POST", this.versions(project), cardVersion, {
       name: identity.name,
       version: identity.version ?? null,
       provider: identity.provider ?? null,

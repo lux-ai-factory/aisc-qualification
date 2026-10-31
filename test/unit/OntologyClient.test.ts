@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { OntologyClient } from "@/server/services/OntologyClient";
+import { OntologyClient, OntologyRejected } from "@/server/services/OntologyClient";
 import type { OntologyView } from "@/domain/OntologyView";
 
 const view: OntologyView = {
@@ -90,16 +90,14 @@ describe("OntologyClient", () => {
     await expect(client.build(qualification)).rejects.toThrow(/500/);
   });
 
-  it("keeps a plain-text error body: a real Response's body can be read once", async () => {
+  it("a plain-text error body (a proxy's page) is not shown: the status is", async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(
         new Response("Internal Server Error from the proxy", { status: 500 }),
       );
     const client = new OntologyClient("http://ontology:8010", fetchMock);
-    await expect(client.build(qualification)).rejects.toThrow(
-      "Ontology service error 500: Internal Server Error from the proxy",
-    );
+    await expect(client.build(qualification)).rejects.toThrow(/^Ontology service error 500$/);
   });
 
   it("fromEnv refuses to run unconfigured", () => {
@@ -107,5 +105,35 @@ describe("OntologyClient", () => {
     delete process.env.ONTOLOGY_SERVICE_URL;
     expect(() => OntologyClient.fromEnv()).toThrow(/ONTOLOGY_SERVICE_URL/);
     if (saved) process.env.ONTOLOGY_SERVICE_URL = saved;
+  });
+});
+
+describe("OntologyClient on an answer it cannot use", () => {
+  it("both calls are given up after a while", async () => {
+    const fetchMock = fakeFetch(200, { view, turtle: "", jsonld: "", problems: [], digest: "d" });
+    const client = new OntologyClient("http://ontology:8010", fetchMock);
+    await client.build(qualification);
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ Purpose: ["x"] }) } as never);
+    await client.vocabularies();
+    expect(fetchMock.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+    expect(fetchMock.mock.calls[1][1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("a 2xx without a view is an error, not a build", async () => {
+    const client = new OntologyClient("http://ontology:8010", fakeFetch(200, { turtle: "" }));
+    await expect(client.build(qualification)).rejects.toThrow(/could not read/);
+  });
+
+  it("vocabularies that are not lists of terms are an error", async () => {
+    const client = new OntologyClient("http://ontology:8010", fakeFetch(200, { Purpose: "x" }));
+    await expect(client.vocabularies()).rejects.toThrow(/could not read/);
+  });
+
+  it("a service that does not answer is an error, not an OntologyRejected", async () => {
+    const client = new OntologyClient("http://ontology:8010", vi.fn().mockRejectedValue(new TypeError("fetch failed")));
+    const err = await client.build(qualification).catch((e: Error) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err).not.toBeInstanceOf(OntologyRejected);
+    expect((err as Error).message).toBe("Ontology service error: the service could not be reached");
   });
 });

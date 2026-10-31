@@ -281,3 +281,29 @@ describe("QuestionnaireFileClient.read", () => {
     );
   });
 });
+
+describe("QuestionnaireFileClient gives up and reads list-shaped reasons", () => {
+  it("both calls are given up after a while", async () => {
+    const { QuestionnaireFileClient } = await load();
+    const writeFetch = ok(written);
+    await new QuestionnaireFileClient("http://x", writeFetch).write(input, "references");
+    const readFetch = ok(normalised);
+    await new QuestionnaireFileClient("http://x", readFetch).read(jsonFile());
+    expect(writeFetch.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+    expect(readFetch.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("FastAPI's list-shaped detail is shown as one sentence, with its status", async () => {
+    const { QuestionnaireFileClient } = await load();
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      json: async () => ({ detail: [{ loc: ["body", "file"], msg: "Field required", type: "missing" }] }),
+    });
+    expect(await new QuestionnaireFileClient("http://x", fetchImpl).read(jsonFile())).toEqual({
+      ok: false,
+      status: 422,
+      error: "file: Field required",
+    });
+  });
+});

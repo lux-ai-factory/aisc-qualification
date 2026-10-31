@@ -28,7 +28,7 @@ function recorder() {
   const fetchImpl = (async (url: string, init: RequestInit) => {
     calls.push({ url, init });
     return new Response(
-      JSON.stringify({ pid: "p", number: 1, project_id: "x" }),
+      JSON.stringify({ pid: "p", number: 1, project_id: "x", name: "MCAS" }),
       { status: 200 },
     );
   }) as unknown as typeof fetch;

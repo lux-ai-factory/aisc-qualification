@@ -107,3 +107,16 @@ describe("whether a run is in flight", () => {
     ).toBe(false);
   });
 });
+
+describe("the filler's calls give up", () => {
+  it("asking for a run and asking whether one is going are both given up after a while", async () => {
+    const { FillerClient } = await import("@/server/services/FillerClient");
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 202, json: async () => ({ state: "queued" }) });
+    const client = new FillerClient("http://agents:8012/", fetchImpl as unknown as typeof fetch);
+    await client.request(PID, "q1");
+    expect(await client.inFlight(PID, "q1")).toBe(true);
+    expect(fetchImpl.mock.calls[0][0]).toBe(`http://agents:8012/fill/${PID}/q1`);
+    expect(fetchImpl.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+    expect(fetchImpl.mock.calls[1][1].signal).toBeInstanceOf(AbortSignal);
+  });
+});

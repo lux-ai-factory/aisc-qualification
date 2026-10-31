@@ -1,4 +1,5 @@
 /** Small pieces every call to a sibling service needs. */
+import { shortDetail } from "@/server/services/errorText";
 
 /** `path` under a service's base URL, however many trailing slashes the base was configured with. */
 export function serviceUrl(baseUrl: string, path: string): string {
@@ -28,9 +29,6 @@ export const PROJECT_HEADER = "X-AISC-Project";
 /** How long a call waits for its answer unless the caller says otherwise. */
 export const DEFAULT_TIMEOUT_MS = 30_000;
 
-/** The longest reason from a service that is passed on to a person. */
-const DETAIL_LIMIT = 300;
-
 /**
  * What a call to a sibling service came to. `status` is null when no answer came (unreachable, or not
  * in time). `shownDetail` is the service's own reason, in one string short enough to show, or null when
@@ -48,17 +46,22 @@ export type ServiceCall<T> = {
   project?: string;
   /** this app's service token for that service */
   token?: string | null;
+  /** any other header the call carries: the caller's own token, a request or run id */
+  headers?: Record<string, string>;
   /** FormData goes as it is; anything else as JSON */
   body?: unknown;
   timeoutMs?: number;
-  /** the value of a 2xx answer's JSON, or undefined when it is not the shape the caller reads */
+  /** how a 2xx answer is read: its JSON (the default), or its bytes, such as a PDF */
+  answer?: "json" | "bytes";
+  /** the value of a 2xx answer (its JSON, or its bytes as an ArrayBuffer), or undefined when it
+   *  is not the shape the caller reads */
   parse: (raw: unknown) => T | undefined;
   fetchImpl?: typeof fetch;
 };
 
 const UNREADABLE = "the service gave an answer this could not read";
 
-/** A service's `detail` as one string: FastAPI's validation list as "field: message; ...". */
+/** A service's `detail` as one short line: FastAPI's validation list as "field: message; ...". */
 function shownDetailOf(body: unknown): string | null {
   const detail = (body as { detail?: unknown } | null)?.detail;
   let text: string | null = null;
@@ -74,8 +77,8 @@ function shownDetailOf(body: unknown): string | null {
     const named = parts.filter((p): p is string => p !== null);
     text = named.length ? named.join("; ") : null;
   }
-  if (!text) return null;
-  return text.length > DETAIL_LIMIT ? `${text.slice(0, DETAIL_LIMIT - 3)}...` : text;
+  // one line, at most SHOWN_DETAIL characters: a person reads it
+  return text ? shortDetail(text) : null;
 }
 
 /** One call to a sibling service. It never throws: every failure is an answer with ok: false. */
@@ -83,6 +86,7 @@ export async function callService<T>(call: ServiceCall<T>): Promise<ServiceAnswe
   const { base, path, method = "GET", project, token, body, parse } = call;
   const timeoutMs = call.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const headers: Record<string, string> = {
+    ...call.headers,
     ...(project ? { [PROJECT_HEADER]: project } : {}),
     ...serviceTokenHeaders(token),
   };
@@ -113,7 +117,7 @@ export async function callService<T>(call: ServiceCall<T>): Promise<ServiceAnswe
 
   let raw: unknown;
   try {
-    raw = await res.json();
+    raw = res.ok && call.answer === "bytes" ? await res.arrayBuffer() : await res.json();
   } catch {
     return res.ok ? { ok: false, status: res.status, shownDetail: UNREADABLE } : { ok: false, status: res.status, shownDetail: null };
   }

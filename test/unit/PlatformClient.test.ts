@@ -42,7 +42,7 @@ describe("PlatformClient and the project's card versions", () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
-      text: async () => "no project",
+      json: async () => ({ detail: "no project" }),
     });
 
     await expect(
@@ -102,7 +102,7 @@ describe("PlatformClient carries the caller", () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: false,
       status: 403,
-      text: async () => '{"detail":"this takes editor on this project"}',
+      json: async () => ({ detail: "this takes editor on this project" }),
     });
     const client = new PlatformClient(
       "http://platform:8000",
@@ -110,6 +110,41 @@ describe("PlatformClient carries the caller", () => {
       async () => "a-token",
     );
 
-    await expect(client.latestVersion("p")).rejects.toThrow(/403/);
+    await expect(client.latestVersion("p")).rejects.toThrow(
+      "Could not read the AI card versions: the platform answered 403. this takes editor on this project",
+    );
+  });
+});
+
+describe("PlatformClient on an answer it cannot use", () => {
+  it("the call is given up after a while", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => null });
+    await new PlatformClient("http://platform:8000", fetchImpl).latestVersion("p");
+    expect(fetchImpl.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("a 2xx that is not a card version says the answer could not be read", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 3 }) });
+    await expect(
+      new PlatformClient("http://platform:8000", fetchImpl).createVersion("p", { name: "MCAS" }),
+    ).rejects.toThrow("Could not name this system: the platform gave an answer this could not read.");
+  });
+
+  it("a list of versions holds only versions", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [{ pid: "v1" }, "x"] });
+    await expect(new PlatformClient("http://platform:8000", fetchImpl).listVersions("p")).rejects.toThrow(
+      /could not read/,
+    );
+  });
+
+  it("FastAPI's list-shaped detail is shown as one sentence", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      json: async () => ({ detail: [{ loc: ["body", "name"], msg: "Field required", type: "missing" }] }),
+    });
+    await expect(
+      new PlatformClient("http://platform:8000", fetchImpl).createVersion("p", { name: "" }),
+    ).rejects.toThrow("Could not name this system: the platform answered 422. name: Field required");
   });
 });

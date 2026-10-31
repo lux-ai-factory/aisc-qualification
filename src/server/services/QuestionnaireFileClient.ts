@@ -11,7 +11,7 @@
  * sentence for the person. A 4xx keeps the service's status and its detail.
  */
 import type { AnnexPointId } from "@/domain/forms/annexPoints";
-import { serviceTokenHeaders, serviceUrl } from "@/server/services/http";
+import { callService, type ServiceAnswer } from "@/server/services/http";
 
 export type QuestionnaireBundle = "references" | "self-contained";
 
@@ -56,16 +56,28 @@ export type QuestionnaireReadResult = { ok: true; file: QuestionnaireFile } | Fa
 const UNAVAILABLE: Failure = { ok: false, status: 503, error: "Questionnaire files are not available on this install." };
 const UNREACHABLE: Failure = { ok: false, status: 502, error: "The questionnaire file service could not be reached." };
 
-/** A 4xx with a string detail keeps both; anything else is `fallback`. */
-async function refused(response: Response, fallback: Failure): Promise<Failure> {
-  if (response.status >= 400 && response.status < 500) {
-    const detail = await response
-      .json()
-      .then((b) => (b as { detail?: unknown })?.detail)
-      .catch(() => undefined);
-    if (typeof detail === "string") return { ok: false, status: response.status, error: detail };
+/** No answer is UNREACHABLE; a 4xx with a reason keeps its status and the reason; anything else is `fallback`. */
+function refused(answer: Extract<ServiceAnswer<unknown>, { ok: false }>, fallback: Failure): Failure {
+  if (answer.status === null) return UNREACHABLE;
+  if (answer.status >= 400 && answer.status < 500 && answer.shownDetail) {
+    return { ok: false, status: answer.status, error: answer.shownDetail };
   }
   return fallback;
+}
+
+type Written = { filename: string; contentType: string; content: string };
+
+/** The written file, when the answer names it, its type and its content. */
+function writtenFile(raw: unknown): Written | undefined {
+  const { filename, contentType, content } = (raw ?? {}) as Record<string, unknown>;
+  if (typeof filename !== "string" || typeof contentType !== "string" || typeof content !== "string") return undefined;
+  return { filename, contentType, content };
+}
+
+/** The document read back, when it has its list of items. */
+function readFile(raw: unknown): QuestionnaireFile | undefined {
+  if (!raw || typeof raw !== "object" || !Array.isArray((raw as { items?: unknown }).items)) return undefined;
+  return raw as QuestionnaireFile;
 }
 
 export class QuestionnaireFileClient {
@@ -78,57 +90,42 @@ export class QuestionnaireFileClient {
 
   async write(file: QuestionnaireFileInput, bundle: QuestionnaireBundle): Promise<QuestionnaireWriteResult> {
     if (!this.baseUrl) return UNAVAILABLE;
-    let response: Response;
-    try {
-      response = await this.fetchImpl(serviceUrl(this.baseUrl, "/questionnaires/export"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...serviceTokenHeaders(this.serviceToken) },
-        body: JSON.stringify({ bundle, questionnaire: file }),
-        cache: "no-store",
-      });
-    } catch {
-      return UNREACHABLE;
+    const answer = await callService({
+      base: this.baseUrl,
+      path: "/questionnaires/export",
+      method: "POST",
+      token: this.serviceToken,
+      body: { bundle, questionnaire: file },
+      parse: writtenFile,
+      fetchImpl: this.fetchImpl,
+    });
+    if (!answer.ok) {
+      return refused(answer, { ok: false, status: 502, error: "The questionnaire could not be exported." });
     }
-    const failed: Failure = { ok: false, status: 502, error: "The questionnaire could not be exported." };
-    if (!response.ok) return refused(response, failed);
-    let written: unknown;
-    try {
-      written = await response.json();
-    } catch {
-      return failed;
-    }
-    const { filename, contentType, content } = (written ?? {}) as Record<string, unknown>;
-    if (typeof filename !== "string" || typeof contentType !== "string" || typeof content !== "string") {
-      return failed;
-    }
-    return { ok: true, filename, contentType, content };
+    return { ok: true, ...answer.value };
   }
 
   async read(file: File): Promise<QuestionnaireReadResult> {
     if (!this.baseUrl) return UNAVAILABLE;
     const body = new FormData();
     body.set("file", file);
-    let response: Response;
-    try {
-      response = await this.fetchImpl(serviceUrl(this.baseUrl, "/questionnaires/import"), {
-        method: "POST",
-        headers: serviceTokenHeaders(this.serviceToken),
-        body,
-        cache: "no-store",
+    const answer = await callService({
+      base: this.baseUrl,
+      path: "/questionnaires/import",
+      method: "POST",
+      token: this.serviceToken,
+      body,
+      parse: readFile,
+      fetchImpl: this.fetchImpl,
+    });
+    if (!answer.ok) {
+      return refused(answer, {
+        ok: false,
+        status: 502,
+        error: "The questionnaire file service gave an answer this could not read.",
       });
-    } catch {
-      return UNREACHABLE;
     }
-    const failed: Failure = { ok: false, status: 502, error: "The questionnaire file service gave an answer this could not read." };
-    if (!response.ok) return refused(response, failed);
-    let read: unknown;
-    try {
-      read = await response.json();
-    } catch {
-      return failed;
-    }
-    if (!read || typeof read !== "object" || !Array.isArray((read as { items?: unknown }).items)) return failed;
-    return { ok: true, file: read as QuestionnaireFile };
+    return { ok: true, file: answer.value };
   }
 }
 

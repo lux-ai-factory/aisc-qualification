@@ -4,8 +4,7 @@ import type {
   OntologyView,
 } from "@/domain/OntologyView";
 import type { QualificationExport } from "./QualificationExporter";
-import { shortDetail } from "./errorText";
-import { serviceTokenHeaders, serviceUrl } from "./http";
+import { callService, type ServiceAnswer } from "./http";
 
 export type OntologyBuild = {
   view: OntologyView;
@@ -31,6 +30,34 @@ export class OntologyRejected extends Error {
   }
 }
 
+/** A build as the service answers it, or undefined when the answer is not one. */
+function ontologyBuild(raw: unknown): OntologyBuild | undefined {
+  const b = raw as Partial<OntologyBuild> | null;
+  if (!b || typeof b !== "object" || !b.view || typeof b.view !== "object") return undefined;
+  if (typeof b.turtle !== "string" || typeof b.jsonld !== "string") return undefined;
+  return b as OntologyBuild;
+}
+
+/** The terms per AIRO class, when every class has a list of terms. */
+function vocabularies(raw: unknown): Record<string, string[]> | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const lists = Object.values(raw);
+  return lists.every((l) => Array.isArray(l) && l.every((t) => typeof t === "string"))
+    ? (raw as Record<string, string[]>)
+    : undefined;
+}
+
+/** A failed call as the Error the callers catch: a 422 is the builder refusing its input. */
+function failure(answer: Extract<ServiceAnswer<unknown>, { ok: false }>, call: string): Error {
+  const { status, shownDetail } = answer;
+  // 422 is our own mistake (a bad VAIR term, an unknown picker id): the
+  // service's message is the useful one, so surface it as-is.
+  if (status === 422) return new OntologyRejected(shownDetail ?? "The ontology service refused the card.");
+  if (status === null || status < 300) return new Error(`Ontology service error: ${shownDetail}`);
+  console.warn(`ontology: ${call} answered ${status}: ${shownDetail ?? "no detail"}`);
+  return new Error(`Ontology service error ${status}${shownDetail ? `: ${shownDetail}` : ""}`);
+}
+
 export class OntologyClient {
   constructor(
     private readonly serviceUrl: string,
@@ -52,53 +79,33 @@ export class OntologyClient {
     extracted?: OntologyExtracted | null,
     patch?: OntologyPatch | null,
   ): Promise<OntologyBuild> {
-    const res = await this.fetchImpl(serviceUrl(this.serviceUrl, "/build"), {
+    const answer = await callService({
+      base: this.serviceUrl,
+      path: "/build",
       method: "POST",
-      headers: { "content-type": "application/json", ...serviceTokenHeaders(this.serviceToken) },
-      body: JSON.stringify({
+      token: this.serviceToken,
+      body: {
         qualification,
         ...(extracted ? { extracted } : {}),
         ...(patch ? { patch } : {}),
-      }),
-      cache: "no-store",
+      },
+      parse: ontologyBuild,
+      fetchImpl: this.fetchImpl,
     });
-
-    if (!res.ok) {
-      const detail = await OntologyClient.detail(res);
-      // 422 is our own mistake (a bad VAIR term, an unknown picker id): the
-      // service's message is the useful one, so surface it as-is.
-      // Either way a person may read it, so it is one short line (errorText).
-      if (res.status === 422) throw new OntologyRejected(shortDetail(detail));
-      console.warn(`ontology: build answered ${res.status}: ${detail}`);
-      throw new Error(
-        `Ontology service error ${res.status}: ${shortDetail(detail)}`,
-      );
-    }
-
-    return (await res.json()) as OntologyBuild;
+    if (!answer.ok) throw failure(answer, "build");
+    return answer.value;
   }
 
   /** The VAIR terms a reviewer may pick, per AIRO class. */
   async vocabularies(): Promise<Record<string, string[]>> {
-    const res = await this.fetchImpl(serviceUrl(this.serviceUrl, "/vocabularies"), {
-      headers: serviceTokenHeaders(this.serviceToken),
-      cache: "no-store",
+    const answer = await callService({
+      base: this.serviceUrl,
+      path: "/vocabularies",
+      token: this.serviceToken,
+      parse: vocabularies,
+      fetchImpl: this.fetchImpl,
     });
-    if (!res.ok) {
-      throw new Error(`Ontology service error ${res.status}`);
-    }
-    return (await res.json()) as Record<string, string[]>;
-  }
-
-  // The body is read once, as text: a JSON error gives its detail, any other body is the message.
-  private static async detail(res: Response): Promise<string> {
-    const text = await res.text().catch(() => "");
-    try {
-      const body = JSON.parse(text) as { detail?: string };
-      if (body?.detail) return body.detail;
-      return JSON.stringify(body);
-    } catch {
-      return text;
-    }
+    if (!answer.ok) throw failure(answer, "vocabularies");
+    return answer.value;
   }
 }

@@ -85,14 +85,15 @@ describe("qualification-ontology", () => {
   it("build and vocabularies carry the web-to-ontology token", async () => {
     vi.stubEnv("ONTOLOGY_SERVICE_URL", "http://ontology:8011");
     vi.stubEnv("QUALIFICATION_WEB_TO_ONTOLOGY_TOKEN", tok("ontology"));
-    const fetchImpl = fakeFetch({});
+    const fetchImpl = fakeFetch({ view: {}, turtle: "", jsonld: "", problems: [] });
     vi.stubGlobal("fetch", fetchImpl);
     const { OntologyClient } = await import("@/server/services/OntologyClient");
     const client = OntologyClient.fromEnv();
     await client.build({ systemName: "x" } as never);
+    fetchImpl.mockResolvedValue({ ok: true, status: 200, json: async () => ({}) } as unknown as Response);
     await client.vocabularies();
     expect(headersOf(fetchImpl, 0)[HEADER]).toBe(tok("ontology"));
-    expect(headersOf(fetchImpl, 0)["content-type"]).toBe("application/json");
+    expect(headersOf(fetchImpl, 0)["Content-Type"]).toBe("application/json");
     expect(headersOf(fetchImpl, 1)[HEADER]).toBe(tok("ontology"));
   });
 });

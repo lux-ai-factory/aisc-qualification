@@ -121,4 +121,42 @@ describe("callService", () => {
     const got = await callService({ base: "http://svc", path: "/x", parse: isNumber, fetchImpl });
     expect(got).toEqual({ ok: false, status: 502, shownDetail: null });
   });
+
+  it("sends the caller's own headers too", async () => {
+    const { callService } = await load();
+    const fetchImpl = vi.fn(async () => answer(200, async () => 1));
+    await callService({
+      base: "http://svc",
+      path: "/x",
+      headers: { Authorization: "Bearer a-token", "X-AISC-Request-Id": "r-1" },
+      token: "tok",
+      parse: isNumber,
+      fetchImpl,
+    });
+    const [, init] = fetchImpl.mock.calls[0] as unknown as [string, Init];
+    expect(init.headers).toEqual({
+      Authorization: "Bearer a-token",
+      "X-AISC-Request-Id": "r-1",
+      "X-AISC-Service-Token": "tok",
+    });
+  });
+
+  it("reads a 2xx as bytes when asked, and a refusal's detail still from its JSON", async () => {
+    const { callService } = await load();
+    const bytes = new TextEncoder().encode("%PDF").buffer;
+    const pdf = vi.fn(async () => ({ ok: true, status: 200, arrayBuffer: async () => bytes }));
+    const got = await callService({
+      base: "http://svc",
+      path: "/render",
+      answer: "bytes",
+      parse: (raw: unknown) => (raw instanceof ArrayBuffer ? raw : undefined),
+      fetchImpl: pdf,
+    });
+    expect(got).toEqual({ ok: true, value: bytes });
+
+    const refused = vi.fn(async () => answer(422, async () => ({ detail: "no card" })));
+    expect(
+      await callService({ base: "http://svc", path: "/render", answer: "bytes", parse: () => 1, fetchImpl: refused }),
+    ).toEqual({ ok: false, status: 422, shownDetail: "no card" });
+  });
 });

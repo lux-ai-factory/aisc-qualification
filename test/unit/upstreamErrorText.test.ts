@@ -31,10 +31,10 @@ describe("shortDetail", () => {
 });
 
 describe("the clients shorten what a service answered", () => {
-  it("the ontology builder's 500 body", async () => {
+  it("the ontology builder's 500 detail", async () => {
     const fetchImpl = vi
       .fn()
-      .mockResolvedValue(new Response(TRACEBACK, { status: 500 }));
+      .mockResolvedValue(new Response(JSON.stringify({ detail: TRACEBACK }), { status: 500 }));
     const err = await new OntologyClient("http://ontology:8011", fetchImpl)
       .build({} as never)
       .catch((e: Error) => e);
