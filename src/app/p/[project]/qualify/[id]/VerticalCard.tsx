@@ -15,20 +15,11 @@ import NodeChip from "./NodeChip";
 export default function VerticalCard({
   view,
   vocabularies,
-  editing,
-  pending,
   setEditing,
-  onSave,
 }: {
   view: OntologyView;
   vocabularies: Record<string, string[]>;
-  editing: string | null;
-  pending: boolean;
   setEditing: (id: string | null) => void;
-  onSave: (
-    nodeId: string,
-    change: { label?: string; vair?: string | null; note?: string },
-  ) => void;
 }) {
   return (
     <>
@@ -72,10 +63,7 @@ export default function VerticalCard({
           index={i + 1}
           total={view.chains.length}
           vocabularies={vocabularies}
-          editing={editing}
-          pending={pending}
           setEditing={setEditing}
-          onSave={onSave}
         />
       ))}
 
@@ -113,13 +101,7 @@ function Chain({
   index: number;
   total: number;
   vocabularies: Record<string, string[]>;
-  editing: string | null;
-  pending: boolean;
   setEditing: (id: string | null) => void;
-  onSave: (
-    nodeId: string,
-    change: { label?: string; vair?: string | null; note?: string },
-  ) => void;
 }) {
   const step = (label: string, node: OntologyNode | null) =>
     node ? (

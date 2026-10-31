@@ -189,10 +189,7 @@ export default function OntologyView({
         <VerticalCard
           view={view}
           vocabularies={vocabularies}
-          editing={editing}
-          pending={pending}
           setEditing={setEditing}
-          onSave={save}
         />
       )}
       {/* One editor for the whole card, above everything, so it can never be

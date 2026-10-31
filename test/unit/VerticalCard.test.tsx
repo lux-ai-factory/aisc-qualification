@@ -61,10 +61,7 @@ function mount(over: Record<string, unknown> = {}) {
     <VerticalCard
       view={view}
       vocabularies={{}}
-      editing={null}
-      pending={false}
       setEditing={vi.fn()}
-      onSave={vi.fn()}
       {...over}
     />,
   );
@@ -76,10 +73,7 @@ describe("the vertical AI card", () => {
       <VerticalCard
         view={view}
         vocabularies={{}}
-        editing={null}
-        pending={false}
         setEditing={vi.fn()}
-        onSave={vi.fn()}
       />,
     );
     expect(screen.getByText("Purpose")).toBeTruthy();

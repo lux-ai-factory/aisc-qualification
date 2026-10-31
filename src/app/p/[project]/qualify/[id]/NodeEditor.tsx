@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import type { OntologyNode } from "@/domain/OntologyView";
-import { FLAG_LABEL, type NodeChange } from "./NodeChip";
+import type { NodePatch, OntologyNode } from "@/domain/OntologyView";
+import { FLAG_LABEL } from "./NodeChip";
 
 // One editor for the whole card, shown as a pop-up so it is never clipped by a
 // node or short of room for the full source text.
@@ -22,7 +22,7 @@ export default function NodeEditor({
   vocabularies: Record<string, string[]>;
   pending: boolean;
   onCancel: () => void;
-  onSave: (change: NodeChange) => void;
+  onSave: (change: NodePatch) => void;
 }) {
   const [label, setLabel] = useState(node.label);
   const [vair, setVair] = useState(node.vair ?? "");

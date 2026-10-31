@@ -2,12 +2,6 @@
 
 import type { OntologyNode } from "@/domain/OntologyView";
 
-export type NodeChange = {
-  label?: string;
-  vair?: string | null;
-  note?: string;
-};
-
 // What a flag is called on the card: the finding's name says what to do, which
 // is look. A flag with no entry here is shown as it is.
 export const FLAG_LABEL: Record<string, string> = { inconsistent: "check" };
