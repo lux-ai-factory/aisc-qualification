@@ -1,6 +1,7 @@
 import type { FormBlock } from "@/domain/forms/blocks";
 import { annexDefaultVersion } from "@/domain/forms/legacy";
 import { hasNul, nulMessage } from "@/domain/forms/nulCharacter";
+import { FormValidationError } from "@/domain/forms/errors";
 import type {
   ResolvedQuestionnaireVersion,
   ResolvedQuestion,
@@ -120,12 +121,8 @@ export type ParsedQualification = {
   formVersionId: string;
 };
 
-export class FormValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "FormValidationError";
-  }
-}
+// Also exported from here, where the service and the form actions import it.
+export { FormValidationError };
 
 export class QualificationFormParser {
   /**

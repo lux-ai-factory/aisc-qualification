@@ -6,7 +6,7 @@
  * decides keys: a row carried from the card before keeps the key that card gave it, a new row
  * gets a fresh one, and a key the card before does not have is refused rather than trusted.
  */
-import { FormValidationError } from "@/server/forms/QualificationFormParser";
+import { FormValidationError } from "@/domain/forms/errors";
 import type { ComponentKindId } from "@/data/componentFields";
 
 export type ComponentInput = {
