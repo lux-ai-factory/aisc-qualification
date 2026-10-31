@@ -301,7 +301,7 @@ export default function Methodology({ facts }: { facts: MethodologyFacts }) {
 
             <h4 className="method-subhead">Where the loop stops</h4>
             <p>
-              Four rules, and <strong>every exit publishes</strong>. A draft
+              Three rules, and <strong>every exit publishes</strong>. A draft
               that failed review is worth more in the graph, carrying its
               findings, than discarded: the graph is where you edit it, which is
               the next step.
@@ -339,15 +339,6 @@ export default function Methodology({ facts }: { facts: MethodologyFacts }) {
                     </td>
                     <td>three rounds, still finding new things</td>
                     <td>published flagged</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <code>budget</code>
-                    </td>
-                    <td>the call limit for one property</td>
-                    <td>
-                      published flagged, and the record says it stopped early
-                    </td>
                   </tr>
                 </tbody>
               </table>

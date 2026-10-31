@@ -72,12 +72,14 @@ describe("the methodology page explains the filler workflow", () => {
   it("names every way the loop can stop, because all of them publish", () => {
     const { container } = mount();
     const rows = [...container.querySelectorAll("table.method-stops tbody tr")];
-    expect(rows.length).toBe(4);
+    expect(rows.length).toBe(3);
     const text =
       container.querySelector("table.method-stops")!.textContent ?? "";
-    for (const rule of ["clean", "fixpoint", "cap", "budget"]) {
+    for (const rule of ["clean", "fixpoint", "cap"]) {
       expect(text).toContain(rule);
     }
+    // the filler's stop reasons are exactly these three (fill/models.py)
+    expect(text).not.toContain("budget");
   });
 
   it("lists the controls that run before the critic", () => {
