@@ -46,11 +46,6 @@ export class QuestionnaireRepository extends QuestionSetRepository {
     super(db);
   }
 
-  /** Every questionnaire, listed or not, retired or not. */
-  listQuestionnaires(): Promise<Questionnaire[]> {
-    return this.db.questionnaire.findMany();
-  }
-
   findQuestionnaire(id: string): Promise<Questionnaire | null> {
     return this.db.questionnaire.findUnique({ where: { id } });
   }
