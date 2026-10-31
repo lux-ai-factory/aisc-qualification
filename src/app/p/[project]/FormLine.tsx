@@ -1,5 +1,4 @@
 import Link from "next/link";
-import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
 
 // The "Questionnaire:" line of the card and edit pages: which
 // questionnaire version the card is filled with, and links that export that
@@ -14,8 +13,6 @@ type Props = {
   versionNumber: number;
   basePath?: string;
   newer?: { versionId: string; versionNumber: number } | null;
-  /** Accepted and unused: some callers pass the resolved version too. */
-  form?: ResolvedQuestionnaireVersion;
 };
 
 export default function FormLine({

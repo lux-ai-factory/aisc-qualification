@@ -617,15 +617,8 @@ describe("the chooser", () => {
 describe("the questionnaire line", () => {
   it("the three dots between the name and the JSON, CSV and Markdown links are span.qf-row-form-sep", () => {
     // Props are cast: their exact shape is pinned by FormLine.test.tsx, not here.
-    const form = formVersion({
-      questionnaireId: "acme",
-      questionnaireName: "Acme AI policy",
-      versionId: "acme-v3",
-      versionNumber: 3,
-    });
     const props = {
       project: "demo",
-      form,
       questionnaireId: "acme",
       name: "Acme AI policy",
       versionNumber: 3,

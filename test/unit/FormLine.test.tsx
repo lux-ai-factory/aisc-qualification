@@ -4,15 +4,12 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createElement } from "react";
-import { formVersion } from "../support/forms";
 
 // The "Questionnaire:" line of the card and edit pages, with the export links for the very
 // version the card was filled with.
 //
 // FormLine (src/app/p/[project]/FormLine.tsx), props
-//   { project, questionnaireId, questionnaireName, versionNumber, basePath?, newer? }
-// (the tests also pass `form`, the resolved version, so a component that reads that instead
-// works the same):
+//   { project, questionnaireId, questionnaireName, versionNumber, basePath?, newer? }:
 //   <p className="qf-row-form">Questionnaire: <name> v<N> · JSON · CSV · Markdown</p>
 // With `newer: {versionId, versionNumber}`: p.qf-questionnaire-update
 //   "<name> has a newer version, v<M>." and a link "Move to v<M>".
@@ -23,7 +20,7 @@ const load = async (): Promise<any> =>
 
 afterEach(cleanup);
 
-/** The props both ways: the flat ones and the resolved version. */
+/** The props of one questionnaire version. */
 function props(
   id: string,
   name: string,
@@ -34,12 +31,6 @@ function props(
     questionnaireId: id,
     questionnaireName: name,
     versionNumber,
-    form: formVersion({
-      questionnaireId: id,
-      questionnaireName: name,
-      versionNumber,
-      versionId: `${id}-v${versionNumber}`,
-    }),
     ...over,
   };
 }
