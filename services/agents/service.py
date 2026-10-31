@@ -27,7 +27,8 @@ from fastapi import BackgroundTasks, FastAPI, Header, HTTPException
 
 from agent import fill_one
 from fill import ledger
-from fill.errors import safe_error
+from fill.errors import shown_error
+from fill.workflow import ERROR_CHARS
 from service_token import ServiceTokens
 
 log = logging.getLogger("qualification-agents")
@@ -74,7 +75,7 @@ def _run(pid: str, qualification_id: str, run_id: str | None = None, request_id:
                 # Any project reader sees the status: a short text with no key in it. The
                 # full exception, which can quote a key or an endpoint, goes only to the log.
                 log.exception("fill run %s failed: %s", key, exc)
-                outcome = {"state": "failed", "error": safe_error(str(exc))}
+                outcome = {"state": "failed", "error": shown_error(str(exc), ERROR_CHARS)}
                 ledger.emit("agent.run_failed", "agent_run", run_id, {"error": ledger.error_code(exc)})
                 return
             outcome = {"state": "done", "result": result}

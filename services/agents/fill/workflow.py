@@ -20,6 +20,7 @@ from typing import Callable
 from . import clients
 from .agents import LlmCritic, LlmWriter
 from .controls import run_controls
+from .errors import shown_error
 from .consistency import check
 from .names import draft_names, nameable
 from .view_nodes import nodes_of
@@ -38,6 +39,9 @@ from .models import (
 STATE_NAMES = ("load", "draft", "review", "revise", "publish", "done")
 
 MAX_ROUNDS = 3
+
+#: How much of an error a reader is shown: a failed run's, and a failed consistency pass's.
+ERROR_CHARS = 300
 
 #: The properties this workflow drafts: only what the answers say and no form field holds. The form
 #: speaks VAIR, so the author types the Components block and every risk field; what is left is the
@@ -296,7 +300,8 @@ class FillRun:
             view = (self.build or clients.build)(self.qualification, {"names": self.payload.get("names", {})})["view"]
             notes, dropped = check(view, self.qualification.get("answers", []), self.complete)
         except Exception as error:
-            record["notes_failed"] = str(error) or type(error).__name__
+            # the record is published with the draft: a reader sees it, so no key and not too long
+            record["notes_failed"] = shown_error(str(error) or type(error).__name__, ERROR_CHARS)
             return
         self.payload["notes"] = notes
         record["notes"] = sum(len(v) for v in notes.values())

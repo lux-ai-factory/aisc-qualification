@@ -181,3 +181,13 @@ def test_a_quote_must_match_whole_words():
 def test_two_content_words_on_word_boundaries_are_enough():
     notes, _ = check(VIEW, ANSWERS, reply({"findings": [{"node": "component-abc", "why": "w", "quote": "party LLM"}]}))
     assert notes["component-abc"][0]["quote"] == "party LLM"
+
+
+def test_a_failed_consistency_pass_records_its_error_as_a_reader_may_see_it():
+    def boom(s, u):
+        raise RuntimeError("POST https://x/v1?key=AIzaSyA-not-real-0123456789 failed: " + "word " * 200)
+
+    payload = _run(_completer(boom), lambda q, e: CVIEW)
+    failed = payload["record"]["notes_failed"]
+    assert "AIzaSyA" not in failed and "[redacted]" in failed
+    assert len(failed) <= 300
