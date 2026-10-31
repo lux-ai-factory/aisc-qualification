@@ -96,7 +96,6 @@ export default function QualifyForm({
       ? moveNotice({
           from: previous,
           to: v,
-          cardNumber: cardNumber ?? 0,
           answers: carried,
         })
       : null;

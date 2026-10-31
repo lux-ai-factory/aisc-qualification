@@ -35,7 +35,6 @@ export function droppedAnswers(
 export function moveNotice(args: {
   from: ResolvedQuestionnaireVersion;
   to: ResolvedQuestionnaireVersion;
-  cardNumber: number;
   answers: Record<string, string>;
 }): string | null {
   const { from, to, answers } = args;

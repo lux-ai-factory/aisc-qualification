@@ -126,7 +126,6 @@ describe("moveNotice", () => {
       moveNotice({
         from,
         to: from,
-        cardNumber: 3,
         answers: { "q:s-acme:q3": "Yes." },
       }),
     ).toBeNull();
@@ -138,7 +137,6 @@ describe("moveNotice", () => {
       moveNotice({
         from,
         to,
-        cardNumber: 3,
         answers: { "q:s-acme:q2": "Loans." },
       }),
     ).toBe(head);
@@ -150,7 +148,6 @@ describe("moveNotice", () => {
       moveNotice({
         from,
         to,
-        cardNumber: 3,
         answers: {
           "q:s-acme:q1": "The CTO.",
           "q:s-acme:q3": "Yes.",
@@ -169,7 +166,6 @@ describe("moveNotice", () => {
       moveNotice({
         from,
         to,
-        cardNumber: 3,
         answers: {
           "q:s-acme:q1": "The CTO.",
           "q:s-acme:q5": "Sometimes.",
@@ -189,7 +185,6 @@ describe("moveNotice", () => {
       moveNotice({
         from,
         to,
-        cardNumber: 3,
         answers: { "q:s-acme:q1": "   ", "q:s-acme:q5": "" },
       }),
     ).toBe(head);
@@ -208,7 +203,6 @@ describe("moveNotice", () => {
       moveNotice({
         from: to,
         to: other,
-        cardNumber: 1,
         answers: { "q:annex-2:2a": "Built." },
       }),
     ).toBe(
