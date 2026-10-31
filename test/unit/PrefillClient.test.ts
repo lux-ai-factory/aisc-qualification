@@ -301,3 +301,41 @@ describe("PrefillClient with a form", () => {
     ]);
   });
 });
+
+describe("PrefillClient on an answer it cannot use", () => {
+  const file = () => new File(["x"], "d.md");
+
+  it("a 2xx that is not JSON is an error, not a throw", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new SyntaxError("Unexpected token <");
+      },
+    });
+    const result = await new PrefillClient("http://x", fetchImpl).read(file());
+    expect(result).toEqual({ ok: false, error: "The document reader gave an answer this could not read." });
+  });
+
+  it("a 2xx without the answers is an error", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ filled: [] }) });
+    const result = await new PrefillClient("http://x", fetchImpl).read(file());
+    expect(result).toEqual({ ok: false, error: "The document reader gave an answer this could not read." });
+  });
+
+  it("FastAPI's list-shaped detail is shown as one sentence", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      json: async () => ({ detail: [{ loc: ["body", "file"], msg: "Field required", type: "missing" }] }),
+    });
+    const result = await new PrefillClient("http://x", fetchImpl).read(file());
+    expect(result).toEqual({ ok: false, error: "file: Field required" });
+  });
+
+  it("the call is given up after a while", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) });
+    await new PrefillClient("http://x", fetchImpl).read(file());
+    expect(fetchImpl.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+});

@@ -219,7 +219,8 @@ describe("every caller of a sidecar sends that sidecar's token", () => {
           for (const [url, token] of Object.entries(TOKEN_OF)) {
             if (
               text.includes(`process.env.${url}`) &&
-              !(text.includes(token) && text.includes("serviceTokenHeaders"))
+              // callService sends its `token` through serviceTokenHeaders
+              !(text.includes(token) && /serviceTokenHeaders|callService\(/.test(text))
             )
               missing.push(`${path} reads ${url} but does not send ${token}`);
           }

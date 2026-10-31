@@ -9,7 +9,7 @@
  * person builds the form by hand.
  */
 import { isAnnexPoint, type AnnexPointId } from "@/domain/forms/annexPoints";
-import { serviceTokenHeaders, serviceUrl } from "@/server/services/http";
+import { callService } from "@/server/services/http";
 
 export type ImportedQuestion = {
   text: string;
@@ -32,6 +32,30 @@ export type FormImportResult =
     }
   | { ok: false; error: string };
 
+/** Reading a large .docx takes a while: the call waits this long for it. */
+const READ_TIMEOUT_MS = 60_000;
+
+/** What POST /forms/import answers. */
+type ImportAnswer = {
+  format: string;
+  found: number;
+  questions: Array<Omit<ImportedQuestion, "annexPoint"> & { annexPoint?: unknown }>;
+  warnings?: string[];
+};
+
+/** The answer, when it holds the format, the count and a list of questions with their text; else undefined. */
+function importAnswer(raw: unknown): ImportAnswer | undefined {
+  const a = raw as Partial<ImportAnswer> | null;
+  if (!a || typeof a !== "object" || typeof a.format !== "string" || typeof a.found !== "number") {
+    return undefined;
+  }
+  if (!Array.isArray(a.questions)) return undefined;
+  const questionsRead = a.questions.every(
+    (q) => q && typeof q === "object" && typeof (q as { text?: unknown }).text === "string",
+  );
+  return questionsRead ? (a as ImportAnswer) : undefined;
+}
+
 export class FormImportClient {
   constructor(
     private readonly baseUrl: string = process.env.PREFILL_URL ?? "",
@@ -50,47 +74,27 @@ export class FormImportClient {
     const body = new FormData();
     body.set("file", file);
 
-    let response: Response;
-    try {
-      response = await this.fetchImpl(
-        serviceUrl(this.baseUrl, "/forms/import"),
-        {
-          method: "POST",
-          headers: serviceTokenHeaders(this.serviceToken),
-          body,
-          cache: "no-store",
-        },
-      );
-    } catch {
-      return { ok: false, error: "The form reader could not be reached." };
-    }
-    if (!response.ok) {
-      const detail = await response
-        .json()
-        .then((b) => (b as { detail?: unknown }).detail)
-        .catch(() => undefined);
+    const answer = await callService({
+      base: this.baseUrl,
+      path: "/forms/import",
+      method: "POST",
+      token: this.serviceToken,
+      body,
+      timeoutMs: READ_TIMEOUT_MS,
+      parse: importAnswer,
+      fetchImpl: this.fetchImpl,
+    });
+    if (!answer.ok) {
+      if (answer.status === null) return { ok: false, error: "The form reader could not be reached." };
+      if (answer.status < 300) {
+        return { ok: false, error: "The form reader gave an answer this could not read." };
+      }
       return {
         ok: false,
-        error:
-          typeof detail === "string"
-            ? detail
-            : `The form file could not be read (${response.status}).`,
+        error: answer.shownDetail ?? `The form file could not be read (${answer.status}).`,
       };
     }
-    let read: {
-      format: string;
-      found: number;
-      questions: Array<Omit<ImportedQuestion, "annexPoint"> & { annexPoint?: unknown }>;
-      warnings?: string[];
-    };
-    try {
-      read = await response.json();
-    } catch {
-      return {
-        ok: false,
-        error: "The form reader gave an answer this could not read.",
-      };
-    }
+    const read = answer.value;
     return {
       ok: true,
       format: read.format,

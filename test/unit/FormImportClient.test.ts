@@ -154,3 +154,31 @@ describe("FormImportClient carries each question's Annex IV point", () => {
     }
   });
 });
+
+describe("FormImportClient on an answer it cannot use", () => {
+  it("a 2xx without questions is an error, not a throw", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ format: "csv", found: 0 }) });
+    expect(await new FormImportClient("http://x", fetchImpl).read(file())).toEqual({
+      ok: false,
+      error: "The form reader gave an answer this could not read.",
+    });
+  });
+
+  it("FastAPI's list-shaped detail is shown as one sentence", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      json: async () => ({ detail: [{ loc: ["body", "file"], msg: "Field required", type: "missing" }] }),
+    });
+    expect(await new FormImportClient("http://x", fetchImpl).read(file())).toEqual({
+      ok: false,
+      error: "file: Field required",
+    });
+  });
+
+  it("the call is given up after a while", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => body });
+    await new FormImportClient("http://x", fetchImpl).read(file());
+    expect(fetchImpl.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+});

@@ -9,7 +9,7 @@
  * form opens empty and the person types.
  */
 import type { ComponentExample, RiskExample } from "@/data/examples";
-import { serviceTokenHeaders, serviceUrl } from "@/server/services/http";
+import { callService } from "@/server/services/http";
 import type { PrefillFormSpec } from "@/lib/prefillChoice";
 
 export type { PrefillFormSpec };
@@ -63,6 +63,35 @@ export type PrefillResult =
     }
   | { ok: false; error: string };
 
+/** Reading a long document takes a while: the call waits this long for it. */
+const READ_TIMEOUT_MS = 60_000;
+
+/** What POST /prefill answers. */
+type PrefillAnswer = {
+  values: PrefillValues;
+  filled: string[];
+  kept: string[];
+  model: string | null;
+  risks?: PrefillRisk[] | null;
+  risksKept?: boolean;
+  risksProposed?: number;
+  components?: PrefillComponent[] | null;
+  componentsKept?: boolean;
+  componentsProposed?: number;
+  picks?: PrefillPicks;
+  picksProposed?: number;
+};
+
+const isStrings = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
+
+/** The answer, when it holds the values and the two lists the form reads; else undefined. */
+function prefillAnswer(raw: unknown): PrefillAnswer | undefined {
+  const a = raw as Partial<PrefillAnswer> | null;
+  if (!a || typeof a !== "object" || !a.values || typeof a.values !== "object") return undefined;
+  if (!isStrings(a.filled) || !isStrings(a.kept)) return undefined;
+  return { ...a, model: a.model ?? null } as PrefillAnswer;
+}
+
 export class PrefillClient {
   constructor(
     private readonly baseUrl: string = process.env.PREFILL_URL ?? "",
@@ -94,38 +123,22 @@ export class PrefillClient {
       body.set("questions", JSON.stringify(formSpec.questions));
     }
 
-    let response: Response;
-    try {
-      response = await this.fetchImpl(serviceUrl(this.baseUrl, "/prefill"), {
-        method: "POST",
-        headers: serviceTokenHeaders(this.serviceToken),
-        body,
-        cache: "no-store",
-      });
-    } catch {
-      return { ok: false, error: "The document reader could not be reached." };
+    const answer = await callService({
+      base: this.baseUrl,
+      path: "/prefill",
+      method: "POST",
+      token: this.serviceToken,
+      body,
+      timeoutMs: READ_TIMEOUT_MS,
+      parse: prefillAnswer,
+      fetchImpl: this.fetchImpl,
+    });
+    if (!answer.ok) {
+      if (answer.status === null) return { ok: false, error: "The document reader could not be reached." };
+      if (answer.status < 300) return { ok: false, error: "The document reader gave an answer this could not read." };
+      return { ok: false, error: answer.shownDetail ?? `The document could not be read (${answer.status}).` };
     }
-    if (!response.ok) {
-      const detail = await response
-        .json()
-        .then((body) => (body as { detail?: string }).detail)
-        .catch(() => undefined);
-      return { ok: false, error: detail ?? `The document could not be read (${response.status}).` };
-    }
-    const body_ = (await response.json()) as {
-      values: PrefillValues;
-      filled: string[];
-      kept: string[];
-      model: string | null;
-      risks?: PrefillRisk[] | null;
-      risksKept?: boolean;
-      risksProposed?: number;
-      components?: PrefillComponent[] | null;
-      componentsKept?: boolean;
-      componentsProposed?: number;
-      picks?: PrefillPicks;
-      picksProposed?: number;
-    };
+    const body_ = answer.value;
     return {
       ok: true,
       values: body_.values,
