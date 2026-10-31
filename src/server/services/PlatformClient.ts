@@ -3,8 +3,8 @@
  *
  * One database, and one writer for what every module shares. A project has one
  * AI system; what is versioned is its AI card, the system's description. Each
- * saved card version is a row of `core.system`, numbered 1, 2, ... per project,
- * which only the platform writes; this is how they are made and read. Only the
+ * saved card version is a row of `project.system` in the project's database,
+ * numbered 1, 2, ... per project, which only the platform writes; this is how they are made and read. Only the
  * latest version may change; the older ones are kept as they were.
  */
 import { callerToken, type CallerToken } from "@/server/services/callerToken";
@@ -19,7 +19,7 @@ export type SystemIdentity = {
   description?: string | null;
 };
 
-/** A saved AI card version: a row of core.system, as the platform returns it. */
+/** A saved AI card version: a row of project.system in the project's database, as the platform returns it. */
 export type CardVersion = {
   pid: string;
   project_id: string;

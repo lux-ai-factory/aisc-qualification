@@ -10,7 +10,7 @@ export default async function QualificationsPage({
 }) {
   const { project } = await params;
   const rows = await qualificationService.list(project);
-  // Which AI card version each card is (a row of core.system), highest first.
+  // Which AI card version each card is (a row of project.system in the project's database), highest first.
   // The list still shows when the platform cannot say, just without the numbers.
   const versions = await qualificationService.versions(project).catch(() => []);
   const versionOf = new Map(versions.map((v) => [v.pid, v]));

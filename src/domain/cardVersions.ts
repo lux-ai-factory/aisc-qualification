@@ -2,8 +2,8 @@
  * One AI card per saved version.
  *
  * A project has one AI system; its AI card is what is versioned. Every save
- * makes the next version (a row of core.system, numbered 1, 2, ... by the
- * platform) and the card that describes it. Only the latest version changes;
+ * makes the next version (a row of project.system in the project's database,
+ * numbered 1, 2, ... by the platform) and the card that describes it. Only the latest version changes;
  * the older ones are kept as they were. The next card starts from the newest
  * card before it, loaded into the form to be reviewed, not typed again.
  */
