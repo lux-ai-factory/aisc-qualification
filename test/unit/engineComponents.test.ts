@@ -3,9 +3,11 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 // The card's components link to the engine's real ones through AIRO (hasModel for a model,
-// hasComponent for every other type). The engine is read, never written: its
-// components come from GET /api/v1/projects?platform_project_id=<pid>, then
-// GET /api/v1/projects/{enginePid}/aisystem, with the caller's own token.
+// hasComponent for every other type). The engine is read the way the platform reads it
+// (platform/platform_service/engine_components.py): POST /api/v1/projects/for-platform/<pid> gives
+// the engine's own project for this platform project, then GET /api/v1/projects/{enginePid}/aisystem
+// lists its components. Both carry the caller's own token and X-AISC-Project, without which the
+// engine answers 400 (apps/backend/aisc_backend/project_door.py).
 // Drift between the latest card's links and the engine is shown, not fixed.
 //
 // Modules are imported by a runtime path, so a missing one fails its tests
@@ -43,73 +45,68 @@ const components = [
   },
 ];
 
-function engine(fetchOverride?: typeof fetch) {
-  const fetchImpl =
-    fetchOverride ??
-    vi.fn(async (url: string) => {
-      if (url.includes("/api/v1/projects?platform_project_id=")) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => [{ pid: ENGINE_PID, name: "P" }],
-        };
-      }
-      if (url.endsWith(`/api/v1/projects/${ENGINE_PID}/aisystem`)) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({
-            pid: "s",
-            name: "",
-            description: "",
-            components,
-          }),
-        };
-      }
-      return { ok: false, status: 404, json: async () => ({}) };
-    });
-  return fetchImpl as unknown as ReturnType<typeof vi.fn>;
+type Init = { method?: string; headers: Record<string, string>; signal?: AbortSignal };
+const answer = (status: number, body: unknown) => ({ ok: status < 300, status, json: async () => body });
+
+/**
+ * A fake engine as strict as the real one: no X-AISC-Project is a 400, as the door answers, and the
+ * project list's `platform_project_id` is refused because the real engine ignores it (it would list
+ * every project the caller may see, not the one asked for). `forPlatform` is what the engine answers
+ * to POST /api/v1/projects/for-platform/<pid>.
+ */
+function engine(forPlatform: { status: number; body?: unknown } = { status: 200, body: { pid: ENGINE_PID, name: "P" } }) {
+  return vi.fn(async (url: string, init: Init) => {
+    const method = init.method ?? "GET";
+    if (!init.headers["X-AISC-Project"]) return answer(400, { detail: "name the project in X-AISC-Project" });
+    if (url.includes("platform_project_id=")) return answer(400, { detail: "the engine ignores platform_project_id" });
+    if (method === "POST" && url.endsWith(`/api/v1/projects/for-platform/${PLATFORM_PID}`)) {
+      if (init.headers["X-AISC-Project"] !== PLATFORM_PID) return answer(404, { detail: "no such thing in this project" });
+      return answer(forPlatform.status, forPlatform.body ?? { detail: "refused" });
+    }
+    if (method === "GET" && url.endsWith(`/api/v1/projects/${ENGINE_PID}/aisystem`)) {
+      return answer(200, { pid: "s", name: "", description: "", components });
+    }
+    return answer(404, {});
+  });
 }
 
 describe("EngineClient (6b)", () => {
-  it("reads the engine project by platform pid, then its aisystem, with the caller's token", async () => {
+  it("finds the engine's project for the platform pid, then reads its aisystem, with the caller's token and the project header", async () => {
     const { EngineClient } = await load(ENGINE_CLIENT);
     const fetchImpl = engine();
-    const client = new EngineClient(
-      "http://aisc-backend:8000",
-      fetchImpl,
-      async () => "caller-tok",
-    );
+    const client = new EngineClient("http://aisc-backend:8000", fetchImpl, async () => "caller-tok");
 
     const found = await client.components(PLATFORM_PID);
 
     expect(found.map((c: { pid: string }) => c.pid)).toEqual(["m1", "d1"]);
-    expect(fetchImpl.mock.calls[0][0]).toBe(
-      `http://aisc-backend:8000/api/v1/projects?platform_project_id=${PLATFORM_PID}`,
-    );
-    expect(fetchImpl.mock.calls[1][0]).toBe(
-      `http://aisc-backend:8000/api/v1/projects/${ENGINE_PID}/aisystem`,
-    );
-    for (const [, init] of fetchImpl.mock.calls) {
+    const [[firstUrl, first], [secondUrl, second]] = fetchImpl.mock.calls as [string, Init][];
+    expect(firstUrl).toBe(`http://aisc-backend:8000/api/v1/projects/for-platform/${PLATFORM_PID}`);
+    expect(first.method).toBe("POST");
+    expect(secondUrl).toBe(`http://aisc-backend:8000/api/v1/projects/${ENGINE_PID}/aisystem`);
+    expect(second.method ?? "GET").toBe("GET");
+    for (const [, init] of fetchImpl.mock.calls as [string, Init][]) {
       expect(init.headers.Authorization).toBe("Bearer caller-tok");
+      expect(init.headers["X-AISC-Project"]).toBe(PLATFORM_PID);
+      expect(init.signal).toBeInstanceOf(AbortSignal);
     }
   });
 
-  it("a stranger (the engine lists no project for them) gets no components", async () => {
+  it.each([
+    [403, "a viewer (the engine's project takes an editor)"],
+    [404, "a stranger (the engine says there is no such project)"],
+  ])("the engine refusing with %i, %s, gives no components", async (status) => {
     const { EngineClient } = await load(ENGINE_CLIENT);
-    const fetchImpl = vi.fn(async () => ({
-      ok: true,
-      status: 200,
-      json: async () => [],
-    }));
-    const client = new EngineClient(
-      "http://aisc-backend:8000",
-      fetchImpl,
-      async () => "stranger",
-    );
+    const fetchImpl = engine({ status });
+    const client = new EngineClient("http://aisc-backend:8000", fetchImpl, async () => "someone");
 
     expect(await client.components(PLATFORM_PID)).toEqual([]);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("any other failure says what the engine answered", async () => {
+    const { EngineClient } = await load(ENGINE_CLIENT);
+    const client = new EngineClient("http://aisc-backend:8000", engine({ status: 500 }), async () => "t");
+    await expect(client.components(PLATFORM_PID)).rejects.toThrow("The engine answered 500");
   });
 
   it("an unreachable engine says 'The engine did not answer'", async () => {
@@ -127,10 +124,25 @@ describe("EngineClient (6b)", () => {
     );
   });
 
-  it("it uses AISC_BACKEND_URL by default and never writes to the engine", () => {
+  it("an engine that does not answer in time says 'The engine did not answer'", async () => {
+    const { EngineClient } = await load(ENGINE_CLIENT);
+    const hanging = vi.fn(
+      (_url: string, init: Init) =>
+        new Promise((_resolve, reject) => {
+          init.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+        }),
+    );
+    const client = new EngineClient("http://aisc-backend:8000", hanging, async () => "t", 20);
+    await expect(client.components(PLATFORM_PID)).rejects.toThrow("The engine did not answer");
+  });
+
+  it("it uses AISC_BACKEND_URL by default and writes nothing but the engine's own row for the project", () => {
     const source = readFileSync("src/server/services/EngineClient.ts", "utf8");
     expect(source).toMatch(/AISC_BACKEND_URL/);
-    expect(source).not.toMatch(/method:\s*["'](POST|PUT|PATCH|DELETE)["']/);
+    expect(source).not.toMatch(/["'](PUT|PATCH|DELETE)["']/);
+    // the one POST is for-platform, which finds the engine's project (and makes it on an editor's first visit)
+    const posts = [...source.matchAll(/["']POST["'],\s*`([^`]*)`/g)].map((m) => m[1]);
+    expect(posts).toEqual(["/api/v1/projects/for-platform/${encodeURIComponent(platformProjectPid)}"]);
   });
 });
 
