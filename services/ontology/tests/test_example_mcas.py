@@ -1,5 +1,5 @@
 """The committed MCAS example is the worked reference: a real qualification from
-the form, turned into a filled AIRO 3.1 graph. Rebuilt from the committed JSON on
+the form, turned into a filled AIRO 1.0 graph. Rebuilt from the committed JSON on
 every run, so it cannot rot and needs no database.
 """
 import json

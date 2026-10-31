@@ -1,4 +1,6 @@
-"""Turn a saved qualification into a filled AIRO 3.1 graph.
+"""Turn a saved qualification into a filled AIRO 1.0 graph.
+
+The graph uses the core subset of AIRO's documentation section 3.1 (airo_min/schema.py).
 
 Two kinds of input, kept apart on purpose:
 
@@ -586,7 +588,7 @@ def _cli() -> int:
 
     from .validate import validate
 
-    ap = argparse.ArgumentParser(description="Build an AIRO 3.1 graph from a qualification.")
+    ap = argparse.ArgumentParser(description="Build an AIRO 1.0 graph from a qualification.")
     ap.add_argument("qualification", type=Path, help="JSON from scripts/export_qualification.mjs")
     ap.add_argument("--extracted", type=Path, help="JSON with techniques/components from an agent")
     ap.add_argument("--format", default="turtle", choices=["turtle", "json-ld"])

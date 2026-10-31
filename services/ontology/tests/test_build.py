@@ -1,4 +1,4 @@
-"""A saved qualification becomes a filled AIRO 3.1 graph.
+"""A saved qualification becomes a filled AIRO 1.0 graph.
 
 Everything the form captures as a structured field is deterministic. The two
 properties that live inside prose (usesTechnique from 2(a), hasComponent from
