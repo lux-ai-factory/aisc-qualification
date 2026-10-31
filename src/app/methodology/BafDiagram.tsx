@@ -4,13 +4,16 @@
 // page's tokens so it matches the rest of the card, and its labels are text a
 // screen reader and a search can read.
 //
-// `review` is the only state with a choice, so the main line runs
-// load -> draft -> review -> publish -> done, with `revise` below review in a
-// cycle: revise never publishes, it returns to review.
+// Two states have a choice. The main line runs load -> draft -> review ->
+// publish -> done, with `revise` below review in a cycle: revise never
+// publishes, it returns to review. Above the line, publish returns to draft
+// while a property is left to draft, and goes to done after the last one.
 const W = 96;
 const H = 46;
 const ROW = 40;
 const MID = ROW + H / 2;
+// The height of the publish -> draft edge, above the main line.
+const ARC = 18;
 
 const MAIN = [
   { id: "load", x: 8, label: "load", note: "form + terms" },
@@ -64,7 +67,7 @@ export default function BafDiagram() {
       className="method-diagram"
       viewBox="0 0 700 200"
       role="img"
-      aria-label="The filler's state machine: load, draft and review run in a line; while a finding is open review goes to revise and revise returns to review; once settled review goes to publish and then done"
+      aria-label="The filler's state machine: load, draft and review run in a line; while a finding is open review goes to revise and revise returns to review; once settled review goes to publish; publish returns to draft for the next property, and goes to done after the last one"
     >
       <title>The ontology filler as a BAF state machine</title>
       <desc>
@@ -72,8 +75,9 @@ export default function BafDiagram() {
         review runs the deterministic controls and then the critic. While a
         finding is open and a round remains, review passes to revise, and revise
         returns to review. Once settled, or out of rounds, review passes to
-        publish, which writes the draft and its flags to the graph. done records
-        what the run cost.
+        publish, which writes the draft and its flags to the graph. While a
+        property is left, publish returns to draft for the next property; after
+        the last one it passes to done, which records what the run cost.
       </desc>
 
       <defs>
@@ -120,7 +124,7 @@ export default function BafDiagram() {
         settled, or out of rounds
       </text>
 
-      {/* publish -> done */}
+      {/* publish -> done, after the last property */}
       <line
         x1={MAIN[3].x + W}
         y1={MID}
@@ -129,6 +133,20 @@ export default function BafDiagram() {
         className="method-diagram-edge"
         markerEnd="url(#baf-arrow)"
       />
+
+      {/* publish back to draft, over the line, while a property is left */}
+      <path
+        d={`M ${MAIN[3].x + W / 2} ${ROW} V ${ARC} H ${MAIN[1].x + W / 2} V ${ROW - 4}`}
+        className="method-diagram-edge"
+        markerEnd="url(#baf-arrow)"
+      />
+      <text
+        x={(MAIN[1].x + MAIN[3].x + W) / 2}
+        y={ARC - 5}
+        className="method-diagram-cond"
+      >
+        next property
+      </text>
 
       {/* the cycle: review down to revise, revise back up to review */}
       <line

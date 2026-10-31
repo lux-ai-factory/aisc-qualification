@@ -50,6 +50,15 @@ describe("the methodology page explains the filler workflow", () => {
     expect(svg.textContent).toMatch(/settled/i);
   });
 
+  it("draws publish going back to draft for the next property, as the machine does", () => {
+    const { container } = mount();
+    const svg = container.querySelector("svg.method-diagram")!;
+    const labels = [...svg.querySelectorAll("text")].map((t) => t.textContent);
+    expect(labels).toContain("next property");
+    expect(svg.getAttribute("aria-label")).toMatch(/next property/);
+    expect(svg.querySelector("desc")?.textContent).toMatch(/next property/);
+  });
+
   it("scales the diagram instead of fixing its pixel width", () => {
     const { container } = mount();
     const svg = container.querySelector("svg.method-diagram")!;

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import BafDiagram from "./BafDiagram";
 
-// The method, as a procedure: seven steps, each with what goes in, the text that
+// The method, as a procedure: eight steps, each with what goes in, the text that
 // authorises it and what comes out. It reads as a procedure because that is what
 // it is, and because a reader checking whether the app did the right thing needs
 // to follow it step by step rather than take a paragraph's word for it.
