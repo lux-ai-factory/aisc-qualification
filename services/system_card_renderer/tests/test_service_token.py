@@ -17,7 +17,7 @@ DOOR_TEST = True  # conftest gives this module's clients no token of their own
 HEADER = "X-AISC-Service-Token"
 NAMES = ('QUALIFICATION_WEB_TO_PDF_TOKEN',)
 #: (method, path, body) for each kind of route; the body is only there to get past the door
-PROBES = [['POST', '/render/pdf', {}], ['POST', '/render/html', {}], ['GET', '/docs', None], ['GET', '/openapi.json', None]]
+PROBES = [['POST', '/render/pdf', {}], ['GET', '/docs', None], ['GET', '/openapi.json', None]]
 
 
 @pytest.fixture

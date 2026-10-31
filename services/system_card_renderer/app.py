@@ -1,4 +1,4 @@
-"""FastAPI service that renders an AI-card JSON to HTML/PDF.
+"""FastAPI service that renders an AI-card JSON to PDF.
 
 Run locally:
     pip install -r requirements.txt
@@ -32,23 +32,11 @@ def health() -> dict:
     return {"status": "ok"}
 
 
-@app.post("/render/html", response_class=Response)
-def render_html(card: SystemCard) -> Response:
-    return Response(
-        content=renderer.render_html(card),
-        media_type="text/html; charset=utf-8",
-    )
-
-
 @app.post("/render/pdf")
 def render_pdf(card: SystemCard) -> Response:
     try:
         pdf_bytes = renderer.render_pdf(card)
     except RenderingError as exc:
         raise HTTPException(status_code=500, detail=str(exc))
-    filename = f"system_card_{card.qualification_id or 'card'}.pdf"
-    return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="{filename}"'},
-    )
+    # qualification-web names the download itself, from the card.
+    return Response(content=pdf_bytes, media_type="application/pdf")
