@@ -32,6 +32,8 @@ export type CardVersion = {
   created_by: string | null;
 };
 
+const READ_VERSIONS = "Could not read the AI card versions";
+
 export class PlatformClient {
   constructor(
     private readonly baseUrl: string = process.env.PLATFORM_URL ?? "",
@@ -45,8 +47,9 @@ export class PlatformClient {
     private readonly callerToken: CallerToken = async () => null,
   ) {}
 
-  /** A call to the platform as the person using this app. */
-  private async call<T>(method: string, path: string, body?: unknown): Promise<T> {
+  /** A call to the platform as the person using this app. A failure's message starts with
+   *  `failed`, what the person was doing, since it reaches them as it is. */
+  private async call<T>(failed: string, method: string, path: string, body?: unknown): Promise<T> {
     if (!this.baseUrl) {
       throw new Error(
         "PLATFORM_URL is not set: this app cannot name the system it is qualifying.",
@@ -69,7 +72,7 @@ export class PlatformClient {
         cache: "no-store",
       });
     } catch (cause) {
-      throw new Error(`Could not name this system: the platform did not answer.`, { cause });
+      throw new Error(`${failed}: the platform did not answer.`, { cause });
     }
     if (!res.ok) {
       // The person reads this: the platform's own detail when it gives one, on one short line.
@@ -82,7 +85,7 @@ export class PlatformClient {
         // not JSON: the text is the detail
       }
       throw new Error(
-        `Could not name this system: the platform answered ${res.status}. ${shortDetail(detail)}`.trim(),
+        `${failed}: the platform answered ${res.status}. ${shortDetail(detail)}`.trim(),
       );
     }
     return (await res.json()) as T;
@@ -94,23 +97,28 @@ export class PlatformClient {
 
   /** The project's latest saved card version, or null when it has none yet. */
   latestVersion(project: string): Promise<CardVersion | null> {
-    return this.call("GET", `${this.versions(project)}/latest`);
+    return this.call(READ_VERSIONS, "GET", `${this.versions(project)}/latest`);
   }
 
   /** Every saved card version of the project, highest number first. */
   listVersions(project: string): Promise<CardVersion[]> {
-    return this.call("GET", this.versions(project));
+    return this.call(READ_VERSIONS, "GET", this.versions(project));
   }
 
   /** The card's components may have changed: the platform brings the project's assessment
    *  targets up to date. The caller treats a failure as best-effort. */
   async syncTargets(project: string): Promise<void> {
-    await this.call("POST", `/projects/${encodeURIComponent(project)}/targets/sync`, {});
+    await this.call(
+      "Could not update the assessment targets",
+      "POST",
+      `/projects/${encodeURIComponent(project)}/targets/sync`,
+      {},
+    );
   }
 
   /** Save the next card version, with the system's identity as the form gives it. */
   createVersion(project: string, identity: SystemIdentity): Promise<CardVersion> {
-    return this.call("POST", this.versions(project), {
+    return this.call("Could not name this system", "POST", this.versions(project), {
       name: identity.name,
       version: identity.version ?? null,
       provider: identity.provider ?? null,

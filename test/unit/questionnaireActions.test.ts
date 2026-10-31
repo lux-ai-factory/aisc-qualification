@@ -315,7 +315,7 @@ describe("useQuestionnaireOnce", () => {
 
   it("the platform failing falls back to the project argument, and still saves", async () => {
     platformClient.latestVersion.mockRejectedValue(
-      new Error("Could not name this system: the platform did not answer."),
+      new Error("Could not read the AI card versions: the platform did not answer."),
     );
     const { useQuestionnaireOnce } = await actions();
     const { redirected } = await run(
