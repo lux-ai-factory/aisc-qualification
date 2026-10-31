@@ -1,7 +1,8 @@
 """A run's error as a reader may see it (as control-objectives risk_mapping.safe_error).
 
-The card's fill status is read by anyone who may read the project, through the web app's
-GET /p/{pid}/api/qualifications/{id}/fill. A model client's exception can quote the request URL
+The card's fill status is read through the web app's GET /p/{pid}/api/qualifications/{id}/fill,
+which passes this text on to the project's editors and owners only; a viewer sees the state
+without it. A model client's exception can quote the request URL
 with its `?key=`, an Authorization header, or the provider's message about the key. So what is
 kept for the status is cut short and anything that looks like a credential is taken out first;
 the full text goes only to the service's log.
