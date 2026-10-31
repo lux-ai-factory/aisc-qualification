@@ -72,11 +72,6 @@ const WITH_ANSWERS = {
   systemComponents: { orderBy: { position: "asc" } },
 } as const satisfies Prisma.QualificationInclude;
 
-/**
- * The cards of one project: a repository is bound to that project's own
- * database, so every query is inside the project without naming it. A card id
- * from another project is not in this database.
- */
 /** One row of a card's history: what a change would otherwise overwrite. */
 export type CardHistoryInput = {
   qualificationId: string;
@@ -98,6 +93,11 @@ export type CardHistoryInput = {
 /** A transaction client: what Prisma hands an interactive transaction (and the ledger emitter takes). */
 export type Tx = Prisma.TransactionClient;
 
+/**
+ * The cards of one project: a repository is bound to that project's own
+ * database, so every query is inside the project without naming it. A card id
+ * from another project is not in this database.
+ */
 export class QualificationRepository {
   constructor(private readonly db: PrismaClient) {}
 
@@ -199,7 +199,6 @@ export class QualificationRepository {
     });
   }
 
-  /** The qualifications of this project, newest first. */
   /** Each card's id and the version it belongs to: what card standing needs, without the cards. */
   cardRefs(): Promise<{ id: string; systemId: string }[]> {
     return this.db.qualification.findMany({
@@ -208,6 +207,7 @@ export class QualificationRepository {
     });
   }
 
+  /** The qualifications of this project, newest first. */
   list(): Promise<QualificationWithAnswers[]> {
     return this.db.qualification.findMany({
       orderBy: { createdAt: "desc" },
