@@ -21,7 +21,7 @@ trap cleanup EXIT INT TERM
 
 docker run --rm -d --name "$NAME" -p "127.0.0.1:$PORT:5432" \
   -e POSTGRES_USER=aisc-postgres-user -e POSTGRES_PASSWORD="$PW" -e POSTGRES_DB=platform \
-  postgres:14-alpine >/dev/null
+  postgres:15-alpine >/dev/null
 for _ in $(seq 1 60); do
   docker exec "$NAME" pg_isready -U aisc-postgres-user -d platform >/dev/null 2>&1 && break
   sleep 0.5
