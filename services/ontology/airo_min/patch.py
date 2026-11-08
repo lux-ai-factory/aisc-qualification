@@ -5,7 +5,7 @@ generated label as `qual:generatedLabel` and is stamped `qual:provenance
 "reviewed"`, so the card can always say which claims a person stands behind.
 
 A patch is `{node_id: {"label"?, "vair"?, "note"?, "termNotApplicable"?}}` where
-node_id is the node's local name (`purpose`, `risk0_control`, `capability1`).
+node_id is the node's local name (`purpose`, `risk0_source`, `capability1`).
 Setting `vair` to None removes the VAIR type; a term VAIR does not define is
 refused. The AIRO class cannot be patched: that is what a rebuild is for.
 

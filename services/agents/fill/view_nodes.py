@@ -6,7 +6,7 @@ in several places (the users are a row and the stakeholder of a risk), so it is 
 """
 from __future__ import annotations
 
-_CHAIN_SLOTS = ("risk", "source", "vulnerability", "consequence", "impact", "stakeholder", "control", "followUp")
+_CHAIN_SLOTS = ("risk", "source", "vulnerability", "consequence", "impact", "stakeholder")
 
 
 def nodes_of(view: dict) -> list[dict]:

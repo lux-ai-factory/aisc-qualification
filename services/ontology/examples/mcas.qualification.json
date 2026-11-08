@@ -110,11 +110,7 @@
       "affected": "NaturalPerson",
       "impactAreas": [
         "Right"
-      ],
-      "control": "Every Reject and every Review case goes to a trained loan officer before any decision reaches the applicant; bureau coverage below the configured threshold forces the case into Review",
-      "controlTerm": "HumanOversightMeasure",
-      "followUpControl": "The officer may override the recommendation with a mandatory written justification recorded against the case, and the applicant is told how to contest the outcome",
-      "followUpControlTerm": "OverridingOutcome"
+      ]
     },
     {
       "position": 1,
@@ -129,11 +125,7 @@
       "impactAreas": [
         "Right",
         "Freedom"
-      ],
-      "control": "Quarterly fairness audit measuring demographic parity and equal-opportunity difference across age band, gender proxy and postal-code SES proxy, with a 5% acceptance band, plus override rates by stratum to catch bias entering through human review",
-      "controlTerm": "BiasDetection",
-      "followUpControl": "Suspend automated scoring for the affected market and fall back to manual underwriting until the next recalibration clears the band",
-      "followUpControlTerm": "Interruption"
+      ]
     },
     {
       "position": 2,
@@ -148,11 +140,7 @@
       "impactAreas": [
         "Right",
         "Freedom"
-      ],
-      "control": "Officer override rates are tracked against the branch median, officers who never diverge are flagged for review, and refresher training covers automation bias explicitly",
-      "controlTerm": "MonitoringMeasure",
-      "followUpControl": "Withdraw the officer's approval rights pending retraining and route their queue to a second reviewer",
-      "followUpControlTerm": "OrganisationalMeasure"
+      ]
     },
     {
       "position": 3,
@@ -166,11 +154,7 @@
       "affected": "user",
       "impactAreas": [
         "Right"
-      ],
-      "control": "Quarterly index refresh signed off by compliance, and every explanation records the index version it was generated from so any answer can be reproduced",
-      "controlTerm": "LoggingMeasure",
-      "followUpControl": null,
-      "followUpControlTerm": null
+      ]
     },
     {
       "position": 4,
@@ -185,11 +169,7 @@
       "impactAreas": [
         "Safety",
         "Right"
-      ],
-      "control": "Egress allow-list and mutually authenticated bureau connections, checksummed model artefacts verified at load, and recalibration gated on the same validation and fairness suites as a full release",
-      "controlTerm": "SecurityMeasure",
-      "followUpControl": "Roll back to the previous signed model, which stays deployable for one quarter, and notify the deployer banks and the market surveillance authority",
-      "followUpControlTerm": "Intervention"
+      ]
     }
   ],
   "systemComponents": [

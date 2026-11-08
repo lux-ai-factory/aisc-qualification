@@ -15,7 +15,14 @@ def test_every_node_of_the_system_the_rows_and_the_chains_is_read():
     ids = set(_ids())
     assert {"system", "purpose", "provider", "deployer", "users", "technique0"} <= ids
     assert {"risk0", "risk0_source", "risk0_vulnerability", "risk0_consequence", "risk0_impact",
-            "risk0_control", "risk0_control_followup", "subject_NaturalPerson", "area_Right"} <= ids
+            "subject_NaturalPerson", "area_Right"} <= ids
+
+
+def test_a_measure_slot_of_an_older_view_is_not_read():
+    measure = {"id": "risk0_control", "cls": "RiskControl", "label": "Officer review", "provenance": "form"}
+    view = {"chains": [{"risk": {"id": "risk0", "cls": "Risk"}, "control": measure,
+                        "followUp": {**measure, "id": "risk0_control_followup"}, "areas": []}]}
+    assert [n["id"] for n in nodes_of(view)] == ["risk0"]
 
 
 def test_a_node_shown_in_several_places_is_read_once():

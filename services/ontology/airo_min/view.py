@@ -207,7 +207,7 @@ def _airo_class(g: Graph, node: URIRef) -> str | None:
 
 
 def _chain(g: Graph, risk: URIRef) -> dict[str, Any]:
-    """One risk's full path: source and weakness, through to impact and controls."""
+    """One risk's full path: source and weakness, through to impact and who and what it affects."""
     source = next(g.subjects(URIRef(AIRO + "isRiskSourceFor"), risk), None)
     vulnerability = (
         next(g.objects(source, URIRef(AIRO + "exploitsVulnerability")), None)
@@ -235,12 +235,6 @@ def _chain(g: Graph, risk: URIRef) -> dict[str, Any]:
         if impact is not None
         else []
     )
-    control = next(g.subjects(URIRef(AIRO + "modifiesRiskConcept"), risk), None)
-    follow_up = (
-        next(g.objects(control, URIRef(AIRO + "isFollowedByControl")), None)
-        if control is not None
-        else None
-    )
 
     def v(node):
         return node_view(g, node) if node is not None else None
@@ -253,8 +247,6 @@ def _chain(g: Graph, risk: URIRef) -> dict[str, Any]:
         "impact": v(impact),
         "stakeholder": v(stakeholder),
         "areas": [node_view(g, a) for a in areas],
-        "control": v(control),
-        "followUp": v(follow_up),
         "citation": "Art 9(2); Annex IV 5",
     }
 

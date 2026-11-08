@@ -43,8 +43,6 @@ def _qualification(**over):
                 "consequence": "A creditworthy applicant is routed to Reject",
                 "affected": "user",
                 "impactAreas": ["Right"],
-                "control": "Every Reject goes to a loan officer first",
-                "followUpControl": "Officer override with written justification",
             },
             {
                 "position": 1,
@@ -54,8 +52,6 @@ def _qualification(**over):
                 "consequence": "Degraded accuracy across a market",
                 "affected": "operator",
                 "impactAreas": ["Safety", "Right"],
-                "control": "Signed ingestion and checksummed artefacts",
-                "followUpControl": None,
             },
         ],
     }
@@ -126,13 +122,47 @@ def test_each_risk_row_becomes_a_full_chain():
         assert len(imp) == 1
         assert list(g.objects(imp[0], _a("hasImpactOnStakeholder")))
         assert list(g.objects(imp[0], _a("hasImpactOnArea")))
-        assert list(g.subjects(_a("modifiesRiskConcept"), r))
+
+
+def test_a_risk_has_no_measure_node():
+    g = build_graph(_qualification())
+    assert not list(g.subjects(RDF.type, _a("RiskControl")))
+    assert not list(g.subject_objects(_a("modifiesRiskConcept")))
+    assert not list(g.subject_objects(_a("isFollowedByControl")))
+
+
+def test_a_card_saved_with_measures_rebuilds_without_them():
+    """A card saved before the measures were removed: its export, its draft (names, types, notes)
+    and its corrections may still name the measure nodes. The graph is built without them, and
+    the view's chains carry no measure."""
+    from airo_min.view import build_view
+
+    q = _qualification()
+    q["risks"][0].update(
+        control="Every Reject goes to a loan officer first",
+        controlTerm="HumanOversightMeasure",
+        followUpControl="Officer override with written justification",
+        followUpControlTerm="OverridingOutcome",
+    )
+    extracted = {
+        **EXTRACTED,
+        "names": {"risk0_control": "Officer review", "risk0_control_followup": "Override"},
+        "types": {"risk0_control": "HumanOversightMeasure"},
+        "notes": {"risk0_control": [{"why": "w", "quote": "q", "of": q["risks"][0]["control"]}]},
+    }
+    g = build_graph(q, extracted)
+    apply_patch(g, {"risk0_control": {"label": "Manual review", "vair": "ManualControl"}})
+    for node in (EX.risk0_control, EX.risk0_control_followup):
+        assert (node, None, None) not in g
+    assert not list(g.subjects(RDF.type, _a("RiskControl")))
+    assert validate(g) == []
+    for chain in build_view(g)["chains"]:
+        assert "control" not in chain and "followUp" not in chain
 
 
 def test_optional_row_fields_appear_only_when_present():
     g = build_graph(_qualification())
     assert len(list(g.subject_objects(_a("exploitsVulnerability")))) == 1
-    assert len(list(g.subject_objects(_a("isFollowedByControl")))) == 1
 
 
 def test_impact_lands_on_the_operator_or_the_user_node():
@@ -275,14 +305,14 @@ def test_shortening_cuts_at_a_word_boundary_and_marks_the_cut():
 
 def test_risk_chain_nodes_are_shortened_too():
     q = _qualification()
-    q["risks"][0]["control"] = (
-        "Every Reject and every Review case goes to a trained loan officer before any "
-        "decision reaches the applicant, and bureau coverage below the configured "
-        "threshold forces the case into Review"
+    q["risks"][0]["consequence"] = (
+        "A creditworthy applicant is routed to Reject before any officer reads the case, "
+        "and bureau coverage below the configured threshold forces the case into Review "
+        "where it waits"
     )
     g = build_graph(q)
-    controls = list(g.subjects(RDF.type, _a("RiskControl")))
-    for c in controls:
+    consequences = list(g.subjects(RDF.type, _a("Consequence")))
+    for c in consequences:
         assert len(str(g.value(c, RDFS.label))) <= 60
     full = {str(o) for _s, o in g.subject_objects(QUAL.fullLabel)}
     assert any("bureau coverage below the configured threshold" in t for t in full)
@@ -314,7 +344,6 @@ def test_curated_names_cover_the_prose_fed_nodes():
         "risk0": "Applicant wrongly ranked high risk",
         "risk0_source": "Thin bureau data",
         "risk0_consequence": "Creditworthy applicant refused",
-        "risk0_control": "Officer review of every Reject",
     }
     g = build_graph(q, {**EXTRACTED, "names": names})
     labels = {str(o) for _s, o in g.subject_objects(RDFS.label)}
@@ -390,7 +419,7 @@ def test_no_label_in_a_realistic_graph_ends_in_an_ellipsis():
 
 def test_types_map_assigns_vair_terms_to_risk_half_nodes():
     """The risk half has VAIR terms available (RiskSource 6, Consequence 7,
-    Impact 6, RiskControl 11) but nothing mechanical can pick them: the choice
+    Impact 6) but nothing mechanical can pick them: the choice
     comes from the risk row's text, so it arrives through `extracted`."""
     g = build_graph(
         _qualification(),
@@ -400,7 +429,6 @@ def test_types_map_assigns_vair_terms_to_risk_half_nodes():
                 "risk0_source": "DataRiskSource",
                 "risk0_consequence": "DegradedAccuracy",
                 "risk0_impact": "UnfavourableTreatment",
-                "risk0_control": "ManualControl",
                 "risk1_source": "Attack",
                 "purpose": "Assessment",
                 "system": "NarrowAI",
@@ -411,7 +439,6 @@ def test_types_map_assigns_vair_terms_to_risk_half_nodes():
         "DataRiskSource",
         "DegradedAccuracy",
         "UnfavourableTreatment",
-        "ManualControl",
         "Attack",
         "Assessment",
         "NarrowAI",
@@ -496,45 +523,45 @@ def test_an_old_string_name_still_applies_and_is_not_marked_as_drafted():
 
 def _note(q, **over):
     return {"why": "the answer names a hosted LLM", "quote": "a hosted third-party LLM",
-            "of": q["risks"][0]["control"], **over}
+            "of": q["risks"][0]["consequence"], **over}
 
 
 def test_a_note_rides_on_its_node():
     from rdflib import Literal
     q = _qualification()
     note = _note(q)
-    g = build_graph(q, {"notes": {"risk0_control": [note]}})
-    assert (EX.risk0_control, QUAL.reviewFlag, Literal("inconsistent")) in g
-    assert node_view(g, EX.risk0_control)["flagNotes"] == [{"why": note["why"], "quote": note["quote"]}]
+    g = build_graph(q, {"notes": {"risk0_consequence": [note]}})
+    assert (EX.risk0_consequence, QUAL.reviewFlag, Literal("inconsistent")) in g
+    assert node_view(g, EX.risk0_consequence)["flagNotes"] == [{"why": note["why"], "quote": note["quote"]}]
 
 
 def test_a_note_for_other_text_is_ignored():
     q = _qualification()
-    g = build_graph(q, {"notes": {"risk0_control": [_note(q, of="a control that is no longer there")]}})
-    assert (EX.risk0_control, QUAL.reviewFlag, None) not in g
-    assert (EX.risk0_control, QUAL.flagNote, None) not in g
+    g = build_graph(q, {"notes": {"risk0_consequence": [_note(q, of="a consequence that is no longer there")]}})
+    assert (EX.risk0_consequence, QUAL.reviewFlag, None) not in g
+    assert (EX.risk0_consequence, QUAL.flagNote, None) not in g
 
 
 def test_a_note_for_a_node_that_is_gone_is_ignored():
     q = _qualification()
-    g = build_graph(q, {"notes": {"risk9_control": [_note(q)]}})
-    assert (EX.risk9_control, None, None) not in g
+    g = build_graph(q, {"notes": {"risk9_consequence": [_note(q)]}})
+    assert (EX.risk9_consequence, None, None) not in g
 
 
 def test_a_reviewer_edit_clears_the_notes_with_the_flag():
     q = _qualification()
-    g = build_graph(q, {"notes": {"risk0_control": [_note(q)]}})
-    apply_patch(g, {"risk0_control": {"label": "Manual review"}})
-    assert (EX.risk0_control, QUAL.reviewFlag, None) not in g
-    assert (EX.risk0_control, QUAL.flagNote, None) not in g
-    assert "flagNotes" not in node_view(g, EX.risk0_control)
+    g = build_graph(q, {"notes": {"risk0_consequence": [_note(q)]}})
+    apply_patch(g, {"risk0_consequence": {"label": "Manual review"}})
+    assert (EX.risk0_consequence, QUAL.reviewFlag, None) not in g
+    assert (EX.risk0_consequence, QUAL.flagNote, None) not in g
+    assert "flagNotes" not in node_view(g, EX.risk0_consequence)
 
 
 def test_a_note_keeps_a_separator_inside_its_reason_and_its_quote():
     q = _qualification()
     note = _note(q, why="says A | but B", quote="the model | is hosted")
-    g = build_graph(q, {"notes": {"risk0_control": [note]}})
-    assert node_view(g, EX.risk0_control)["flagNotes"] == [{"why": note["why"], "quote": note["quote"]}]
+    g = build_graph(q, {"notes": {"risk0_consequence": [note]}})
+    assert node_view(g, EX.risk0_consequence)["flagNotes"] == [{"why": note["why"], "quote": note["quote"]}]
 
 
 def test_a_node_with_an_ai_name_still_takes_a_note_for_the_authors_text():
@@ -548,4 +575,4 @@ def test_a_node_with_an_ai_name_still_takes_a_note_for_the_authors_text():
 def test_a_note_missing_its_reason_is_refused():
     q = _qualification()
     with pytest.raises(ValueError):
-        build_graph(q, {"notes": {"risk0_control": [{"quote": "q", "of": q["risks"][0]["control"]}]}})
+        build_graph(q, {"notes": {"risk0_consequence": [{"quote": "q", "of": q["risks"][0]["consequence"]}]}})

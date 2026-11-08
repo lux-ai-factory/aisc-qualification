@@ -43,10 +43,6 @@ def base() -> dict:
                 "impactTerm": "UnfavourableTreatment",
                 "affected": "user",
                 "impactAreas": ["RightToNondiscrimination", "Right"],
-                "control": "Human review of every rejection",
-                "controlTerm": "HumanOversightMeasure",
-                "followUpControl": "Override with written justification",
-                "followUpControlTerm": "OverridingOutcome",
             }
         ],
         "systemComponents": [
@@ -214,8 +210,6 @@ def test_a_kind_that_disagrees_with_its_vair_type_is_refused(kind, vair_type):
         ("risk0_source", "IncompleteTrainingData"),
         ("risk0_consequence", "DegradedAccuracy"),
         ("risk0_impact", "UnfavourableTreatment"),
-        ("risk0_control", "HumanOversightMeasure"),
-        ("risk0_control_followup", "OverridingOutcome"),
     ],
 )
 def test_each_risk_field_s_term_types_its_node_and_its_text_names_it(node_id, term):
@@ -226,8 +220,8 @@ def test_each_risk_field_s_term_types_its_node_and_its_text_names_it(node_id, te
 
 def test_the_text_still_names_the_node():
     g = build_graph(base())
-    node = URIRef("https://lux-ai-factory.github.io/qualification/q/q-vair#risk0_control")
-    assert label(g, node) == "Human review of every rejection"
+    node = URIRef("https://lux-ai-factory.github.io/qualification/q/q-vair#risk0_source")
+    assert label(g, node) == "Thin bureau data"
 
 
 def test_the_areas_are_vair_terms_named_by_vair():
@@ -240,8 +234,7 @@ def test_the_areas_are_vair_terms_named_by_vair():
 
 @pytest.mark.parametrize(
     "field,value",
-    [("sourceTerm", "Workplace"), ("consequenceTerm", "Harm"), ("impactTerm", "Bias"),
-     ("controlTerm", "Nonsense"), ("followUpControlTerm", "DataPoisoning")],
+    [("sourceTerm", "Workplace"), ("consequenceTerm", "Harm"), ("impactTerm", "Bias")],
 )
 def test_a_risk_term_of_another_class_is_refused(field, value):
     q = base()

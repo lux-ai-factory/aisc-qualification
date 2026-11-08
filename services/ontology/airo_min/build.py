@@ -214,7 +214,7 @@ def build_graph(
     """
     extracted = extracted or {}
     # Curated noun-phrase names for the prose-fed nodes, keyed by node local name
-    # ("purpose", "users", "risk0_control", ...). Truncation is the fallback.
+    # ("purpose", "users", "risk0_source", ...). Truncation is the fallback.
     names: dict[str, Any] = dict(extracted.get("names") or {})
     qid = qualification.get("id", "unsaved")
     g, ex = new_graph(base or f"https://lux-ai-factory.github.io/qualification/q/{qid}#")
@@ -558,26 +558,6 @@ def _add_risk(
             g.add((node, QUAL.formTag, Literal(term)))
             areas[term] = node
         link(g, impact, "hasImpactOnArea", node)
-
-    control = named(
-        g,
-        ex[f"risk{i}_control"],
-        "RiskControl",
-        row["control"],
-        names.get(f"risk{i}_control"),
-    )
-    _typed(g, control, row.get("controlTerm"))
-    link(g, control, "modifiesRiskConcept", risk)
-    if row.get("followUpControl"):
-        follow_up = named(
-            g,
-            ex[f"risk{i}_control_followup"],
-            "RiskControl",
-            row["followUpControl"],
-            names.get(f"risk{i}_control_followup"),
-        )
-        _typed(g, follow_up, row.get("followUpControlTerm"))
-        link(g, control, "isFollowedByControl", follow_up)
 
 
 def _cli() -> int:

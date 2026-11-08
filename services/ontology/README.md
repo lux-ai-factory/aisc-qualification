@@ -106,13 +106,13 @@ system prompt". The card agent loads the file as its system prompt before drafti
 |---|---|
 | `mcas.qualification.json` | the saved form, exported: 14 Annex IV answers, 5 risk rows, all pickers |
 | `mcas.extracted.json` | the curated prose extraction (techniques, components) |
-| `mcas.ttl` / `mcas.jsonld` | the filled AIRO graph, 456 triples |
+| `mcas.ttl` / `mcas.jsonld` | the filled AIRO graph, 402 triples |
 
 MicroCredit Assist Score v1.2.0 is an invented consumer-credit scoring system,
 the kind of use Annex III 5(b) lists (the graph records the domain; it does not
-classify the system). Its graph instantiates 20 of the 22 classes (`Stakeholder` and
-`RiskConcept` are abstract parents, never instantiated directly), uses 23 of the 24
-properties (not `hasTestingData`), and asserts 38 VAIR terms.
+classify the system). Its graph instantiates 19 of the 21 classes (`Stakeholder` and
+`RiskConcept` are abstract parents, never instantiated directly), uses 21 of the 22
+properties (not `hasTestingData`), and asserts 29 VAIR terms.
 
 Deliberately not here: the Annex III SHACL classifier from the AIRO repo (as shipped,
 none of its 103 property shapes has `sh:minCount`, so every AISystem matches all 28

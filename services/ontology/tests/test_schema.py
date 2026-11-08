@@ -25,10 +25,13 @@ def _union_members(g, node):
 
 
 def test_exactly_the_figure_3_subset_with_the_collapse():
-    # 19 + AIModel, Data and AISubject; 19 + the four hasComponent sub-properties
-    # + hasAISubject
-    assert len(CLASSES) == 22
-    assert len(PROPERTIES) == 24
+    # 19 + AIModel, Data and AISubject, less RiskControl; 19 + the four hasComponent
+    # sub-properties + hasAISubject, less modifiesRiskConcept and isFollowedByControl
+    assert len(CLASSES) == 21
+    assert len(PROPERTIES) == 22
+    assert "RiskControl" not in CLASSES
+    for removed in ("modifiesRiskConcept", "isFollowedByControl"):
+        assert removed not in PROPERTIES
     for removed in ("AIProvider", "AIDeployer"):
         assert removed not in CLASSES
 
@@ -83,8 +86,12 @@ def test_ancestors_and_is_a_walk_the_hierarchy():
 
 
 def test_aisubject_is_back_as_a_stakeholder():
-    from airo_min.schema import CLASSES, PROPERTIES, SCHEMA_VERSION
+    from airo_min.schema import CLASSES, PROPERTIES
     assert CLASSES["AISubject"] == "Stakeholder"
     assert PROPERTIES["hasAISubject"] == (("AISystem",), "AISubject")
     assert PROPERTIES["hasImpactOnStakeholder"] == (("Impact",), "Stakeholder")
-    assert SCHEMA_VERSION == "1.1"
+
+
+def test_the_subset_without_risk_controls_has_its_own_version():
+    from airo_min.schema import SCHEMA_VERSION
+    assert SCHEMA_VERSION == "1.2"

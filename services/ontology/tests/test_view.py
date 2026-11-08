@@ -132,15 +132,14 @@ def test_each_node_in_the_view_carries_what_the_ui_needs(graph):
 
 def test_a_chain_is_the_whole_risk_path_in_order(graph):
     view = build_view(graph)
-    chain = view["chains"][1]  # the fairness risk: no vulnerability, has a follow-up
+    chain = view["chains"][1]  # the fairness risk: no vulnerability
     assert chain["risk"]["label"] == "Approval rates diverge across groups"
     assert chain["source"]["label"] == "Postal-code features as a proxy"
     assert chain["vulnerability"] is None
     assert chain["consequence"]["label"] == "Discriminatory treatment by area"
     assert chain["stakeholder"]["cls"] == "AIUser"
     assert [a["label"] for a in chain["areas"]] == ["Freedom", "Right"]  # VAIR's label order
-    assert chain["control"]["label"] == "Quarterly fairness audit, 5% band"
-    assert chain["followUp"]["label"] == "Suspend scoring for the market"
+    assert "control" not in chain and "followUp" not in chain
 
 
 def test_a_reviewed_node_shows_as_reviewed_in_the_view(graph):
@@ -155,7 +154,7 @@ def test_a_reviewed_node_shows_as_reviewed_in_the_view(graph):
 
 def test_the_view_reports_the_counts_the_card_header_shows(graph):
     view = build_view(graph)
-    assert view["counts"]["nodes"] == 62
+    assert view["counts"]["nodes"] == 53
     assert view["counts"]["triples"] == len(graph)
     assert view["counts"]["risks"] == 5
 

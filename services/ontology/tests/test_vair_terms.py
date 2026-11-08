@@ -54,7 +54,7 @@ class TestInventory:
 
     def test_how_many_sit_under_our_own_schema(self):
         offered = {t for terms in vocabularies().values() for t in terms}
-        assert len(offered) == 350
+        assert len(offered) == 330  # RiskControl's 20 are not offered: the card records no measure
 
     def test_the_terms_vair_leaves_hanging(self):
         # No rdfs:subClassOf at all, so no AIRO class can reach them: superseded
@@ -91,7 +91,6 @@ class TestNesting:
             ("AITechnique", "DeepLearning"),
             ("AIComponent", "DecisionTree"),
             ("RiskSource", "BiasedTrainingData"),
-            ("RiskControl", "HumanOversightMeasure"),
             ("AICapability", "FaceRecognition"),
             ("AISystem", "IndustrialRobot"),
             ("AreaOfImpact", "PhysicalHealth"),

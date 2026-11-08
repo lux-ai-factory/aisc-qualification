@@ -56,7 +56,6 @@ print(sorted({str(s).replace(V,'') for s,_,_ in g.triples((None,RDFS.subClassOf,
 | `isRiskSourceFor` | RiskSource | 44 | one per risk row |
 | `hasConsequence` | Consequence | 7 | one per risk row |
 | `hasImpact` | Impact | 9 | one per risk row |
-| `modifiesRiskConcept` | RiskControl | 20 | one per control named |
 | `isAppliedWithinDomain` | Domain | 11 | from the sector tags |
 | `hasCapability` | AICapability | 35 | from the capability tags |
 | `hasPurpose` | Purpose | 122 | 1 to 2 |
@@ -133,11 +132,11 @@ Take the label from the answer's own noun phrase, not its sentence.
 | Purpose | the entire 514-character use-case answer | `Creditworthiness assessment for consumer loans` |
 | AIUser | 307 characters listing every role | `Bank customers and loan officers` |
 | AIOperator | 455-character deployer paragraph | `Retail banks in DE, FR and NL` |
-| RiskControl | 245 characters describing the whole procedure | `Mandatory officer review of every Reject` |
+| Consequence | 120 characters retelling the whole outcome | `Creditworthy applicant refused` |
 | Risk | a full sentence from the form | `Applicant wrongly ranked high risk` |
 
 Supply the names in the `extracted` file's `names` map, keyed by node local name
-(`purpose`, `users`, `deployer`, `risk0`, `risk0_control`, ...). The builder falls back to
+(`purpose`, `users`, `deployer`, `risk0`, `risk0_source`, ...). The builder falls back to
 truncating at a word boundary with a trailing `...`, which meets the length rule but is
 not a name: a trailing ellipsis anywhere in a finished graph means a name is missing.
 
@@ -147,19 +146,20 @@ nameable; nothing is lost.
 
 ## How big should the graph be
 
-Count before you build. Each risk row is 6 or 7 nodes, because Figure 3 models Risk,
-RiskSource, Vulnerability, Consequence, Impact and RiskControl separately.
+Count before you build. Each risk row is 4 or 5 nodes, because Figure 3 models Risk,
+RiskSource, Vulnerability, Consequence and Impact separately (who and what it affects are
+shared across rows). The card records no measure against a risk, so it has no RiskControl.
 
 ```
 system half   1 system + capabilities + 1 domain + modalities
               + localities + 1 purpose + 2 operators + 1 user
               + techniques (<=3) + component kinds (<=4)     ~ 20
-risk half     risk rows x 7                                  ~ 7n
+risk half     risk rows x 5                                  ~ 5n
 ```
 
-MCAS with 5 risks: about 55 nodes. If that is too many, the lever is the number of risk
+MCAS with 5 risks: about 45 nodes. If that is too many, the lever is the number of risk
 rows or the number of capability tags, never a shorter schema: the schema is already the
-19-class minimum.
+minimum.
 
 ## Common mistakes
 

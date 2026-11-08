@@ -92,10 +92,11 @@ describe("the MCAS example agrees everywhere", () => {
     ]);
   });
 
-  it("the ontology README's example table says 14 Annex IV answers and 456 triples (test_example_mcas.py counts them)", () => {
+  it("the ontology README's example table says 14 Annex IV answers and 402 triples (test_example_mcas.py counts them)", () => {
     const readme = readFileSync("services/ontology/README.md", "utf8");
     expect(readme).toContain("14 Annex IV answers");
-    expect(readme).toContain("456 triples");
+    expect(readme).toContain("402 triples");
+    expect(readme).not.toContain("456 triples");
     expect(readme).not.toContain("13 Annex IV answers");
     expect(readme).not.toContain("413 triples");
   });
@@ -158,6 +159,23 @@ describe("the MCAS example's VAIR terms agree everywhere", () => {
     json().risks.forEach((r: Record<string, unknown>, i: number) => {
       expect(MCAS.risks[i].affected, `risk ${i}`).toEqual(r.affected);
       expect(seed.risks.create[i].affected, `risk ${i}`).toEqual(r.affected);
+    });
+  });
+
+  it("no risk names a measure, in any of the three copies", async () => {
+    const seed = await seedData();
+    const measure = [
+      "control",
+      "controlTerm",
+      "followUpControl",
+      "followUpControlTerm",
+    ];
+    json().risks.forEach((r: Record<string, unknown>, i: number) => {
+      for (const k of measure) {
+        expect(r, `risk ${i}`).not.toHaveProperty(k);
+        expect(MCAS.risks[i], `risk ${i}`).not.toHaveProperty(k);
+        expect(seed.risks.create[i], `risk ${i}`).not.toHaveProperty(k);
+      }
     });
   });
 

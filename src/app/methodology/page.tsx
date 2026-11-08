@@ -55,7 +55,7 @@ export default async function MethodologyPage() {
     },
     // The minimal AIRO subset, as services/ontology/airo_min/schema.py holds it.
     // Asserted against that file by test/unit/methodologySchemaCounts.test.ts.
-    schema: { classes: 22, properties: 24 },
+    schema: { classes: 21, properties: 22 },
     vocabulary,
   };
 

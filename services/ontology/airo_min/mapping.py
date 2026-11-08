@@ -43,6 +43,4 @@ FORM_MAPPING: list[FieldMapping] = [
     FieldMapping("risk:*:affected", "Annex IV 2(b); Art 9(9)", "hasAISubject", "AISystem", "AISubject"),
     FieldMapping("risk:*:area", "Art 9(2)(a)", "hasImpactOnArea", "Impact", "AreaOfImpact"),
     FieldMapping("risk:*:area", "Art 9(2)(a)", "hasImpact", "Consequence", "Impact"),
-    FieldMapping("risk:*:control", "Art 9(2)(d)", "modifiesRiskConcept", "RiskControl", "Risk"),
-    FieldMapping("risk:*:followUpControl", "Art 9(5); Art 14(4)(e)", "isFollowedByControl", "RiskControl", "RiskControl"),
 ]

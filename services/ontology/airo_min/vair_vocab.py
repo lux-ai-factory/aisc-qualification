@@ -35,7 +35,6 @@ FORM_CLASSES: tuple[str, ...] = (
     "Consequence",  # Risk: what happens as a result
     "Impact",  # Risk: the harm
     "AreaOfImpact",  # Risk: what is affected
-    "RiskControl",  # Risk: the measure and the follow-up
 )
 
 #: The AIComponent terms that are models: vair:Model and everything under it. A component of one of

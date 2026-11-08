@@ -15,14 +15,14 @@ def _valid_graph():
     risk = add_individual(g, ex.r1, "Risk")
     cons = add_individual(g, ex.r1_cons, "Consequence")
     imp = add_individual(g, ex.r1_imp, "Impact")
-    ctrl = add_individual(g, ex.r1_ctrl, "RiskControl")
+    src = add_individual(g, ex.r1_src, "RiskSource")
     link(g, sys_, "isProvidedBy", op)
     link(g, sys_, "hasAIUser", user)
     link(g, sys_, "hasRisk", risk)
     link(g, risk, "hasConsequence", cons)
     link(g, cons, "hasImpact", imp)
     link(g, imp, "hasImpactOnStakeholder", user)  # AIUser is a Stakeholder
-    link(g, ctrl, "modifiesRiskConcept", risk)  # Risk is a RiskConcept
+    link(g, src, "isRiskSourceFor", risk)
     return g, ex
 
 

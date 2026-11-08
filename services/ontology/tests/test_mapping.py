@@ -42,7 +42,11 @@ def test_the_new_form_elements_are_present():
         "risk:*:consequence",
         "risk:*:affected",
         "risk:*:area",
-        "risk:*:control",
-        "risk:*:followUpControl",
     ):
         assert f in fields, f
+
+
+def test_a_risk_maps_no_measure():
+    fields = {m.field for m in FORM_MAPPING}
+    assert not {"risk:*:control", "risk:*:followUpControl"} & fields
+    assert not {m.property for m in FORM_MAPPING} & {"modifiesRiskConcept", "isFollowedByControl"}

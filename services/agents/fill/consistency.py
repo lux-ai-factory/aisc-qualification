@@ -24,7 +24,7 @@ MIN_QUOTE_WORDS = 2
 CHECKED = {
     "AISystem", "Purpose", "AICapability", "Domain", "Modality", "LocalityOfUse", "AIComponent",
     "AIModel", "Data", "AIOperator", "AISubject", "RiskSource", "Consequence", "Impact",
-    "RiskControl", "AreaOfImpact",
+    "AreaOfImpact",
 }
 
 

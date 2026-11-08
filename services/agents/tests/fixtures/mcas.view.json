@@ -394,22 +394,6 @@
      "formTag": "Right"
     }
    ],
-   "control": {
-    "id": "risk0_control",
-    "label": "Officer review of every Reject",
-    "cls": "RiskControl",
-    "vair": "HumanOversightMeasure",
-    "fullText": "Every Reject and every Review case goes to a trained loan officer before any decision reaches the applicant; bureau coverage below the configured threshold forces the case into Review",
-    "provenance": "form"
-   },
-   "followUp": {
-    "id": "risk0_control_followup",
-    "label": "Override with written justification",
-    "cls": "RiskControl",
-    "vair": "OverridingOutcome",
-    "fullText": "The officer may override the recommendation with a mandatory written justification recorded against the case, and the applicant is told how to contest the outcome",
-    "provenance": "form"
-   },
    "citation": "Art 9(2); Annex IV 5"
   },
   {
@@ -476,22 +460,6 @@
      "formTag": "Right"
     }
    ],
-   "control": {
-    "id": "risk1_control",
-    "label": "Quarterly fairness audit, 5% band",
-    "cls": "RiskControl",
-    "vair": "BiasDetection",
-    "fullText": "Quarterly fairness audit measuring demographic parity and equal-opportunity difference across age band, gender proxy and postal-code SES proxy, with a 5% acceptance band, plus override rates by stratum to catch bias entering through human review",
-    "provenance": "form"
-   },
-   "followUp": {
-    "id": "risk1_control_followup",
-    "label": "Suspend scoring for the market",
-    "cls": "RiskControl",
-    "vair": "Interruption",
-    "fullText": "Suspend automated scoring for the affected market and fall back to manual underwriting until the next recalibration clears the band",
-    "provenance": "form"
-   },
    "citation": "Art 9(2); Annex IV 5"
   },
   {
@@ -566,22 +534,6 @@
      "formTag": "Right"
     }
    ],
-   "control": {
-    "id": "risk2_control",
-    "label": "Override rates tracked against the median",
-    "cls": "RiskControl",
-    "vair": "MonitoringMeasure",
-    "fullText": "Officer override rates are tracked against the branch median, officers who never diverge are flagged for review, and refresher training covers automation bias explicitly",
-    "provenance": "form"
-   },
-   "followUp": {
-    "id": "risk2_control_followup",
-    "label": "Withdraw approval rights pending retraining",
-    "cls": "RiskControl",
-    "vair": "OrganisationalMeasure",
-    "fullText": "Withdraw the officer's approval rights pending retraining and route their queue to a second reviewer",
-    "provenance": "form"
-   },
    "citation": "Art 9(2); Annex IV 5"
   },
   {
@@ -647,15 +599,6 @@
      "formTag": "Right"
     }
    ],
-   "control": {
-    "id": "risk3_control",
-    "label": "Index refresh signed off by compliance",
-    "cls": "RiskControl",
-    "vair": "LoggingMeasure",
-    "fullText": "Quarterly index refresh signed off by compliance, and every explanation records the index version it was generated from so any answer can be reproduced",
-    "provenance": "form"
-   },
-   "followUp": null,
    "citation": "Art 9(2); Annex IV 5"
   },
   {
@@ -730,28 +673,12 @@
      "formTag": "Safety"
     }
    ],
-   "control": {
-    "id": "risk4_control",
-    "label": "Signed connections and checksummed artefacts",
-    "cls": "RiskControl",
-    "vair": "SecurityMeasure",
-    "fullText": "Egress allow-list and mutually authenticated bureau connections, checksummed model artefacts verified at load, and recalibration gated on the same validation and fairness suites as a full release",
-    "provenance": "form"
-   },
-   "followUp": {
-    "id": "risk4_control_followup",
-    "label": "Roll back and notify the authority",
-    "cls": "RiskControl",
-    "vair": "Intervention",
-    "fullText": "Roll back to the previous signed model, which stays deployable for one quarter, and notify the deployer banks and the market surveillance authority",
-    "provenance": "form"
-   },
    "citation": "Art 9(2); Annex IV 5"
   }
  ],
  "counts": {
-  "nodes": 62,
-  "triples": 456,
+  "nodes": 53,
+  "triples": 402,
   "risks": 5,
   "reviewed": 0,
   "untyped": 20,

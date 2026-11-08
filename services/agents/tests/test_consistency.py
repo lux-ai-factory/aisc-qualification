@@ -68,6 +68,13 @@ def test_no_listed_node_asks_nothing():
     assert check(in_a_row(), ANSWERS, lambda *a, **k: calls.append(1)) == ({}, []) and not calls
 
 
+def test_a_measure_node_is_not_checked():
+    measure = {"id": "risk0_control", "cls": "RiskControl", "label": "Officer review",
+               "vair": "HumanOversightMeasure", "provenance": "form", "fullText": None}
+    calls = []
+    assert check(in_a_row(measure), ANSWERS, lambda *a, **k: calls.append(1)) == ({}, []) and not calls
+
+
 def test_the_real_card_view_lists_its_nodes_to_the_model():
     users = []
     check(MCAS_VIEW, ANSWERS, lambda s, u, **k: users.append(u) or "{}")

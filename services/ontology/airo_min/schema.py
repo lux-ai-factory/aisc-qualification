@@ -9,6 +9,8 @@ simplification of stakeholders to Operator and User:
 Added for the engine components an AI card links: AIModel
 and Data (both subClassOf AIComponent) and hasModel, hasTrainingData, hasTestingData,
 hasValidationData (sub-properties of hasComponent).
+Left out: RiskControl with modifiesRiskConcept and isFollowedByControl. The card identifies
+risks; it records no measure against them.
 Everything here is cross-checked against the vendored airo.ttl by tests/test_schema.py.
 """
 
@@ -16,7 +18,7 @@ AIRO = "https://w3id.org/airo#"
 
 #: Bumped when the subset changes: which classes and properties a graph may use
 #: is part of what produced it, and a card kept for the record should say so.
-SCHEMA_VERSION = "1.1"
+SCHEMA_VERSION = "1.2"
 
 # class -> parent class within the subset (None for roots)
 CLASSES: dict[str, str | None] = {
@@ -44,7 +46,6 @@ CLASSES: dict[str, str | None] = {
     "Vulnerability": None,
     "Consequence": "RiskConcept",
     "Impact": "Consequence",
-    "RiskControl": None,
 }
 
 # property -> (domain classes as declared in AIRO and present in the subset, range class)
@@ -72,8 +73,6 @@ PROPERTIES: dict[str, tuple[tuple[str, ...], str]] = {
     "hasImpact": (("Consequence",), "Impact"),
     "hasImpactOnArea": (("Impact",), "AreaOfImpact"),
     "hasImpactOnStakeholder": (("Impact",), "Stakeholder"),
-    "modifiesRiskConcept": (("RiskControl",), "RiskConcept"),
-    "isFollowedByControl": (("RiskControl",), "RiskControl"),
 }
 
 SUBCLASS_EDGES: list[tuple[str, str]] = [

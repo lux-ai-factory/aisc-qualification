@@ -51,8 +51,7 @@ def test_the_risk_rows_exercise_both_stakeholders_and_the_optional_fields(qualif
     assert {r["affected"] for r in rows} == {"operator", "user", "NaturalPerson"}
     assert any(r["vulnerability"] for r in rows)
     assert any(not r["vulnerability"] for r in rows)
-    assert any(r["followUpControl"] for r in rows)
-    assert any(not r["followUpControl"] for r in rows)
+    assert not any(k in r for r in rows for k in ("control", "controlTerm", "followUpControl", "followUpControlTerm"))
     assert all(r["impactAreas"] for r in rows)
 
 
@@ -173,7 +172,6 @@ def _classes_vair_can_type() -> set[str]:
         "RiskSource",
         "Consequence",
         "Impact",
-        "RiskControl",
         "AIOperator",
         "AIUser",
         "Risk",
@@ -200,7 +198,6 @@ def test_the_five_risks_each_form_a_complete_chain(graph):
         impact = next(iter(graph.objects(consequence, _a("hasImpact"))))
         assert list(graph.objects(impact, _a("hasImpactOnStakeholder")))
         assert list(graph.objects(impact, _a("hasImpactOnArea")))
-        assert list(graph.subjects(_a("modifiesRiskConcept"), risk))
 
 
 def test_the_committed_turtle_matches_what_the_builder_produces(graph):
@@ -227,15 +224,16 @@ def test_the_committed_jsonld_is_the_same_graph():
 # The example answers 1(f)
 
 
-def test_the_graph_is_456_triples_and_the_view_62_nodes(graph):
+def test_the_graph_is_402_triples_and_the_view_53_nodes(graph):
     """The form speaks VAIR: four VAIR capabilities and no "Other" locality (VAIR has none); the
     example's nine Components rows add five nodes in the view (the data and model rows hang off
-    their own properties); and nothing the form fills is left for an agent to type."""
+    their own properties); a risk has no measure node; and nothing the form fills is left for an
+    agent to type."""
     from airo_min.view import build_view
 
-    assert len(graph) == 456
+    assert len(graph) == 402
     view = build_view(graph)
-    assert view["counts"]["nodes"] == 62
+    assert view["counts"]["nodes"] == 53
     assert view["counts"]["needsTerm"] == 0
 
 
