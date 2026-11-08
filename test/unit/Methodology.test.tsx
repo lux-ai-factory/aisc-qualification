@@ -10,7 +10,7 @@ afterEach(cleanup);
 const facts: MethodologyFacts = {
   questions: 14,
   optionalQuestions: 4,
-  riskFields: 8,
+  riskFields: 7,
   pickers: { marketForm: 4, locality: 4, impactArea: 4, subject: 19, affected: 2 },
   schema: { classes: 19, properties: 19 },
   vocabulary: { classes: 19, terms: 331, typed: 14 },
@@ -18,6 +18,17 @@ const facts: MethodologyFacts = {
 
 const mount = (over: Partial<MethodologyFacts> = {}) =>
   render(<Methodology facts={{ ...facts, ...over }} />);
+
+describe("the methodology page's risk step", () => {
+  it("describes a risk without a measure against it", () => {
+    const { container } = mount();
+    const step = [...container.querySelectorAll("ol.method-steps > li")].find(
+      (li) => /Describe each risk as a chain/.test(li.textContent ?? ""),
+    )!;
+    expect(step.textContent).toContain("7 fields");
+    expect(step.textContent).not.toMatch(/control|follow-up|Art 9\(5\)|Art 14\(4\)\(e\)/i);
+  });
+});
 
 describe("the methodology page explains the filler workflow", () => {
   it("puts the loop inside the step that runs it, not after the procedure", () => {
