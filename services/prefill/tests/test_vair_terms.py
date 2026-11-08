@@ -38,10 +38,6 @@ Consequence term: ImpairedDecisionMaking
 Kind of harm: Unfavourable Treatment
 Affected: user
 Impact areas: Right, Right To Non-discrimination
-Control: Human review of every rejection
-Control term: Human Oversight Measure
-Follow-up control: Override with written justification
-Follow-up control term: Overriding Outcome
 """
 
 
@@ -52,10 +48,6 @@ def test_each_risk_field_s_term_is_read_beside_its_text():
     assert row["consequence"] == "A creditworthy applicant is refused"
     assert row["consequenceTerm"] == "ImpairedDecisionMaking"
     assert row["impactTerm"] == "UnfavourableTreatment"
-    assert row["control"] == "Human review of every rejection"
-    assert row["controlTerm"] == "HumanOversightMeasure"
-    assert row["followUpControl"] == "Override with written justification"
-    assert row["followUpControlTerm"] == "OverridingOutcome"
 
 
 def test_the_areas_are_vair_s_in_the_document_s_order():
@@ -76,5 +68,4 @@ def test_a_term_that_is_not_vair_s_is_left_open_and_the_text_kept():
 
 def test_a_row_without_terms_has_them_empty():
     [row] = risks_from_text("Risks\n\nRisk 1\nRisk: r\nSource: s\n")
-    assert all(row[f] == "" for f in ("sourceTerm", "consequenceTerm", "impactTerm", "controlTerm",
-                                      "followUpControlTerm"))
+    assert all(row[f] == "" for f in ("sourceTerm", "consequenceTerm", "impactTerm"))

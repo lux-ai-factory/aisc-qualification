@@ -1,18 +1,22 @@
 """The risk rows, question 15: one full risk chain per row.
 
 A document lists its risks under a Risks heading, one block per risk, each
-field on a labelled line: the labels are the usual words ("Risk:", "Source:",
-"Control:") or the form's own questions ("What could go wrong:"). Who and what
-is affected are matched to the form's vocabulary, and a word that matches
-neither is left for the person to choose rather than guessed.
+field on a labelled line: the labels are the usual words ("Risk:", "Source:")
+or the form's own questions ("What could go wrong:"). Who and what is affected
+are matched to the form's vocabulary, and a word that matches neither is left
+for the person to choose rather than guessed.
 
-Only the Risks section is read: "Control:" in the middle of an Annex answer is
+Only the Risks section is read: "Source:" in the middle of an Annex answer is
 prose, not a row.
 
-The form speaks VAIR: the cause, the result, the control and the
-follow-up each have one VAIR term beside their text ("Source term:"), the harm is
-a VAIR term alone ("Kind of harm:"), and the areas are VAIR's. A term is matched
-by its VAIR id or label (prefill.vair); a word that names none is left open.
+The form speaks VAIR: the cause and the result each have one VAIR term beside
+their text ("Source term:"), the harm is a VAIR term alone ("Kind of harm:"), and
+the areas are VAIR's. A term is matched by its VAIR id or label (prefill.vair); a
+word that names none is left open.
+
+The card asks no measure against a risk. A document may still write one under each
+risk; those lines are recognised and skipped, so their words are not read as more
+of the field above them.
 """
 from __future__ import annotations
 
@@ -49,22 +53,23 @@ def ends_risk_section(line: str) -> bool:
     )
 
 
-TEXT_FIELDS = ("risk", "source", "vulnerability", "consequence", "control", "followUpControl")
+TEXT_FIELDS = ("risk", "source", "vulnerability", "consequence")
 
 #: Each VAIR select of a row, and the class its terms come from.
 TERM_FIELDS: dict[str, str] = {
     "sourceTerm": "RiskSource",
     "consequenceTerm": "Consequence",
     "impactTerm": "Impact",
-    "controlTerm": "RiskControl",
-    "followUpControlTerm": "RiskControl",
 }
 
 #: A row's keys in the order the form lists its columns.
-_ROW_ORDER = (*TEXT_FIELDS[:4], "affected", "areas", *TEXT_FIELDS[4:], *TERM_FIELDS)
+_ROW_ORDER = (*TEXT_FIELDS, "affected", "areas", *TERM_FIELDS)
 
-#: Labels for each field. Matched longest first, so "follow-up control" is
-#: never read as "control".
+#: The lines a document may still write for a measure against the risk: read only to be skipped.
+_SKIPPED = "skipped"
+
+#: Labels for each field. Matched longest first, so "impact areas" is never read
+#: as "impact".
 _LABELS: dict[str, tuple[str, ...]] = {
     "risk": ("risk", "what could go wrong", "hazard"),
     "source": ("source", "cause", "risk source", "what causes it"),
@@ -72,22 +77,18 @@ _LABELS: dict[str, tuple[str, ...]] = {
     "consequence": ("consequence", "effect", "impact", "what happens as a result"),
     "affected": ("affected", "who is affected", "affected party", "affected parties"),
     "areas": ("impact areas", "impact area", "areas", "area of impact", "areas of impact", "what is affected"),
-    "control": ("control", "mitigation", "measure", "what you do about it"),
-    "followUpControl": (
-        "follow-up control",
-        "follow up control",
-        "followup control",
-        "follow-up",
-        "if that is not enough, what follows",
-        "if that is not enough",
-    ),
-    # the VAIR selects: matched longest first, so "control term" is never read as "control"
+    # the VAIR selects: matched longest first, so "source term" is never read as "source"
     "sourceTerm": ("source term", "cause term", "risk source term"),
     "consequenceTerm": ("consequence term",),
     "impactTerm": ("impact term", "kind of harm", "harm"),
-    "controlTerm": ("control term", "measure term"),
-    "followUpControlTerm": ("follow-up control term", "follow up control term", "followup control term",
-                            "follow-up term"),
+    # a measure and what follows it, with their terms, in the words documents use
+    _SKIPPED: (
+        "control", "mitigation", "measure", "what you do about it",
+        "follow-up control", "follow up control", "followup control", "follow-up",
+        "if that is not enough, what follows", "if that is not enough",
+        "control term", "measure term",
+        "follow-up control term", "follow up control term", "followup control term", "follow-up term",
+    ),
 }
 _BY_LABEL = sorted(
     ((label, field) for field, labels in _LABELS.items() for label in labels),
@@ -156,6 +157,8 @@ def _finish(raw: dict[str, list[str]]) -> dict | None:
     row = _empty_row()
     for field, parts in raw.items():
         value = re.sub(r"\s+", " ", " ".join(parts)).strip()
+        if field == _SKIPPED:
+            continue
         if field == "affected":
             row["affected"] = _affected(value)
         elif field == "areas":

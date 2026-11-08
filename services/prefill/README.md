@@ -85,10 +85,10 @@ configured:
       Consequence: A creditworthy applicant is refused
       Affected: Users                     -> user / operator
       Impact areas: Fundamental rights    -> health, safety, right, freedom
-      Control: A loan officer reviews every Reject
-      Follow-up control: The officer may override          (optional)
 
-  The form's own questions work as labels too ("What could go wrong:"). An
+  The form's own questions work as labels too ("What could go wrong:"). The card
+  asks no measure against a risk: a `Control:` or `Follow-up control:` line under
+  a risk is skipped, and its words are not added to the field above it. An
   "Affected" that names neither users nor the operator is left for the person
   to choose. The rows are one list: "empty" fills them only when no row has
   anything in it, "replace" swaps them for the document's.

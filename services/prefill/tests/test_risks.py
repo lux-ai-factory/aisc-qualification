@@ -52,15 +52,22 @@ class TestReadingRisks:
             "consequence": "A creditworthy applicant is refused.",
             "affected": "user",
             "areas": ["Right"],
-            "control": "A loan officer reviews every Reject.",
-            "followUpControl": "The officer may override.",
             # the VAIR selects: the document names no term, so each is left open
             "sourceTerm": "",
             "consequenceTerm": "",
             "impactTerm": "",
-            "controlTerm": "",
-            "followUpControlTerm": "",
         }
+
+    def test_a_measure_line_is_skipped_not_glued_to_the_field_above(self):
+        """The card asks no measure for a risk. A document that still writes one under each risk
+        does not lose the row, and the measure's words land in no other field."""
+        rows = risks_from_text(TWO_RISKS)
+        for row in rows:
+            for k in ("control", "controlTerm", "followUpControl", "followUpControlTerm"):
+                assert k not in row
+        text = " ".join(str(v) for row in rows for v in row.values())
+        assert "loan officer" not in text and "may override" not in text and "holdout" not in text
+        assert rows[1]["areas"] == ["Right", "Safety"]
 
     def test_areas_are_matched_to_the_vocabulary(self):
         # VAIR's areas; "Fundamental rights" is the older word for vair:Right
@@ -91,27 +98,23 @@ class TestReadingRisks:
             "What could go wrong: A shelf is flagged empty when it is full.\n"
             "What causes it: Poor lighting.\n"
             "What happens as a result: Staff check a full shelf.\n"
-            "What you do about it: Human confirmation.\n"
-            "If that is not enough, what follows: Retrain on low light.\n"
         )
         row = risks_from_text(text)[0]
         assert row["risk"] == "A shelf is flagged empty when it is full."
         assert row["source"] == "Poor lighting."
         assert row["consequence"] == "Staff check a full shelf."
-        assert row["control"] == "Human confirmation."
-        assert row["followUpControl"] == "Retrain on low light."
 
     def test_a_new_risk_line_starts_a_new_row_without_a_heading(self):
-        text = "Risks\nRisk: one\nControl: c1\n\nRisk: two\nControl: c2\n"
-        assert [(r["risk"], r["control"]) for r in risks_from_text(text)] == [("one", "c1"), ("two", "c2")]
+        text = "Risks\nRisk: one\nSource: s1\n\nRisk: two\nSource: s2\n"
+        assert [(r["risk"], r["source"]) for r in risks_from_text(text)] == [("one", "s1"), ("two", "s2")]
 
     def test_a_value_may_run_onto_the_lines_under_it(self):
         text = "Risks\nRisk: An applicant is\nwrongly ranked.\nSource: stale data\n"
         assert risks_from_text(text)[0]["risk"] == "An applicant is wrongly ranked."
 
     def test_no_risks_heading_means_no_risks(self):
-        """Labels like Source: or Control: elsewhere in a document are prose."""
-        assert risks_from_text("Annex IV(1)(a)\nRisk: this is prose\nControl: also prose\n") == []
+        """Labels like Risk: or Source: elsewhere in a document are prose."""
+        assert risks_from_text("Annex IV(1)(a)\nRisk: this is prose\nSource: also prose\n") == []
 
     def test_a_block_that_says_nothing_is_not_a_row(self):
         assert risks_from_text("Risks\n\n### Risk 1\n\n### Risk 2\nRisk: real\n") == [
@@ -122,13 +125,9 @@ class TestReadingRisks:
                 "consequence": "",
                 "affected": "",
                 "areas": [],
-                "control": "",
-                "followUpControl": "",
                 "sourceTerm": "",
                 "consequenceTerm": "",
                 "impactTerm": "",
-                "controlTerm": "",
-                "followUpControlTerm": "",
             }
         ]
 
@@ -165,7 +164,7 @@ class TestMergingRisks:
 # has no '#' headings, so without this every line after "Risks" was a risk line.
 AFTER_THE_RISKS = """Risks
 Risk: Biased scoring
-Control: Human review of every refusal
+Source: Proxy features
 
 Annex IV(2)(b)
 Measure: the model is retrained every month on fresh data.
@@ -179,9 +178,9 @@ def test_an_annex_heading_ends_the_risk_section(annex):
     rows = risks_from_text(AFTER_THE_RISKS.replace("Annex IV(2)(b)", annex))
     assert len(rows) == 1
     assert rows[0]["risk"] == "Biased scoring"
-    assert rows[0]["control"] == "Human review of every refusal"
+    assert rows[0]["source"] == "Proxy features"
 
 
 def test_an_annex_iv_5_heading_still_opens_it():
-    rows = risks_from_text("Annex IV(2)(b)\nSome design text.\n\nAnnex IV(5) Risk management\nRisk: Drift\nControl: Monitoring\n")
-    assert [(r["risk"], r["control"]) for r in rows] == [("Drift", "Monitoring")]
+    rows = risks_from_text("Annex IV(2)(b)\nSome design text.\n\nAnnex IV(5) Risk management\nRisk: Drift\nSource: Seasonality\n")
+    assert [(r["risk"], r["source"]) for r in rows] == [("Drift", "Seasonality")]
