@@ -143,8 +143,6 @@ function Chain({
             ))}
           </div>
         )}
-        {step("controlled by", chain.control)}
-        {step("then", chain.followUp)}
       </div>
     </div>
   );

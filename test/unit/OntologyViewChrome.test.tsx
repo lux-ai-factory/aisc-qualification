@@ -50,8 +50,6 @@ const view: View = {
       ),
       impact: node("risk0_impact", "Economic harm", "Impact"),
       stakeholder: node("user", "Applicants", "AIUser"),
-      control: node("risk0_control", "Officer review", "RiskControl"),
-      followUp: null,
       areas: [],
     },
   ],

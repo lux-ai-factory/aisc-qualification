@@ -38,8 +38,6 @@ const view: View = {
       consequence: null,
       impact: null,
       stakeholder: null,
-      control: null,
-      followUp: null,
       areas: [],
     },
   ],

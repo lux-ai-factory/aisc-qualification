@@ -5,8 +5,7 @@
 // locality to its left, components below, and the operators and users to its
 // right, with the areas of impact in its lower right. The lower one holds the
 // risk chain running left to right, source -> risk -> consequence -> impact,
-// with the vulnerability under its source and the controls beneath the risk;
-// once per risk row. hasImpactOnArea and hasImpactOnStakeholder cross back up
+// with the vulnerability under its source; once per risk row. hasImpactOnArea and hasImpactOnStakeholder cross back up
 // into the upper band, giving the figure its shape.
 //
 // Groups start collapsed as hubs so the first view is a dozen boxes, not sixty.
@@ -85,8 +84,6 @@ const CHAIN_SLOTS = {
   consequence: { col: 1.6, row: 0 },
   impact: { col: 3.2, row: 0 },
   vulnerability: { col: -2, row: 1 },
-  control: { col: 0, row: 1 },
-  followUp: { col: 1.6, row: 1 },
 };
 /** An open chain needs two rows plus breathing room; a collapsed risk is one
  * box and takes one row. Reserving the full height for every risk would make a
@@ -252,8 +249,6 @@ export function layoutFigure(
       chain.consequence,
       chain.impact,
       chain.stakeholder,
-      chain.control,
-      chain.followUp,
       ...chain.areas,
     ].filter((n): n is OntologyNode => Boolean(n));
     const open = expanded.has(chain.risk.id);
@@ -304,14 +299,6 @@ export function layoutFigure(
           put(airo(area, at(AREA_SLOT.col + i * 0.9, AREA_SLOT.row), "system"));
           connect(chain.impact!.id, area.id, "hasImpactOnArea");
         });
-      }
-    }
-    if (chain.control) {
-      put(airo(chain.control, slot(CHAIN_SLOTS.control), "risk"));
-      connect(chain.control.id, chain.risk.id, "modifiesRiskConcept");
-      if (chain.followUp) {
-        put(airo(chain.followUp, slot(CHAIN_SLOTS.followUp), "risk"));
-        connect(chain.control.id, chain.followUp.id, "isFollowedByControl");
       }
     }
   });

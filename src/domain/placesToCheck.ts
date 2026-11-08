@@ -18,8 +18,6 @@ export function placesToCheck(view: OntologyView): number {
       c.impact,
       c.stakeholder,
       ...c.areas,
-      c.control,
-      c.followUp,
     );
   }
   const noted = new Set<string>();

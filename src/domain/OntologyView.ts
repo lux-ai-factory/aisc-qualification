@@ -49,7 +49,7 @@ export type OntologyRow = {
   nodes: OntologyNode[];
 };
 
-/** One risk, as AIRO's chain: source and weakness through to impact and controls. */
+/** One risk, as AIRO's chain: source and weakness through to impact, and who and what it affects. */
 export type OntologyChain = {
   risk: OntologyNode;
   source: OntologyNode | null;
@@ -58,8 +58,6 @@ export type OntologyChain = {
   impact: OntologyNode | null;
   stakeholder: OntologyNode | null;
   areas: OntologyNode[];
-  control: OntologyNode | null;
-  followUp: OntologyNode | null;
   citation: string;
 };
 
@@ -160,8 +158,6 @@ export function findNode(view: OntologyView, id: string | null): OntologyNode | 
       "consequence",
       "impact",
       "stakeholder",
-      "control",
-      "followUp",
     ] as const) {
       const candidate = chain[key];
       if (candidate && candidate.id === id) return candidate;

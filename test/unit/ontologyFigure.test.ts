@@ -61,8 +61,6 @@ function view(): OntologyView {
       impact: node(`risk${k}_imp`, "Impact"),
       stakeholder: users,
       areas: [node("area_right", "AreaOfImpact")],
-      control: node(`risk${k}_ctrl`, "RiskControl"),
-      followUp: k === 0 ? node(`risk${k}_follow`, "RiskControl") : null,
       citation: "c",
     })),
     counts: {
@@ -162,17 +160,25 @@ describe("layoutFigure, the two bands of AIRO Figure 3", () => {
     expect(at(l, "risk0_vuln").y).toBeGreaterThan(at(l, "risk0_source").y);
   });
 
-  it("puts the control below the risk, and its follow-up beside it", () => {
-    const l = layoutFigure(view(), new Set(["risk0"]));
-    expect(at(l, "risk0_ctrl").y).toBeGreaterThan(at(l, "risk0").y);
-    expect(at(l, "risk0_follow").x).toBeGreaterThan(at(l, "risk0_ctrl").x);
-    expect(at(l, "risk0_follow").y).toBe(at(l, "risk0_ctrl").y);
+  it("draws no measure, even from an older view whose chain still names one", () => {
+    const old = view();
+    Object.assign(old.chains[0], {
+      control: node("risk0_ctrl", "RiskControl"),
+      followUp: node("risk0_follow", "RiskControl"),
+    });
+    const l = layoutFigure(old, new Set(["risk0"]));
+    expect(l.nodes.map((n) => n.id)).not.toContain("risk0_ctrl");
+    expect(l.nodes.map((n) => n.id)).not.toContain("risk0_follow");
+    expect(l.edges.map((e) => e.label)).not.toContain("modifiesRiskConcept");
+    expect(l.edges.map((e) => e.label)).not.toContain("isFollowedByControl");
+    const closed = layoutFigure(old, new Set());
+    expect(closed.nodes.find((n) => n.id === "risk0")!.data.childCount).toBe(5);
   });
 
   it("stacks one row per risk", () => {
     const l = layoutFigure(view(), new Set(["risk0", "risk1"]));
     expect(at(l, "risk1").y).toBeGreaterThan(at(l, "risk0").y);
-    expect(at(l, "risk1_source").y).toBeGreaterThan(at(l, "risk0_ctrl").y);
+    expect(at(l, "risk1_source").y).toBeGreaterThan(at(l, "risk0_vuln").y);
   });
 
   // The edges that cross between the bands
@@ -213,10 +219,6 @@ describe("layoutFigure, the two bands of AIRO Figure 3", () => {
     expect(find("hasConsequence")).toMatchObject({
       source: "risk0",
       target: "risk0_cons",
-    });
-    expect(find("modifiesRiskConcept")).toMatchObject({
-      source: "risk0_ctrl",
-      target: "risk0",
     });
     expect(find("hasRisk")).toMatchObject({
       source: "system",
@@ -260,10 +262,10 @@ describe("layoutFigure, the two bands of AIRO Figure 3", () => {
     expect(hub.type).toBe("hub");
     expect(hub.data.hub).toMatchObject({ label: "Capabilities", count: 2 });
     const risk = l.nodes.find((n) => n.id === "risk0")!;
-    // source, vulnerability, consequence, impact, area, control, follow-up.
+    // source, vulnerability, consequence, impact, area.
     // The stakeholder is the upper band's user node, already on screen, so it
     // is not promised: see the expander-count tests below.
-    expect(risk.data.childCount).toBe(7);
+    expect(risk.data.childCount).toBe(5);
   });
 
   it("never overlaps two node boxes, fully expanded", () => {
@@ -317,10 +319,10 @@ describe("the expander count promises only what a click reveals", () => {
   it("excludes a stakeholder that is already on screen in the upper band", () => {
     const l = layoutFigure(view(), new Set());
     const risk0 = l.nodes.find((n) => n.id === "risk0")!;
-    // the chain is source, vulnerability, consequence, impact, stakeholder,
-    // control, follow-up + 1 area = 8, but the user node is the hasAIUser slot
-    // and is already visible, so a click adds 7
-    expect(risk0.data.childCount).toBe(7);
+    // the chain is source, vulnerability, consequence, impact, stakeholder
+    // + 1 area = 6, but the user node is the hasAIUser slot and is already
+    // visible, so a click adds 5
+    expect(risk0.data.childCount).toBe(5);
   });
 
   it("drops further once another risk has already revealed a shared area", () => {

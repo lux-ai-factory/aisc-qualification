@@ -73,8 +73,6 @@ class OntologyChain(BaseModel):
     impact: Optional[OntologyNode] = None
     stakeholder: Optional[OntologyNode] = None
     areas: List[OntologyNode] = Field(default_factory=list)
-    control: Optional[OntologyNode] = None
-    followUp: Optional[OntologyNode] = None
     citation: str = ""
 
 

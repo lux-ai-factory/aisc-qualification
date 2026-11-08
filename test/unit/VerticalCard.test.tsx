@@ -39,8 +39,6 @@ const view: OntologyView = {
       ),
       impact: node("risk0_impact", "Economic harm", "Impact"),
       stakeholder: node("user", "Applicants", "AIUser"),
-      control: node("risk0_control", "Officer review", "RiskControl"),
-      followUp: null,
       areas: [node("area_right", "Fundamental rights", "ImpactOnArea")],
     },
   ],
@@ -81,7 +79,19 @@ describe("the vertical AI card", () => {
     expect(
       screen.getByText("A creditworthy applicant is rejected"),
     ).toBeTruthy();
-    expect(screen.getByText("Officer review")).toBeTruthy();
+    expect(screen.getByText("Loss of credit access")).toBeTruthy();
+  });
+
+  it("shows no measure, even from an older view whose chain still names one", () => {
+    const old = structuredClone(view);
+    Object.assign(old.chains[0], {
+      control: node("risk0_control", "Officer review", "RiskControl"),
+      followUp: node("risk0_control_followup", "Override", "RiskControl"),
+    });
+    mount({ view: old });
+    expect(screen.queryByText("Officer review")).toBeNull();
+    expect(screen.queryByText("Override")).toBeNull();
+    expect(screen.queryByText("controlled by")).toBeNull();
   });
 });
 

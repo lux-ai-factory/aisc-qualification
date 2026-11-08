@@ -8,7 +8,7 @@ const valid = {
   ],
   components: [{ label: "Scoring model", vair: "Model" }],
   names: { risk0_source: "Postcode proxies" },
-  types: { risk0_control: "ManualControl" },
+  types: { risk0_source: "ErroneousInputData" },
   flags: { technique1: ["ungrounded"] },
 };
 
@@ -52,18 +52,18 @@ describe("the payload a filler agent publishes", () => {
 
   it("accepts a note with its reason, its quote and the text it was written for", () => {
     const notes = {
-      risk0_control: [
+      risk0_source: [
         {
           why: "the answer names a hosted LLM",
           quote: "a hosted third-party LLM",
-          of: "Manual review",
+          of: "Thin bureau data",
         },
       ],
     };
     const result = parseExtracted({
       ...valid,
       notes,
-      flags: { risk0_control: ["inconsistent"] },
+      flags: { risk0_source: ["inconsistent"] },
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;

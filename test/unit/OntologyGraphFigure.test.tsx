@@ -51,8 +51,6 @@ function view(): OntologyView {
         impact: n("risk0_impact", "Impact"),
         stakeholder: n("users", "AIUser"),
         areas: [n("area_right", "AreaOfImpact")],
-        control: n("risk0_control", "RiskControl"),
-        followUp: null,
         citation: "Art 9(2)",
       },
     ],
@@ -116,7 +114,7 @@ describe("OntologyGraph, Figure 3 bands and collapsible groups", () => {
   it("reveals a risk's chain once the risk is expanded", () => {
     const { container } = mount(new Set(["risk0"]));
     expect(container.textContent).toContain("risk0_source");
-    expect(container.textContent).toContain("risk0_control");
+    expect(container.textContent).toContain("risk0_consequence");
   });
 
   it("asks the page to toggle when a hub is clicked", () => {

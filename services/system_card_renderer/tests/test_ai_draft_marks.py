@@ -30,7 +30,7 @@ def _with_ai_draft() -> dict:
             ],
         }
     )
-    payload["ontology"]["chains"][0]["control"]["flags"] = ["inconsistent"]
+    payload["ontology"]["chains"][0]["consequence"]["flags"] = ["inconsistent"]
     payload["ontology"]["counts"]["flagged"] = 2
     return payload
 
@@ -47,7 +47,7 @@ def test_open_flags_and_their_notes_are_printed():
     assert "The answer names no such solver." in html
     assert "gradient-boosted tree" in html
     # a chain node's flag too, with the web card's label for it
-    assert "check" in html.split("Officer review of rejections", 1)[1][:300]
+    assert "check" in html.split("The applicant loses credit access", 1)[1][:300]
 
 
 def test_the_count_of_flagged_items_is_printed():

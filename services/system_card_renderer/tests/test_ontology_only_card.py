@@ -68,7 +68,6 @@ ONTOLOGY_ONLY = {
                 "consequence": node(
                     "risk0_consequence", "The applicant loses credit access", "Consequence"
                 ),
-                "control": node("risk0_control", "Officer review of rejections", "RiskControl"),
                 "areas": [node("area_right", "Fundamental rights", "ImpactOnArea")],
             }
         ],
@@ -87,11 +86,22 @@ def test_a_card_without_prose_is_a_valid_card():
 def test_the_ontology_sections_render():
     html = render(ONTOLOGY_ONLY)
     assert "A creditworthy applicant is rejected" in html
-    assert "Officer review of rejections" in html
+    assert "The applicant loses credit access" in html
     assert "Score loan applications" in html
     # the metadata the form supplies, not the prose
     assert "Creditum AI SARL" in html
     assert "Pre-screening consumer loans." in html
+
+
+def test_a_risk_shows_no_measure_even_from_an_older_view_that_names_one():
+    payload = copy.deepcopy(ONTOLOGY_ONLY)
+    chain = payload["ontology"]["chains"][0]
+    chain["control"] = node("risk0_control", "Officer review of rejections", "RiskControl")
+    chain["followUp"] = node("risk0_control_followup", "Override with a justification", "RiskControl")
+    html = render(payload)
+    assert "Officer review of rejections" not in html
+    assert "Override with a justification" not in html
+    assert "<th>Control</th>" not in html and "If insufficient" not in html
 
 
 def test_no_empty_overview_paragraph_when_there_is_no_prose():
@@ -197,7 +207,7 @@ def _drafted(view: dict, ids: set) -> dict:
             if n["id"] in ids:
                 n["nameDrafted"] = True
     for chain in view["chains"]:
-        for slot in ("risk", "source", "control"):
+        for slot in ("risk", "source", "consequence"):
             if chain.get(slot) and chain[slot]["id"] in ids:
                 chain[slot]["nameDrafted"] = True
     return view

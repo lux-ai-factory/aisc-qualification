@@ -4,7 +4,7 @@ import type { OntologyNode, OntologyView } from "@/domain/OntologyView";
 
 // What the next card version takes from the card before it: the reviewer's corrections
 // where their item is the same item, and the Refine with AI draft when nothing it was
-// read from has changed. Node ids are positional (`risk0_control`), so an id alone
+// read from has changed. Node ids are positional (`risk0_source`), so an id alone
 // does not say it is the same item: removing the first risk moves every other one up.
 
 function node(id: string, over: Partial<OntologyNode> = {}): OntologyNode {

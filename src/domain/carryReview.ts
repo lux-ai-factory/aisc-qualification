@@ -13,7 +13,7 @@ import {
  * would otherwise stay there: the reviewer's corrections and the Refine with AI
  * draft. They come along where they still describe the same thing.
  *
- * A correction is keyed by node id, and node ids are positional (`risk0_control`):
+ * A correction is keyed by node id, and node ids are positional (`risk0_source`):
  * remove the first risk and every other risk moves up one id. So a correction comes
  * along only when its node in the next card is the same item: the same AIRO class
  * and the same generated text. Anything else stays behind, on the version it was

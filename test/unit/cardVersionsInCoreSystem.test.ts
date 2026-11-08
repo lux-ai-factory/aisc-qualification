@@ -306,8 +306,6 @@ describe("save = next version (QualificationService.createFromForm)", () => {
           consequence: "c",
           affected: "user",
           impactAreas: [],
-          control: "k",
-          followUpControl: null,
         },
         {
           position: 0,
@@ -317,8 +315,6 @@ describe("save = next version (QualificationService.createFromForm)", () => {
           consequence: "c",
           affected: "user",
           impactAreas: [],
-          control: "k",
-          followUpControl: null,
         },
       ],
     };

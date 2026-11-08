@@ -51,8 +51,6 @@ const view = {
       impact: null,
       stakeholder: null,
       areas: [],
-      control: node("risk2_control", "Override rates tracked", "RiskControl"),
-      followUp: null,
     },
   ],
   counts: {
@@ -100,7 +98,7 @@ describe("the AI card as JSON", () => {
     expect(ontology.chains[0].risk.label).toBe(
       "Officers rubber-stamp the recommendation",
     );
-    expect(ontology.chains[0].control?.label).toBe("Override rates tracked");
+    expect(ontology.chains[0].source?.label).toBe("Automation bias");
   });
 
   it("keeps the Annex IV answers verbatim", () => {

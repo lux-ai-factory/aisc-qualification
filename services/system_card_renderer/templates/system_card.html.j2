@@ -142,8 +142,6 @@
     {% if c.vulnerability %}<tr><th>Exploiting</th><td>{{ named(c.vulnerability) }}</td></tr>{% endif %}
     {% if c.consequence %}<tr><th>Leading to</th><td>{{ named(c.consequence) }}</td></tr>{% endif %}
     {% if c.stakeholder %}<tr><th>Affecting</th><td>{{ named(c.stakeholder) }}{% if c.areas %}; areas: {% for a in c.areas %}{{ named(a) }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</td></tr>{% endif %}
-    {% if c.control %}<tr><th>Control</th><td>{{ named(c.control) }}</td></tr>{% endif %}
-    {% if c.followUp %}<tr><th>If insufficient</th><td>{{ named(c.followUp) }}</td></tr>{% endif %}
   </table>
   {% endfor %}
 

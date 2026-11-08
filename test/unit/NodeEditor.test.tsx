@@ -7,18 +7,18 @@ import type { OntologyNode } from "@/domain/OntologyView";
 afterEach(cleanup);
 
 const node = (over: Partial<OntologyNode> = {}): OntologyNode => ({
-  id: "risk0_control",
-  label: "Officer review of every Reject",
-  cls: "RiskControl",
-  vair: "ManualControl",
+  id: "risk0_source",
+  label: "Thin bureau data",
+  cls: "RiskSource",
+  vair: "Attack",
   fullText:
-    "Every Reject and every Review case goes to a trained loan officer before any decision reaches the applicant.",
+    "Credit bureau coverage is incomplete or stale for that applicant, so the model scores them on thin data.",
   provenance: "form",
   ...over,
 });
 
 const VOCAB = {
-  RiskControl: ["ManualControl", "MitigationMeasure", "MonitoringMeasure"],
+  RiskSource: ["Attack", "DataPoisoning", "ErroneousInputData"],
   Risk: [],
   AIOperator: ["PublicAuthority", "EUAgency"],
 };
@@ -49,16 +49,16 @@ describe("NodeEditor as a pop-up", () => {
 
   it("shows the node's class and its vocabulary term", () => {
     mount();
-    expect(screen.getByText("RiskControl")).toBeTruthy();
+    expect(screen.getByText("RiskSource")).toBeTruthy();
     expect(
       (screen.getByLabelText(/vocabulary term/i) as HTMLSelectElement).value,
-    ).toBe("ManualControl");
+    ).toBe("Attack");
   });
 
   it("shows the full source text, which the chip can only truncate", () => {
     mount();
     expect(
-      screen.getByText(/before any decision reaches the applicant/),
+      screen.getByText(/so the model scores them on thin data/),
     ).toBeTruthy();
   });
 
@@ -69,9 +69,9 @@ describe("NodeEditor as a pop-up", () => {
     );
     expect(options).toEqual([
       "none",
-      "ManualControl",
-      "MitigationMeasure",
-      "MonitoringMeasure",
+      "Attack",
+      "DataPoisoning",
+      "ErroneousInputData",
     ]);
   });
 
@@ -89,18 +89,18 @@ describe("NodeEditor as a pop-up", () => {
     // fireEvent, not input.value = ...: React tracks the value itself, so a raw
     // assignment never reaches state.
     fireEvent.change(panel.querySelector('input[name="label"]')!, {
-      target: { value: "Officer review of rejections" },
+      target: { value: "Stale bureau data" },
     });
     fireEvent.change(panel.querySelector("select")!, {
-      target: { value: "MitigationMeasure" },
+      target: { value: "DataPoisoning" },
     });
     (panel.querySelector('[data-testid="save"]') as HTMLElement).click();
     // termNotApplicable travels with every save for a class that has terms, so
     // unticking it is as recordable as ticking it.
     expect(onSave).toHaveBeenCalledWith({
-      label: "Officer review of rejections",
+      label: "Stale bureau data",
       termNotApplicable: false,
-      vair: "MitigationMeasure",
+      vair: "DataPoisoning",
     });
   });
 
@@ -149,7 +149,7 @@ describe("NodeEditor as a pop-up", () => {
     const { panel } = mount({
       provenance: "reviewed",
       generatedLabel: "Mandatory officer review before any decision",
-      reviewNote: "shortened to the control itself",
+      reviewNote: "shortened to the cause itself",
     });
     expect(
       screen.getByText("Mandatory officer review before any decision"),
@@ -157,7 +157,7 @@ describe("NodeEditor as a pop-up", () => {
     expect(
       (panel.querySelector('input[value*="shortened"]') as HTMLInputElement)
         ?.value ?? "",
-    ).toContain("shortened to the control itself");
+    ).toContain("shortened to the cause itself");
     expect(screen.getByText("reviewed")).toBeTruthy();
   });
 
@@ -199,7 +199,7 @@ describe("NodeEditor as a pop-up", () => {
     );
     (panel.querySelector('[data-testid="save"]') as HTMLElement).click();
     expect(onSave).toHaveBeenCalledWith({
-      label: "Officer review of every Reject",
+      label: "Thin bureau data",
       termNotApplicable: true,
       vair: null,
     });
@@ -234,7 +234,7 @@ describe("NodeEditor as a pop-up", () => {
     });
     (panel.querySelector('[data-testid="save"]') as HTMLElement).click();
     expect(onSave).toHaveBeenCalledWith({
-      label: "Officer review of every Reject",
+      label: "Thin bureau data",
       vair: "PublicAuthority",
     });
   });
@@ -270,7 +270,7 @@ describe("NodeEditor as a pop-up", () => {
     );
     (panel.querySelector('[data-testid="save"]') as HTMLElement).click();
     expect(props.onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ label: "Officer review of every Reject" }),
+      expect.objectContaining({ label: "Thin bureau data" }),
     );
   });
 
