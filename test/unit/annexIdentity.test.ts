@@ -19,8 +19,8 @@ type Q = Record<string, unknown>;
 const before = () => JSON.parse(readFileSync(FIXTURE, "utf8"));
 
 // The form speaks VAIR: the export carries the VAIR terms the author chose instead of resolved
-// tags. That is the one other change
-// to these bytes, and its values come from the ontology's own MCAS fixture, not from the exporter.
+// tags, and its values come from the ontology's own MCAS fixture, not from the exporter. The other
+// change to these bytes: a risk no longer carries the provider's measure or its follow-up.
 const VAIR_EXAMPLE = JSON.parse(
   readFileSync("services/ontology/examples/mcas.qualification.json", "utf8"),
 );
@@ -28,8 +28,6 @@ const RISK_TERMS = [
   "sourceTerm",
   "consequenceTerm",
   "impactTerm",
-  "controlTerm",
-  "followUpControlTerm",
 ];
 
 function inVair(x: Q): Q {
@@ -73,10 +71,6 @@ function inVair(x: Q): Q {
         impactTerm: terms.impactTerm,
         affected: terms.affected,
         impactAreas: terms.impactAreas,
-        control: r.control,
-        controlTerm: terms.controlTerm,
-        followUpControl: r.followUpControl,
-        followUpControlTerm: terms.followUpControlTerm,
       };
     }),
     form: x.form,

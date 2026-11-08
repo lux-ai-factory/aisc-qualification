@@ -74,8 +74,6 @@ describe("cardAsFormStart", () => {
         consequence: "Refused credit",
         affected: "user",
         impactAreas: ["right"],
-        control: "Officer review",
-        followUpControl: null,
       },
       {
         position: 0,
@@ -85,8 +83,6 @@ describe("cardAsFormStart", () => {
         consequence: "Unequal refusals",
         affected: "user",
         impactAreas: ["right", "freedom"],
-        control: "Fairness test",
-        followUpControl: "Quarterly audit",
       },
     ],
   };
@@ -130,15 +126,29 @@ describe("cardAsFormStart", () => {
       consequence: "Refused credit",
       affected: "user",
       areas: ["right"],
-      control: "Officer review",
-      followUpControl: "",
       // a card saved before the form spoke VAIR has no terms: the selects start empty
       sourceTerm: "",
       consequenceTerm: "",
       impactTerm: "",
-      controlTerm: "",
-      followUpControlTerm: "",
     });
+  });
+
+  it("does not carry a measure saved on an older card into the next version", () => {
+    const saved = {
+      ...card.risks[0],
+      control: "Officer review",
+      controlTerm: "HumanOversightMeasure",
+      followUpControl: "Quarterly audit",
+      followUpControlTerm: "Intervention",
+    };
+    const [risk] = cardAsFormStart({ ...card, risks: [saved] }).risks;
+    for (const k of [
+      "control",
+      "controlTerm",
+      "followUpControl",
+      "followUpControlTerm",
+    ])
+      expect(risk).not.toHaveProperty(k);
   });
 });
 

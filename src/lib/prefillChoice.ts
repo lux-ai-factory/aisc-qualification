@@ -110,14 +110,10 @@ function emptyRisk(): RiskExample {
     consequence: "",
     affected: "",
     areas: [],
-    control: "",
-    followUpControl: "",
     // the VAIR term selects beside the text fields
     sourceTerm: "",
     consequenceTerm: "",
     impactTerm: "",
-    controlTerm: "",
-    followUpControlTerm: "",
   };
 }
 

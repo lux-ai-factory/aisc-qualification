@@ -205,10 +205,6 @@ export default async function QualificationDetailPage({
             impactTerm: r.impactTerm,
             affected: r.affected,
             impactAreas: r.impactAreas,
-            control: r.control,
-            controlTerm: r.controlTerm,
-            followUpControl: r.followUpControl,
-            followUpControlTerm: r.followUpControlTerm,
           })),
         })}
         nav={

@@ -31,11 +31,9 @@ function addRisk(
     source: "Poor lighting or occlusion",
     consequence: "Staff sent to a full shelf",
     affected: "user",
-    control: "Confidence threshold and human confirmation",
     // the VAIR selects that are required
     sourceTerm: "ErroneousInputData",
     impactTerm: "Harm",
-    controlTerm: "HumanOversightMeasure",
     ...over,
   };
   for (const [k, val] of Object.entries(v)) fd.set(`risk:${i}:${k}`, val);
@@ -187,8 +185,6 @@ describe("QualificationFormParser", () => {
     addRisk(fd, 1, {
       risk: "Data poisoning",
       vulnerability: "Unsigned training pipeline",
-      followUpControl: "Roll back to previous model",
-      followUpControlTerm: "Intervention",
     });
     const parser = new QualificationFormParser();
     const { risks } = parser.parse(fd);
@@ -197,7 +193,6 @@ describe("QualificationFormParser", () => {
       position: 0,
       risk: "Wrong out-of-stock alert",
       vulnerability: null,
-      followUpControl: null,
       affected: "user",
       impactAreas: ["Safety"],
     });
@@ -205,14 +200,28 @@ describe("QualificationFormParser", () => {
       position: 1,
       risk: "Data poisoning",
       vulnerability: "Unsigned training pipeline",
-      followUpControl: "Roll back to previous model",
-      followUpControlTerm: "Intervention",
     });
+  });
+
+  it("asks no measure for a risk: a row is complete without one, and a posted one is not kept", () => {
+    const fd = fullySubmittable();
+    fd.set("risk:0:control", "Human review");
+    fd.set("risk:0:controlTerm", "NotAVairTerm");
+    fd.set("risk:0:followUpControl", "Roll back");
+    fd.set("risk:0:followUpControlTerm", "");
+    const [row] = new QualificationFormParser().parse(fd).risks;
+    for (const k of [
+      "control",
+      "controlTerm",
+      "followUpControl",
+      "followUpControlTerm",
+    ])
+      expect(row).not.toHaveProperty(k);
   });
 
   it("skips a completely empty trailing row", () => {
     const fd = fullySubmittable();
-    for (const k of ["risk", "source", "consequence", "control"])
+    for (const k of ["risk", "source", "consequence"])
       fd.set(`risk:1:${k}`, "");
     const parser = new QualificationFormParser();
     expect(parser.parse(fd).risks).toHaveLength(1);

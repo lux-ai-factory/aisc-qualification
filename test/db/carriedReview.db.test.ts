@@ -106,10 +106,6 @@ describe.skipIf(!enabled)("the next card's content, before it is stored", () => 
         impactTerm: null,
         affected: "a",
         impactAreas: [],
-        control: "k",
-        controlTerm: null,
-        followUpControl: "",
-        followUpControlTerm: null,
       })),
       systemComponents: [1, 0].map((position) => ({
         position,

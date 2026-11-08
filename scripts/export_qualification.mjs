@@ -97,10 +97,6 @@ async function main() {
       impactTerm: r.impactTerm,
       affected: r.affected,
       impactAreas: r.impactAreas,
-      control: r.control,
-      controlTerm: r.controlTerm,
-      followUpControl: r.followUpControl,
-      followUpControlTerm: r.followUpControlTerm,
     })),
     ...(q.systemComponents.length
       ? {

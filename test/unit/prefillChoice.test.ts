@@ -72,8 +72,10 @@ describe("the risk rows the form holds now", () => {
       risk: "wrongly refused",
       affected: "user",
       areas: ["right", "safety"],
-      control: "",
+      consequence: "",
     });
+    expect(rows[0]).not.toHaveProperty("control");
+    expect(rows[0]).not.toHaveProperty("followUpControl");
     expect(rows[1].risk).toBe("drift");
   });
 

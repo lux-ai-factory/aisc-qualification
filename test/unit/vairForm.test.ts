@@ -12,7 +12,6 @@ import {
   LOCALITIES,
   MODALITIES,
   PURPOSES,
-  RISK_CONTROLS,
   RISK_SOURCES,
   SYSTEM_TYPES,
   isVairTerm,
@@ -43,7 +42,6 @@ describe("the VAIR lists come from the generated file, whole", () => {
     ["Consequence", CONSEQUENCES],
     ["Impact", IMPACTS],
     ["AreaOfImpact", IMPACT_AREAS],
-    ["RiskControl", RISK_CONTROLS],
   ] as const)("%s", (cls, list) => {
     const expected = (
       vocab.classes as Record<string, { id: string; label: string }[]>
@@ -142,8 +140,6 @@ function submittable(): FormData {
     consequenceTerm: "ImpairedDecisionMaking",
     impactTerm: "UnfavourableTreatment",
     affected: "user",
-    control: "Human review of every rejection",
-    controlTerm: "HumanOversightMeasure",
   };
   for (const [k, v] of Object.entries(risk)) fd.set(`risk:0:${k}`, v);
   fd.append("risk:0:area", "Right");
@@ -199,9 +195,6 @@ describe("the parser takes VAIR terms and nothing else where VAIR has the concep
       sourceTerm: "ErroneousInputData",
       consequenceTerm: "ImpairedDecisionMaking",
       impactTerm: "UnfavourableTreatment",
-      controlTerm: "HumanOversightMeasure",
-      followUpControl: null,
-      followUpControlTerm: null,
       impactAreas: ["Right"],
     });
     expect(p.systemComponents[0]).toMatchObject({
@@ -259,7 +252,6 @@ describe("the parser takes VAIR terms and nothing else where VAIR has the concep
   it.each([
     ["sourceTerm", /What causes it: pick its term/],
     ["impactTerm", /harm: pick its term/i],
-    ["controlTerm", /What you do about it: pick its term/],
   ])("requires %s, where VAIR always has a term", (field, message) => {
     const fd = submittable();
     fd.delete(`risk:0:${field}`);
@@ -272,21 +264,10 @@ describe("the parser takes VAIR terms and nothing else where VAIR has the concep
     expect(parse(fd).risks[0].consequenceTerm).toBeNull();
   });
 
-  it("asks for the follow-up's term exactly when there is a follow-up", () => {
-    const fd = submittable();
-    fd.set("risk:0:followUpControl", "Override with written justification");
-    expect(() => parse(fd)).toThrow(
-      /If that is not enough, what follows: pick its term/,
-    );
-    fd.set("risk:0:followUpControlTerm", "OverridingOutcome");
-    expect(parse(fd).risks[0].followUpControlTerm).toBe("OverridingOutcome");
-  });
-
   it.each([
     ["sourceTerm", "Harm"],
     ["consequenceTerm", "Harm"],
     ["impactTerm", "Bias"],
-    ["controlTerm", "DataPoisoning"],
   ])("refuses a %s of another class (%s)", (field, value) => {
     const fd = submittable();
     fd.set(`risk:0:${field}`, value);
@@ -365,10 +346,6 @@ function stored(): QualificationWithAnswers {
         impactTerm: "Harm",
         affected: "user",
         impactAreas: ["Right"],
-        control: "K",
-        controlTerm: "MitigationMeasure",
-        followUpControl: null,
-        followUpControlTerm: null,
       },
     ],
     systemComponents: [
@@ -409,8 +386,6 @@ describe("the export carries the author's VAIR terms to the builder", () => {
       sourceTerm: "ErroneousInputData",
       consequenceTerm: null,
       impactTerm: "Harm",
-      controlTerm: "MitigationMeasure",
-      followUpControlTerm: null,
     });
     expect(e.systemComponents?.[0]).toMatchObject({
       kind: "model",
@@ -451,8 +426,6 @@ describe("the next card starts from the terms this one was saved with", () => {
       sourceTerm: "ErroneousInputData",
       consequenceTerm: "",
       impactTerm: "Harm",
-      controlTerm: "MitigationMeasure",
-      followUpControlTerm: "",
     });
   });
 

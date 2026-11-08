@@ -43,14 +43,27 @@ const props = (over: Partial<AnsweredFormProps> = {}): AnsweredFormProps => ({
       consequence: "The applicant loses access to credit.",
       affected: "user",
       impactAreas: ["Right"],
-      control: "A loan officer reviews every rejection.",
-      followUpControl: null,
     },
   ],
   ...over,
 });
 
 describe("the answered form, read back", () => {
+  it("shows no measure for a risk, even one stored with it", () => {
+    const stored = props();
+    Object.assign(stored.risks[0], {
+      control: "A loan officer reviews every rejection.",
+      controlTerm: "HumanOversightMeasure",
+      followUpControl: "The officer overrides with a justification.",
+      followUpControlTerm: "OverridingOutcome",
+    });
+    render(<AnsweredForm {...stored} />);
+    expect(screen.queryByText(/A loan officer reviews/)).toBeNull();
+    expect(screen.queryByText(/overrides with a justification/)).toBeNull();
+    expect(screen.queryByText("What you do about it")).toBeNull();
+    expect(screen.queryByText("If that is not enough, what follows")).toBeNull();
+  });
+
   it("shows every metadata field with its label and citation", () => {
     render(<AnsweredForm {...props()} />);
     expect(screen.getByText("Intended deployers")).toBeTruthy();
@@ -118,7 +131,7 @@ describe("the answered form, read back", () => {
     expect(screen.getByText("What could go wrong")).toBeTruthy();
     expect(screen.getByText("Art 9(2)(a); Art 3(2)")).toBeTruthy();
     expect(
-      screen.getByText("A loan officer reviews every rejection."),
+      screen.getByText("Proxy variables correlated with postcode."),
     ).toBeTruthy();
   });
 
@@ -126,9 +139,6 @@ describe("the answered form, read back", () => {
     render(<AnsweredForm {...props()} />);
     expect(
       screen.queryByText("Which weakness in the system makes it possible"),
-    ).toBeNull();
-    expect(
-      screen.queryByText("If that is not enough, what follows"),
     ).toBeNull();
   });
 

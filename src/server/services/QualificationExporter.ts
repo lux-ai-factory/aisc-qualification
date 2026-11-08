@@ -52,10 +52,6 @@ export type QualificationExport = {
     impactTerm: string | null;
     affected: string;
     impactAreas: string[];
-    control: string;
-    controlTerm: string | null;
-    followUpControl: string | null;
-    followUpControlTerm: string | null;
   }>;
   /** The engine components the card links, each by its AIRO property; absent
    *  when it links none, so the export of a card without links is unchanged. */
@@ -197,10 +193,6 @@ export function toExport(
       impactTerm: r.impactTerm ?? null,
       affected: r.affected,
       impactAreas: r.impactAreas,
-      control: r.control,
-      controlTerm: r.controlTerm ?? null,
-      followUpControl: r.followUpControl,
-      followUpControlTerm: r.followUpControlTerm ?? null,
     })),
     ...(links.length
       ? {

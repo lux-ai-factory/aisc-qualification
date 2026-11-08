@@ -16,9 +16,7 @@ export type RiskField = {
     | "consequence"
     | "impact"
     | "affected"
-    | "area"
-    | "control"
-    | "followUpControl";
+    | "area";
   label: string;
   citation: string;
   kind: RiskFieldKind;
@@ -34,7 +32,7 @@ export type RiskField = {
 export const RISK_BLOCK = {
   title: "Risk identification",
   citation: "Art 9(2); Annex IV 5",
-  help: "One row per risk. Say what could go wrong, why, what follows, who and what it affects, and what you do about it.",
+  help: "One row per risk. Say what could go wrong, why, what follows, and who and what it affects.",
 };
 
 export const RISK_FIELDS: RiskField[] = [
@@ -88,23 +86,5 @@ export const RISK_FIELDS: RiskField[] = [
     label: "What is affected",
     citation: "Art 9(2)(a)",
     kind: "areas",
-  },
-  {
-    id: "control",
-    label: "What you do about it",
-    citation: "Art 9(2)(d)",
-    kind: "text",
-    placeholder:
-      "e.g. confidence threshold plus human confirmation before action",
-    vair: "RiskControl",
-  },
-  {
-    id: "followUpControl",
-    label: "If that is not enough, what follows",
-    citation: "Art 9(5); Art 14(4)(e)",
-    kind: "text",
-    optional: true,
-    placeholder: "e.g. mute the camera and fall back to manual checks",
-    vair: "RiskControl",
   },
 ];

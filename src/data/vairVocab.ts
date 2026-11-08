@@ -19,7 +19,6 @@ export type VairClass =
   | "Consequence"
   | "Impact"
   | "AreaOfImpact"
-  | "RiskControl"
   | "AIOperator"
   | "AISubject";
 
@@ -40,7 +39,6 @@ export const RISK_SOURCES = vairTerms("RiskSource");
 export const CONSEQUENCES = vairTerms("Consequence");
 export const IMPACTS = vairTerms("Impact");
 export const IMPACT_AREAS = vairTerms("AreaOfImpact");
-export const RISK_CONTROLS = vairTerms("RiskControl");
 export const OPERATORS = vairTerms("AIOperator");
 export const SUBJECTS = vairTerms("AISubject");
 

@@ -15,8 +15,6 @@ const row = (risk: string): RiskExample => ({
   consequence: "",
   affected: "",
   areas: [],
-  control: "",
-  followUpControl: "",
 });
 
 const ok = (

@@ -14,8 +14,7 @@ import Carousel from "./Carousel";
 // select-only questions (kind of harm, who is affected) sit side by side. A field VAIR can type has one VAIR
 // select, `risk:<key>:<field>Term`; the harm is only that select.
 
-/** The one VAIR select of a risk field. Required where VAIR always has a term that fits; the
- *  follow-up's only when there is a follow-up, which the server checks. */
+/** The one VAIR select of a risk field. Required where VAIR always has a term that fits. */
 function TermSelect({
   f,
   name,
@@ -32,11 +31,11 @@ function TermSelect({
       name={name}
       className="qf-term"
       aria-label={`${f.label}: term`}
-      required={!f.termOptional && !f.optional}
+      required={!f.termOptional}
       defaultValue={initial}
     >
       <option value="">
-        {f.termOptional || f.optional
+        {f.termOptional
           ? "Matching term (none fits)"
           : "Choose the matching term…"}
       </option>

@@ -25,7 +25,6 @@ import {
   MODALITIES,
   OPERATORS,
   PURPOSES,
-  RISK_CONTROLS,
   RISK_SOURCES,
   SUBJECTS,
   SYSTEM_TYPES,
@@ -142,8 +141,6 @@ describe("a risk row", () => {
     ["sourceTerm", RISK_SOURCES, true],
     ["consequenceTerm", CONSEQUENCES, false],
     ["impactTerm", IMPACTS, true],
-    ["controlTerm", RISK_CONTROLS, true],
-    ["followUpControlTerm", RISK_CONTROLS, false],
   ] as const)("has one VAIR select for %s", (field, list, required) => {
     render(<RiskRows />);
     expect(options(`risk:0:${field}`)).toEqual(list.map((t) => t.id));
@@ -152,7 +149,7 @@ describe("a risk row", () => {
 
   it("keeps the text beside each select, and the harm has no text of its own", () => {
     render(<RiskRows />);
-    for (const f of ["source", "consequence", "control", "followUpControl"]) {
+    for (const f of ["source", "consequence"]) {
       expect(
         document.querySelector(`textarea[name="risk:0:${f}"]`),
         f,
@@ -177,13 +174,9 @@ describe("a risk row", () => {
             consequence: "c",
             affected: "user",
             areas: ["Right"],
-            control: "k",
-            followUpControl: "",
             sourceTerm: "DataPoisoning",
             consequenceTerm: "",
             impactTerm: "Harm",
-            controlTerm: "SecurityMeasure",
-            followUpControlTerm: "",
           },
         ]}
       />,
@@ -260,10 +253,6 @@ describe("the answered form", () => {
         impactTerm: "UnfavourableTreatment",
         affected: "JobApplicant",
         impactAreas: ["RightToNondiscrimination"],
-        control: "Review",
-        controlTerm: "HumanOversightMeasure",
-        followUpControl: null,
-        followUpControlTerm: null,
       },
     ],
     systemComponents: [
@@ -304,7 +293,6 @@ describe("the answered form", () => {
     const text = container.textContent ?? "";
     expect(text).toContain("Thin bureau data");
     expect(text).toContain("Erroneous Input Data");
-    expect(text).toContain("Human Oversight Measure");
   });
 });
 
@@ -365,10 +353,6 @@ describe("the word VAIR", () => {
             impactTerm: "Harm",
             affected: "user",
             impactAreas: [],
-            control: "Review",
-            controlTerm: "HumanOversightMeasure",
-            followUpControl: null,
-            followUpControlTerm: null,
           },
         ]}
         systemComponents={[]}

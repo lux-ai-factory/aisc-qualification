@@ -53,8 +53,6 @@ function row(over: Partial<QualificationWithAnswers> = {}) {
         consequence: "C",
         affected: "user",
         impactAreas: ["Right"],
-        control: "K",
-        followUpControl: null,
       },
     ],
     ...over,
@@ -91,6 +89,24 @@ describe("toExport", () => {
       affected: "user",
       impactAreas: ["Right"],
     });
+  });
+
+  it("exports no measure for a risk, even from a row stored with one", () => {
+    const stored = row();
+    Object.assign(stored.risks[0], {
+      control: "K",
+      controlTerm: "MitigationMeasure",
+      followUpControl: "F",
+      followUpControlTerm: "Intervention",
+    });
+    const [risk] = toExport(stored).risks;
+    for (const k of [
+      "control",
+      "controlTerm",
+      "followUpControl",
+      "followUpControlTerm",
+    ])
+      expect(risk).not.toHaveProperty(k);
   });
 
   it("carries the provider's and the deployer's terms, dropping one that is not an operator term", () => {

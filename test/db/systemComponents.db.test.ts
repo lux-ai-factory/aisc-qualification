@@ -158,10 +158,9 @@ describe.skipIf(!enabled)("the VAIR terms a card is saved with", () => {
     ).toBe("");
     expect(
       await fails(`INSERT INTO qualification.qualification_risk (id, "qualificationId", position, risk, source,
-        source_term, consequence, consequence_term, impact_term, affected, "impactAreas", control, control_term,
-        "followUpControl", follow_up_control_term)
+        source_term, consequence, consequence_term, impact_term, affected, "impactAreas")
       VALUES ('rv', 'comp-card-1', 0, 'r', 's', 'ErroneousInputData', 'c', NULL, 'UnfavourableTreatment', 'user',
-        ARRAY['Right'], 'k', 'HumanOversightMeasure', 'f', 'OverridingOutcome')`),
+        ARRAY['Right'])`),
     ).toBe("");
 
     const app = new PrismaClient({ datasourceUrl: at(TEMPLATE, dbName(E)) });
@@ -181,8 +180,6 @@ describe.skipIf(!enabled)("the VAIR terms a card is saved with", () => {
         sourceTerm: "ErroneousInputData",
         consequenceTerm: null,
         impactTerm: "UnfavourableTreatment",
-        controlTerm: "HumanOversightMeasure",
-        followUpControlTerm: "OverridingOutcome",
       });
     } finally {
       await app.$disconnect();

@@ -32,14 +32,10 @@ export function mcasCard(): QualificationWithAnswers {
     consequence: r.consequence,
     affected: r.affected,
     impactAreas: [...r.areas],
-    control: r.control,
-    followUpControl: r.followUpControl === "" ? null : r.followUpControl,
     // the VAIR terms
     sourceTerm: r.sourceTerm || null,
     consequenceTerm: r.consequenceTerm || null,
     impactTerm: r.impactTerm || null,
-    controlTerm: r.controlTerm || null,
-    followUpControlTerm: r.followUpControlTerm || null,
   }));
   return {
     id: "mcas-card",

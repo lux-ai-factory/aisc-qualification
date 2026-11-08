@@ -143,8 +143,6 @@ describe("the MCAS example's VAIR terms agree everywhere", () => {
     "sourceTerm",
     "consequenceTerm",
     "impactTerm",
-    "controlTerm",
-    "followUpControlTerm",
   ] as const;
 
   it("the metadata terms and tags", async () => {

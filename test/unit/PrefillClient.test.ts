@@ -52,8 +52,6 @@ describe("PrefillClient", () => {
       consequence: "",
       affected: "user",
       areas: ["right"],
-      control: "",
-      followUpControl: "",
     };
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: true,

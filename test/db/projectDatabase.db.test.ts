@@ -238,8 +238,13 @@ async function shape(c: PrismaClient, live: boolean): Promise<string[]> {
   // The VAIR terms (20260930000000_vair_terms) are newer too: nullable columns only, pinned
   // by the VAIR block of systemComponents.db.test.ts.
   const vairLine =
-    /^column qualification\.(system_type|purpose|provider_term|deployer_term) |^column qualification_risk\.(source_term|consequence_term|impact_term|control_term|follow_up_control_term) /;
+    /^column qualification\.(system_type|purpose|provider_term|deployer_term) |^column qualification_risk\.(source_term|consequence_term|impact_term) /;
   lines = lines.filter((l) => !vairLine.test(l));
+  // The provider's measure per risk and its follow-up, with their VAIR terms, were dropped since
+  // (20261108000000_no_risk_measures); the test below pins that they are gone.
+  const measureLine =
+    /^column qualification_risk\.(control|control_term|followUpControl|follow_up_control_term) /;
+  lines = lines.filter((l) => !measureLine.test(l));
   // A card's history (20261003000000_ledger_history) is newer as well: its table, index,
   // trigger and function are pinned by ledger.db.test.ts.
   lines = lines.filter((l) => !/card_history/.test(l));
@@ -315,6 +320,17 @@ describe.skipIf(!enabled)(
         `SELECT count(*) AS n FROM information_schema.columns
         WHERE table_schema = 'qualification' AND table_name = 'qualification'
           AND column_name IN ('systemCard', 'systemCardJson', 'system_card_at', 'systemCardPdfPath')`,
+      );
+      expect(rows).toEqual([{ n: 0n }]);
+    });
+
+    it("qualification.qualification_risk has none of the provider's measure columns", async () => {
+      expect(why).toBe("");
+      const rows = await tryQuery<{ n: bigint }>(
+        admin(A),
+        `SELECT count(*) AS n FROM information_schema.columns
+        WHERE table_schema = 'qualification' AND table_name = 'qualification_risk'
+          AND column_name IN ('control', 'control_term', 'followUpControl', 'follow_up_control_term')`,
       );
       expect(rows).toEqual([{ n: 0n }]);
     });

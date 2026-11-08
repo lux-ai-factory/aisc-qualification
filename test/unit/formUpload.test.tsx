@@ -109,8 +109,6 @@ const docRisk = (risk: string) => ({
   consequence: "a result",
   affected: "user",
   areas: ["right", "safety"],
-  control: "a control",
-  followUpControl: "",
 });
 
 describe("uploading risks", () => {

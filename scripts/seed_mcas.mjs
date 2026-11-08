@@ -36,8 +36,6 @@ const TERM_FIELDS = [
   "sourceTerm",
   "consequenceTerm",
   "impactTerm",
-  "controlTerm",
-  "followUpControlTerm",
 ];
 const RISK_TEXT = [
   {
@@ -51,10 +49,6 @@ const RISK_TEXT = [
       "A creditworthy applicant is refused a loan they would have repaid, and the recorded reason cites data that was never there",
     affected: "NaturalPerson",
     impactAreas: ["right"],
-    control:
-      "Every Reject and every Review case goes to a trained loan officer before any decision reaches the applicant; bureau coverage below the configured threshold forces the case into Review",
-    followUpControl:
-      "The officer may override the recommendation with a mandatory written justification recorded against the case, and the applicant is told how to contest the outcome",
   },
   {
     position: 1,
@@ -66,10 +60,6 @@ const RISK_TEXT = [
       "Applicants from some neighbourhoods are systematically scored lower than equally creditworthy applicants elsewhere, which is discriminatory treatment",
     affected: "user",
     impactAreas: ["right", "freedom"],
-    control:
-      "Quarterly fairness audit measuring demographic parity and equal-opportunity difference across age band, gender proxy and postal-code SES proxy, with a 5% acceptance band, plus override rates by stratum to catch bias entering through human review",
-    followUpControl:
-      "Suspend automated scoring for the affected market and fall back to manual underwriting until the next recalibration clears the band",
   },
   {
     position: 2,
@@ -82,10 +72,6 @@ const RISK_TEXT = [
       "The mandatory human review becomes a formality, so an incorrect score is issued as a binding decision with no effective safeguard",
     affected: "user",
     impactAreas: ["right", "freedom"],
-    control:
-      "Officer override rates are tracked against the branch median, officers who never diverge are flagged for review, and refresher training covers automation bias explicitly",
-    followUpControl:
-      "Withdraw the officer's approval rights pending retraining and route their queue to a second reviewer",
   },
   {
     position: 3,
@@ -98,9 +84,6 @@ const RISK_TEXT = [
       "The applicant is given an inaccurate reason for the outcome, which undermines any attempt to contest it",
     affected: "user",
     impactAreas: ["right"],
-    control:
-      "Quarterly index refresh signed off by compliance, and every explanation records the index version it was generated from so any answer can be reproduced",
-    followUpControl: null,
   },
   {
     position: 4,
@@ -113,10 +96,6 @@ const RISK_TEXT = [
       "The recalibrated model systematically misranks a segment of applicants, and the drift is inside the normal seasonal range so monitoring does not catch it",
     affected: "operator",
     impactAreas: ["safety", "right"],
-    control:
-      "Egress allow-list and mutually authenticated bureau connections, checksummed model artefacts verified at load, and recalibration gated on the same validation and fairness suites as a full release",
-    followUpControl:
-      "Roll back to the previous signed model, which stays deployable for one quarter, and notify the deployer banks and the market surveillance authority",
   },
 ];
 const RISKS = RISK_TEXT.map((r, i) => ({

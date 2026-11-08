@@ -1060,8 +1060,8 @@ function t8Cards(v1: string, v2: string): string {
   INSERT INTO qualification.qualification_answer (id, "qualificationId", "toolId", "questionId", answer) VALUES
     ('t8-c1-a1', 't8-c1', 'f-acme', 'q1', 'The head of data science.'),
     ('t8-c1-a2', 't8-c1', 'annex-1', '1a', 'First release.');
-  INSERT INTO qualification.qualification_risk (id, "qualificationId", position, risk, source, consequence, affected, control)
-    VALUES ('t8-c1-r1', 't8-c1', 0, 'r', 's', 'c', 'user', 'k');
+  INSERT INTO qualification.qualification_risk (id, "qualificationId", position, risk, source, consequence, affected)
+    VALUES ('t8-c1-r1', 't8-c1', 0, 'r', 's', 'c', 'user');
   INSERT INTO qualification.knowledge_graph (id, "qualificationId", digest, turtle, jsonld, nodes, triples)
     VALUES ('t8-c1-g', 't8-c1', 'digest-c1', '@prefix : <x#> .', '{"@graph": []}', 3, 7);
   INSERT INTO qualification.card_component (id, qualification_id, component_pid, airo_property, name, component_type)
@@ -1643,8 +1643,8 @@ function liveCard(v1: string): string {
   INSERT INTO qualification.qualification_answer (id, "qualificationId", "toolId", "questionId", answer)
     SELECT 'live-' || q.local_id, 'live-card', q.scope, q.local_id, 'Live answer to ' || q.local_id || ', é ✓'
       FROM qualification.form_question q WHERE q.owner_form_id = 'annex-iv-default';
-  INSERT INTO qualification.qualification_risk (id, "qualificationId", position, risk, source, consequence, affected, control)
-    VALUES ('live-r1', 'live-card', 0, 'Wrong reject', 'Thin data', 'Refused loan', 'user', 'Human review');
+  INSERT INTO qualification.qualification_risk (id, "qualificationId", position, risk, source, consequence, affected)
+    VALUES ('live-r1', 'live-card', 0, 'Wrong reject', 'Thin data', 'Refused loan', 'user');
   INSERT INTO qualification.knowledge_graph (id, "qualificationId", digest, turtle, jsonld, nodes, triples)
     VALUES ('live-g', 'live-card', 'sha256:5f1c', '@prefix airo: <https://w3id.org/airo#> .', '{"@context": {}, "@graph": []}', 40, 120);`;
 }
@@ -1947,8 +1947,8 @@ describe.skipIf(!enabled)(
       CREATE FUNCTION qualification.t_write_history() RETURNS trigger LANGUAGE plpgsql AS $t$
       BEGIN
         IF NEW.question_id = 'annex-iv-2h' THEN
-          INSERT INTO qualification.qualification_risk (id, "qualificationId", position, risk, source, consequence, affected, control)
-            VALUES ('t-stray-risk', 'live-card', 1, 'r', 's', 'c', 'user', 'k');
+          INSERT INTO qualification.qualification_risk (id, "qualificationId", position, risk, source, consequence, affected)
+            VALUES ('t-stray-risk', 'live-card', 1, 'r', 's', 'c', 'user');
         END IF;
         RETURN NULL;
       END $t$;

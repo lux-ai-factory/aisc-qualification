@@ -45,21 +45,12 @@ export type RiskInput = {
   impactTerm: string | null;
   affected: string;
   impactAreas: string[];
-  control: string;
-  controlTerm: string | null;
-  followUpControl: string | null;
-  followUpControlTerm: string | null;
 };
 
 /** A risk row's VAIR selects: the form field, its class, and whether VAIR can always answer it
- *  (then it is required; the follow-up's only when there is a follow-up). */
+ *  (then it is required). */
 const RISK_TERMS: Array<{
-  field:
-    | "sourceTerm"
-    | "consequenceTerm"
-    | "impactTerm"
-    | "controlTerm"
-    | "followUpControlTerm";
+  field: "sourceTerm" | "consequenceTerm" | "impactTerm";
   of: string;
   cls: VairClass;
   required: boolean;
@@ -72,13 +63,6 @@ const RISK_TERMS: Array<{
     required: false,
   },
   { field: "impactTerm", of: "impact", cls: "Impact", required: true },
-  { field: "controlTerm", of: "control", cls: "RiskControl", required: true },
-  {
-    field: "followUpControlTerm",
-    of: "followUpControl",
-    cls: "RiskControl",
-    required: true,
-  },
 ];
 
 const riskLabel = (id: string) =>
@@ -89,7 +73,6 @@ const RISK_REQUIRED: Array<[keyof RiskInput, string]> = [
   ["risk", "What could go wrong"],
   ["source", "What causes it"],
   ["consequence", "What happens as a result"],
-  ["control", "What you do about it"],
 ];
 
 export type ParsedQualification = {
@@ -338,7 +321,6 @@ export class QualificationFormParser {
       const allBlank =
         RISK_REQUIRED.every(([f]) => text(i, f) === "") &&
         text(i, "vulnerability") === "" &&
-        text(i, "followUpControl") === "" &&
         RISK_TERMS.every(({ field }) => text(i, field) === "") &&
         areas.length === 0;
       if (allBlank) continue;
@@ -370,9 +352,8 @@ export class QualificationFormParser {
       const terms: Record<string, string | null> = {};
       for (const { field, of, cls, required } of RISK_TERMS) {
         const value = text(i, field);
-        const asked = of !== "followUpControl" || text(i, of) !== "";
         if (value === "") {
-          if (required && asked) {
+          if (required) {
             throw new FormValidationError(
               `Risk ${n}: ${riskLabel(of)}: pick its term.`,
             );
@@ -380,7 +361,7 @@ export class QualificationFormParser {
           terms[field] = null;
           continue;
         }
-        if (!asked || !isVairTerm(cls, value)) {
+        if (!isVairTerm(cls, value)) {
           throw new FormValidationError(
             `Risk ${n}: ${riskLabel(of)}: ${value} is not one of the terms for it.`,
           );
@@ -398,10 +379,6 @@ export class QualificationFormParser {
         impactTerm: terms.impactTerm,
         affected,
         impactAreas: areas,
-        control: text(i, "control"),
-        controlTerm: terms.controlTerm,
-        followUpControl: text(i, "followUpControl") || null,
-        followUpControlTerm: terms.followUpControlTerm,
       });
     }
     if (rows.length === 0) {

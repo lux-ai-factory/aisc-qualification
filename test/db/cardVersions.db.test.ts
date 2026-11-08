@@ -153,7 +153,6 @@ describe.skipIf(!enabled)(
                   source: "s",
                   consequence: "c",
                   affected: "user",
-                  control: "k",
                 },
               ],
             },

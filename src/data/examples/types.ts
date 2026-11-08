@@ -13,15 +13,11 @@ export type RiskExample = {
   affected: string;
   /** VAIR AreaOfImpact terms. */
   areas: string[];
-  control: string;
-  followUpControl: string;
-  /** The VAIR term of each typeable field ("" for none): RiskSource, Consequence, Impact,
-   *  RiskControl. Optional, so an example without VAIR terms still loads. */
+  /** The VAIR term of each typeable field ("" for none): RiskSource, Consequence, Impact.
+   *  Optional, so an example without VAIR terms still loads. */
   sourceTerm?: string;
   consequenceTerm?: string;
   impactTerm?: string;
-  controlTerm?: string;
-  followUpControlTerm?: string;
 };
 
 export type FormExample = {

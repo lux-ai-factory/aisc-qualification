@@ -56,10 +56,6 @@ export type AnsweredFormProps = {
     impactTerm?: string | null;
     affected: string;
     impactAreas: string[];
-    control: string;
-    controlTerm?: string | null;
-    followUpControl: string | null;
-    followUpControlTerm?: string | null;
   }[];
   /** The Components block's rows, in order; absent or empty on older cards. */
   systemComponents?: {
@@ -355,8 +351,6 @@ function riskValue(
       return term;
     case "vulnerability":
       return row.vulnerability || null;
-    case "followUpControl":
-      return row.followUpControl ? withTerm(row.followUpControl, term) : null;
     default:
       return withTerm(row[id], term);
   }

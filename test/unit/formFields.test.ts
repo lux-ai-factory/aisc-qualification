@@ -28,7 +28,7 @@ describe("form citations", () => {
     }
   });
 
-  it("the risk block and each of its nine fields carry citations", () => {
+  it("the risk block and each of its seven fields carry citations", () => {
     expect(RISK_BLOCK.citation).toMatch(CITATION);
     expect(RISK_FIELDS.map((f) => f.id)).toEqual([
       "risk",
@@ -38,17 +38,14 @@ describe("form citations", () => {
       "impact",
       "affected",
       "area",
-      "control",
-      "followUpControl",
     ]);
     for (const f of RISK_FIELDS) expect(f.citation, f.id).toMatch(CITATION);
     expect(RISK_FIELDS.filter((f) => f.optional).map((f) => f.id)).toEqual([
       "vulnerability",
-      "followUpControl",
     ]);
     expect(RISK_FIELDS.find((f) => f.id === "affected")?.kind).toBe("affected");
     expect(RISK_FIELDS.find((f) => f.id === "area")?.kind).toBe("areas");
-    // VAIR: the harm is a VAIR select alone; four text fields have one beside them
+    // VAIR: the harm is a VAIR select alone; two text fields have one beside them
     expect(RISK_FIELDS.find((f) => f.id === "impact")?.kind).toBe("term");
     expect(
       RISK_FIELDS.filter((f) => f.vair).map((f) => [f.id, f.vair]),
@@ -56,8 +53,6 @@ describe("form citations", () => {
       ["source", "RiskSource"],
       ["consequence", "Consequence"],
       ["impact", "Impact"],
-      ["control", "RiskControl"],
-      ["followUpControl", "RiskControl"],
     ]);
   });
 

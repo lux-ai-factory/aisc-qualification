@@ -119,10 +119,6 @@ model QualificationRisk {
   impactTerm      String?       @map("impact_term")
   affected        String
   impactAreas     String[]      @default([])
-  control         String
-  controlTerm     String?       @map("control_term")
-  followUpControl String?
-  followUpControlTerm String?   @map("follow_up_control_term")
   qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
 
   @@index([qualificationId])

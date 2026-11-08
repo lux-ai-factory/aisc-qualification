@@ -55,7 +55,7 @@ export const MCAS: FormExample = {
     "q:annex-2:2h": "The deployment is on-premise with no inbound internet exposure; bureau, PSD2 and LLM calls leave through an egress proxy with an allow-list. Applicant data is encrypted at rest and in transit, and the payload sent to the external LLM is restricted to the derived explanation factors, never raw applicant identifiers or account data. Container images are signed and verified at deploy; secrets live in the bank's vault. The dashboard enforces SSO with role separation between loan officer, compliance and administrator, and every read of an applicant case is written to an append-only audit log. Dependencies are pinned and scanned on each build with a documented patch window for critical CVEs; model artefacts are checksummed at load; and the prompt and retrieval index are version-controlled so an explanation can always be reproduced from the release record.",
   },
 
-  // One full risk chain per row: source, vulnerability, consequence, control.
+  // One full risk chain per row: source, vulnerability, consequence, harm, who and what is affected.
   risks: [
     {
       risk: "An applicant is wrongly ranked as high risk and routed to Reject",
@@ -64,13 +64,9 @@ export const MCAS: FormExample = {
       consequence: "A creditworthy applicant is refused a loan they would have repaid, and the recorded reason cites data that was never there",
       affected: "NaturalPerson",
       areas: ["Right"],
-      control: "Every Reject and every Review case goes to a trained loan officer before any decision reaches the applicant; bureau coverage below the configured threshold forces the case into Review",
-      followUpControl: "The officer may override the recommendation with a mandatory written justification recorded against the case, and the applicant is told how to contest the outcome",
       sourceTerm: "ErroneousInputData",
       consequenceTerm: "ImpairedDecisionMaking",
       impactTerm: "UnfavourableTreatment",
-      controlTerm: "HumanOversightMeasure",
-      followUpControlTerm: "OverridingOutcome",
     },
     {
       risk: "Approval rates diverge across protected groups",
@@ -79,13 +75,9 @@ export const MCAS: FormExample = {
       consequence: "Applicants from some neighbourhoods are systematically scored lower than equally creditworthy applicants elsewhere, which is discriminatory treatment",
       affected: "user",
       areas: ["Right", "Freedom"],
-      control: "Quarterly fairness audit measuring demographic parity and equal-opportunity difference across age band, gender proxy and postal-code SES proxy, with a 5% acceptance band, plus override rates by stratum to catch bias entering through human review",
-      followUpControl: "Suspend automated scoring for the affected market and fall back to manual underwriting until the next recalibration clears the band",
       sourceTerm: "BiasedTrainingData",
       consequenceTerm: "Bias",
       impactTerm: "DiscriminatoryTreatment",
-      controlTerm: "BiasDetection",
-      followUpControlTerm: "Interruption",
     },
     {
       risk: "Loan officers rubber-stamp the recommendation instead of reviewing it",
@@ -94,13 +86,9 @@ export const MCAS: FormExample = {
       consequence: "The mandatory human review becomes a formality, so an incorrect score is issued as a binding decision with no effective safeguard",
       affected: "user",
       areas: ["Right", "Freedom"],
-      control: "Officer override rates are tracked against the branch median, officers who never diverge are flagged for review, and refresher training covers automation bias explicitly",
-      followUpControl: "Withdraw the officer's approval rights pending retraining and route their queue to a second reviewer",
       sourceTerm: "InsufficientHumanOversightMeasure",
       consequenceTerm: "ImpairedDecisionMaking",
       impactTerm: "Overreliance",
-      controlTerm: "MonitoringMeasure",
-      followUpControlTerm: "OrganisationalMeasure",
     },
     {
       risk: "The explanation shown to an applicant cites the wrong policy clause",
@@ -109,13 +97,9 @@ export const MCAS: FormExample = {
       consequence: "The applicant is given an inaccurate reason for the outcome, which undermines any attempt to contest it",
       affected: "user",
       areas: ["Right"],
-      control: "Quarterly index refresh signed off by compliance, and every explanation records the index version it was generated from so any answer can be reproduced",
-      followUpControl: "",
       sourceTerm: "ErroneousInputData",
       consequenceTerm: "DegradedAccuracy",
       impactTerm: "UnfavourableTreatment",
-      controlTerm: "LoggingMeasure",
-      followUpControlTerm: "",
     },
     {
       risk: "Training data is poisoned through the bureau ingestion path",
@@ -124,13 +108,9 @@ export const MCAS: FormExample = {
       consequence: "The recalibrated model systematically misranks a segment of applicants, and the drift is inside the normal seasonal range so monitoring does not catch it",
       affected: "operator",
       areas: ["Safety", "Right"],
-      control: "Egress allow-list and mutually authenticated bureau connections, checksummed model artefacts verified at load, and recalibration gated on the same validation and fairness suites as a full release",
-      followUpControl: "Roll back to the previous signed model, which stays deployable for one quarter, and notify the deployer banks and the market surveillance authority",
       sourceTerm: "DataPoisoning",
       consequenceTerm: "DegradedAccuracy",
       impactTerm: "DetrimentalTreatment",
-      controlTerm: "SecurityMeasure",
-      followUpControlTerm: "Intervention",
     },
   ],
 };

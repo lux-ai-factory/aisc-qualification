@@ -18,7 +18,7 @@ const field = (name: string) =>
 describe("RiskRows layout", () => {
   it("puts each text answer and its VAIR select side by side", () => {
     render(<RiskRows />);
-    for (const id of ["source", "consequence", "control", "followUpControl"]) {
+    for (const id of ["source", "consequence"]) {
       const text = document.querySelector(`textarea[name="risk:0:${id}"]`)!;
       const term = document.querySelector(`select[name="risk:0:${id}Term"]`)!;
       const row = text.parentElement as HTMLElement;
@@ -39,9 +39,20 @@ describe("RiskRows layout", () => {
     render(<RiskRows />);
     expect(field("risk:0:impactTerm").classList.contains("qf-risk-half")).toBe(true);
     expect(field("risk:0:affected").classList.contains("qf-risk-half")).toBe(true);
-    for (const name of ["risk:0:risk", "risk:0:source", "risk:0:control"]) {
+    for (const name of ["risk:0:risk", "risk:0:source"]) {
       expect(field(name).classList.contains("qf-risk-half"), name).toBe(false);
     }
+  });
+
+  it("asks no measure for a risk", () => {
+    render(<RiskRows />);
+    for (const name of [
+      "risk:0:control",
+      "risk:0:controlTerm",
+      "risk:0:followUpControl",
+      "risk:0:followUpControlTerm",
+    ])
+      expect(document.querySelector(`[name="${name}"]`), name).toBeNull();
   });
 });
 

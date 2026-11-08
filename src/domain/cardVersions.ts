@@ -59,10 +59,6 @@ type CardRisk = {
   impactTerm?: string | null;
   affected: string;
   impactAreas: string[];
-  control: string;
-  controlTerm?: string | null;
-  followUpControl: string | null;
-  followUpControlTerm?: string | null;
 };
 
 type CardComponentRow = {
@@ -152,13 +148,9 @@ export function cardAsFormStart(card: CardContent): FormExample {
       consequence: r.consequence,
       affected: r.affected,
       areas: r.impactAreas,
-      control: r.control,
-      followUpControl: r.followUpControl ?? "",
       sourceTerm: r.sourceTerm ?? "",
       consequenceTerm: r.consequenceTerm ?? "",
       impactTerm: r.impactTerm ?? "",
-      controlTerm: r.controlTerm ?? "",
-      followUpControlTerm: r.followUpControlTerm ?? "",
     }));
   return {
     metadata: {
