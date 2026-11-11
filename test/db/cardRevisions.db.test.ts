@@ -1,0 +1,287 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { randomUUID } from "node:crypto";
+import { Prisma, PrismaClient } from "@prisma/client";
+
+// A version's card can have several revisions: corrections of the description that
+// do not make a new version. Only the latest revision of the latest version changes;
+// every earlier revision is kept as it was, by the database itself.
+//
+// Runs only against a throwaway project database (see cardVersions.db.test.ts). Every test
+// works inside a transaction that is rolled back, so the versions it makes are never seen by
+// the other files, which also decide what the latest version is in this database.
+
+const APP_URL = process.env.QUALIFICATION_TEST_DATABASE_URL ?? "";
+const ADMIN_URL = process.env.QUALIFICATION_TEST_ADMIN_URL ?? "";
+const enabled = APP_URL !== "" && ADMIN_URL !== "";
+if (enabled && (/:5432\//.test(APP_URL) || /:5432\//.test(ADMIN_URL))) {
+  throw new Error(
+    "refusing to run the DB tests against port 5432 (the live stack)",
+  );
+}
+
+let admin: PrismaClient;
+
+beforeAll(() => {
+  if (!enabled) return;
+  admin = new PrismaClient({ datasourceUrl: ADMIN_URL });
+});
+afterAll(async () => {
+  await admin?.$disconnect();
+});
+
+type Tx = Prisma.TransactionClient;
+class Rollback extends Error {}
+
+async function inRolledBackTx(work: (tx: Tx) => Promise<void>): Promise<void> {
+  try {
+    await admin.$transaction(
+      async (tx) => {
+        await work(tx);
+        throw new Rollback();
+      },
+      { timeout: 30_000 },
+    );
+  } catch (err) {
+    if (!(err instanceof Rollback)) throw err;
+  }
+}
+
+// the statement must raise; a savepoint keeps the transaction usable afterwards
+async function refused(tx: Tx, sql: string): Promise<void> {
+  await tx.$executeRawUnsafe("SAVEPOINT attempt");
+  let raised = false;
+  try {
+    await tx.$executeRawUnsafe(sql);
+  } catch {
+    raised = true;
+  }
+  await tx.$executeRawUnsafe("ROLLBACK TO SAVEPOINT attempt");
+  expect(raised, sql).toBe(true);
+}
+
+async function newLatestVersion(tx: Tx): Promise<string> {
+  const pid = randomUUID();
+  await tx.$executeRawUnsafe(
+    `INSERT INTO project.system (pid, number, name, version)
+     VALUES ('${pid}', (SELECT coalesce(max(number), 0) + 1 FROM project.system), 'MCAS', '1')`,
+  );
+  return pid;
+}
+
+let counter = 0;
+async function addCard(
+  tx: Tx,
+  systemId: string,
+  extra: {
+    revision?: number;
+    amends?: string | null;
+    reason?: string | null;
+    by?: string | null;
+  } = {},
+): Promise<string> {
+  const id = `rev-card-${randomUUID()}-${counter++}`;
+  const q = (v: string | null | undefined) => (v == null ? "NULL" : `'${v}'`);
+  await tx.$executeRawUnsafe(
+    `INSERT INTO qualification.qualification
+       (id, system_id, "systemName", "systemVersion", company, description, "targetUseCase",
+        "targetUsers", updated_at, revision, amends_id, amend_reason, amend_requested_by)
+     VALUES ('${id}', '${systemId}', 'MCAS', '1', 'LIST', 'd', 'u', 't', now(),
+             ${extra.revision ?? 1}, ${q(extra.amends)}, ${q(extra.reason)}, ${q(extra.by)})`,
+  );
+  return id;
+}
+const correction = (first: string) => ({
+  revision: 2,
+  amends: first,
+  reason: "provider name was wrong",
+  by: "Eindhoven, email",
+});
+
+const answerSql = (card: string, q: string) =>
+  `INSERT INTO qualification.qualification_answer (id, "qualificationId", "toolId", "questionId", answer)
+   VALUES ('a-${randomUUID()}', '${card}', 't', '${q}', 'a')`;
+const systemComponentSql = (card: string) =>
+  `INSERT INTO qualification.qualification_component (id, qualification_id, position, key, name, kind)
+   VALUES ('qc-${randomUUID()}', '${card}', 0, '${randomUUID()}', 'm', 'model')`;
+const linkedItemSql = (card: string) =>
+  `INSERT INTO qualification.card_component
+     (id, qualification_id, component_pid, airo_property, name, component_type)
+   VALUES ('cc-${randomUUID()}', '${card}', '${randomUUID()}', 'hasModel', 'm', 'model')`;
+
+describe.skipIf(!enabled)("card revisions", () => {
+  it("the unique index is on (system_id, revision), not on system_id alone", async () => {
+    const rows = await admin.$queryRawUnsafe<{ indexname: string }[]>(
+      `SELECT indexname FROM pg_indexes WHERE schemaname = 'qualification'
+        AND tablename = 'qualification' AND indexdef LIKE 'CREATE UNIQUE%'
+        AND indexname LIKE '%system_id%' ORDER BY indexname`,
+    );
+    expect(rows.map((r) => r.indexname)).toEqual([
+      "qualification_system_id_revision_key",
+    ]);
+  });
+
+  it("two cards of the same version with revisions 1 and 2 are allowed", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      const first = await addCard(tx, v);
+      const second = await addCard(tx, v, correction(first));
+      const rows = await tx.$queryRawUnsafe<
+        { revision: number; amends_id: string | null }[]
+      >(
+        `SELECT revision, amends_id FROM qualification.qualification
+          WHERE system_id = '${v}' ORDER BY revision`,
+      );
+      expect(rows).toEqual([
+        { revision: 1, amends_id: null },
+        { revision: 2, amends_id: first },
+      ]);
+      expect(second).not.toBe(first);
+    }));
+
+  it("the same revision twice for one version is refused", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      await addCard(tx, v);
+      await tx.$executeRawUnsafe("SAVEPOINT attempt");
+      await expect(addCard(tx, v)).rejects.toThrow();
+      await tx.$executeRawUnsafe("ROLLBACK TO SAVEPOINT attempt");
+    }));
+
+  it("revision 2 without reason, requested-by or amends is refused", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      const first = await addCard(tx, v);
+      const full = correction(first);
+      const broken = [
+        { ...full, amends: null },
+        { ...full, reason: null },
+        { ...full, by: null },
+        { ...full, reason: "" },
+        { ...full, reason: "  " },
+        { ...full, by: "" },
+        { ...full, by: "  " },
+      ];
+      for (const extra of broken) {
+        await tx.$executeRawUnsafe("SAVEPOINT attempt");
+        await expect(
+          addCard(tx, v, extra),
+          JSON.stringify(extra),
+        ).rejects.toThrow();
+        await tx.$executeRawUnsafe("ROLLBACK TO SAVEPOINT attempt");
+      }
+    }));
+
+  it("revision 1 with a reason is refused", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      await tx.$executeRawUnsafe("SAVEPOINT attempt");
+      await expect(addCard(tx, v, { reason: "no" })).rejects.toThrow();
+      await tx.$executeRawUnsafe("ROLLBACK TO SAVEPOINT attempt");
+    }));
+
+  it("card_is_current is true only for the latest revision of the latest version", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      const first = await addCard(tx, v);
+      const second = await addCard(tx, v, correction(first));
+      const rows = await tx.$queryRawUnsafe<{ a: boolean; b: boolean }[]>(
+        `SELECT qualification.card_is_current('${first}') AS a,
+                qualification.card_is_current('${second}') AS b`,
+      );
+      expect(rows[0]).toEqual({ a: false, b: true });
+    }));
+
+  it("an earlier revision of the latest version cannot change", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      const first = await addCard(tx, v);
+      await addCard(tx, v, correction(first));
+      await refused(
+        tx,
+        `UPDATE qualification.qualification SET description = 'changed' WHERE id = '${first}'`,
+      );
+      await refused(tx, answerSql(first, "1b"));
+      await refused(tx, systemComponentSql(first));
+      await refused(tx, linkedItemSql(first));
+    }));
+
+  it("an earlier revision's existing answer cannot be updated", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      const first = await addCard(tx, v);
+      await tx.$executeRawUnsafe(answerSql(first, "1a"));
+      await addCard(tx, v, correction(first));
+      await refused(
+        tx,
+        `UPDATE qualification.qualification_answer SET answer = 'z' WHERE "qualificationId" = '${first}'`,
+      );
+    }));
+
+  it("the latest revision of the latest version still changes in place", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      const first = await addCard(tx, v);
+      const second = await addCard(tx, v, correction(first));
+      await tx.$executeRawUnsafe(
+        `UPDATE qualification.qualification SET description = 'edited' WHERE id = '${second}'`,
+      );
+      await tx.$executeRawUnsafe(answerSql(second, "1a"));
+      await tx.$executeRawUnsafe(systemComponentSql(second));
+      await tx.$executeRawUnsafe(linkedItemSql(second));
+      const rows = await tx.$queryRawUnsafe<{ description: string }[]>(
+        `SELECT description FROM qualification.qualification WHERE id = '${second}'`,
+      );
+      expect(rows[0].description).toBe("edited");
+    }));
+
+  it("the only revision of the latest version still changes in place", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      const only = await addCard(tx, v);
+      await tx.$executeRawUnsafe(
+        `UPDATE qualification.qualification SET description = 'edited' WHERE id = '${only}'`,
+      );
+      await tx.$executeRawUnsafe(answerSql(only, "1a"));
+    }));
+
+  it("a card of an older version does not change even at its highest revision", () =>
+    inRolledBackTx(async (tx) => {
+      const old = await newLatestVersion(tx);
+      const first = await addCard(tx, old);
+      const second = await addCard(tx, old, correction(first));
+      await newLatestVersion(tx);
+      await refused(
+        tx,
+        `UPDATE qualification.qualification SET description = 'changed' WHERE id = '${second}'`,
+      );
+    }));
+
+  it("deleting a version removes all its revisions", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      const first = await addCard(tx, v);
+      await addCard(tx, v, correction(first));
+      await tx.$executeRawUnsafe(
+        `DELETE FROM project.system WHERE pid = '${v}'`,
+      );
+      const rows = await tx.$queryRawUnsafe<{ n: bigint }[]>(
+        `SELECT count(*) AS n FROM qualification.qualification WHERE system_id = '${v}'`,
+      );
+      expect(Number(rows[0].n)).toBe(0);
+    }));
+
+  it("existing cards read as revision 1 after the migration", async () => {
+    const col = await admin.$queryRawUnsafe<{ d: string; nullable: string }[]>(
+      `SELECT column_default AS d, is_nullable AS nullable
+         FROM information_schema.columns
+        WHERE table_schema = 'qualification' AND table_name = 'qualification'
+          AND column_name = 'revision'`,
+    );
+    expect(col).toEqual([{ d: "1", nullable: "NO" }]);
+    const rows = await admin.$queryRawUnsafe<{ n: bigint }[]>(
+      `SELECT count(*) AS n FROM qualification.qualification
+        WHERE revision <> 1 AND amends_id IS NULL`,
+    );
+    expect(Number(rows[0].n)).toBe(0);
+  });
+});

@@ -11,12 +11,19 @@ model Qualification {
   id                String                @id @default(cuid())
   // The card version it describes: a row of project.system in this project's
   // own database, numbered by the platform. The database is the project, so the
-  // card names no project. One card per version; every save makes the next
-  // version, and only the latest version's card changes. The foreign key is
+  // card names no project. A version has one card per revision (a correction of
+  // the description that makes no new version); a save that changes the system makes
+  // the next version. Only the latest revision of the latest version changes. The foreign key is
   // made in the migration, since Prisma cannot model a key into a schema this
   // app only reads. `url` stays env("DATABASE_URL") for the Prisma CLI, which
   // scripts/migrate-projects.mjs sets per project database.
-  systemId          String                @unique @map("system_id") @db.Uuid
+  systemId          String                @map("system_id") @db.Uuid
+  /// 1 for the card saved with the version; each correction is the next number.
+  revision          Int                   @default(1)
+  /// The revision this one corrects, with why and at whose request; all NULL on revision 1.
+  amendsId          String?               @map("amends_id")
+  amendReason       String?               @map("amend_reason")
+  amendRequestedBy  String?               @map("amend_requested_by")
   systemName        String
   systemVersion     String
   company           String
@@ -53,6 +60,7 @@ model Qualification {
   questionnaireVersionId String?               @map("questionnaire_version_id")
   questionnaireVersion   QuestionnaireVersion? @relation(fields: [questionnaireVersionId], references: [id], onDelete: Restrict, map: "qualification_questionnaire_version_id_fkey")
 
+  @@unique([systemId, revision])
   @@index([questionnaireVersionId], map: "qualification_questionnaire_version_id_idx")
   @@map("qualification")
   history           CardHistory[]

@@ -54,10 +54,10 @@ describe.skipIf(!enabled)("the migration's schema (catalog)", () => {
     expect(rows).toEqual([{ target: "project.system", del: "c" }]);
   });
 
-  it("one card per version: the unique index on system_id stays (already passing)", async () => {
+  it("one card per version and revision: the unique index is on (system_id, revision)", async () => {
     const rows = await admin.$queryRawUnsafe<{ n: bigint }[]>(
       `SELECT count(*) AS n FROM pg_indexes
-        WHERE schemaname = 'qualification' AND indexname = 'qualification_system_id_key'`,
+        WHERE schemaname = 'qualification' AND indexname = 'qualification_system_id_revision_key'`,
     );
     expect(Number(rows[0].n)).toBe(1);
   });
