@@ -40,7 +40,9 @@ async function save(card: CreatedCard) {
   const { submitQualification } = await import(
     "@/app/p/[project]/qualify/new/actions"
   );
-  await submitQualification("mcas", undefined, new FormData()).catch((e: Error) => {
+  const fd = new FormData();
+  fd.set("change", "system");
+  await submitQualification("mcas", undefined, fd).catch((e: Error) => {
     if (e.message !== "NEXT_REDIRECT") throw e;
   });
   return (m.emitEvent.mock.calls.at(-1) as unknown as [unknown, Record<string, unknown>])[1];

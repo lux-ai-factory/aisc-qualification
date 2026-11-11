@@ -38,6 +38,7 @@ import { annexDefaultVersion } from "@/domain/forms/legacy";
 import type { FormBlock } from "@/domain/forms/blocks";
 import { moveNotice, rewordedSince } from "@/domain/forms/moveCard";
 import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
+import type { CorrectionOffer } from "@/domain/cardVersions";
 
 /** Technical documentation questions per page of its carousel. */
 const QUESTIONS_PER_PAGE = 5;
@@ -64,6 +65,10 @@ type Props = {
   saveLabel?: string;
   /** Where Cancel goes: the card the edit started from, or the versions. No Cancel without it. */
   cancelHref?: string;
+  /** Present when the card being edited is the latest version's latest card: the save may then
+   *  correct its description (a revision) instead of making a new version. Absent: a save
+   *  always makes a new version. */
+  correction?: CorrectionOffer;
 };
 
 /** Metadata label with its EU AI Act citation chip. */
@@ -86,7 +91,10 @@ export default function QualifyForm({
   nav,
   saveLabel = "Save the AI card",
   cancelHref,
+  correction,
 }: Props) {
+  // Nothing is chosen until the person chooses: a save never guesses which it is.
+  const [change, setChange] = useState<"system" | "correction" | null>(null);
   const v = useMemo(() => form ?? annexDefaultVersion(), [form]);
   // A card moving to another questionnaire version: what the notice says, and
   // which carried answers sit under a question worded differently now.
@@ -528,9 +536,72 @@ export default function QualifyForm({
               name="questionnaireVersionId"
               value={v.versionId}
             />
+            {correction ? (
+              <fieldset className="qf-change">
+                <legend>What does this save do?</legend>
+                <input
+                  type="hidden"
+                  name="amendsId"
+                  value={correction.amendsId}
+                />
+                <label>
+                  <input
+                    type="radio"
+                    name="change"
+                    value="system"
+                    required
+                    checked={change === "system"}
+                    onChange={() => setChange("system")}
+                  />{" "}
+                  The system changed (new version)
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="change"
+                    value="correction"
+                    required
+                    checked={change === "correction"}
+                    onChange={() => setChange("correction")}
+                  />{" "}
+                  {`Correcting the description of Version ${correction.versionNumber} (revision ${correction.versionNumber}.${correction.nextRevision})`}
+                </label>
+                {change === "correction" && (
+                  <>
+                    <label className="qf-field-label" htmlFor="amendReason">
+                      Reason
+                    </label>
+                    <textarea
+                      id="amendReason"
+                      name="amendReason"
+                      rows={2}
+                      required
+                    />
+                    <label
+                      className="qf-field-label"
+                      htmlFor="amendRequestedBy"
+                    >
+                      Requested by
+                    </label>
+                    <input
+                      id="amendRequestedBy"
+                      name="amendRequestedBy"
+                      type="text"
+                      required
+                    />
+                  </>
+                )}
+              </fieldset>
+            ) : (
+              <input type="hidden" name="change" value="system" />
+            )}
             <div className="qf-actions">
               <button className="btn" type="submit" disabled={pending}>
-                {pending ? "Building your AI card..." : saveLabel}
+                {pending
+                  ? "Building your AI card..."
+                  : correction && change === "correction"
+                    ? `Save as revision ${correction.versionNumber}.${correction.nextRevision}`
+                    : saveLabel}
               </button>
               {cancelHref && (
                 <Link className="btn ghost" href={cancelHref}>

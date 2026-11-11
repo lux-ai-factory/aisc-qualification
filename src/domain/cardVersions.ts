@@ -54,6 +54,38 @@ export function nextCard(versions: VersionRef[], cards: CardRef[]): NextCard {
   };
 }
 
+/** "Version 1", or "Version 1, revision 2" once the description has been corrected. */
+export function versionLabel(version: number, revision: number = 1): string {
+  return revision > 1 ? `Version ${version}, revision ${revision}` : `Version ${version}`;
+}
+
+/** What the edit page offers besides a new version: correcting the description of the card it
+ *  starts from. */
+export type CorrectionOffer = {
+  /** The card the page was opened on, posted back so a newer save is noticed. */
+  amendsId: string;
+  /** The version whose description is corrected. */
+  versionNumber: number;
+  /** The revision a correction makes. */
+  nextRevision: number;
+};
+
+/** A correction is offered only when the card being edited is the latest version's own card
+ *  (its latest revision): an older version's card is not corrected, and a latest version
+ *  without a card has nothing to correct. A start from before revisions existed is revision 1. */
+export function correctionOffer(
+  next: NextCard,
+  fromRevision: number = 1,
+): CorrectionOffer | null {
+  if (!next.fromCardId || next.fromVersionNumber === null) return null;
+  if (next.fromVersionNumber !== next.versionNumber - 1) return null;
+  return {
+    amendsId: next.fromCardId,
+    versionNumber: next.fromVersionNumber,
+    nextRevision: fromRevision + 1,
+  };
+}
+
 type CardRisk = {
   position: number;
   risk: string;

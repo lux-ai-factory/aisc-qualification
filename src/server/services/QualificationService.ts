@@ -312,14 +312,22 @@ export class QualificationService {
    */
   async startingPoint(
     project: string,
-  ): Promise<{ next: NextCard; initial: FormExample | null; fromQuestionnaireVersionId: string | null }> {
+  ): Promise<{
+    next: NextCard;
+    initial: FormExample | null;
+    fromQuestionnaireVersionId: string | null;
+    /** The revision of the card it starts from (1 when there is none). */
+    fromRevision: number;
+  }> {
     const { versions, cards } = await this.versionsAndCards(project);
     const next = nextCard(versions, cards);
+    const fromRevision = cards.find((c) => c.id === next.fromCardId)?.revision ?? 1;
     const from = next.fromCardId ? await (await this.repos(project)).find(next.fromCardId) : null;
     return {
       next,
       initial: from ? cardAsFormStart(from) : null,
       fromQuestionnaireVersionId: from ? resolveQuestionnaireVersionId(from.questionnaireVersionId ?? null) : null,
+      fromRevision,
     };
   }
 
