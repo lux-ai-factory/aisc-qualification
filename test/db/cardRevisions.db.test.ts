@@ -181,6 +181,33 @@ describe.skipIf(!enabled)("card revisions", () => {
       }
     }));
 
+  it("a revision corrects the revision just before it, of the same version", () =>
+    inRolledBackTx(async (tx) => {
+      const other = await newLatestVersion(tx);
+      const otherCard = await addCard(tx, other);
+      const v = await newLatestVersion(tx);
+      const first = await addCard(tx, v);
+      const broken = [
+        { ...correction(otherCard), revision: 2 }, // a card of another version
+        { ...correction(first), revision: 3 }, // skips revision 2
+      ];
+      for (const extra of broken) {
+        await tx.$executeRawUnsafe("SAVEPOINT attempt");
+        await expect(addCard(tx, v, extra), JSON.stringify(extra)).rejects.toThrow(
+          /corrects/,
+        );
+        await tx.$executeRawUnsafe("ROLLBACK TO SAVEPOINT attempt");
+      }
+      const second = await addCard(tx, v, correction(first));
+      await tx.$executeRawUnsafe("SAVEPOINT attempt");
+      await expect(
+        addCard(tx, v, { ...correction(first), revision: 3 }),
+        "revision 3 naming revision 1",
+      ).rejects.toThrow(/corrects/);
+      await tx.$executeRawUnsafe("ROLLBACK TO SAVEPOINT attempt");
+      await addCard(tx, v, { ...correction(second), revision: 3 });
+    }));
+
   it("revision 1 with a reason is refused", () =>
     inRolledBackTx(async (tx) => {
       const v = await newLatestVersion(tx);

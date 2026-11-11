@@ -64,3 +64,21 @@ ALTER TABLE qualification.qualification DROP CONSTRAINT qualification_amends_id_
 ALTER TABLE qualification.qualification
   ADD CONSTRAINT qualification_amends_id_fkey
     FOREIGN KEY (amends_id) REFERENCES qualification.qualification (id);
+
+-- A correction corrects the revision just before it, of the same version: revision n of a version
+-- names that version's revision n - 1 in amends_id. Two corrections of the same revision cannot
+-- both be stored (one revision number each), and none can skip one or name another version's card.
+CREATE FUNCTION qualification.revision_corrects_the_one_before() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.revision > 1 AND NOT EXISTS (
+    SELECT 1 FROM qualification.qualification o
+     WHERE o.id = NEW.amends_id AND o.system_id = NEW.system_id AND o.revision = NEW.revision - 1
+  ) THEN
+    RAISE EXCEPTION 'AI card % is revision % of its version: it corrects that version''s revision %, not card %',
+      NEW.id, NEW.revision, NEW.revision - 1, NEW.amends_id;
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER qualification_revision_corrects_the_one_before
+  BEFORE INSERT OR UPDATE OF revision, amends_id, system_id ON qualification.qualification
+  FOR EACH ROW EXECUTE FUNCTION qualification.revision_corrects_the_one_before();
