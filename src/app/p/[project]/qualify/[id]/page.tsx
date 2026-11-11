@@ -38,7 +38,7 @@ export default async function QualificationDetailPage({
   // history. Only the latest changes; when the platform cannot say, nothing is
   // offered for editing either.
   const standing = await qualificationService
-    .standing(project, { systemId: q.systemId })
+    .standing(project, { id: q.id, systemId: q.systemId })
     .catch(() => null);
   const readOnly = !standing?.current;
 

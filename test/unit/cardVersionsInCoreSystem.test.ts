@@ -147,16 +147,17 @@ describe("cardVersions with {pid, number} rows (no frozen_at)", () => {
       { id: "c2", systemId: "v2" },
     ];
     expect(
-      loose(cardVersions).cardStanding([v(2), v(1)], cards, "v1").current,
+      loose(cardVersions).cardStanding([v(2), v(1)], cards, "v1", "c1").current,
     ).toBe(false);
     expect(
-      loose(cardVersions).cardStanding([v(2), v(1)], cards, "v2").current,
+      loose(cardVersions).cardStanding([v(2), v(1)], cards, "v2", "c2").current,
     ).toBe(true);
     expect(
       loose(cardVersions).cardStanding(
         [v(2), v(1)],
         [{ id: "c1", systemId: "v1" }],
         "v1",
+        "c1",
       ).current,
     ).toBe(false);
   });

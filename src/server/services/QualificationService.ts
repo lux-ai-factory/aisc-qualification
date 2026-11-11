@@ -16,7 +16,7 @@ import {
   QualificationFormParser,
   qualificationFormParser,
 } from "@/server/forms/QualificationFormParser";
-import { PlatformClient, platformClient } from "@/server/services/PlatformClient";
+import { PlatformClient, PlatformStatusError, platformClient, type Amendment } from "@/server/services/PlatformClient";
 import {
   cardAsFormStart,
   cardStanding,
@@ -31,6 +31,16 @@ import type { QuestionnaireResolver } from "@/domain/forms/types";
 import { toExport, type QualificationExport } from "@/server/services/QualificationExporter";
 import { ontologyService } from "@/server/services/OntologyService";
 import type { ReviewCarry } from "@/domain/carryReview";
+
+/** The system's identity as the platform keeps it, from a parsed card form. */
+function identityOf(parsed: { systemName: string; systemVersion: string; company: string; description: string }) {
+  return {
+    name: parsed.systemName,
+    version: parsed.systemVersion,
+    provider: parsed.company,
+    description: parsed.description === "" ? null : parsed.description,
+  };
+}
 
 /** A posted text field, trimmed; null when absent or blank. */
 function postedId(formData: FormData, name: string): string | null {
@@ -99,6 +109,64 @@ export class QualificationService {
     /** The caller's ledger event, written in the card's own transaction. */
     record: (tx: Tx, card: CreatedCard) => Promise<unknown> = async () => undefined,
   ): Promise<{ id: string }> {
+    const prep = await this.prepare(project, formData);
+    const version = await this.platform.createVersion(project, identityOf(prep.parsed));
+    return this.storeCard(project, prep, { systemId: version.pid }, record);
+  }
+
+  /**
+   * Correct the description of the latest version: the same version, the next revision of its card.
+   *
+   * It is made like a save (same form, same components, risks and review carried from the card it
+   * corrects), except that the platform is asked to bring the existing version up to date instead
+   * of making a new one. The card names the one it corrects, why, and who asked.
+   */
+  async reviseFromForm(
+    project: string,
+    formData: FormData,
+    amend: Amendment,
+    /** The caller's ledger event, written in the card's own transaction. */
+    record: (tx: Tx, card: CreatedCard & { revision: number; amendsId: string }) => Promise<unknown> = async () => undefined,
+  ): Promise<{ id: string }> {
+    const reason = amend.reason.trim();
+    const requestedBy = amend.requestedBy.trim();
+    if (reason === "" || requestedBy === "") {
+      throw new FormValidationError("Say why the description is corrected and who asked for it.");
+    }
+    const prep = await this.prepare(project, formData);
+    const { start } = prep;
+    if (!start) throw new FormValidationError("There is no card to correct yet. Save the first version instead.");
+    const amendsId = start.card.id;
+    let version;
+    try {
+      version = await this.platform.reviseVersion(project, start.card.systemId, identityOf(prep.parsed), {
+        reason,
+        requestedBy,
+      });
+    } catch (err) {
+      if (err instanceof PlatformStatusError && err.status === 409) {
+        throw new FormValidationError(
+          "A newer version was saved since this page was opened. Reload it before correcting the description.",
+        );
+      }
+      throw err;
+    }
+    const revision = version.cardRevision;
+    return this.storeCard(
+      project,
+      prep,
+      { systemId: version.pid, revision, amendsId, amendReason: reason, amendRequestedBy: requestedBy },
+      (tx, card) => record(tx, { ...card, revision, amendsId }),
+    );
+  }
+
+  /**
+   * What a save and a correction share, worked out before anything is stored: the questionnaire
+   * version loaded from its id, the form parsed against it, the components keyed from the card
+   * this starts from, the ledger's check of the content, the engine links, and the review taken
+   * from the card before.
+   */
+  private async prepare(project: string, formData: FormData) {
     const id = postedId(formData, "questionnaireVersionId") ?? postedId(formData, "formVersionId");
     const form = await (await this.formsFor(project)).resolve(id);
     if (!form) {
@@ -137,14 +205,19 @@ export class QualificationService {
           form,
         )
       : null;
-    const version = await this.platform.createVersion(project, {
-      name: parsed.systemName,
-      version: parsed.systemVersion,
-      provider: parsed.company,
-      description: parsed.description === "" ? null : parsed.description,
-    });
+    return { form, parsed, systemComponents, links, review, start };
+  }
+
+  /** Store the card of a save or a correction, with its history and the caller's ledger event, in one transaction. */
+  private async storeCard(
+    project: string,
+    prep: Awaited<ReturnType<QualificationService["prepare"]>>,
+    extra: Pick<CreateQualificationInput, "systemId"> & Partial<Pick<CreateQualificationInput, "revision" | "amendsId" | "amendReason" | "amendRequestedBy">>,
+    record: (tx: Tx, card: CreatedCard) => Promise<unknown>,
+  ): Promise<{ id: string }> {
+    const { parsed, systemComponents, form, links, review, start } = prep;
     const repo = await this.repos(project);
-    const input = { ...parsed, systemComponents, questionnaireVersionId: form.versionId, systemId: version.pid };
+    const input = { ...parsed, systemComponents, questionnaireVersionId: form.versionId, ...extra };
     const made = await repo.transaction(async (r, tx) => {
       const created = await r.create({
         ...input,
@@ -255,14 +328,14 @@ export class QualificationService {
   async currentCardId(project: string): Promise<string | null> {
     const { versions, cards } = await this.versionsAndCards(project);
     if (!versions.length) return null;
-    return cardStanding(versions, cards, versions[0].pid).currentCardId;
+    return cardStanding(versions, cards, versions[0].pid, null).currentCardId;
   }
 
   /** Where one card stands among the card versions. */
-  async standing(project: string, card: { systemId: string }): Promise<CardStanding> {
+  async standing(project: string, card: { id: string; systemId: string }): Promise<CardStanding> {
     const versions = await this.platform.listVersions(project);
     const cards = await (await this.repos(project)).cardRefs();
-    return cardStanding(versions, cards, card.systemId);
+    return cardStanding(versions, cards, card.systemId, card.id);
   }
 
   /** The card versions, highest number first. */

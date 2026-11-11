@@ -23,6 +23,12 @@ export type CreateQualificationInput = {
   /** The card version it describes: a row of project.system in this project's
    *  own database, as named by the platform (uuid). */
   systemId: string;
+  /** Which revision of that version's card this is; left out it is the first. */
+  revision?: number;
+  /** A revision above the first names the card it corrects, why, and who asked. */
+  amendsId?: string;
+  amendReason?: string;
+  amendRequestedBy?: string;
   systemName: string;
   systemVersion: string;
   company: string;

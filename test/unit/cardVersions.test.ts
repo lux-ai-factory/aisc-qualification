@@ -190,7 +190,7 @@ describe("cardStanding", () => {
   ];
 
   it("the newest version's card is the current one", () => {
-    expect(cardStanding(versions, cards, "v2")).toEqual({
+    expect(cardStanding(versions, cards, "v2", "c2")).toEqual({
       versionNumber: 2,
       current: true,
       currentCardId: "c2",
@@ -198,15 +198,28 @@ describe("cardStanding", () => {
   });
 
   it("an older card says which version it is and which card is current", () => {
-    expect(cardStanding(versions, cards, "v1")).toEqual({
+    expect(cardStanding(versions, cards, "v1", "c1")).toEqual({
       versionNumber: 1,
       current: false,
       currentCardId: "c2",
     });
   });
 
+  it("an earlier revision of the latest version is not current", () => {
+    const revised = [
+      ...cards,
+      { id: "c2r", systemId: "v2", revision: 2 },
+    ];
+    expect(cardStanding(versions, revised, "v2", "c2")).toEqual({
+      versionNumber: 2,
+      current: false,
+      currentCardId: "c2r",
+    });
+    expect(cardStanding(versions, revised, "v2", "c2r").current).toBe(true);
+  });
+
   it("no card at all has no current card", () => {
-    expect(cardStanding(versions, [], "v1")).toEqual({
+    expect(cardStanding(versions, [], "v1", "c1")).toEqual({
       versionNumber: 1,
       current: false,
       currentCardId: null,

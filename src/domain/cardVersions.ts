@@ -193,20 +193,23 @@ export type CardStanding = {
   currentCardId: string | null;
 };
 
-/** Where one card stands: the latest version's card is the system's page and
- *  may change; every other card is kept as it was. `systemId` is the version
- *  the card describes. */
+/** Where one card stands: the latest version's latest revision is the system's page and
+ *  may change; every other card, including an earlier revision of the latest version, is
+ *  kept as it was. `systemId` is the version the card describes, `cardId` the card itself
+ *  (null when only the current card is asked for). */
 export function cardStanding(
   versions: VersionRef[],
   cards: CardRef[],
   systemId: string,
+  cardId: string | null,
 ): CardStanding {
   const cardOf = cardIdByVersion(cards);
   const latest = newestFirst(versions)[0];
+  const currentCardId = latest ? (cardOf.get(latest.pid) ?? null) : null;
   return {
     versionNumber:
       versions.find((version) => version.pid === systemId)?.number ?? 0,
-    current: latest !== undefined && latest.pid === systemId,
-    currentCardId: latest ? (cardOf.get(latest.pid) ?? null) : null,
+    current: cardId !== null && currentCardId === cardId,
+    currentCardId,
   };
 }
