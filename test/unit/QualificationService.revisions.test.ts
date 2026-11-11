@@ -51,8 +51,10 @@ function setup(opts: { reviseVersion?: () => Promise<unknown>; parsed?: Record<s
   };
   let inTx = false;
   let commits = 0;
+  let lastTxOptions: { timeout?: number } | undefined;
   const repo = transactional({
-    transaction: async (fn: (r: unknown, t: unknown) => unknown) => {
+    transaction: async (fn: (r: unknown, t: unknown) => unknown, options?: { timeout?: number }) => {
+      lastTxOptions = options;
       inTx = true;
       try {
         const out = await fn(repo, { $executeRaw: vi.fn(async () => 1) });
@@ -77,7 +79,14 @@ function setup(opts: { reviseVersion?: () => Promise<unknown>; parsed?: Record<s
   const svc = new (QualificationService as unknown as new (...a: unknown[]) => QualificationService)(
     repo, parser, platform, formsFor, review, engine,
   );
-  return { svc, platform, repo, inTransaction: () => inTx, committed: () => commits > 0 };
+  return {
+    svc,
+    platform,
+    repo,
+    inTransaction: () => inTx,
+    committed: () => commits > 0,
+    txOptions: () => lastTxOptions,
+  };
 }
 
 const posted = (amendsId: string | null = "card-1") => {
@@ -99,6 +108,7 @@ describe("correcting the description of a version", () => {
       expect.objectContaining({ name: "Acme Vision", provider: "Acme Corp" }),
       amend,
       1,
+      expect.objectContaining({ timeoutMs: expect.any(Number) }),
     );
     expect(platform.createVersion).not.toHaveBeenCalled();
     expect(repo.create).toHaveBeenCalledWith(
@@ -148,8 +158,8 @@ describe("correcting the description of a version", () => {
     const err = await svc.reviseFromForm("mcas", posted(), amend, record).catch((e) => e);
     expect(err).toBeInstanceOf(FormValidationError);
     expect(err.message).toBe(STALE);
+    // the ledger event was written in the transaction the refusal rolled back
     expect(committed()).toBe(false);
-    expect(record).not.toHaveBeenCalled();
   });
 
   it("the platform counts the revision only once the card is stored, in the card's own transaction", async () => {
@@ -162,16 +172,41 @@ describe("correcting the description of a version", () => {
     const record = vi.fn(async () => undefined);
     await svc.reviseFromForm("mcas", posted(), amend, record);
     expect(seen).toEqual([true]);
+    // the platform's count is the last step before the card commits: the card, its history and its
+    // ledger event are written first, so nothing that can still fail comes after the platform counted
     const created = repo.create.mock.invocationCallOrder[0];
+    const recorded = record.mock.invocationCallOrder[0];
     const counted = platform.reviseVersion.mock.invocationCallOrder[0];
-    expect(created).toBeLessThan(counted);
-    expect(counted).toBeLessThan(record.mock.invocationCallOrder[0]);
+    expect(created).toBeLessThan(recorded);
+    expect(recorded).toBeLessThan(counted);
+  });
+
+  it("the correction's transaction outlasts the platform call it waits for", async () => {
+    const { svc, platform, txOptions } = setup();
+    await svc.reviseFromForm("mcas", posted(), amend);
+    const callLimit = (platform.reviseVersion.mock.calls[0] as unknown[])[5] as { timeoutMs: number };
+    expect(callLimit.timeoutMs).toBeGreaterThan(0);
+    expect(txOptions()?.timeout).toBeGreaterThan(callLimit.timeoutMs);
+  });
+
+  it("an error on another unique key is not taken for a stale page", async () => {
+    const { svc, repo } = setup();
+    const other = Object.assign(new Error("Unique constraint failed on the fields: (`qualification_id`,`component_pid`)"), {
+      code: "P2002",
+      meta: { target: ["qualification_id", "component_pid"] },
+    });
+    repo.create.mockRejectedValue(other);
+    const err = await svc.reviseFromForm("mcas", posted(), amend).catch((e) => e);
+    expect(err).toBe(other);
   });
 
   it("refuses a correction when another one stored the same revision first", async () => {
     const { svc, platform, repo, committed } = setup();
     repo.create.mockRejectedValue(
-      Object.assign(new Error("Unique constraint failed on the fields: (`system_id`,`revision`)"), { code: "P2002" }),
+      Object.assign(new Error("Unique constraint failed on the fields: (`system_id`,`revision`)"), {
+        code: "P2002",
+        meta: { target: ["system_id", "revision"] },
+      }),
     );
     const err = await svc.reviseFromForm("mcas", posted(), amend).catch((e) => e);
     expect(err).toBeInstanceOf(FormValidationError);
@@ -189,7 +224,7 @@ describe("correcting the description of a version", () => {
         : null,
     );
     await svc.reviseFromForm("mcas", posted(), amend);
-    expect(platform.reviseVersion).toHaveBeenCalledWith("mcas", "v1", expect.anything(), amend, 3);
+    expect(platform.reviseVersion).toHaveBeenCalledWith("mcas", "v1", expect.anything(), amend, 3, expect.anything());
   });
 
   it("the card is stored as the next revision; a platform that counts another one refuses it", async () => {
@@ -198,7 +233,7 @@ describe("correcting the description of a version", () => {
     expect(ok.repo.create).toHaveBeenCalledWith(expect.objectContaining({ revision: 2 }));
     const off = setup({ reviseVersion: async () => version(1, 5) });
     const err = await off.svc.reviseFromForm("mcas", posted(), amend).catch((e) => e);
-    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe("the platform counted card revision 5 for this correction, not 2");
     expect(off.committed()).toBe(false);
   });
 

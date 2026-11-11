@@ -114,10 +114,13 @@ export class QualificationRepository {
    */
   async transaction<T>(
     fn: (repo: QualificationRepository, tx: Tx) => Promise<T>,
+    /** How long the transaction may stay open (Prisma's own limit is 5 s). */
+    options: { timeout?: number } = {},
   ): Promise<T> {
     await beforeTransaction(); // the request id, resolved outside the transaction
-    return this.db.$transaction((tx) =>
-      fn(new QualificationRepository(tx as unknown as PrismaClient), tx),
+    return this.db.$transaction(
+      (tx) => fn(new QualificationRepository(tx as unknown as PrismaClient), tx),
+      options.timeout ? { timeout: options.timeout } : undefined,
     );
   }
 

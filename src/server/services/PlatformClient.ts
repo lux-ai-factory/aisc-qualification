@@ -88,6 +88,7 @@ export class PlatformClient {
     path: string,
     parse: (raw: unknown) => T | undefined,
     body?: unknown,
+    timeoutMs?: number,
   ): Promise<T> {
     if (!this.baseUrl) {
       throw new Error(
@@ -108,6 +109,7 @@ export class PlatformClient {
       body,
       parse,
       fetchImpl: this.fetchImpl,
+      ...(timeoutMs ? { timeoutMs } : {}),
     });
     if (answer.ok) return answer.value;
     // The person reads this: the platform's own detail when it gives one, on one short line.
@@ -158,13 +160,15 @@ export class PlatformClient {
   /** Correct the description of the latest version, which stays the same version: the platform
    *  brings its name, version, provider and description up to date and counts one more card revision.
    *  `fromRevision` is the card revision the correction started from: when another correction came
-   *  first, the platform refuses this one (409) instead of letting it silently replace that one. */
+   *  first, the platform refuses this one (409) instead of letting it silently replace that one.
+   *  `timeoutMs` bounds the wait: a correction calls this inside its card's open transaction. */
   reviseVersion(
     project: string,
     pid: string,
     identity: SystemIdentity,
     amend: Amendment,
     fromRevision: number,
+    options: { timeoutMs?: number } = {},
   ): Promise<CardVersion> {
     return this.call(
       "Could not correct this system",
@@ -180,6 +184,7 @@ export class PlatformClient {
         requested_by: amend.requestedBy,
         expected_card_revision: fromRevision,
       },
+      options.timeoutMs,
     );
   }
 }

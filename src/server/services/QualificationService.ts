@@ -76,11 +76,21 @@ export type ReviewCarrier = {
 const CHANGED_SINCE_OPENED =
   "The card was saved or corrected since this page was opened. Reload it before correcting the description.";
 
+/** How long a correction waits for the platform to count its revision, inside the card's transaction. */
+const PLATFORM_COUNT_TIMEOUT_MS = 10_000;
+/** How long a correction's transaction may stay open: longer than the platform call it waits on, so the
+ *  transaction is never cut short after the platform has counted the revision. */
+const CORRECTION_TRANSACTION_TIMEOUT_MS = 20_000;
+
 /** A correction that lost to another save or correction: the platform refused it (409), or another
- *  correction stored the same revision of the card first (the unique system and revision index). */
+ *  correction stored the same revision of the card first (the unique system and revision index). Any
+ *  other error, another unique key's included, is a real failure and is shown as it is. */
 function isStaleCorrection(err: unknown): boolean {
   if (err instanceof PlatformStatusError) return err.status === 409;
-  return (err as { code?: unknown } | null)?.code === "P2002";
+  const e = err as { code?: unknown; message?: unknown; meta?: unknown } | null;
+  if (e?.code !== "P2002") return false;
+  const said = `${String(e.message ?? "")} ${JSON.stringify(e.meta ?? {})}`;
+  return /system_id/.test(said) && /revision/.test(said);
 }
 
 export class QualificationService {
@@ -163,20 +173,23 @@ export class QualificationService {
         prep,
         { systemId: start.card.systemId, revision, amendsId, amendReason: reason, amendRequestedBy: requestedBy },
         async (tx, card) => {
+          // everything else of the card first; the platform's count is the last step before commit
+          await record(tx, { ...card, revision, amendsId });
           const version = await this.platform.reviseVersion(
             project,
             start.card.systemId,
             identityOf(prep.parsed),
             { reason, requestedBy },
             start.card.revision,
+            { timeoutMs: PLATFORM_COUNT_TIMEOUT_MS },
           );
           if (version.cardRevision !== revision) {
             throw new Error(
               `the platform counted card revision ${version.cardRevision} for this correction, not ${revision}`,
             );
           }
-          await record(tx, { ...card, revision, amendsId });
         },
+        CORRECTION_TRANSACTION_TIMEOUT_MS,
       );
     } catch (err) {
       if (isStaleCorrection(err)) throw new FormValidationError(CHANGED_SINCE_OPENED);
@@ -238,6 +251,8 @@ export class QualificationService {
     prep: Awaited<ReturnType<QualificationService["prepare"]>>,
     extra: Pick<CreateQualificationInput, "systemId"> & Partial<Pick<CreateQualificationInput, "revision" | "amendsId" | "amendReason" | "amendRequestedBy">>,
     record: (tx: Tx, card: CreatedCard) => Promise<unknown>,
+    /** How long its transaction may stay open, when the default is too short for what `record` waits on. */
+    txTimeoutMs?: number,
   ): Promise<{ id: string }> {
     const { parsed, systemComponents, form, links, review, start } = prep;
     const repo = await this.repos(project);
@@ -259,7 +274,7 @@ export class QualificationService {
       }
       await record(tx, { id: created.id, input, review: review?.said ?? null });
       return created;
-    });
+    }, txTimeoutMs ? { timeout: txTimeoutMs } : undefined);
     // the assessment targets follow the card's components; never a reason to fail the save
     await Promise.resolve()
       .then(() => this.platform.syncTargets(project))
