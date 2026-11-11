@@ -7,10 +7,11 @@ ALTER TABLE qualification.qualification
   ADD COLUMN amend_reason        text NULL,
   ADD COLUMN amend_requested_by  text NULL;
 
--- cascading, so deleting a version (which deletes all its cards) is never blocked by a revision
+-- A revision another one corrects cannot be deleted on its own: the correction would lose what it
+-- corrects. Deleting the version deletes every revision in the same statement, which this allows.
 ALTER TABLE qualification.qualification
   ADD CONSTRAINT qualification_amends_id_fkey
-    FOREIGN KEY (amends_id) REFERENCES qualification.qualification (id) ON DELETE CASCADE;
+    FOREIGN KEY (amends_id) REFERENCES qualification.qualification (id);
 
 -- the first revision says nothing about a correction; every later one says what, why and for whom
 ALTER TABLE qualification.qualification

@@ -58,12 +58,6 @@ CREATE TRIGGER knowledge_graph_only_latest_changes
   BEFORE INSERT OR UPDATE ON qualification.knowledge_graph
   FOR EACH ROW EXECUTE FUNCTION qualification.card_row_only_latest_changes();
 
--- A revision another one corrects cannot be deleted on its own: the correction would lose what it
--- corrects. Deleting the version deletes every revision in the same statement, which this allows.
-ALTER TABLE qualification.qualification DROP CONSTRAINT qualification_amends_id_fkey;
-ALTER TABLE qualification.qualification
-  ADD CONSTRAINT qualification_amends_id_fkey
-    FOREIGN KEY (amends_id) REFERENCES qualification.qualification (id);
 
 -- A correction corrects the revision just before it, of the same version: revision n of a version
 -- names that version's revision n - 1 in amends_id. Two corrections of the same revision cannot
