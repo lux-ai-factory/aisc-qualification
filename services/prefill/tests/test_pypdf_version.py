@@ -5,8 +5,19 @@ from pathlib import Path
 import pypdf
 
 
+def _pypdf_spec() -> str:
+    """The service's pypdf requirement, from the uv project the deps are locked by."""
+    text = (Path(__file__).parents[1] / "pyproject.toml").read_text()
+    return next(
+        line.strip().strip('",')
+        for line in text.splitlines()
+        if "pypdf" in line
+    )
+
+
 def test_pinned_and_installed_pypdf_is_6_or_later():
-    pinned = next(line for line in (Path(__file__).parents[1] / "requirements.txt").read_text().splitlines()
-                  if line.startswith("pypdf=="))
-    assert int(pinned.split("==")[1].split(".")[0]) >= 6, pinned
+    spec = _pypdf_spec()
+    assert spec.startswith("pypdf>="), spec
+    minimum = int(spec.split(">=")[1].split(".")[0])
+    assert minimum >= 6, spec
     assert int(pypdf.__version__.split(".")[0]) >= 6, pypdf.__version__

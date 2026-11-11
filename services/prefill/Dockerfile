@@ -4,12 +4,28 @@
 # service, because the mapping from an Annex point to a form field lives with
 # the form that defines it:
 #   docker build -f services/prefill/Dockerfile .
-FROM python:3.12-slim
+FROM ghcr.io/astral-sh/uv:python3.12-alpine AS base
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/app/.venv \
+    PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
-COPY services/prefill/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# ---- Builder: install the locked prefill deps ----
+FROM base AS builder
+
+COPY services/prefill/pyproject.toml services/prefill/uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev
+
+# ---- Final runtime image ----
+FROM base AS runtime
+
+ENV UV_NO_SYNC=1
+COPY --from=builder /app/.venv /app/.venv
 
 COPY services/prefill/prefill ./prefill
 COPY services/prefill/app.py services/prefill/service_token.py ./

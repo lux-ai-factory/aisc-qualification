@@ -1,4 +1,7 @@
 node_modules
+**.venv
+**/node_modules
+**/__pycache__
 .next
 .git
 .env
