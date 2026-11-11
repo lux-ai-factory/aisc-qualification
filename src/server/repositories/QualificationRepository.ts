@@ -322,15 +322,34 @@ export class QualificationRepository {
   }
 
   /**
-   * Whether this card version is the latest in this project's database: the
-   * rule the only-latest triggers enforce (qualification.card_is_latest). It is
-   * for a caller with no user behind it (the card agent), which the platform's
+   * Whether this card is the one that may still change in this project's
+   * database: the highest revision of the latest version, the rule the
+   * only-latest triggers enforce (qualification.card_is_current). It is for a
+   * caller with no user behind it (the card agent), which the platform's
    * /system-versions/latest would not answer.
    */
-  async isLatest(systemId: string): Promise<boolean> {
-    const rows = await this.db.$queryRaw<{ latest: boolean }[]>`
-      SELECT qualification.card_is_latest(${systemId}::uuid) AS latest`;
-    return rows[0]?.latest === true;
+  async isCurrent(cardId: string): Promise<boolean> {
+    const rows = await this.db.$queryRaw<{ current: boolean }[]>`
+      SELECT qualification.card_is_current(${cardId}) AS current`;
+    return rows[0]?.current === true;
+  }
+
+  /**
+   * The card's version, and whether it is that version's highest revision
+   * (a correction makes a new one). Null: no such card.
+   */
+  async cardStanding(
+    cardId: string,
+  ): Promise<{ systemId: string; latestRevision: boolean } | null> {
+    const rows = await this.db.$queryRaw<
+      { systemId: string; latestRevision: boolean }[]
+    >`
+      SELECT q.system_id::text AS "systemId",
+             q.revision = (SELECT max(o.revision) FROM qualification.qualification o
+                            WHERE o.system_id = q.system_id) AS "latestRevision"
+        FROM qualification.qualification q
+       WHERE q.id = ${cardId}`;
+    return rows[0] ?? null;
   }
 }
 

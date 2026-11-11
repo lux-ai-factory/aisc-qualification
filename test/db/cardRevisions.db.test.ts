@@ -299,6 +299,19 @@ describe.skipIf(!enabled)("card revisions", () => {
       });
     }));
 
+  it("the repository says which card is current and where each stands among its revisions", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      const first = await addCard(tx, v);
+      const second = await addCard(tx, v, correction(first));
+      const repo = new QualificationRepository(tx as unknown as PrismaClient);
+      expect(await repo.isCurrent(first)).toBe(false);
+      expect(await repo.isCurrent(second)).toBe(true);
+      expect(await repo.cardStanding(first)).toEqual({ systemId: v, latestRevision: false });
+      expect(await repo.cardStanding(second)).toEqual({ systemId: v, latestRevision: true });
+      expect(await repo.cardStanding("no-such-card")).toBeNull();
+    }));
+
   it("existing cards read as revision 1 after the migration", async () => {
     const col = await admin.$queryRawUnsafe<{ d: string; nullable: string }[]>(
       `SELECT column_default AS d, is_nullable AS nullable

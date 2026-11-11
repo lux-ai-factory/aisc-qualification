@@ -210,13 +210,14 @@ export class OntologyService {
     return this.build(projectId, qualificationId);
   }
 
-  /** The qualification, if it is of this project and its card is the latest
-   *  version's: only that card changes, an older one is kept as it was. */
+  /** The qualification, if it is of this project and it is the current card
+   *  (the latest version's highest revision): only that card changes, an older
+   *  one is kept as it was. */
   private async findChangeable(projectId: string, qualificationId: string) {
     const repo = await this.repos(projectId);
     const q = await repo.find(qualificationId);
     if (!q) throw new Error("Qualification not found.");
-    await assertLatestCard(projectId, q.systemId);
+    await assertLatestCard(projectId, q.id, repo);
     return { repo, q };
   }
 }

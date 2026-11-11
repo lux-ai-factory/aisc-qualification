@@ -17,7 +17,7 @@ export type FillActionState = { ok: true } | { ok: false; error: string };
  * It replaces the filler's draft, so it takes the doors of every other change
  * to a card: write access to the project it is given (which comes from the
  * browser and is not trusted), the card in that project's database, and only
- * the latest version. Reviewer corrections are applied on top of the draft at
+ * the current card (the latest version's highest revision). Reviewer corrections are applied on top of the draft at
  * build time, so a re-run keeps them.
  */
 export async function rerunFill(
@@ -30,7 +30,7 @@ export async function rerunFill(
     const repo = new QualificationRepository(d.db);
     const q = await repo.cardSummary(qualificationId);
     if (!q) return { ok: false, error: REFUSED[404] };
-    await assertLatestCard(project, q.systemId);
+    await assertLatestCard(project, q.id, repo);
     // The agent keeps the run it has and ignores a second start: asked first, so the ledger gets no
     // request for a run that never happens.
     if (await fillInFlight(project, qualificationId)) {

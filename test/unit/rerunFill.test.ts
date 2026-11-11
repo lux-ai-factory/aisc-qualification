@@ -7,13 +7,22 @@ import { transactional } from "../support/ledgerRepo";
 // given, the card in that project's database, and only the latest version.
 
 const PROJECT_ID = "a1b2c3d4-0000-4000-8000-000000000002";
-const cards: Record<string, { id: string; systemId: string }> = {
-  q1: { id: "q1", systemId: "v2" },
-  old: { id: "old", systemId: "v1" },
+const cards: Record<string, { id: string; systemId: string; revision: number }> = {
+  q1: { id: "q1", systemId: "v2", revision: 2 },
+  q1first: { id: "q1first", systemId: "v2", revision: 1 },     // v2's card before its correction
+  old: { id: "old", systemId: "v1", revision: 1 },
 };
 
 const repo = transactional({
   cardSummary: vi.fn(async (id: string) => cards[id] ?? null),
+  cardStanding: vi.fn(async (id: string) => {
+    const card = cards[id];
+    if (!card) return null;
+    const highest = Math.max(
+      ...Object.values(cards).filter((c) => c.systemId === card.systemId).map((c) => c.revision),
+    );
+    return { systemId: card.systemId, latestRevision: card.revision === highest };
+  }),
 });
 const actionDoor = vi.fn(
   async (_p: string, _o: unknown) =>
@@ -88,6 +97,13 @@ describe("regenerating the AI card", () => {
     const state = await rerun(PROJECT_ID, "old");
     expect(state.ok).toBe(false);
     if (!state.ok) expect(state.error).toMatch(/older version/);
+    expect(requestFill).not.toHaveBeenCalled();
+  });
+
+  it("is refused for an earlier revision of the latest version's card", async () => {
+    const state = await rerun(PROJECT_ID, "q1first");
+    expect(state.ok).toBe(false);
+    if (!state.ok) expect(state.error).toMatch(/403/);
     expect(requestFill).not.toHaveBeenCalled();
   });
 
