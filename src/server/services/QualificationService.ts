@@ -136,7 +136,14 @@ export class QualificationService {
     const prep = await this.prepare(project, formData);
     const { start } = prep;
     if (!start) throw new FormValidationError("There is no card to correct yet. Save the first version instead.");
+    // The card to correct is the one the page was opened on, posted back: when another save came
+    // first, the start card is a newer one and this page's content would silently overwrite it.
     const amendsId = start.card.id;
+    if (postedId(formData, "amendsId") !== amendsId) {
+      throw new FormValidationError(
+        "A newer version was saved since this page was opened. Reload it before correcting the description.",
+      );
+    }
     let version;
     try {
       version = await this.platform.reviseVersion(project, start.card.systemId, identityOf(prep.parsed), {

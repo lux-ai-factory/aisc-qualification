@@ -68,7 +68,12 @@ function setup(opts: { reviseVersion?: () => Promise<unknown>; parsed?: Record<s
   return { svc, platform, repo };
 }
 
-const posted = () => new FormData();
+const posted = (amendsId: string | null = "card-1") => {
+  const fd = new FormData();
+  if (amendsId !== null) fd.set("amendsId", amendsId);
+  return fd;
+};
+const STALE = "A newer version was saved since this page was opened. Reload it before correcting the description.";
 
 describe("correcting the description of a version", () => {
   it("a correction keeps the version and makes the next revision", async () => {
@@ -138,5 +143,18 @@ describe("correcting the description of a version", () => {
     const { svc, repo } = setup({ reviseVersion: async () => version(1, 5) });
     await svc.reviseFromForm("mcas", posted(), amend);
     expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ revision: 5 }));
+  });
+
+  it.each([
+    ["the page was opened on an earlier version, a newer one was saved since", "card-0"],
+    ["the page was opened on an earlier revision, a newer revision was saved since", "card-1-earlier"],
+    ["the page names no card", null],
+  ])("refuses a correction when %s", async (_why, opened) => {
+    const { svc, platform, repo } = setup();
+    const err = await svc.reviseFromForm("mcas", posted(opened), amend).catch((e) => e);
+    expect(err).toBeInstanceOf(FormValidationError);
+    expect(err.message).toBe(STALE);
+    expect(platform.reviseVersion).not.toHaveBeenCalled();
+    expect(repo.create).not.toHaveBeenCalled();
   });
 });
