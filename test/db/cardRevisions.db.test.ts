@@ -109,6 +109,15 @@ const linkedItemSql = (card: string) =>
      (id, qualification_id, component_pid, airo_property, name, component_type)
    VALUES ('cc-${randomUUID()}', '${card}', '${randomUUID()}', 'hasModel', 'm', 'model')`;
 
+const riskSql = (card: string) =>
+  `INSERT INTO qualification.qualification_risk
+     (id, "qualificationId", "position", risk, source, consequence, affected)
+   VALUES ('r-${randomUUID()}', '${card}', 0, 'r', 's', 'c', 'a')`;
+const graphSql = (card: string) =>
+  `INSERT INTO qualification.knowledge_graph
+     (id, "qualificationId", digest, turtle, jsonld, nodes, triples)
+   VALUES ('g-${randomUUID()}', '${card}', 'd', 't', '{}', 1, 1)`;
+
 describe.skipIf(!enabled)("card revisions", () => {
   it("the unique index is on (system_id, revision), not on system_id alone", async () => {
     const rows = await admin.$queryRawUnsafe<{ indexname: string }[]>(
@@ -218,6 +227,79 @@ describe.skipIf(!enabled)("card revisions", () => {
       );
     }));
 
+  it("an earlier revision's risks and knowledge graph cannot be added or changed", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      const first = await addCard(tx, v);
+      await tx.$executeRawUnsafe(riskSql(first));
+      await tx.$executeRawUnsafe(graphSql(first));
+      await addCard(tx, v, correction(first));
+      await refused(tx, riskSql(first));
+      await refused(
+        tx,
+        `UPDATE qualification.qualification_risk SET risk = 'z' WHERE "qualificationId" = '${first}'`,
+      );
+      await refused(
+        tx,
+        `UPDATE qualification.knowledge_graph SET digest = 'z' WHERE "qualificationId" = '${first}'`,
+      );
+      await tx.$executeRawUnsafe(
+        `DELETE FROM qualification.knowledge_graph WHERE "qualificationId" = '${first}'`,
+      );
+      await refused(tx, graphSql(first));
+    }));
+
+  it("a row of an earlier revision cannot be moved onto the current card", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      const first = await addCard(tx, v);
+      await tx.$executeRawUnsafe(riskSql(first));
+      await tx.$executeRawUnsafe(graphSql(first));
+      await tx.$executeRawUnsafe(answerSql(first, "1a"));
+      await tx.$executeRawUnsafe(systemComponentSql(first));
+      await tx.$executeRawUnsafe(linkedItemSql(first));
+      const second = await addCard(tx, v, correction(first));
+      for (const [table, column] of [
+        ["qualification_risk", `"qualificationId"`],
+        ["knowledge_graph", `"qualificationId"`],
+        ["qualification_answer", `"qualificationId"`],
+        ["qualification_component", "qualification_id"],
+        ["card_component", "qualification_id"],
+      ]) {
+        await refused(
+          tx,
+          `UPDATE qualification.${table} SET ${column} = '${second}' WHERE ${column} = '${first}'`,
+        );
+      }
+    }));
+
+  it("the current card's risks and knowledge graph still change", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      const first = await addCard(tx, v);
+      const second = await addCard(tx, v, correction(first));
+      await tx.$executeRawUnsafe(riskSql(second));
+      await tx.$executeRawUnsafe(graphSql(second));
+      await tx.$executeRawUnsafe(
+        `UPDATE qualification.qualification_risk SET risk = 'z' WHERE "qualificationId" = '${second}'`,
+      );
+      await tx.$executeRawUnsafe(
+        `UPDATE qualification.knowledge_graph SET digest = 'z' WHERE "qualificationId" = '${second}'`,
+      );
+    }));
+
+  it("a revision another one corrects cannot be deleted on its own", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      const first = await addCard(tx, v);
+      const second = await addCard(tx, v, correction(first));
+      await refused(tx, `DELETE FROM qualification.qualification WHERE id = '${first}'`);
+      const rows = await tx.$queryRawUnsafe<{ id: string }[]>(
+        `SELECT id FROM qualification.qualification WHERE system_id = '${v}' ORDER BY revision`,
+      );
+      expect(rows.map((r) => r.id)).toEqual([first, second]);
+    }));
+
   it("the latest revision of the latest version still changes in place", () =>
     inRolledBackTx(async (tx) => {
       const v = await newLatestVersion(tx);
@@ -257,11 +339,15 @@ describe.skipIf(!enabled)("card revisions", () => {
       );
     }));
 
-  it("deleting a version removes all its revisions", () =>
+  it("deleting a version removes all its revisions, with their risks and graphs", () =>
     inRolledBackTx(async (tx) => {
       const v = await newLatestVersion(tx);
       const first = await addCard(tx, v);
-      await addCard(tx, v, correction(first));
+      await tx.$executeRawUnsafe(riskSql(first));
+      await tx.$executeRawUnsafe(graphSql(first));
+      const second = await addCard(tx, v, correction(first));
+      await tx.$executeRawUnsafe(riskSql(second));
+      await tx.$executeRawUnsafe(graphSql(second));
       await tx.$executeRawUnsafe(
         `DELETE FROM project.system WHERE pid = '${v}'`,
       );
@@ -269,6 +355,13 @@ describe.skipIf(!enabled)("card revisions", () => {
         `SELECT count(*) AS n FROM qualification.qualification WHERE system_id = '${v}'`,
       );
       expect(Number(rows[0].n)).toBe(0);
+      const left = await tx.$queryRawUnsafe<{ n: bigint }[]>(
+        `SELECT (SELECT count(*) FROM qualification.qualification_risk
+                  WHERE "qualificationId" IN ('${first}', '${second}'))
+              + (SELECT count(*) FROM qualification.knowledge_graph
+                  WHERE "qualificationId" IN ('${first}', '${second}')) AS n`,
+      );
+      expect(Number(left[0].n)).toBe(0);
     }));
 
   it("the repository reads a version's card as its highest revision", () =>

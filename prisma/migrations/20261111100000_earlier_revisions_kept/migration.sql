@@ -1,0 +1,66 @@
+-- Every row hanging off a card is kept as it was once the card is no longer the current one
+-- (the highest revision of the latest version): its risks and its knowledge graph too, and no
+-- row may be moved off such a card onto another (an UPDATE checks the card it leaves as well as
+-- the one it reaches). DELETE stays unguarded, so deleting a version (its cards, and through
+-- them their rows) is never blocked.
+--
+-- A future data migration that rewrites old cards must disable these triggers for its run
+-- (ALTER TABLE ... DISABLE TRIGGER ..., then ENABLE): they refuse it otherwise.
+
+CREATE OR REPLACE FUNCTION qualification.answer_only_latest_changes() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NOT qualification.card_is_current(NEW."qualificationId") THEN
+    RAISE EXCEPTION 'AI card % is not the latest revision of the latest version: it is kept as it was', NEW."qualificationId";
+  END IF;
+  IF TG_OP = 'UPDATE' AND NOT qualification.card_is_current(OLD."qualificationId") THEN
+    RAISE EXCEPTION 'AI card % is not the latest revision of the latest version: it is kept as it was', OLD."qualificationId";
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE OR REPLACE FUNCTION qualification.component_only_latest_changes() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NOT qualification.card_is_current(NEW.qualification_id) THEN
+    RAISE EXCEPTION 'AI card % is not the latest revision of the latest version: it is kept as it was', NEW.qualification_id;
+  END IF;
+  IF TG_OP = 'UPDATE' AND NOT qualification.card_is_current(OLD.qualification_id) THEN
+    RAISE EXCEPTION 'AI card % is not the latest revision of the latest version: it is kept as it was', OLD.qualification_id;
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE OR REPLACE FUNCTION qualification.system_component_only_latest_changes() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NOT qualification.card_is_current(NEW.qualification_id) THEN
+    RAISE EXCEPTION 'AI card % is not the latest revision of the latest version: it is kept as it was', NEW.qualification_id;
+  END IF;
+  IF TG_OP = 'UPDATE' AND NOT qualification.card_is_current(OLD.qualification_id) THEN
+    RAISE EXCEPTION 'AI card % is not the latest revision of the latest version: it is kept as it was', OLD.qualification_id;
+  END IF;
+  RETURN NEW;
+END $$;
+
+-- risks and the knowledge graph name their card as "qualificationId", like answers
+CREATE FUNCTION qualification.card_row_only_latest_changes() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NOT qualification.card_is_current(NEW."qualificationId") THEN
+    RAISE EXCEPTION 'AI card % is not the latest revision of the latest version: it is kept as it was', NEW."qualificationId";
+  END IF;
+  IF TG_OP = 'UPDATE' AND NOT qualification.card_is_current(OLD."qualificationId") THEN
+    RAISE EXCEPTION 'AI card % is not the latest revision of the latest version: it is kept as it was', OLD."qualificationId";
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER qualification_risk_only_latest_changes
+  BEFORE INSERT OR UPDATE ON qualification.qualification_risk
+  FOR EACH ROW EXECUTE FUNCTION qualification.card_row_only_latest_changes();
+CREATE TRIGGER knowledge_graph_only_latest_changes
+  BEFORE INSERT OR UPDATE ON qualification.knowledge_graph
+  FOR EACH ROW EXECUTE FUNCTION qualification.card_row_only_latest_changes();
+
+-- A revision another one corrects cannot be deleted on its own: the correction would lose what it
+-- corrects. Deleting the version deletes every revision in the same statement, which this allows.
+ALTER TABLE qualification.qualification DROP CONSTRAINT qualification_amends_id_fkey;
+ALTER TABLE qualification.qualification
+  ADD CONSTRAINT qualification_amends_id_fkey
+    FOREIGN KEY (amends_id) REFERENCES qualification.qualification (id);
