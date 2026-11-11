@@ -49,7 +49,19 @@ function setup(opts: { reviseVersion?: () => Promise<unknown>; parsed?: Record<s
     listVersions: vi.fn(async () => [version(1)]),
     syncTargets: vi.fn(async () => undefined),
   };
+  let inTx = false;
+  let commits = 0;
   const repo = transactional({
+    transaction: async (fn: (r: unknown, t: unknown) => unknown) => {
+      inTx = true;
+      try {
+        const out = await fn(repo, { $executeRaw: vi.fn(async () => 1) });
+        commits += 1;
+        return out;
+      } finally {
+        inTx = false;
+      }
+    },
     create: vi.fn(async () => ({ id: "card-1b" })),
     cardRefs: vi.fn(async () => [{ id: "card-1", systemId: "v1", revision: 1 }]),
     find: vi.fn(async (id: string) =>
@@ -65,7 +77,7 @@ function setup(opts: { reviseVersion?: () => Promise<unknown>; parsed?: Record<s
   const svc = new (QualificationService as unknown as new (...a: unknown[]) => QualificationService)(
     repo, parser, platform, formsFor, review, engine,
   );
-  return { svc, platform, repo };
+  return { svc, platform, repo, inTransaction: () => inTx, committed: () => commits > 0 };
 }
 
 const posted = (amendsId: string | null = "card-1") => {
@@ -73,7 +85,7 @@ const posted = (amendsId: string | null = "card-1") => {
   if (amendsId !== null) fd.set("amendsId", amendsId);
   return fd;
 };
-const STALE = "A newer version was saved since this page was opened. Reload it before correcting the description.";
+const STALE = "The card was saved or corrected since this page was opened. Reload it before correcting the description.";
 
 describe("correcting the description of a version", () => {
   it("a correction keeps the version and makes the next revision", async () => {
@@ -126,18 +138,46 @@ describe("correcting the description of a version", () => {
     expect(repo.create).not.toHaveBeenCalled();
   });
 
-  it("refuses a correction of a card that is no longer the latest", async () => {
-    const { svc, repo } = setup({
+  it("refuses a correction the platform says is stale, and stores nothing", async () => {
+    const { svc, repo, committed } = setup({
       reviseVersion: async () => {
         throw new PlatformStatusError("Could not correct this system: the platform answered 409.", 409);
       },
     });
+    const record = vi.fn(async () => undefined);
+    const err = await svc.reviseFromForm("mcas", posted(), amend, record).catch((e) => e);
+    expect(err).toBeInstanceOf(FormValidationError);
+    expect(err.message).toBe(STALE);
+    expect(committed()).toBe(false);
+    expect(record).not.toHaveBeenCalled();
+  });
+
+  it("the platform counts the revision only once the card is stored, in the card's own transaction", async () => {
+    const { svc, platform, repo, inTransaction } = setup();
+    const seen: boolean[] = [];
+    platform.reviseVersion.mockImplementation(async () => {
+      seen.push(inTransaction());
+      return version(1, 2);
+    });
+    const record = vi.fn(async () => undefined);
+    await svc.reviseFromForm("mcas", posted(), amend, record);
+    expect(seen).toEqual([true]);
+    const created = repo.create.mock.invocationCallOrder[0];
+    const counted = platform.reviseVersion.mock.invocationCallOrder[0];
+    expect(created).toBeLessThan(counted);
+    expect(counted).toBeLessThan(record.mock.invocationCallOrder[0]);
+  });
+
+  it("refuses a correction when another one stored the same revision first", async () => {
+    const { svc, platform, repo, committed } = setup();
+    repo.create.mockRejectedValue(
+      Object.assign(new Error("Unique constraint failed on the fields: (`system_id`,`revision`)"), { code: "P2002" }),
+    );
     const err = await svc.reviseFromForm("mcas", posted(), amend).catch((e) => e);
     expect(err).toBeInstanceOf(FormValidationError);
-    expect(err.message).toBe(
-      "A newer version was saved since this page was opened. Reload it before correcting the description.",
-    );
-    expect(repo.create).not.toHaveBeenCalled();
+    expect(err.message).toBe(STALE);
+    expect(platform.reviseVersion).not.toHaveBeenCalled();
+    expect(committed()).toBe(false);
   });
 
   it("a correction of a card already corrected names the revision it started from", async () => {
@@ -152,10 +192,14 @@ describe("correcting the description of a version", () => {
     expect(platform.reviseVersion).toHaveBeenCalledWith("mcas", "v1", expect.anything(), amend, 3);
   });
 
-  it("the card revision stored is the one the platform returned", async () => {
-    const { svc, repo } = setup({ reviseVersion: async () => version(1, 5) });
-    await svc.reviseFromForm("mcas", posted(), amend);
-    expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ revision: 5 }));
+  it("the card is stored as the next revision; a platform that counts another one refuses it", async () => {
+    const ok = setup();
+    await ok.svc.reviseFromForm("mcas", posted(), amend);
+    expect(ok.repo.create).toHaveBeenCalledWith(expect.objectContaining({ revision: 2 }));
+    const off = setup({ reviseVersion: async () => version(1, 5) });
+    const err = await off.svc.reviseFromForm("mcas", posted(), amend).catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(off.committed()).toBe(false);
   });
 
   it.each([

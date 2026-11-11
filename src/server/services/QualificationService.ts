@@ -72,6 +72,17 @@ export type ReviewCarrier = {
   reviewToCarry(project: string, from: QualificationWithAnswers, next: QualificationExport): Promise<ReviewCarry>;
 };
 
+/** What a correction says when its page no longer shows the current card. */
+const CHANGED_SINCE_OPENED =
+  "The card was saved or corrected since this page was opened. Reload it before correcting the description.";
+
+/** A correction that lost to another save or correction: the platform refused it (409), or another
+ *  correction stored the same revision of the card first (the unique system and revision index). */
+function isStaleCorrection(err: unknown): boolean {
+  if (err instanceof PlatformStatusError) return err.status === 409;
+  return (err as { code?: unknown } | null)?.code === "P2002";
+}
+
 export class QualificationService {
   private readonly repos: RepositoryFor;
 
@@ -136,38 +147,41 @@ export class QualificationService {
     const prep = await this.prepare(project, formData);
     const { start } = prep;
     if (!start) throw new FormValidationError("There is no card to correct yet. Save the first version instead.");
-    // The card to correct is the one the page was opened on, posted back: when another save came
-    // first, the start card is a newer one and this page's content would silently overwrite it.
+    // The card to correct is the one the page was opened on, posted back: when another save or
+    // correction came first, the start card is a newer one and this page's content would silently
+    // overwrite it.
     const amendsId = start.card.id;
-    if (postedId(formData, "amendsId") !== amendsId) {
-      throw new FormValidationError(
-        "A newer version was saved since this page was opened. Reload it before correcting the description.",
-      );
-    }
-    let version;
+    if (postedId(formData, "amendsId") !== amendsId) throw new FormValidationError(CHANGED_SINCE_OPENED);
+    // The card is stored first, as the next revision of the one it corrects, and the platform counts
+    // that revision inside the card's own transaction, just before it commits: a refusal there (a
+    // newer version, or another correction of the same revision) rolls the card back, so the version
+    // and its cards never disagree on how many revisions it has.
+    const revision = start.card.revision + 1;
     try {
-      version = await this.platform.reviseVersion(
+      return await this.storeCard(
         project,
-        start.card.systemId,
-        identityOf(prep.parsed),
-        { reason, requestedBy },
-        start.card.revision,
+        prep,
+        { systemId: start.card.systemId, revision, amendsId, amendReason: reason, amendRequestedBy: requestedBy },
+        async (tx, card) => {
+          const version = await this.platform.reviseVersion(
+            project,
+            start.card.systemId,
+            identityOf(prep.parsed),
+            { reason, requestedBy },
+            start.card.revision,
+          );
+          if (version.cardRevision !== revision) {
+            throw new Error(
+              `the platform counted card revision ${version.cardRevision} for this correction, not ${revision}`,
+            );
+          }
+          await record(tx, { ...card, revision, amendsId });
+        },
       );
     } catch (err) {
-      if (err instanceof PlatformStatusError && err.status === 409) {
-        throw new FormValidationError(
-          "A newer version was saved since this page was opened. Reload it before correcting the description.",
-        );
-      }
+      if (isStaleCorrection(err)) throw new FormValidationError(CHANGED_SINCE_OPENED);
       throw err;
     }
-    const revision = version.cardRevision;
-    return this.storeCard(
-      project,
-      prep,
-      { systemId: version.pid, revision, amendsId, amendReason: reason, amendRequestedBy: requestedBy },
-      (tx, card) => record(tx, { ...card, revision, amendsId }),
-    );
   }
 
   /**
