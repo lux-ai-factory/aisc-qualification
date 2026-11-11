@@ -156,8 +156,16 @@ export class PlatformClient {
   }
 
   /** Correct the description of the latest version, which stays the same version: the platform
-   *  brings its name, version, provider and description up to date and counts one more card revision. */
-  reviseVersion(project: string, pid: string, identity: SystemIdentity, amend: Amendment): Promise<CardVersion> {
+   *  brings its name, version, provider and description up to date and counts one more card revision.
+   *  `fromRevision` is the card revision the correction started from: when another correction came
+   *  first, the platform refuses this one (409) instead of letting it silently replace that one. */
+  reviseVersion(
+    project: string,
+    pid: string,
+    identity: SystemIdentity,
+    amend: Amendment,
+    fromRevision: number,
+  ): Promise<CardVersion> {
     return this.call(
       "Could not correct this system",
       "PATCH",
@@ -170,6 +178,7 @@ export class PlatformClient {
         description: identity.description ?? null,
         reason: amend.reason,
         requested_by: amend.requestedBy,
+        expected_card_revision: fromRevision,
       },
     );
   }

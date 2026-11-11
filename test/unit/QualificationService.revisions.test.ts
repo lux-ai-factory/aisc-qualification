@@ -86,6 +86,7 @@ describe("correcting the description of a version", () => {
       "v1",
       expect.objectContaining({ name: "Acme Vision", provider: "Acme Corp" }),
       amend,
+      1,
     );
     expect(platform.createVersion).not.toHaveBeenCalled();
     expect(repo.create).toHaveBeenCalledWith(
@@ -137,6 +138,18 @@ describe("correcting the description of a version", () => {
       "A newer version was saved since this page was opened. Reload it before correcting the description.",
     );
     expect(repo.create).not.toHaveBeenCalled();
+  });
+
+  it("a correction of a card already corrected names the revision it started from", async () => {
+    const { svc, platform, repo } = setup({ reviseVersion: async () => version(1, 4) });
+    repo.cardRefs.mockResolvedValue([{ id: "card-1", systemId: "v1", revision: 3 }]);
+    repo.find.mockImplementation(async (id: string) =>
+      id === "card-1"
+        ? { id: "card-1", systemId: "v1", revision: 3, answers: [], risks: [], systemComponents: [], questionnaireVersionId: null }
+        : null,
+    );
+    await svc.reviseFromForm("mcas", posted(), amend);
+    expect(platform.reviseVersion).toHaveBeenCalledWith("mcas", "v1", expect.anything(), amend, 3);
   });
 
   it("the card revision stored is the one the platform returned", async () => {

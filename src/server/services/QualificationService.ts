@@ -146,10 +146,13 @@ export class QualificationService {
     }
     let version;
     try {
-      version = await this.platform.reviseVersion(project, start.card.systemId, identityOf(prep.parsed), {
-        reason,
-        requestedBy,
-      });
+      version = await this.platform.reviseVersion(
+        project,
+        start.card.systemId,
+        identityOf(prep.parsed),
+        { reason, requestedBy },
+        start.card.revision,
+      );
     } catch (err) {
       if (err instanceof PlatformStatusError && err.status === 409) {
         throw new FormValidationError(
