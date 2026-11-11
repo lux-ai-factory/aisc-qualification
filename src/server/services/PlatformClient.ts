@@ -29,7 +29,20 @@ export type CardVersion = {
   description: string | null;
   created_at: string;
   created_by: string | null;
+  /** The number of the version's latest card revision (1 until a correction is saved). */
+  cardRevision: number;
 };
+
+/** Why a correction is made and who asked for it. */
+export type Amendment = { reason: string; requestedBy: string };
+
+/** The platform answered with a status that is not a success; `status` lets the caller tell refusals apart. */
+export class PlatformStatusError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "PlatformStatusError";
+  }
+}
 
 const READ_VERSIONS = "Could not read the AI card versions";
 
@@ -38,7 +51,10 @@ function cardVersion(raw: unknown): CardVersion | undefined {
   const v = raw as Partial<CardVersion> | null;
   if (!v || typeof v !== "object") return undefined;
   if (typeof v.pid !== "string" || typeof v.number !== "number" || typeof v.name !== "string") return undefined;
-  return v as CardVersion;
+  const raw_ = raw as { card_revision?: unknown };
+  // an answer without card_revision is the platform of before corrections existed: revision 1
+  const cardRevision = typeof raw_.card_revision === "number" ? raw_.card_revision : 1;
+  return { ...(v as CardVersion), cardRevision };
 }
 
 /** The latest version, or null when the project has none yet. */
@@ -68,10 +84,11 @@ export class PlatformClient {
    *  `failed`, what the person was doing, since it reaches them as it is. */
   private async call<T>(
     failed: string,
-    method: "GET" | "POST",
+    method: "GET" | "POST" | "PATCH",
     path: string,
     parse: (raw: unknown) => T | undefined,
     body?: unknown,
+    timeoutMs?: number,
   ): Promise<T> {
     if (!this.baseUrl) {
       throw new Error(
@@ -92,12 +109,16 @@ export class PlatformClient {
       body,
       parse,
       fetchImpl: this.fetchImpl,
+      ...(timeoutMs ? { timeoutMs } : {}),
     });
     if (answer.ok) return answer.value;
     // The person reads this: the platform's own detail when it gives one, on one short line.
     if (answer.status === null) throw new Error(`${failed}: the platform did not answer.`);
     if (answer.status < 300) throw new Error(`${failed}: the platform gave an answer this could not read.`);
-    throw new Error(`${failed}: the platform answered ${answer.status}. ${answer.shownDetail ?? ""}`.trim());
+    throw new PlatformStatusError(
+      `${failed}: the platform answered ${answer.status}. ${answer.shownDetail ?? ""}`.trim(),
+      answer.status,
+    );
   }
 
   private versions(project: string): string {
@@ -134,6 +155,37 @@ export class PlatformClient {
       provider: identity.provider ?? null,
       description: identity.description ?? null,
     });
+  }
+
+  /** Correct the description of the latest version, which stays the same version: the platform
+   *  brings its name, version, provider and description up to date and counts one more card revision.
+   *  `fromRevision` is the card revision the correction started from: when another correction came
+   *  first, the platform refuses this one (409) instead of letting it silently replace that one.
+   *  `timeoutMs` bounds the wait: a correction calls this inside its card's open transaction. */
+  reviseVersion(
+    project: string,
+    pid: string,
+    identity: SystemIdentity,
+    amend: Amendment,
+    fromRevision: number,
+    options: { timeoutMs?: number } = {},
+  ): Promise<CardVersion> {
+    return this.call(
+      "Could not correct this system",
+      "PATCH",
+      `${this.versions(project)}/${encodeURIComponent(pid)}`,
+      cardVersion,
+      {
+        name: identity.name,
+        version: identity.version ?? null,
+        provider: identity.provider ?? null,
+        description: identity.description ?? null,
+        reason: amend.reason,
+        requested_by: amend.requestedBy,
+        expected_card_revision: fromRevision,
+      },
+      options.timeoutMs,
+    );
   }
 }
 

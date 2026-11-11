@@ -20,7 +20,13 @@ export default async function QualificationsPage({
     .map((q) => ({
       id: q.id,
       versionNumber: versionOf.get(q.systemId)?.number,
-      createdBy: versionOf.get(q.systemId)?.created_by ?? null,
+      revision: q.revision,
+      amendReason: q.amendReason,
+      amendRequestedBy: q.amendRequestedBy,
+      // The platform names who made the version, which is who saved its first card;
+      // a later revision stores no author of its own.
+      createdBy:
+        q.revision === 1 ? (versionOf.get(q.systemId)?.created_by ?? null) : null,
       systemName: q.systemName,
       systemVersion: q.systemVersion,
       company: q.company,
@@ -29,16 +35,21 @@ export default async function QualificationsPage({
       answers: q.answers.length,
       risks: q.risks.length,
     }))
-    .sort((a, b) => (b.versionNumber ?? 0) - (a.versionNumber ?? 0));
+    .sort(
+      (a, b) =>
+        (b.versionNumber ?? 0) - (a.versionNumber ?? 0) ||
+        b.revision - a.revision,
+    );
 
   return (
     <main className="qualify-page">
       <header className="qualify-header">
         <h1>AI card versions</h1>
         <p>
-          The project has one AI system. Every save of its AI card makes the
-          next version, and each older version keeps its card as it was. The
-          highest is the latest, and only it changes.
+          The project has one AI system. Saving after the system changed makes the
+          next version. Correcting the description of the same system makes a
+          revision of that version, listed under it with its reason. Every
+          earlier card keeps its text as it was, and only the latest changes.
         </p>
       </header>
 

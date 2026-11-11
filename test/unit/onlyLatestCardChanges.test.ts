@@ -22,9 +22,10 @@ const version = (n: number) => ({
   created_at: "2026-09-23T10:00:00Z",
   created_by: "u",
 });
-const cardOf = (id: string, systemId: string) => ({
+const cardOf = (id: string, systemId: string, revision = 1) => ({
   id,
   systemId,
+  revision,
   projectId: PROJECT_ID,
   systemName: "MCAS",
   systemVersion: "1",
@@ -47,7 +48,20 @@ const cardOf = (id: string, systemId: string) => ({
 });
 const CARDS: Record<string, ReturnType<typeof cardOf>> = {
   c1: cardOf("c1", "v1"),
-  c2: cardOf("c2", "v2"),
+  // v2's card was corrected once: c2r1 is its first revision, c2 the current one
+  c2r1: cardOf("c2r1", "v2", 1),
+  c2: cardOf("c2", "v2", 2),
+};
+/** Where a card stands among its version's revisions, as the repository answers it. */
+const standing = (id: string) => {
+  const card = CARDS[id];
+  if (!card) return null;
+  const highest = Math.max(
+    ...Object.values(CARDS)
+      .filter((c) => c.systemId === card.systemId)
+      .map((c) => c.revision),
+  );
+  return { systemId: card.systemId, latestRevision: card.revision === highest };
 };
 const BUILT = {
   digest: "d",
@@ -60,6 +74,8 @@ const BUILT = {
 const repo = transactional({
   find: vi.fn(async (id: string) => CARDS[id] ?? null),
   cardSummary: vi.fn(async (id: string) => CARDS[id] ?? null),
+  cardStanding: vi.fn(async (id: string) => standing(id)),
+  isCurrent: vi.fn(async (id: string) => standing(id)?.latestRevision === true && CARDS[id]?.systemId === "v2"),
   findBySystem: vi.fn(async () => null),
   list: vi.fn(async () => Object.values(CARDS)),
   saveOntologyPatch: vi.fn(async () => ({})),
@@ -150,6 +166,25 @@ describe("reviewer actions on the card page", () => {
     for (const write of WRITES) expect(write).not.toHaveBeenCalled();
   });
 
+  it("a patch on an earlier revision of the latest version is refused and writes nothing", async () => {
+    const { patchOntologyNode } =
+      await import("@/app/p/[project]/qualify/[id]/ontology-actions");
+    const state = await patchOntologyNode(PROJECT_ID, "c2r1", "purpose", {
+      label: "x",
+    });
+    expect(state.ok).toBe(false);
+    if (!state.ok) expect(state.error).toMatch(/403/);
+    for (const write of WRITES) expect(write).not.toHaveBeenCalled();
+  });
+
+  it("a reset of an earlier revision of the latest version is refused and writes nothing", async () => {
+    const { resetOntology } =
+      await import("@/app/p/[project]/qualify/[id]/ontology-actions");
+    const state = await resetOntology(PROJECT_ID, "c2r1");
+    expect(state.ok).toBe(false);
+    for (const write of WRITES) expect(write).not.toHaveBeenCalled();
+  });
+
   it("a patch on the latest card edits it in place and makes no version (already passing)", async () => {
     const { patchOntologyNode } =
       await import("@/app/p/[project]/qualify/[id]/ontology-actions");
@@ -174,6 +209,16 @@ describe("the filler's draft (PUT /p/{pid}/api/qualifications/{id}/extracted)", 
       await import("@/app/p/[project]/api/qualifications/[id]/extracted/route");
     const res = await PUT(put({ techniques: [] }), {
       params: Promise.resolve({ project: PROJECT_ID, id: "c1" }),
+    });
+    expect(res.status).toBe(403);
+    expect(repo.saveOntologyExtracted).not.toHaveBeenCalled();
+  });
+
+  it("aimed at an earlier revision of the latest version, it is 403 and nothing is stored", async () => {
+    const { PUT } =
+      await import("@/app/p/[project]/api/qualifications/[id]/extracted/route");
+    const res = await PUT(put({ techniques: [] }), {
+      params: Promise.resolve({ project: PROJECT_ID, id: "c2r1" }),
     });
     expect(res.status).toBe(403);
     expect(repo.saveOntologyExtracted).not.toHaveBeenCalled();

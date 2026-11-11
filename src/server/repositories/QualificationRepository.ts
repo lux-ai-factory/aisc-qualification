@@ -23,6 +23,12 @@ export type CreateQualificationInput = {
   /** The card version it describes: a row of project.system in this project's
    *  own database, as named by the platform (uuid). */
   systemId: string;
+  /** Which revision of that version's card this is; left out it is the first. */
+  revision?: number;
+  /** A revision above the first names the card it corrects, why, and who asked. */
+  amendsId?: string;
+  amendReason?: string;
+  amendRequestedBy?: string;
   systemName: string;
   systemVersion: string;
   company: string;
@@ -108,10 +114,13 @@ export class QualificationRepository {
    */
   async transaction<T>(
     fn: (repo: QualificationRepository, tx: Tx) => Promise<T>,
+    /** How long the transaction may stay open (Prisma's own limit is 5 s). */
+    options: { timeout?: number } = {},
   ): Promise<T> {
     await beforeTransaction(); // the request id, resolved outside the transaction
-    return this.db.$transaction((tx) =>
-      fn(new QualificationRepository(tx as unknown as PrismaClient), tx),
+    return this.db.$transaction(
+      (tx) => fn(new QualificationRepository(tx as unknown as PrismaClient), tx),
+      options.timeout ? { timeout: options.timeout } : undefined,
     );
   }
 
@@ -180,8 +189,9 @@ export class QualificationRepository {
     });
   }
 
-  /** The AI card of one version of the project's system, if it has one. One
-   *  card per version: the database holds that too (system_id is unique). */
+  /** The AI card of one version of the project's system, if it has one: its
+   *  highest revision (a version may have several, each a correction of the
+   *  description; the database holds (system_id, revision) unique). */
   findBySystem(systemId: string): Promise<{
     id: string;
     systemId: string;
@@ -190,6 +200,7 @@ export class QualificationRepository {
   } | null> {
     return this.db.qualification.findFirst({
       where: { systemId },
+      orderBy: { revision: "desc" },
       select: {
         id: true,
         systemId: true,
@@ -199,11 +210,36 @@ export class QualificationRepository {
     });
   }
 
-  /** Each card's id and the version it belongs to: what card standing needs, without the cards. */
-  cardRefs(): Promise<{ id: string; systemId: string }[]> {
+  /** Each card's id, the version it belongs to and its revision: what card standing needs, without the cards. */
+  cardRefs(): Promise<
+    { id: string; systemId: string; revision: number }[]
+  > {
     return this.db.qualification.findMany({
       orderBy: { createdAt: "desc" },
-      select: { id: true, systemId: true },
+      select: { id: true, systemId: true, revision: true },
+    });
+  }
+
+  /** Every revision of one version's card, highest first. */
+  revisionsOf(systemId: string): Promise<
+    {
+      id: string;
+      revision: number;
+      amendReason: string | null;
+      amendRequestedBy: string | null;
+      createdAt: Date;
+    }[]
+  > {
+    return this.db.qualification.findMany({
+      where: { systemId },
+      orderBy: { revision: "desc" },
+      select: {
+        id: true,
+        revision: true,
+        amendReason: true,
+        amendRequestedBy: true,
+        createdAt: true,
+      },
     });
   }
 
@@ -289,15 +325,34 @@ export class QualificationRepository {
   }
 
   /**
-   * Whether this card version is the latest in this project's database: the
-   * rule the only-latest triggers enforce (qualification.card_is_latest). It is
-   * for a caller with no user behind it (the card agent), which the platform's
+   * Whether this card is the one that may still change in this project's
+   * database: the highest revision of the latest version, the rule the
+   * only-latest triggers enforce (qualification.card_is_current). It is for a
+   * caller with no user behind it (the card agent), which the platform's
    * /system-versions/latest would not answer.
    */
-  async isLatest(systemId: string): Promise<boolean> {
-    const rows = await this.db.$queryRaw<{ latest: boolean }[]>`
-      SELECT qualification.card_is_latest(${systemId}::uuid) AS latest`;
-    return rows[0]?.latest === true;
+  async isCurrent(cardId: string): Promise<boolean> {
+    const rows = await this.db.$queryRaw<{ current: boolean }[]>`
+      SELECT qualification.card_is_current(${cardId}) AS current`;
+    return rows[0]?.current === true;
+  }
+
+  /**
+   * The card's version, and whether it is that version's highest revision
+   * (a correction makes a new one). Null: no such card.
+   */
+  async cardStanding(
+    cardId: string,
+  ): Promise<{ systemId: string; latestRevision: boolean } | null> {
+    const rows = await this.db.$queryRaw<
+      { systemId: string; latestRevision: boolean }[]
+    >`
+      SELECT q.system_id::text AS "systemId",
+             q.revision = (SELECT max(o.revision) FROM qualification.qualification o
+                            WHERE o.system_id = q.system_id) AS "latestRevision"
+        FROM qualification.qualification q
+       WHERE q.id = ${cardId}`;
+    return rows[0] ?? null;
   }
 }
 

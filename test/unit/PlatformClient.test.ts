@@ -53,6 +53,28 @@ describe("PlatformClient and the project's card versions", () => {
     ).rejects.toThrow(/could not name this system/i);
   });
 
+  it("tells the platform which card revision a correction started from", async () => {
+    // Two corrections opened on the same card: the platform refuses the second
+    // instead of letting it silently replace the first, but only if it knows
+    // which revision each one corrects.
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ ...latest, card_revision: 4 }) });
+
+    await new PlatformClient("http://platform:8000", fetchImpl).reviseVersion(
+      "mcas",
+      "v1",
+      { name: "MCAS" },
+      { reason: "provider name", requestedBy: "Acme" },
+      3,
+    );
+
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("http://platform:8000/projects/mcas/system-versions/v1");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body)).toMatchObject({ expected_card_revision: 3, reason: "provider name" });
+  });
+
   it("refuses to be configured with no platform at all", async () => {
     await expect(
       new PlatformClient("", vi.fn()).createVersion("p", { name: "MCAS" }),

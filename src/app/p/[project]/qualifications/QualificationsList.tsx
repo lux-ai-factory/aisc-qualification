@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { releaseLabel } from "@/domain/SystemCard";
+import { amendmentText } from "@/domain/cardVersions";
 
 // The versions of the project's one AI system, each a row linking to its card.
 // A row carries only what it takes to pick one: which system, which version,
@@ -11,6 +12,11 @@ export type ListItem = {
   versionNumber?: number;
   /** Who saved the version, when the platform says. */
   createdBy?: string | null;
+  /** The card's revision of its version: 1 is the card saved with the version. */
+  revision: number;
+  /** Why the description was corrected and who asked, on a revision above 1. */
+  amendReason?: string | null;
+  amendRequestedBy?: string | null;
   systemName: string;
   systemVersion: string;
   company: string;
@@ -53,7 +59,10 @@ export default function QualificationsList({
           <Link className="qf-row" href={`/p/${project}/qualify/${item.id}`}>
             <div className="qf-row-main">
               {item.versionNumber !== undefined && (
-                <p className="qf-row-sysver">AI card v{item.versionNumber}</p>
+                <p className="qf-row-sysver">
+                  AI card v{item.versionNumber}
+                  {item.revision > 1 && `.${item.revision}`}
+                </p>
               )}
               <h3>
                 {item.systemName}{" "}
@@ -64,6 +73,11 @@ export default function QualificationsList({
               <p className="qf-row-sub">
                 {item.company} · {item.description}
               </p>
+              {item.revision > 1 && (
+                <p className="qf-row-sub">
+                  {amendmentText(item.amendReason, item.amendRequestedBy)}
+                </p>
+              )}
             </div>
             <div className="qf-row-meta">
               <time dateTime={item.savedAt}>{stamp(item.savedAt)} UTC</time>

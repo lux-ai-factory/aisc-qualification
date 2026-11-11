@@ -15,15 +15,21 @@ import type {
 import { componentType } from "@/data/componentFields";
 
 export type VersionRef = { pid: string; number: number };
-export type CardRef = { id: string; systemId: string };
+export type CardRef = { id: string; systemId: string; revision: number };
 
 function newestFirst(versions: VersionRef[]): VersionRef[] {
   return [...versions].sort((a, b) => b.number - a.number);
 }
 
-/** Each card's id, by the version it describes. */
+/** Each version's card: the id of its highest revision. A version's card is
+ *  its latest revision; the earlier ones are kept as they were. */
 function cardIdByVersion(cards: CardRef[]): Map<string, string> {
-  return new Map(cards.map((c) => [c.systemId, c.id]));
+  const latest = new Map<string, CardRef>();
+  for (const c of cards) {
+    const seen = latest.get(c.systemId);
+    if (!seen || c.revision > seen.revision) latest.set(c.systemId, c);
+  }
+  return new Map([...latest].map(([systemId, c]) => [systemId, c.id]));
 }
 
 export type NextCard = {
@@ -45,6 +51,59 @@ export function nextCard(versions: VersionRef[], cards: CardRef[]): NextCard {
     versionNumber: (byNumber[0]?.number ?? 0) + 1,
     fromCardId: from ? (cardOf.get(from.pid) ?? null) : null,
     fromVersionNumber: from ? from.number : null,
+  };
+}
+
+/** "Version 1", or "Version 1, revision 2" once the description has been corrected. */
+export function versionLabel(version: number, revision: number = 1): string {
+  return revision > 1 ? `Version ${version}, revision ${revision}` : `Version ${version}`;
+}
+
+/** The kicker over a card: "AI card v1", or "Version 1, revision 2" once corrected. */
+export function cardHeading(version: number, revision: number = 1): string {
+  return revision > 1 ? versionLabel(version, revision) : `AI card v${version}`;
+}
+
+/** The notice on a card that is not the current one. It names the revision, because an
+ *  earlier revision of the latest version is as read-only as an older version's card. */
+export function keptNotice(version: number, revision: number = 1): string {
+  return `Version ${version || "?"}, revision ${revision}, kept as it was: only the latest card changes.`;
+}
+
+/** Why a revision was made and at whose request; a value that was not stored is left out. */
+export function amendmentText(
+  reason: string | null | undefined,
+  requestedBy: string | null | undefined,
+): string {
+  const why = reason?.trim();
+  const who = requestedBy?.trim();
+  return `Corrected${why ? `: ${why}` : ""}.${who ? ` Requested by ${who}.` : ""}`;
+}
+
+/** What the edit page offers besides a new version: correcting the description of the card it
+ *  starts from. */
+export type CorrectionOffer = {
+  /** The card the page was opened on, posted back so a newer save is noticed. */
+  amendsId: string;
+  /** The version whose description is corrected. */
+  versionNumber: number;
+  /** The revision a correction makes. */
+  nextRevision: number;
+};
+
+/** A correction is offered only when the card being edited is the latest version's own card
+ *  (its latest revision): an older version's card is not corrected, and a latest version
+ *  without a card has nothing to correct. A start from before revisions existed is revision 1. */
+export function correctionOffer(
+  next: NextCard,
+  fromRevision: number = 1,
+): CorrectionOffer | null {
+  if (!next.fromCardId || next.fromVersionNumber === null) return null;
+  if (next.fromVersionNumber !== next.versionNumber - 1) return null;
+  return {
+    amendsId: next.fromCardId,
+    versionNumber: next.fromVersionNumber,
+    nextRevision: fromRevision + 1,
   };
 }
 
@@ -187,20 +246,23 @@ export type CardStanding = {
   currentCardId: string | null;
 };
 
-/** Where one card stands: the latest version's card is the system's page and
- *  may change; every other card is kept as it was. `systemId` is the version
- *  the card describes. */
+/** Where one card stands: the latest version's latest revision is the system's page and
+ *  may change; every other card, including an earlier revision of the latest version, is
+ *  kept as it was. `systemId` is the version the card describes, `cardId` the card itself
+ *  (null when only the current card is asked for). */
 export function cardStanding(
   versions: VersionRef[],
   cards: CardRef[],
   systemId: string,
+  cardId: string | null,
 ): CardStanding {
   const cardOf = cardIdByVersion(cards);
   const latest = newestFirst(versions)[0];
+  const currentCardId = latest ? (cardOf.get(latest.pid) ?? null) : null;
   return {
     versionNumber:
       versions.find((version) => version.pid === systemId)?.number ?? 0,
-    current: latest !== undefined && latest.pid === systemId,
-    currentCardId: latest ? (cardOf.get(latest.pid) ?? null) : null,
+    current: cardId !== null && currentCardId === cardId,
+    currentCardId,
   };
 }

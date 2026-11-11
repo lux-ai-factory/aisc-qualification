@@ -22,32 +22,65 @@ export async function submitQualification(
   if (door.error !== undefined && door.status === 503)
     return { error: PLATFORM_SILENT };
   if (door.error !== undefined) return { error: door.error };
+  const change = formData.get("change");
+  if (change !== "system" && change !== "correction") {
+    return {
+      error:
+        "Choose whether the system changed or you are correcting its description.",
+    };
+  }
   let id: string;
   try {
-    ({ id } = await qualificationService.createFromForm(
-      project,
-      formData,
-      (tx, card) =>
-        emitEvent(tx, {
-          action: "qualification.created",
-          itemType: "qualification",
-          itemId: card.id,
-          details: {
-            questionnaire_version: card.input.questionnaireVersionId,
-            risks: card.input.risks.length,
-            components: (card.input.systemComponents ?? []).length,
-            // a next version: what it took from the review of the card before it
-            ...(card.review && {
-              review_from_version: card.review.from_version,
-              corrections_carried: card.review.carried.length,
-              corrections_left: card.review.left.length,
-              draft: card.review.draft,
-              review_failed: card.review.failed !== undefined,
-            }),
-          },
-          content: card.review ? { ...card.input, review: card.review } : card.input,
-        }),
-    ));
+    if (change === "correction") {
+      const text = (name: string) => String(formData.get(name) ?? "").trim();
+      const reason = text("amendReason");
+      const requestedBy = text("amendRequestedBy");
+      ({ id } = await qualificationService.reviseFromForm(
+        project,
+        formData,
+        { reason, requestedBy },
+        (tx, card) =>
+          emitEvent(tx, {
+            action: "qualification.amended",
+            itemType: "qualification",
+            itemId: card.id,
+            details: {
+              revision: card.revision,
+              amends: card.amendsId,
+              reason,
+              requested_by: requestedBy,
+              risks: card.input.risks.length,
+              components: (card.input.systemComponents ?? []).length,
+            },
+            content: card.input,
+          }),
+      ));
+    } else {
+      ({ id } = await qualificationService.createFromForm(
+        project,
+        formData,
+        (tx, card) =>
+          emitEvent(tx, {
+            action: "qualification.created",
+            itemType: "qualification",
+            itemId: card.id,
+            details: {
+              questionnaire_version: card.input.questionnaireVersionId,
+              risks: card.input.risks.length,
+              components: (card.input.systemComponents ?? []).length,
+              // a next version: what it took from the review of the card before it
+              ...(card.review && {
+                review_from_version: card.review.from_version,
+                corrections_carried: card.review.carried.length,
+                corrections_left: card.review.left.length,
+                draft: card.review.draft,
+                review_failed: card.review.failed !== undefined,
+              }),
+            },
+            content: card.review ? { ...card.input, review: card.review } : card.input,
+          }),
+      ));
+    }
   } catch (err) {
     if (err instanceof FormValidationError) return { error: err.message };
     // The platform did not answer: no version was made, so nothing was saved.

@@ -31,7 +31,7 @@ const repo = transactional({
     async (id: string): Promise<unknown> => ({ id, systemId: "v2" }),
   ),
   saveOntologyExtracted: vi.fn(async () => ({})),
-  isLatest: vi.fn(async (_systemId: string) => true),
+  isCurrent: vi.fn(async (_cardId: string) => true),
 });
 const opened: unknown[] = [];
 /** The builder's check of a draft before it is stored. */
@@ -95,7 +95,7 @@ beforeEach(() => {
     id,
     systemId: "v2",
   }));
-  repo.isLatest.mockResolvedValue(true);
+  repo.isCurrent.mockResolvedValue(true);
   checkExtracted.mockResolvedValue(undefined);
 });
 
@@ -128,13 +128,13 @@ describe("the agent's token opens GET and PUT /extracted", () => {
     );
   });
 
-  it("PUT with the token asks the database, not the platform, whether the card is the latest", async () => {
+  it("PUT with the token asks the database, not the platform, whether the card is the current one", async () => {
     // The platform's /system-versions/latest wants a user; the agent has none. The
-    // database function is the rule the only-latest triggers enforce.
-    repo.isLatest.mockResolvedValueOnce(false);
+    // database function (latest version, highest revision) is the rule the only-latest triggers enforce.
+    repo.isCurrent.mockResolvedValueOnce(false);
     const res = await (await route()).PUT(put({ [HEADER]: TOKEN }), ctx());
     expect(res.status).toBe(403);
-    expect(repo.isLatest).toHaveBeenCalledWith("v2");
+    expect(repo.isCurrent).toHaveBeenCalledWith("q1");
     expect(platformLatest).not.toHaveBeenCalled();
     expect(repo.saveOntologyExtracted).not.toHaveBeenCalled();
   });

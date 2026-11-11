@@ -114,12 +114,12 @@ export async function PUT(
 
   const exists = await repo.cardSummary(id);
   if (!exists) return new NextResponse("Not found", { status: 404 });
-  // Only the latest version's card changes: a draft for an older one is refused
+  // Only the current card (the latest version's highest revision) changes: a draft for an older one is refused
   // before anything is read or written. The platform answers that for a person;
   // the agent has no user token, so the database's own rule answers for it.
   const latest = agent
-    ? await repo.isLatest(exists.systemId)
-    : await isLatestCard(project, exists.systemId);
+    ? await repo.isCurrent(id)
+    : await isLatestCard(project, id, repo);
   if (!latest) {
     return NextResponse.json({ error: NOT_LATEST }, { status: 403 });
   }

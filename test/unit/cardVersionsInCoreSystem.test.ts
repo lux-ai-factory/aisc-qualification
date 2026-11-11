@@ -147,16 +147,17 @@ describe("cardVersions with {pid, number} rows (no frozen_at)", () => {
       { id: "c2", systemId: "v2" },
     ];
     expect(
-      loose(cardVersions).cardStanding([v(2), v(1)], cards, "v1").current,
+      loose(cardVersions).cardStanding([v(2), v(1)], cards, "v1", "c1").current,
     ).toBe(false);
     expect(
-      loose(cardVersions).cardStanding([v(2), v(1)], cards, "v2").current,
+      loose(cardVersions).cardStanding([v(2), v(1)], cards, "v2", "c2").current,
     ).toBe(true);
     expect(
       loose(cardVersions).cardStanding(
         [v(2), v(1)],
         [{ id: "c1", systemId: "v1" }],
         "v1",
+        "c1",
       ).current,
     ).toBe(false);
   });
@@ -334,6 +335,13 @@ describe("save = next version (QualificationService.createFromForm)", () => {
   });
 });
 
+/** A save the person marked as the system having changed (the question the form always asks). */
+const systemSave = () => {
+  const fd = new FormData();
+  fd.set("change", "system");
+  return fd;
+};
+
 describe("the save action reports the platform plainly", () => {
   // Loads submitQualification with the door open and createFromForm replaced by `create`.
   async function action(create: () => Promise<never>) {
@@ -373,7 +381,7 @@ describe("the save action reports the platform plainly", () => {
       );
     });
 
-    const state = await submitQualification("mcas", undefined, new FormData());
+    const state = await submitQualification("mcas", undefined, systemSave());
 
     expect(state).toEqual({
       error: "The platform did not answer; nothing was saved",
@@ -389,7 +397,7 @@ describe("the save action reports the platform plainly", () => {
       throw new FormValidationError("Pick at least one market form.");
     });
 
-    const state = await submitQualification("mcas", undefined, new FormData());
+    const state = await submitQualification("mcas", undefined, systemSave());
 
     expect(state).toEqual({ error: "Pick at least one market form." });
     expect(redirect).not.toHaveBeenCalled();

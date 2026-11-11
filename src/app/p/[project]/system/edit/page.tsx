@@ -10,6 +10,7 @@ import FormChooser from "./FormChooser";
 import FormLine from "../../FormLine";
 import ProjectNav from "@/components/ProjectNav";
 import { updateAnswersLabel } from "@/domain/SystemCard";
+import { correctionOffer } from "@/domain/cardVersions";
 
 export default async function EditSystemPage({
   params,
@@ -137,6 +138,9 @@ export default async function EditSystemPage({
   const moving =
     start && from && from.versionId !== version.versionId ? from : null;
   const initial = worked ?? start?.initial ?? null;
+  // A worked example starts a different card, not a correction of this one.
+  const correction =
+    start && !worked ? correctionOffer(start.next, start.fromRevision) : null;
 
   return (
     <main className="qualify-page qualify-page--fill qualify-page--menu">
@@ -148,6 +152,7 @@ export default async function EditSystemPage({
           moving ? (start?.next.fromVersionNumber ?? undefined) : undefined
         }
         initial={initial ?? undefined}
+        correction={correction ?? undefined}
         nav={
           <ProjectNav
             project={project}

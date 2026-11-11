@@ -52,6 +52,7 @@ const BUILT = {
 const repo = transactional({
   find: vi.fn(async () => card),
   cardSummary: vi.fn(async () => card),
+  cardStanding: vi.fn(async () => ({ systemId: "v2", latestRevision: true })),
   findBySystem: vi.fn(async () => null),
   saveOntologyPatch: vi.fn(async () => ({})),
   knowledgeGraph: vi.fn(async () => null),

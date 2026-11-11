@@ -16,7 +16,7 @@ import {
   QualificationFormParser,
   qualificationFormParser,
 } from "@/server/forms/QualificationFormParser";
-import { PlatformClient, platformClient } from "@/server/services/PlatformClient";
+import { PlatformClient, PlatformStatusError, platformClient, type Amendment } from "@/server/services/PlatformClient";
 import {
   cardAsFormStart,
   cardStanding,
@@ -31,6 +31,16 @@ import type { QuestionnaireResolver } from "@/domain/forms/types";
 import { toExport, type QualificationExport } from "@/server/services/QualificationExporter";
 import { ontologyService } from "@/server/services/OntologyService";
 import type { ReviewCarry } from "@/domain/carryReview";
+
+/** The system's identity as the platform keeps it, from a parsed card form. */
+function identityOf(parsed: { systemName: string; systemVersion: string; company: string; description: string }) {
+  return {
+    name: parsed.systemName,
+    version: parsed.systemVersion,
+    provider: parsed.company,
+    description: parsed.description === "" ? null : parsed.description,
+  };
+}
 
 /** A posted text field, trimmed; null when absent or blank. */
 function postedId(formData: FormData, name: string): string | null {
@@ -61,6 +71,27 @@ export type CreatedCard = { id: string; input: CreateQualificationInput; review:
 export type ReviewCarrier = {
   reviewToCarry(project: string, from: QualificationWithAnswers, next: QualificationExport): Promise<ReviewCarry>;
 };
+
+/** What a correction says when its page no longer shows the current card. */
+const CHANGED_SINCE_OPENED =
+  "The card was saved or corrected since this page was opened. Reload it before correcting the description.";
+
+/** How long a correction waits for the platform to count its revision, inside the card's transaction. */
+const PLATFORM_COUNT_TIMEOUT_MS = 10_000;
+/** How long a correction's transaction may stay open: longer than the platform call it waits on, so the
+ *  transaction is never cut short after the platform has counted the revision. */
+const CORRECTION_TRANSACTION_TIMEOUT_MS = 20_000;
+
+/** A correction that lost to another save or correction: the platform refused it (409), or another
+ *  correction stored the same revision of the card first (the unique system and revision index). Any
+ *  other error, another unique key's included, is a real failure and is shown as it is. */
+function isStaleCorrection(err: unknown): boolean {
+  if (err instanceof PlatformStatusError) return err.status === 409;
+  const e = err as { code?: unknown; message?: unknown; meta?: unknown } | null;
+  if (e?.code !== "P2002") return false;
+  const said = `${String(e.message ?? "")} ${JSON.stringify(e.meta ?? {})}`;
+  return /system_id/.test(said) && /revision/.test(said);
+}
 
 export class QualificationService {
   private readonly repos: RepositoryFor;
@@ -99,6 +130,80 @@ export class QualificationService {
     /** The caller's ledger event, written in the card's own transaction. */
     record: (tx: Tx, card: CreatedCard) => Promise<unknown> = async () => undefined,
   ): Promise<{ id: string }> {
+    const prep = await this.prepare(project, formData);
+    const version = await this.platform.createVersion(project, identityOf(prep.parsed));
+    return this.storeCard(project, prep, { systemId: version.pid }, record);
+  }
+
+  /**
+   * Correct the description of the latest version: the same version, the next revision of its card.
+   *
+   * It is made like a save (same form, same components, risks and review carried from the card it
+   * corrects), except that the platform is asked to bring the existing version up to date instead
+   * of making a new one. The card names the one it corrects, why, and who asked.
+   */
+  async reviseFromForm(
+    project: string,
+    formData: FormData,
+    amend: Amendment,
+    /** The caller's ledger event, written in the card's own transaction. */
+    record: (tx: Tx, card: CreatedCard & { revision: number; amendsId: string }) => Promise<unknown> = async () => undefined,
+  ): Promise<{ id: string }> {
+    const reason = amend.reason.trim();
+    const requestedBy = amend.requestedBy.trim();
+    if (reason === "" || requestedBy === "") {
+      throw new FormValidationError("Say why the description is corrected and who asked for it.");
+    }
+    const prep = await this.prepare(project, formData);
+    const { start } = prep;
+    if (!start) throw new FormValidationError("There is no card to correct yet. Save the first version instead.");
+    // The card to correct is the one the page was opened on, posted back: when another save or
+    // correction came first, the start card is a newer one and this page's content would silently
+    // overwrite it.
+    const amendsId = start.card.id;
+    if (postedId(formData, "amendsId") !== amendsId) throw new FormValidationError(CHANGED_SINCE_OPENED);
+    // The card is stored first, as the next revision of the one it corrects, and the platform counts
+    // that revision inside the card's own transaction, just before it commits: a refusal there (a
+    // newer version, or another correction of the same revision) rolls the card back, so the version
+    // and its cards never disagree on how many revisions it has.
+    const revision = start.card.revision + 1;
+    try {
+      return await this.storeCard(
+        project,
+        prep,
+        { systemId: start.card.systemId, revision, amendsId, amendReason: reason, amendRequestedBy: requestedBy },
+        async (tx, card) => {
+          // everything else of the card first; the platform's count is the last step before commit
+          await record(tx, { ...card, revision, amendsId });
+          const version = await this.platform.reviseVersion(
+            project,
+            start.card.systemId,
+            identityOf(prep.parsed),
+            { reason, requestedBy },
+            start.card.revision,
+            { timeoutMs: PLATFORM_COUNT_TIMEOUT_MS },
+          );
+          if (version.cardRevision !== revision) {
+            throw new Error(
+              `the platform counted card revision ${version.cardRevision} for this correction, not ${revision}`,
+            );
+          }
+        },
+        CORRECTION_TRANSACTION_TIMEOUT_MS,
+      );
+    } catch (err) {
+      if (isStaleCorrection(err)) throw new FormValidationError(CHANGED_SINCE_OPENED);
+      throw err;
+    }
+  }
+
+  /**
+   * What a save and a correction share, worked out before anything is stored: the questionnaire
+   * version loaded from its id, the form parsed against it, the components keyed from the card
+   * this starts from, the ledger's check of the content, the engine links, and the review taken
+   * from the card before.
+   */
+  private async prepare(project: string, formData: FormData) {
     const id = postedId(formData, "questionnaireVersionId") ?? postedId(formData, "formVersionId");
     const form = await (await this.formsFor(project)).resolve(id);
     if (!form) {
@@ -137,14 +242,21 @@ export class QualificationService {
           form,
         )
       : null;
-    const version = await this.platform.createVersion(project, {
-      name: parsed.systemName,
-      version: parsed.systemVersion,
-      provider: parsed.company,
-      description: parsed.description === "" ? null : parsed.description,
-    });
+    return { form, parsed, systemComponents, links, review, start };
+  }
+
+  /** Store the card of a save or a correction, with its history and the caller's ledger event, in one transaction. */
+  private async storeCard(
+    project: string,
+    prep: Awaited<ReturnType<QualificationService["prepare"]>>,
+    extra: Pick<CreateQualificationInput, "systemId"> & Partial<Pick<CreateQualificationInput, "revision" | "amendsId" | "amendReason" | "amendRequestedBy">>,
+    record: (tx: Tx, card: CreatedCard) => Promise<unknown>,
+    /** How long its transaction may stay open, when the default is too short for what `record` waits on. */
+    txTimeoutMs?: number,
+  ): Promise<{ id: string }> {
+    const { parsed, systemComponents, form, links, review, start } = prep;
     const repo = await this.repos(project);
-    const input = { ...parsed, systemComponents, questionnaireVersionId: form.versionId, systemId: version.pid };
+    const input = { ...parsed, systemComponents, questionnaireVersionId: form.versionId, ...extra };
     const made = await repo.transaction(async (r, tx) => {
       const created = await r.create({
         ...input,
@@ -162,7 +274,7 @@ export class QualificationService {
       }
       await record(tx, { id: created.id, input, review: review?.said ?? null });
       return created;
-    });
+    }, txTimeoutMs ? { timeout: txTimeoutMs } : undefined);
     // the assessment targets follow the card's components; never a reason to fail the save
     await Promise.resolve()
       .then(() => this.platform.syncTargets(project))
@@ -232,14 +344,22 @@ export class QualificationService {
    */
   async startingPoint(
     project: string,
-  ): Promise<{ next: NextCard; initial: FormExample | null; fromQuestionnaireVersionId: string | null }> {
+  ): Promise<{
+    next: NextCard;
+    initial: FormExample | null;
+    fromQuestionnaireVersionId: string | null;
+    /** The revision of the card it starts from (1 when there is none). */
+    fromRevision: number;
+  }> {
     const { versions, cards } = await this.versionsAndCards(project);
     const next = nextCard(versions, cards);
+    const fromRevision = cards.find((c) => c.id === next.fromCardId)?.revision ?? 1;
     const from = next.fromCardId ? await (await this.repos(project)).find(next.fromCardId) : null;
     return {
       next,
       initial: from ? cardAsFormStart(from) : null,
       fromQuestionnaireVersionId: from ? resolveQuestionnaireVersionId(from.questionnaireVersionId ?? null) : null,
+      fromRevision,
     };
   }
 
@@ -255,14 +375,14 @@ export class QualificationService {
   async currentCardId(project: string): Promise<string | null> {
     const { versions, cards } = await this.versionsAndCards(project);
     if (!versions.length) return null;
-    return cardStanding(versions, cards, versions[0].pid).currentCardId;
+    return cardStanding(versions, cards, versions[0].pid, null).currentCardId;
   }
 
   /** Where one card stands among the card versions. */
-  async standing(project: string, card: { systemId: string }): Promise<CardStanding> {
+  async standing(project: string, card: { id: string; systemId: string }): Promise<CardStanding> {
     const versions = await this.platform.listVersions(project);
     const cards = await (await this.repos(project)).cardRefs();
-    return cardStanding(versions, cards, card.systemId);
+    return cardStanding(versions, cards, card.systemId, card.id);
   }
 
   /** The card versions, highest number first. */

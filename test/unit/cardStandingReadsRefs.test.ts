@@ -50,7 +50,7 @@ function setup() {
 describe("card standing reads ids, not full cards", () => {
   it("standing", async () => {
     const { svc } = setup();
-    const s = await svc.standing("mcas", { systemId: "v1" });
+    const s = await svc.standing("mcas", { id: "c1", systemId: "v1" });
     expect(s.current).toBe(false);
     expect(s.currentCardId).toBe("c2");
   });

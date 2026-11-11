@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { qualificationService } from "@/server/services/QualificationService";
 import { engineClient } from "@/server/services/EngineClient";
 import { componentDrift, hasDrift } from "@/domain/cardComponents";
+import { versionLabel } from "@/domain/cardVersions";
 
 // The project's one AI system is described by its latest AI card version.
 // With no card to show (no version yet, or a latest version without a card) it
@@ -36,6 +37,9 @@ export default async function SystemPage({
       <main className="qualify-page">
         <header className="qualify-header">
           <h1>{card.systemName}</h1>
+          {card.revision > 1 && (
+            <h2>{versionLabel(latest?.number ?? 0, card.revision)}</h2>
+          )}
           <p>
             v{latest?.number} is the latest AI card.{" "}
             <Link href={`/p/${project}/qualify/${card.id}`}>Open it</Link>

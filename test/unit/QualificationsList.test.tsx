@@ -11,6 +11,7 @@ const PROJECT = "microcredit-assist-score-mcas";
 afterEach(cleanup);
 
 const item = (over: Partial<ListItem> = {}): ListItem => ({
+  revision: 1,
   id: "abc123",
   systemName: "MicroCredit Assist Score (MCAS)",
   systemVersion: "v1.2.0",
@@ -125,5 +126,29 @@ describe("the compiled qualifications list", () => {
     expect(container.textContent).not.toMatch(
       /first qualification|new qualification/i,
     );
+  });
+});
+
+describe("a revision is listed under its version with why and at whose request", () => {
+  it("shows v1.2, the reason and the requester; revision 1 stays plain", () => {
+    const { container } = render(
+      <QualificationsList
+        project="mcas"
+        items={[
+          item({
+            id: "b",
+            versionNumber: 1,
+            revision: 2,
+            amendReason: "Provider name was wrong",
+            amendRequestedBy: "Eindhoven Engine",
+          }),
+          item({ id: "a", versionNumber: 1, revision: 1 }),
+        ]}
+      />,
+    );
+    const html = container.textContent ?? "";
+    expect(html).toContain("AI card v1.2");
+    expect(html).toContain("Corrected: Provider name was wrong. Requested by Eindhoven Engine.");
+    expect(html.match(/AI card v1(?!\.)/g)).toHaveLength(1);
   });
 });
