@@ -180,8 +180,9 @@ export class QualificationRepository {
     });
   }
 
-  /** The AI card of one version of the project's system, if it has one. One
-   *  card per version: the database holds that too (system_id is unique). */
+  /** The AI card of one version of the project's system, if it has one: its
+   *  highest revision (a version may have several, each a correction of the
+   *  description; the database holds (system_id, revision) unique). */
   findBySystem(systemId: string): Promise<{
     id: string;
     systemId: string;
@@ -190,6 +191,7 @@ export class QualificationRepository {
   } | null> {
     return this.db.qualification.findFirst({
       where: { systemId },
+      orderBy: { revision: "desc" },
       select: {
         id: true,
         systemId: true,
@@ -199,11 +201,36 @@ export class QualificationRepository {
     });
   }
 
-  /** Each card's id and the version it belongs to: what card standing needs, without the cards. */
-  cardRefs(): Promise<{ id: string; systemId: string }[]> {
+  /** Each card's id, the version it belongs to and its revision: what card standing needs, without the cards. */
+  cardRefs(): Promise<
+    { id: string; systemId: string; revision: number }[]
+  > {
     return this.db.qualification.findMany({
       orderBy: { createdAt: "desc" },
-      select: { id: true, systemId: true },
+      select: { id: true, systemId: true, revision: true },
+    });
+  }
+
+  /** Every revision of one version's card, highest first. */
+  revisionsOf(systemId: string): Promise<
+    {
+      id: string;
+      revision: number;
+      amendReason: string | null;
+      amendRequestedBy: string | null;
+      createdAt: Date;
+    }[]
+  > {
+    return this.db.qualification.findMany({
+      where: { systemId },
+      orderBy: { revision: "desc" },
+      select: {
+        id: true,
+        revision: true,
+        amendReason: true,
+        amendRequestedBy: true,
+        createdAt: true,
+      },
     });
   }
 

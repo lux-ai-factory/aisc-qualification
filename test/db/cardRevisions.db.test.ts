@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { Prisma, PrismaClient } from "@prisma/client";
+import { QualificationRepository } from "@/server/repositories/QualificationRepository";
 
 // A version's card can have several revisions: corrections of the description that
 // do not make a new version. Only the latest revision of the latest version changes;
@@ -268,6 +269,34 @@ describe.skipIf(!enabled)("card revisions", () => {
         `SELECT count(*) AS n FROM qualification.qualification WHERE system_id = '${v}'`,
       );
       expect(Number(rows[0].n)).toBe(0);
+    }));
+
+  it("the repository reads a version's card as its highest revision", () =>
+    inRolledBackTx(async (tx) => {
+      const v = await newLatestVersion(tx);
+      const first = await addCard(tx, v);
+      const second = await addCard(tx, v, correction(first));
+      const repo = new QualificationRepository(tx as unknown as PrismaClient);
+      expect((await repo.findBySystem(v))?.id).toBe(second);
+      const refs = (await repo.cardRefs()).filter((r) => r.systemId === v);
+      expect(refs.map((r) => [r.id, r.revision]).sort()).toEqual(
+        [
+          [first, 1],
+          [second, 2],
+        ].sort(),
+      );
+      const revisions = await repo.revisionsOf(v);
+      expect(revisions.map((r) => r.revision)).toEqual([2, 1]);
+      expect(revisions[0]).toMatchObject({
+        id: second,
+        amendReason: "provider name was wrong",
+        amendRequestedBy: "Eindhoven, email",
+      });
+      expect(revisions[1]).toMatchObject({
+        id: first,
+        amendReason: null,
+        amendRequestedBy: null,
+      });
     }));
 
   it("existing cards read as revision 1 after the migration", async () => {

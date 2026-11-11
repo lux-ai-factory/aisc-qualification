@@ -15,15 +15,21 @@ import type {
 import { componentType } from "@/data/componentFields";
 
 export type VersionRef = { pid: string; number: number };
-export type CardRef = { id: string; systemId: string };
+export type CardRef = { id: string; systemId: string; revision: number };
 
 function newestFirst(versions: VersionRef[]): VersionRef[] {
   return [...versions].sort((a, b) => b.number - a.number);
 }
 
-/** Each card's id, by the version it describes. */
+/** Each version's card: the id of its highest revision. A version's card is
+ *  its latest revision; the earlier ones are kept as they were. */
 function cardIdByVersion(cards: CardRef[]): Map<string, string> {
-  return new Map(cards.map((c) => [c.systemId, c.id]));
+  const latest = new Map<string, CardRef>();
+  for (const c of cards) {
+    const seen = latest.get(c.systemId);
+    if (!seen || c.revision > seen.revision) latest.set(c.systemId, c);
+  }
+  return new Map([...latest].map(([systemId, c]) => [systemId, c.id]));
 }
 
 export type NextCard = {

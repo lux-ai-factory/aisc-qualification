@@ -10,7 +10,7 @@ const v = (number: number) => ({ pid: `v${number}`, number });
 
 describe("nextCard", () => {
   it("is for the version after the latest", () => {
-    const next = nextCard([v(1)], [{ id: "c1", systemId: "v1" }]);
+    const next = nextCard([v(1)], [{ id: "c1", systemId: "v1", revision: 1 }]);
     expect(next).toEqual({
       versionNumber: 2,
       fromCardId: "c1",
@@ -30,8 +30,8 @@ describe("nextCard", () => {
     const next = nextCard(
       [v(3), v(2), v(1)],
       [
-        { id: "c1", systemId: "v1" },
-        { id: "c3", systemId: "v3" },
+        { id: "c1", systemId: "v1", revision: 1 },
+        { id: "c3", systemId: "v3", revision: 1 },
       ],
     );
     expect(next).toEqual({
@@ -41,9 +41,37 @@ describe("nextCard", () => {
     });
   });
 
+  it("starts from the highest revision of the newest version", () => {
+    const next = nextCard(
+      [v(1)],
+      [
+        { id: "a", systemId: "v1", revision: 1 },
+        { id: "b", systemId: "v1", revision: 2 },
+      ],
+    );
+    expect(next.fromCardId).toBe("b");
+    expect(next.fromVersionNumber).toBe(1);
+  });
+
+  it("takes the highest revision whatever the order of the cards", () => {
+    const next = nextCard(
+      [v(1)],
+      [
+        { id: "b", systemId: "v1", revision: 2 },
+        { id: "a", systemId: "v1", revision: 1 },
+      ],
+    );
+    expect(next.fromCardId).toBe("b");
+  });
+
+  it("a version with one revision behaves as before", () => {
+    const next = nextCard([v(1)], [{ id: "a", systemId: "v1", revision: 1 }]);
+    expect(next.fromCardId).toBe("a");
+  });
+
   it("a latest version with no card still gets its next version", () => {
     // a save that failed after naming v2: the next save makes v3
-    const next = nextCard([v(2), v(1)], [{ id: "c1", systemId: "v1" }]);
+    const next = nextCard([v(2), v(1)], [{ id: "c1", systemId: "v1", revision: 1 }]);
     expect(next.versionNumber).toBe(3);
   });
 });
@@ -157,8 +185,8 @@ describe("cardAsFormStart", () => {
 describe("cardStanding", () => {
   const versions = [v(2), v(1)];
   const cards = [
-    { id: "c1", systemId: "v1" },
-    { id: "c2", systemId: "v2" },
+    { id: "c1", systemId: "v1", revision: 1 },
+    { id: "c2", systemId: "v2", revision: 1 },
   ];
 
   it("the newest version's card is the current one", () => {
