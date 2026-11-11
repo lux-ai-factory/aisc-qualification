@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { qualificationService } from "@/server/services/QualificationService";
+import {
+  amendmentText,
+  cardHeading,
+  keptNotice,
+} from "@/domain/cardVersions";
 import { releaseLabel, updateAnswersLabel } from "@/domain/SystemCard";
 import { ontologyService } from "@/server/services/OntologyService";
 import { OntologyClient } from "@/server/services/OntologyClient";
@@ -115,10 +120,15 @@ export default async function QualificationDetailPage({
                 <div>
                   {standing && standing.versionNumber > 0 && (
                     <p className="qf-row-sysver">
-                      AI card v{standing.versionNumber}
+                      {cardHeading(standing.versionNumber, q.revision)}
                     </p>
                   )}
                   <h1>{q.systemName}</h1>
+                  {q.revision > 1 && (
+                    <p className="qf-amendment">
+                      {amendmentText(q.amendReason, q.amendRequestedBy)}
+                    </p>
+                  )}
                   <p>
                     {q.company} · {releaseLabel(q.systemVersion)} · saved{" "}
                     {savedAt} UTC
@@ -147,8 +157,7 @@ export default async function QualificationDetailPage({
 
             {readOnly && (
               <p className="qf-prefilled">
-                v{standing?.versionNumber || "?"}, kept as it was: only the
-                latest version changes.{" "}
+                {keptNotice(standing?.versionNumber || 0, q.revision)}{" "}
                 {standing?.currentCardId && (
                   <Link
                     href={`/p/${project}/qualify/${standing.currentCardId}`}

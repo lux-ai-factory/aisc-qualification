@@ -59,6 +59,27 @@ export function versionLabel(version: number, revision: number = 1): string {
   return revision > 1 ? `Version ${version}, revision ${revision}` : `Version ${version}`;
 }
 
+/** The kicker over a card: "AI card v1", or "Version 1, revision 2" once corrected. */
+export function cardHeading(version: number, revision: number = 1): string {
+  return revision > 1 ? versionLabel(version, revision) : `AI card v${version}`;
+}
+
+/** The notice on a card that is not the current one. It names the revision, because an
+ *  earlier revision of the latest version is as read-only as an older version's card. */
+export function keptNotice(version: number, revision: number = 1): string {
+  return `Version ${version || "?"}, revision ${revision}, kept as it was: only the latest card changes.`;
+}
+
+/** Why a revision was made and at whose request; a value that was not stored is left out. */
+export function amendmentText(
+  reason: string | null | undefined,
+  requestedBy: string | null | undefined,
+): string {
+  const why = reason?.trim();
+  const who = requestedBy?.trim();
+  return `Corrected${why ? `: ${why}` : ""}.${who ? ` Requested by ${who}.` : ""}`;
+}
+
 /** What the edit page offers besides a new version: correcting the description of the card it
  *  starts from. */
 export type CorrectionOffer = {

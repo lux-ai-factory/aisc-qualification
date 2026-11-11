@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { isValidElement, type ReactElement, type ReactNode } from "react";
 
 // Saving the AI card asks one question: did the system change (a new version) or is the
@@ -237,5 +239,46 @@ describe("a version and its revision are named the way the spec shows them", () 
     expect(versionLabel(1, 1)).toBe("Version 1");
     expect(versionLabel(1, 2)).toBe("Version 1, revision 2");
     expect(versionLabel(3, undefined)).toBe("Version 3");
+  });
+});
+
+describe("the card page names its revision, why it was corrected and whether it is current", () => {
+  it("heads the card with the version, adding the revision above 1", async () => {
+    const { cardHeading } = await import("@/domain/cardVersions");
+    expect(cardHeading(1, 1)).toBe("AI card v1");
+    expect(cardHeading(1, undefined)).toBe("AI card v1");
+    expect(cardHeading(1, 2)).toBe("Version 1, revision 2");
+  });
+
+  it("an older card reads as kept as it was, naming its revision", async () => {
+    const { keptNotice } = await import("@/domain/cardVersions");
+    expect(keptNotice(1, 1)).toBe(
+      "Version 1, revision 1, kept as it was: only the latest card changes.",
+    );
+    expect(keptNotice(2, 3)).toBe(
+      "Version 2, revision 3, kept as it was: only the latest card changes.",
+    );
+  });
+
+  it("says why and at whose request, and never prints a missing value", async () => {
+    const { amendmentText } = await import("@/domain/cardVersions");
+    expect(amendmentText("Provider name was wrong", "Eindhoven Engine")).toBe(
+      "Corrected: Provider name was wrong. Requested by Eindhoven Engine.",
+    );
+    expect(amendmentText(null, "Eindhoven Engine")).toBe(
+      "Corrected. Requested by Eindhoven Engine.",
+    );
+    expect(amendmentText("Typo", null)).toBe("Corrected: Typo.");
+    expect(amendmentText(null, "  ")).toBe("Corrected.");
+  });
+
+  it("the card page uses them where it prints the version and the read-only notice", () => {
+    const page = readFileSync(
+      join(__dirname, "..", "..", "src/app/p/[project]/qualify/[id]/page.tsx"),
+      "utf8",
+    );
+    expect(page).toContain("cardHeading(standing.versionNumber, q.revision)");
+    expect(page).toContain("keptNotice(standing?.versionNumber || 0, q.revision)");
+    expect(page).toContain("amendmentText(q.amendReason, q.amendRequestedBy)");
   });
 });

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { releaseLabel } from "@/domain/SystemCard";
+import { amendmentText } from "@/domain/cardVersions";
 
 // The versions of the project's one AI system, each a row linking to its card.
 // A row carries only what it takes to pick one: which system, which version,
@@ -74,8 +75,7 @@ export default function QualificationsList({
               </p>
               {item.revision > 1 && (
                 <p className="qf-row-sub">
-                  Corrected: {item.amendReason}. Requested by{" "}
-                  {item.amendRequestedBy}.
+                  {amendmentText(item.amendReason, item.amendRequestedBy)}
                 </p>
               )}
             </div>

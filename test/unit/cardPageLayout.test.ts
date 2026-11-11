@@ -40,7 +40,7 @@ describe("the card page", () => {
   });
 
   it("heads the card with its AI card version and the system's release, and offers to update the answers", () => {
-    expect(page).toContain("AI card v{standing.versionNumber}");
+    expect(page).toContain("cardHeading(standing.versionNumber, q.revision)");
     expect(page).toContain("releaseLabel(q.systemVersion)");
     expect(page).toContain("updateAnswersLabel(standing.versionNumber)");
     expect(page).not.toContain("Edit the AI system");
