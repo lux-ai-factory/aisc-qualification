@@ -37,10 +37,14 @@ done
 su_psql() { docker exec -i "$NAME" psql -q -U aisc-postgres-user -d platform -v ON_ERROR_STOP=1 "$@"; }
 su_psql < "$ROOT/init/platform-db.sql" >/dev/null
 su_psql < "$ROOT/init/project-databases.sql" >/dev/null
+# the owner roles, as postgres-setup makes them: the platform migrates and provisions as platform_migrator
+su_psql < "$ROOT/init/owner-roles.sql" >/dev/null
+docker exec -i "$NAME" psql -q -U aisc-postgres-user -d template1 -v ON_ERROR_STOP=1 \
+  < "$ROOT/init/project-database-setup.sql" >/dev/null
 # the platform's own migrations, in order, as the platform
 for f in "$ROOT"/platform/migrations/*.sql; do
-  docker exec -i -e PGPASSWORD=platform_rw "$NAME" \
-    psql -q -h 127.0.0.1 -U platform_rw -d platform -v ON_ERROR_STOP=1 < "$f" >/dev/null
+  docker exec -i -e PGPASSWORD=platform_migrator "$NAME" \
+    psql -q -h 127.0.0.1 -U platform_migrator -d platform -v ON_ERROR_STOP=1 < "$f" >/dev/null
 done
 
 # (the qualification schema does not live in `platform`; the history of
@@ -58,7 +62,7 @@ ISO_E=eeeeeeee-0000-4000-8000-00000000000e   # dropped mid-test
 ISO_F=ffffffff-0000-4000-8000-00000000000f   # the older DB tests (cardVersions) run here
 ISO_G=c4c4c4c4-0000-4000-8000-0000000000c4   # carriedReview: card versions of its own, so no other test's card stops being the latest
 ISO_SETUP=ok
-if (cd "$ROOT/platform" && PROVISION_DSN="postgresql://platform_rw:platform_rw@127.0.0.1:$PORT/platform" \
+if (cd "$ROOT/platform" && PROVISION_DSN="postgresql://platform_migrator:platform_migrator@127.0.0.1:$PORT/platform" \
     uv run --quiet python -c '
 import os, sys
 from platform_service.projectdb import provision
