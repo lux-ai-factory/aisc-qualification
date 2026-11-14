@@ -11,6 +11,7 @@ import { isVairTerm, type VairClass } from "@/data/vairVocab";
 import { RISK_FIELDS } from "@/data/riskFields";
 import type { AnswerInput } from "@/server/repositories/QualificationRepository";
 import { COMPONENT_NAME_MAX, typeToKind } from "@/data/componentFields";
+import { DESCRIPTION_MAX } from "@/data/formFields";
 import type { ComponentInput } from "@/domain/systemComponents";
 
 // The identity: every form has it, whatever its blocks.
@@ -132,6 +133,11 @@ export class QualificationFormParser {
       if (!has(field)) continue;
       text[field] = this.trimmed(formData, field);
       if (text[field] === "") throw new FormValidationError(message);
+      if (field === "description" && text.description.length > DESCRIPTION_MAX) {
+        throw new FormValidationError(
+          `The description is at most ${DESCRIPTION_MAX} characters.`,
+        );
+      }
     }
     let intendedDeployers: string | null = null;
     if (has("intendedDeployers")) {

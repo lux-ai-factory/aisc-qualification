@@ -60,6 +60,8 @@ def _form_json(name: str, value: str, expected: type, wrong_type: str):
             raise ValueError(wrong_type)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=f"{name}: {exc}")
+    except RecursionError:
+        raise HTTPException(status_code=422, detail=f"{name}: nested deeper than JSON may be here") from None
     return parsed
 
 

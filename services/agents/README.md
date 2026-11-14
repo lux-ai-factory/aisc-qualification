@@ -103,6 +103,7 @@ fill/baf_llm.py      the provider table, and the model a project chose on the pl
 fill/names.py        short names for long answers
 fill/consistency.py  the pass that compares card choices with the answers
 fill/ledger.py       a run's ledger events, sent to the platform when LEDGER_MODE is on
+fill/switches.py     AUTH_ENABLED and LEDGER_MODE read strictly (a copy of shared/identity's parser)
 fill/errors.py       a failed run's short, credential-free error text
 fill/view_nodes.py   every node of a card view as one list
 fill/models.py       Draft, Node, Finding, Round, Outcome

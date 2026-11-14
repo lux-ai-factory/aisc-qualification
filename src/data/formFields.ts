@@ -15,6 +15,9 @@ export type MetadataFieldId =
   | "marketFormTags"
   | "localityTags";
 
+/** The most characters an AI card description may have: the platform refuses a longer one. */
+export const DESCRIPTION_MAX = 2000;
+
 export const METADATA_FIELDS: Record<
   MetadataFieldId,
   { label: string; citation: string }

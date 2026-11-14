@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 # The service-token door.
@@ -41,3 +43,11 @@ def _no_ontology_service(monkeypatch, request):
         raise clients.ServiceError("no ontology service in tests")
 
     monkeypatch.setattr(clients, "build", unreachable)
+
+
+@pytest.fixture(autouse=True)
+def _ledger_off_unless_a_test_says_otherwise(monkeypatch):
+    """An absent LEDGER_MODE means record, so every test starts with the ledger off unless the environment
+    already names a mode; a test that wants events sets it."""
+    if "LEDGER_MODE" not in os.environ:
+        monkeypatch.setenv("LEDGER_MODE", "off")

@@ -21,7 +21,11 @@ import {
   type VairClass,
   type VairTerm,
 } from "@/data/vairVocab";
-import { METADATA_FIELDS, type MetadataFieldId } from "@/data/formFields";
+import {
+  DESCRIPTION_MAX,
+  METADATA_FIELDS,
+  type MetadataFieldId,
+} from "@/data/formFields";
 import { COMPONENT_BLOCK } from "@/data/componentFields";
 import { RISK_BLOCK } from "@/data/riskFields";
 import ChipPicker from "./ChipPicker";
@@ -78,6 +82,35 @@ function FieldLabel({ htmlFor, id }: { htmlFor: string; id: MetadataFieldId }) {
     <label className="qf-field-label" htmlFor={htmlFor}>
       {f.label} <span className="qf-citation">{f.citation}</span>
     </label>
+  );
+}
+
+/** The system's description, held to the platform's limit, with the characters used shown
+ *  under it. The field stays uncontrolled; the count follows its input events. */
+function DescriptionField({ initial }: { initial: string }) {
+  const [used, setUsed] = useState(initial.length);
+  return (
+    <>
+      <textarea
+        id="description"
+        name="description"
+        defaultValue={initial}
+        rows={3}
+        maxLength={DESCRIPTION_MAX}
+        aria-describedby="description-count"
+        onInput={(e) => setUsed(e.currentTarget.value.length)}
+        placeholder="One or two sentences explaining what the system does. e.g. 'Computer vision system that detects out-of-stock items on retail shelves from in-store camera footage.'"
+        required
+      />
+      <p
+        id="description-count"
+        data-testid="description-count"
+        className="qf-help qf-count"
+        aria-live="polite"
+      >
+        {`${used} / ${DESCRIPTION_MAX}`}
+      </p>
+    </>
   );
 }
 
@@ -347,14 +380,7 @@ export default function QualifyForm({
             {has("description") && (
               <div className="field">
                 <FieldLabel htmlFor="description" id="description" />
-                <textarea
-                  id="description"
-                  name="description"
-                  defaultValue={meta?.description ?? ""}
-                  rows={3}
-                  placeholder="One or two sentences explaining what the system does. e.g. 'Computer vision system that detects out-of-stock items on retail shelves from in-store camera footage.'"
-                  required
-                />
+                <DescriptionField initial={meta?.description ?? ""} />
               </div>
             )}
             {has("targetUseCase") && (
