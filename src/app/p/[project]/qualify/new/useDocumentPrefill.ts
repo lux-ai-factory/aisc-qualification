@@ -118,6 +118,8 @@ export function useDocumentPrefill(
         field instanceof HTMLTextAreaElement
       ) {
         field.value = value;
+        // said as input, so what follows the field (the description's count) sees the new value
+        field.dispatchEvent(new Event("input", { bubbles: true }));
       }
     }
   };

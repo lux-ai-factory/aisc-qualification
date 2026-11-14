@@ -264,6 +264,12 @@ a:hover {
   margin: 0 0 18px;
   line-height: 1.5;
 }
+/* the characters a limited field has used, under it on the right */
+.qualify-form .qf-count {
+  margin: 0;
+  font-size: 12px;
+  text-align: right;
+}
 
 .qualify-form textarea {
   background: var(--panel);
