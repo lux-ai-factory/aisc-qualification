@@ -161,7 +161,7 @@ def read_questionnaire(raw: bytes, filename: str) -> dict:
         raise QuestionnaireFileError("the file is empty")
     try:
         doc = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, ValueError):
+    except (UnicodeDecodeError, ValueError, RecursionError):  # nested deeper than the parser follows
         raise QuestionnaireFileError("this file is not JSON") from None
     if not isinstance(doc, dict):
         raise QuestionnaireFileError("a questionnaire file is a JSON object")
