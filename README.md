@@ -175,8 +175,8 @@ instead. In the stack, open the form with `?example=mcas` as above.
 | `PREFILL_URL` | The prefill service. | none (document reading and form files are unavailable) |
 | `SYSTEM_CARD_RENDERER_URL` | The PDF renderer. | `http://localhost:8005` |
 | `NEXT_BASE_PATH` | Path prefix the app is served under. A build argument and a runtime variable (`next.config.ts` reads it at start). | empty (served at `/`); the stack uses `/qualification` |
-| `LEDGER_MODE` | `off`, `record` or `enforce`. Events are written only in `record` and `enforce`. | `off` (stack: `record`) |
-| `AUTH_ENABLED` | Whether the request id a caller presents must be proven by a gateway token before it is cited. `1`, `true`, `yes` or `on` is on; anything else is off, and the presented id is kept unchecked (local work only). | on |
+| `LEDGER_MODE` | `off`, `record` or `enforce`. Events are written only in `record` and `enforce`; any other value, empty included, stops the app at start (`src/instrumentation.ts`). | absent means `record` (stack: `record`) |
+| `AUTH_ENABLED` | Whether the request id a caller presents must be proven by a gateway token before it is cited. `1`, `true`, `yes` or `on` is on; `0`, `false`, `no` or `off` is off, and the presented id is kept unchecked (local work only). Anything else stops the app at start. | on |
 | `KEYCLOAK_ISSUER`, `KEYCLOAK_JWKS_URL` | The realm's issuer and its JWKS address, used to verify the gateway token (RS256, issuer, expiry with 30 s leeway) and any Bearer token, which must name the same person. | none: with `AUTH_ENABLED` on, no request id is cited, so with `LEDGER_MODE=enforce` the platform refuses card-version writes |
 | `AISC_GATEWAY_CLIENT_ID` | The client (`azp`) the gateway token must have been issued to. | `aisc-gateway` |
 | `QUALIFICATION_WEB_TO_AGENTS_TOKEN`, `QUALIFICATION_WEB_TO_ONTOLOGY_TOKEN`, `QUALIFICATION_WEB_TO_PREFILL_TOKEN`, `QUALIFICATION_WEB_TO_PDF_TOKEN` | The token this app sends to each service. | none (the service refuses the call) |
