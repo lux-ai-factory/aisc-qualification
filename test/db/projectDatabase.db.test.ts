@@ -429,18 +429,20 @@ describe.skipIf(!enabled)(
       expect(rows).toEqual([{ n: 0n }]);
     });
 
-    it("deleting a version takes its card with it (ON DELETE CASCADE)", async () => {
+    it("a version is kept: deleting it is refused and its card stays", async () => {
       expect(why).toBe("");
       await app.$executeRawUnsafe(
         `${card("card-v1", V1)} ON CONFLICT DO NOTHING`,
       );
-      await admin(A).$executeRawUnsafe(
-        `DELETE FROM project.system WHERE pid = '${V1}'`,
-      );
+      await expect(
+        admin(A).$executeRawUnsafe(
+          `DELETE FROM project.system WHERE pid = '${V1}'`,
+        ),
+      ).rejects.toThrow(/is kept/);
       const rows = await app.$queryRawUnsafe<{ n: bigint }[]>(
         `SELECT count(*) AS n FROM qualification.qualification WHERE id = 'card-v1'`,
       );
-      expect(rows).toEqual([{ n: 0n }]);
+      expect(rows).toEqual([{ n: 1n }]);
     });
   },
 );

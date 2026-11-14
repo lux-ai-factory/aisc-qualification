@@ -366,7 +366,7 @@ describe.skipIf(!enabled)("card revisions", () => {
       );
     }));
 
-  it("deleting a version removes all its revisions, with their risks and graphs", () =>
+  it("a version is kept: deleting it is refused, and its revisions with their risks and graphs stay", () =>
     inRolledBackTx(async (tx) => {
       const v = await newLatestVersion(tx);
       const first = await addCard(tx, v);
@@ -375,20 +375,18 @@ describe.skipIf(!enabled)("card revisions", () => {
       const second = await addCard(tx, v, correction(first));
       await tx.$executeRawUnsafe(riskSql(second));
       await tx.$executeRawUnsafe(graphSql(second));
-      await tx.$executeRawUnsafe(
-        `DELETE FROM project.system WHERE pid = '${v}'`,
-      );
-      const rows = await tx.$queryRawUnsafe<{ n: bigint }[]>(
-        `SELECT count(*) AS n FROM qualification.qualification WHERE system_id = '${v}'`,
-      );
-      expect(Number(rows[0].n)).toBe(0);
-      const left = await tx.$queryRawUnsafe<{ n: bigint }[]>(
-        `SELECT (SELECT count(*) FROM qualification.qualification_risk
-                  WHERE "qualificationId" IN ('${first}', '${second}'))
-              + (SELECT count(*) FROM qualification.knowledge_graph
-                  WHERE "qualificationId" IN ('${first}', '${second}')) AS n`,
-      );
-      expect(Number(left[0].n)).toBe(0);
+      const kept = () =>
+        tx.$queryRawUnsafe<{ n: bigint }[]>(
+          `SELECT (SELECT count(*) FROM qualification.qualification WHERE system_id = '${v}')
+                + (SELECT count(*) FROM qualification.qualification_risk
+                    WHERE "qualificationId" IN ('${first}', '${second}'))
+                + (SELECT count(*) FROM qualification.knowledge_graph
+                    WHERE "qualificationId" IN ('${first}', '${second}')) AS n`,
+        );
+      const before = Number((await kept())[0].n);
+      await refused(tx, `DELETE FROM project.system WHERE pid = '${v}'`);
+      expect(before).toBeGreaterThanOrEqual(6);
+      expect(Number((await kept())[0].n)).toBe(before);
     }));
 
   it("the repository reads a version's card as its highest revision", () =>

@@ -243,7 +243,7 @@ describe.skipIf(!enabled)(
       ).rejects.toThrow();
     });
 
-    it("deleting a version removes its card, answers, risks, graph and components", async () => {
+    it("a version is kept: deleting it is refused, and its card, answers, risks, graph and components stay", async () => {
       await app.knowledgeGraph.create({
         data: {
           qualificationId: c2,
@@ -254,18 +254,21 @@ describe.skipIf(!enabled)(
           triples: 1,
         },
       });
-      await admin.$executeRawUnsafe(
-        `DELETE FROM project.system WHERE pid IN ('${v1}', '${v2}')`,
-      );
-      const left = await admin.$queryRawUnsafe<{ n: bigint }[]>(
-        `SELECT (SELECT count(*) FROM qualification.qualification WHERE id IN ('${c1}','${c2}'))
-            + (SELECT count(*) FROM qualification.qualification_answer WHERE "qualificationId" IN ('${c1}','${c2}'))
-            + (SELECT count(*) FROM qualification.qualification_risk WHERE "qualificationId" IN ('${c1}','${c2}'))
-            + (SELECT count(*) FROM qualification.knowledge_graph WHERE "qualificationId" IN ('${c1}','${c2}'))
-            + (SELECT count(*) FROM qualification.card_component WHERE qualification_id IN ('${c1}','${c2}'))
-            + (SELECT count(*) FROM project.system WHERE pid IN ('${v1}', '${v2}')) AS n`,
-      );
-      expect(Number(left[0].n)).toBe(0);
+      const kept = () =>
+        admin.$queryRawUnsafe<{ n: bigint }[]>(
+          `SELECT (SELECT count(*) FROM qualification.qualification WHERE id IN ('${c1}','${c2}'))
+              + (SELECT count(*) FROM qualification.qualification_answer WHERE "qualificationId" IN ('${c1}','${c2}'))
+              + (SELECT count(*) FROM qualification.qualification_risk WHERE "qualificationId" IN ('${c1}','${c2}'))
+              + (SELECT count(*) FROM qualification.knowledge_graph WHERE "qualificationId" IN ('${c1}','${c2}'))
+              + (SELECT count(*) FROM qualification.card_component WHERE qualification_id IN ('${c1}','${c2}'))
+              + (SELECT count(*) FROM project.system WHERE pid IN ('${v1}', '${v2}')) AS n`,
+        );
+      const before = Number((await kept())[0].n);
+      await expect(
+        admin.$executeRawUnsafe(`DELETE FROM project.system WHERE pid IN ('${v1}', '${v2}')`),
+      ).rejects.toThrow(/is kept/);
+      expect(before).toBeGreaterThan(4);
+      expect(Number((await kept())[0].n)).toBe(before);
     });
   },
 );
