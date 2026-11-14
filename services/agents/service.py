@@ -28,10 +28,15 @@ from fastapi import BackgroundTasks, FastAPI, Header, HTTPException
 from agent import fill_one
 from fill import ledger
 from fill.errors import shown_error
+from fill.switches import check_environment
 from fill.workflow import ERROR_CHARS
 from service_token import ServiceTokens
 
 log = logging.getLogger("qualification-agents")
+
+# A bad AUTH_ENABLED or LEDGER_MODE stops the service (SwitchInvalid names the variable) instead of quietly
+# turning the ledger off.
+check_environment()
 
 app = FastAPI(title="Ontology filler", version="0.1.0")
 # Only qualification-web calls this, with its own token: a run spends the

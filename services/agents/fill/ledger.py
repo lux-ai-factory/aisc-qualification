@@ -24,6 +24,7 @@ from typing import Any, Callable, Iterator
 from urllib import error, request
 
 from fill import clients
+from fill.switches import ledger_mode
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,8 @@ TIMEOUT = 10.0
 
 
 def on() -> bool:
-    return os.environ.get("LEDGER_MODE", "off").strip().lower() in ("record", "enforce")
+    """True unless LEDGER_MODE is off; absent means record, and a bad value raises SwitchInvalid."""
+    return ledger_mode() != "off"
 
 
 @contextmanager
