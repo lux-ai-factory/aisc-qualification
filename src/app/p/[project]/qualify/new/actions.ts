@@ -10,6 +10,8 @@ import { callerName } from "@/server/access/callerName";
 export type SubmitState = { error?: string } | undefined;
 
 const PLATFORM_SILENT = "The platform did not answer, so the card was not saved.";
+const NOT_SAVED_UNEXPECTED =
+  "The card could not be saved just now. What you typed is still here: try again in a moment.";
 
 /** What the person is told of a card that was not saved, by what became of the card version made for it. */
 const NOT_SAVED: Record<CardNotSaved["version"], string> = {
@@ -97,15 +99,15 @@ export async function submitQualification(
     if (err instanceof Error && /did not answer/i.test(err.message)) {
       return { error: PLATFORM_SILENT };
     }
-    // The version could not be made for another reason: say so plainly rather
-    // than storing a qualification nothing else can point at.
-    if (
-      err instanceof Error &&
-      /could not name this system|PLATFORM_URL/i.test(err.message)
-    ) {
+    // The platform refused the version or the correction, or is not configured: its message is
+    // written for the person ("Could not ...: the platform answered ..."), so it is said as it is.
+    if (err instanceof Error && /^Could not |PLATFORM_URL/.test(err.message)) {
       return { error: err.message };
     }
-    throw err;
+    // Anything else is answered to the form too, so what was typed stays on screen; the
+    // detail may hold internals, so it goes to the server log, not to the person.
+    console.error("card save failed", err);
+    return { error: NOT_SAVED_UNEXPECTED };
   }
 
   // The card is built from the form alone. The filler runs only
