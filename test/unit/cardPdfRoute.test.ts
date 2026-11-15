@@ -17,6 +17,7 @@ vi.mock("@/lib/projectDb", () => ({ projectDbForRoute: async () => ({}) }));
 vi.mock("@/server/repositories/QualificationRepository", () => ({
   QualificationRepository: class {
     cardSummary = m.cardSummary;
+    cardRefs = async () => [];
     transaction(fn: (r: unknown, tx: unknown) => unknown) {
       return Promise.resolve(fn(this, {}));
     }

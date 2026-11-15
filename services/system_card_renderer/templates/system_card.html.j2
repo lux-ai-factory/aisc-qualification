@@ -15,7 +15,8 @@
 {%- endmacro %}
 
 <header class="cover">
-  <div class="eyebrow">AI Card</div>
+  {# "Version 1", or "Version 1, revision 2": the one name the app gives a card version and its revision #}
+  <div class="eyebrow">AI Card{% if card.card_version %} · Version {{ card.card_version }}{% if card.card_revision and card.card_revision > 1 %}, revision {{ card.card_revision }}{% endif %}{% endif %}</div>
   <h1>{{ card.system_name }}</h1>
   <p class="subtitle">
     {{ card.provider }} ·
@@ -27,6 +28,12 @@
       · generated {{ card.generated_at }}
     {% endif %}
   </p>
+  {% if card.card_revision and card.card_revision > 1 %}
+  <p class="subtitle">Corrected{% if card.amend_reason %}: {{ card.amend_reason }}{% endif %}.{% if card.amend_requested_by %} Requested by {{ card.amend_requested_by }}.{% endif %}</p>
+  {% endif %}
+  {% if card.superseded %}
+  <p class="subtitle"><strong>Superseded:</strong> a later revision of this version corrected this card. It is kept as it was.</p>
+  {% endif %}
 
   <table class="meta">
     <tr>

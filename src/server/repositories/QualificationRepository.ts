@@ -263,6 +263,9 @@ export class QualificationRepository {
     Qualification,
     | "id"
     | "systemId"
+    | "revision"
+    | "amendReason"
+    | "amendRequestedBy"
     | "systemName"
     | "systemVersion"
     | "company"
@@ -278,6 +281,9 @@ export class QualificationRepository {
       select: {
         id: true,
         systemId: true,
+        revision: true,
+        amendReason: true,
+        amendRequestedBy: true,
         systemName: true,
         systemVersion: true,
         company: true,
