@@ -64,7 +64,9 @@ export default async function QualificationDetailPage({
             itemId: q.id,
             details: {
               version: standing?.versionNumber ?? null,
-              read_only: readOnly,
+              // an earlier card version, kept as it was; a viewer is said apart
+              read_only: history,
+              viewer,
             },
           }),
         ),

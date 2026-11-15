@@ -1,6 +1,7 @@
 // The card page's qualification.opened event, from a real render of the page. The page reads
 // the card, asks where it stands among the versions (the platform's list,
-// the project's cards), and records which card version was opened and whether it was read-only.
+// the project's cards), and records which card version was opened, whether it is an earlier one
+// (read_only), and whether the caller is a viewer, who may read the project but not change it.
 // A server action re-renders the page in its own POST: that is the action, not an opening.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,6 +10,7 @@ const m = vi.hoisted(() => ({
   emitEvent: vi.fn(async () => null),
   serverAction: false,
   listVersions: vi.fn(),
+  access: { ok: true, mayWrite: true } as unknown,
 }));
 
 const version = (n: number) => ({
@@ -70,6 +72,10 @@ vi.mock("@/vendor/aisc-ledger/emit", async (orig) => ({
   emitEvent: m.emitEvent,
   isServerAction: async () => m.serverAction,
 }));
+vi.mock("@/lib/projectDb", async (orig) => ({
+  ...(await orig<typeof import("@/lib/projectDb")>()),
+  callerAccess: async () => m.access,
+}));
 vi.mock("@/server/repositories/QualificationRepository", () => ({
   QualificationRepository: class {},
   repositoryFor: async () => repo,
@@ -108,6 +114,7 @@ const opened = () =>
 beforeEach(() => {
   vi.clearAllMocks();
   m.serverAction = false;
+  m.access = { ok: true, pid: PROJECT, slug: PROJECT, role: "editor", admin: false, mayWrite: true };
   m.listVersions.mockResolvedValue([version(3), version(2)]);
 });
 
@@ -119,7 +126,7 @@ describe("qualification.opened, from the card page", () => {
         action: "qualification.opened",
         itemType: "qualification",
         itemId: "c3",
-        details: { version: 3, read_only: false },
+        details: { version: 3, read_only: false, viewer: false },
       },
     ]);
   }, 30_000);
@@ -127,7 +134,7 @@ describe("qualification.opened, from the card page", () => {
   it("an older card (v2) records its own version, read-only", async () => {
     await open("c2");
     expect(opened().map((e) => [e.itemId, e.details])).toEqual([
-      ["c2", { version: 2, read_only: true }],
+      ["c2", { version: 2, read_only: true, viewer: false }],
     ]);
   }, 30_000);
 
@@ -135,7 +142,15 @@ describe("qualification.opened, from the card page", () => {
     m.listVersions.mockRejectedValue(new Error("platform down"));
     await open("c3");
     expect(opened().map((e) => e.details)).toEqual([
-      { version: null, read_only: true },
+      { version: null, read_only: true, viewer: false },
+    ]);
+  }, 30_000);
+
+  it("a viewer opening the latest card records it is not an earlier card, and that they are a viewer", async () => {
+    m.access = { ok: true, pid: PROJECT, slug: PROJECT, role: "viewer", admin: false, mayWrite: false };
+    await open("c3");
+    expect(opened().map((e) => e.details)).toEqual([
+      { version: 3, read_only: false, viewer: true },
     ]);
   }, 30_000);
 
