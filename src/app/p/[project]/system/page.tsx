@@ -4,6 +4,7 @@ import { qualificationService } from "@/server/services/QualificationService";
 import { engineClient } from "@/server/services/EngineClient";
 import { componentDrift, hasDrift } from "@/domain/cardComponents";
 import { versionLabel } from "@/domain/cardVersions";
+import { callerReadsOnly, READS_ONLY } from "@/server/access/readsOnly";
 
 // The project's one AI system is described by its latest AI card version.
 // With no card to show (no version yet, or a latest version without a card) it
@@ -60,9 +61,13 @@ export default async function SystemPage({
               <li key={`c-${c.pid}`}>changed: {c.name}</li>
             ))}
           </ul>
-          <Link className="btn" href={`/p/${project}/system/edit`}>
-            Start the next version
-          </Link>
+          {(await callerReadsOnly(project)) ? (
+            <p>{READS_ONLY}</p>
+          ) : (
+            <Link className="btn" href={`/p/${project}/system/edit`}>
+              Start the next version
+            </Link>
+          )}
         </div>
       </main>
     );

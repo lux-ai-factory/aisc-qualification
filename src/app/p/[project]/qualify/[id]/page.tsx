@@ -22,6 +22,7 @@ import { annexDefaultVersion } from "@/domain/forms/legacy";
 import FormLine from "../../FormLine";
 import { repositoryFor } from "@/server/repositories/QualificationRepository";
 import { emitEvent, isServerAction } from "@/vendor/aisc-ledger/emit";
+import { callerReadsOnly, READS_ONLY } from "@/server/access/readsOnly";
 
 export default async function QualificationDetailPage({
   params,
@@ -45,7 +46,10 @@ export default async function QualificationDetailPage({
   const standing = await qualificationService
     .standing(project, { id: q.id, systemId: q.systemId })
     .catch(() => null);
-  const readOnly = !standing?.current;
+  const history = !standing?.current;
+  // A viewer reads the card and is offered nothing that changes it.
+  const viewer = await callerReadsOnly(project);
+  const readOnly = history || viewer;
 
   // Who opened which card version is recorded in the ledger as qualification.opened. It is a read:
   // the page never fails for it, and a failure to record is logged, not shown. A server action
@@ -142,7 +146,7 @@ export default async function QualificationDetailPage({
                     newer={newer}
                   />
                 </div>
-                {standing?.current && (
+                {standing?.current && !viewer && (
                   <div className="qf-header-actions">
                     <Link
                       className="btn qf-header-btn"
@@ -155,7 +159,8 @@ export default async function QualificationDetailPage({
               </div>
             </header>
 
-            {readOnly && (
+            {viewer && <p className="qf-prefilled">{READS_ONLY}</p>}
+            {history && (
               <p className="qf-prefilled">
                 {keptNotice(standing?.versionNumber || 0, q.revision, standing?.latestRevision)}{" "}
                 {standing?.currentCardId && (

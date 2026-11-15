@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { findExample } from "@/data/examples";
 import { qualificationService } from "@/server/services/QualificationService";
 import { projectDbPastDoor } from "@/lib/projectDb";
+import { callerReadsOnly, READS_ONLY } from "@/server/access/readsOnly";
 import { questionnairesOn } from "@/server/services/QuestionnaireService";
 import { annexDefaultVersion } from "@/domain/forms/legacy";
 import { pickQuestionnaireParams, preselect } from "@/domain/forms/chooser";
@@ -32,6 +34,20 @@ export default async function EditSystemPage({
   const { example, questionnaire, questionnaireVersion, form, formVersion } =
     await searchParams;
   const basePath = process.env.NEXT_BASE_PATH || "";
+  // A viewer may read the card but not change it: no form to fill and be refused at save.
+  if (await callerReadsOnly(project)) {
+    return (
+      <main className="qualify-page">
+        <header className="qualify-header">
+          <h1>The AI card cannot be changed here</h1>
+          <p>{READS_ONLY}</p>
+        </header>
+        <p>
+          <Link href={`/p/${project}/system`}>Back to the AI card</Link>
+        </p>
+      </main>
+    );
+  }
   // The questionnaires this card may be filled with are the project's own (and the builtin default).
   const questionnaires = questionnairesOn(await projectDbPastDoor(project));
 

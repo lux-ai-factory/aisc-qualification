@@ -2,6 +2,7 @@ import Link from "next/link";
 import { qualificationService } from "@/server/services/QualificationService";
 import QualificationsList from "./QualificationsList";
 import { updateAnswersLabel } from "@/domain/SystemCard";
+import { callerReadsOnly, READS_ONLY } from "@/server/access/readsOnly";
 
 export default async function QualificationsPage({
   params,
@@ -14,6 +15,8 @@ export default async function QualificationsPage({
   // The list still shows when the platform cannot say, just without the numbers.
   const versions = await qualificationService.versions(project).catch(() => []);
   const versionOf = new Map(versions.map((v) => [v.pid, v]));
+  // A viewer reads the cards and is offered no way to the card form.
+  const viewer = await callerReadsOnly(project);
 
   // Only what it takes to pick one; the detail page loads the rest.
   const items = rows
@@ -54,14 +57,18 @@ export default async function QualificationsPage({
         </p>
       </header>
 
-      <div className="qf-list-actions">
-        <Link className="btn ghost" href={`/p/${project}/system/edit`}>
-          {/* the first item is the latest card, which may be corrected as well as followed by a new version */}
-          {updateAnswersLabel(items[0]?.versionNumber, items[0]?.versionNumber === versions[0]?.number)}
-        </Link>
-      </div>
+      {viewer ? (
+        <p className="qf-prefilled">{READS_ONLY}</p>
+      ) : (
+        <div className="qf-list-actions">
+          <Link className="btn ghost" href={`/p/${project}/system/edit`}>
+            {/* the first item is the latest card, which may be corrected as well as followed by a new version */}
+            {updateAnswersLabel(items[0]?.versionNumber, items[0]?.versionNumber === versions[0]?.number)}
+          </Link>
+        </div>
+      )}
 
-      <QualificationsList project={project} items={items} />
+      <QualificationsList project={project} items={items} mayWrite={!viewer} />
     </main>
   );
 }
