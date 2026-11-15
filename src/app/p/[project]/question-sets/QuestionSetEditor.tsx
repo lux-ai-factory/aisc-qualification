@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useReducer, useRef, useState } from "react";
 import { useServerAction } from "@/lib/serverAction";
+import { useLeaveGuard } from "@/lib/useLeaveGuard";
 import {
   ANNEX_POINTS,
   annexCitation,
@@ -42,6 +43,29 @@ const NEW_QUESTION: QuestionValues = {
 
 type Editor = { index: number | null; values: QuestionValues };
 
+/** The open question editor holds something its question does not: a new question
+ *  with text, or an existing one changed and not yet put back with Save question. */
+const editorChanged = (
+  editor: Editor | null,
+  rows: ReturnType<typeof initialSetEditorState>["rows"],
+) => {
+  if (editor === null) return false;
+  if (editor.index === null) return editor.values.text.trim() !== "";
+  const row = rows[editor.index];
+  const { text, citation, required, annexPoint } = editor.values;
+  return (
+    !row ||
+    row.text !== text ||
+    row.citation !== citation ||
+    row.required !== required ||
+    row.annexPoint !== annexPoint
+  );
+};
+
+/** What leaving would lose: the set as it would be saved. */
+const writtenSoFar = (state: ReturnType<typeof initialSetEditorState>) =>
+  JSON.stringify(toSetDraft(state));
+
 export default function QuestionSetEditor({
   project,
   initial,
@@ -54,6 +78,13 @@ export default function QuestionSetEditor({
   );
   const [editor, setEditor] = useState<Editor | null>(null);
   const { run, busy: saving, error } = useServerAction();
+  // The set being written lives only here: leaving with changes, or with a question
+  // typed in the open editor, asks first.
+  const [opened] = useState(() => writtenSoFar(initialSetEditorState(initial)));
+  useLeaveGuard(
+    () => writtenSoFar(state) !== opened || editorChanged(editor, state.rows),
+    saving,
+  );
   const [focus, setFocus] = useState<{
     rowKey: string;
     dir: "up" | "down";
