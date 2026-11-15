@@ -31,6 +31,7 @@ describe("PlatformClient and the card versions", () => {
       new PlatformClient("http://platform:8000", fetchImpl).createVersion(
         "mcas",
         { name: "MCAS" },
+        "attempt-1",
       ),
     ).rejects.toThrow(/could not name this system.*403/i);
   });

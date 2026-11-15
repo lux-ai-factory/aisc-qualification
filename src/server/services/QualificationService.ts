@@ -16,7 +16,13 @@ import {
   QualificationFormParser,
   qualificationFormParser,
 } from "@/server/forms/QualificationFormParser";
-import { PlatformClient, PlatformStatusError, platformClient, type Amendment } from "@/server/services/PlatformClient";
+import {
+  PlatformClient,
+  PlatformNotConfigured,
+  PlatformStatusError,
+  platformClient,
+  type Amendment,
+} from "@/server/services/PlatformClient";
 import {
   cardAsFormStart,
   cardStanding,
@@ -93,6 +99,20 @@ function isStaleCorrection(err: unknown): boolean {
   return /system_id/.test(said) && /revision/.test(said);
 }
 
+/**
+ * A card that was not saved, and what became of the card version made for it: "withdrawn" (the platform
+ * withdrew it), "none" (none was made), or "unknown" (one may have been made and could not be withdrawn).
+ */
+export class CardNotSaved extends Error {
+  constructor(readonly version: "withdrawn" | "none" | "unknown", options?: { cause?: unknown }) {
+    super("card not saved", options);
+    this.name = "CardNotSaved";
+  }
+}
+
+/** The reason the platform keeps on a version withdrawn because its card was not saved. */
+const NOT_SAVED_REASON = "the card was not saved";
+
 export class QualificationService {
   private readonly repos: RepositoryFor;
 
@@ -117,7 +137,8 @@ export class QualificationService {
    * project's own database, numbered by the platform) and then the card that
    * describes it, in the same database. Nothing is frozen: an
    * older version is read-only because it is not the latest, which the
-   * database enforces. When the platform does not answer, nothing is stored.
+   * database enforces. When the card is not stored, the version made for it is withdrawn (CardNotSaved says
+   * what became of it).
    *
    * The questionnaire version the card was filled with is loaded here, from its
    * id: which questions and blocks count is never taken from the request. A page
@@ -131,8 +152,32 @@ export class QualificationService {
     record: (tx: Tx, card: CreatedCard) => Promise<unknown> = async () => undefined,
   ): Promise<{ id: string }> {
     const prep = await this.prepare(project, formData);
-    const version = await this.platform.createVersion(project, identityOf(prep.parsed));
-    return this.storeCard(project, prep, { systemId: version.pid }, record);
+    // the save's own id: when the card is not stored, the version made for it is withdrawn by it, even when
+    // the platform's answer to the create never arrived
+    const attempt = randomUUID();
+    let version;
+    try {
+      version = await this.platform.createVersion(project, identityOf(prep.parsed), attempt);
+    } catch (err) {
+      // a refusal, or no call at all: the platform made no version, and its reason is the one to say
+      if (err instanceof PlatformStatusError || err instanceof PlatformNotConfigured) throw err;
+      throw await this.withdrawn(project, attempt, err);
+    }
+    try {
+      return await this.storeCard(project, prep, { systemId: version.pid }, record);
+    } catch (err) {
+      throw await this.withdrawn(project, attempt, err);
+    }
+  }
+
+  /** The card of save `attempt` was not stored: withdraw the version made for it, and say what became of it. */
+  private async withdrawn(project: string, attempt: string, cause: unknown): Promise<CardNotSaved> {
+    try {
+      const gone = await this.platform.abandonVersion(project, attempt, NOT_SAVED_REASON);
+      return new CardNotSaved(gone === "abandoned" ? "withdrawn" : "none", { cause });
+    } catch {
+      return new CardNotSaved("unknown", { cause });
+    }
   }
 
   /**

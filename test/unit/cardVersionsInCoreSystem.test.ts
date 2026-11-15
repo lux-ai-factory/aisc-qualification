@@ -199,6 +199,8 @@ function service(
       made += 1;
       return row(made);
     }),
+    // the save that did not reach the platform made no version: there is none to withdraw
+    abandonVersion: vi.fn(async () => "none"),
     latestVersion: vi.fn(async () => (opts.versions ?? [])[0] ?? null),
     listVersions: vi.fn(async () => opts.versions ?? []),
     // present only so a leftover call is visible, not silently undefined
@@ -257,12 +259,11 @@ describe("save = next version (QualificationService.createFromForm)", () => {
       "createVersion",
       "create",
     ]);
-    expect(platform.createVersion).toHaveBeenCalledWith("mcas", {
-      name: "MCAS",
-      version: "1.3",
-      provider: "LIST",
-      description: "Scores loans",
-    });
+    expect(platform.createVersion).toHaveBeenCalledWith(
+      "mcas",
+      { name: "MCAS", version: "1.3", provider: "LIST", description: "Scores loans" },
+      expect.any(String),
+    );
     expect(created.map((c) => c.systemId)).toEqual(["v1", "v2"]);
     // the card goes into its project's own database and names no project
     expect(created.every((c) => !("projectId" in c))).toBe(true);
@@ -273,11 +274,12 @@ describe("save = next version (QualificationService.createFromForm)", () => {
     expect(mod.CardExistsError).toBeUndefined();
   });
 
-  it("when the platform is unreachable, nothing is stored", async () => {
+  it("when the platform is unreachable, nothing is stored and no version is left", async () => {
     const { svc, repo } = service({ platformDown: true });
-    await expect(svc.createFromForm("mcas", new FormData())).rejects.toThrow(
-      /did not answer/i,
-    );
+    await expect(svc.createFromForm("mcas", new FormData())).rejects.toMatchObject({
+      name: "CardNotSaved",
+      version: "none",
+    });
     expect(repo.create).not.toHaveBeenCalled();
   });
 
@@ -374,7 +376,7 @@ describe("the save action reports the platform plainly", () => {
     vi.doUnmock("@/server/services/QualificationService");
   });
 
-  it("shows 'The platform did not answer; nothing was saved' and does not redirect", async () => {
+  it("shows 'The platform did not answer, so the card was not saved.' and does not redirect", async () => {
     const { submitQualification, redirect } = await action(async () => {
       throw new Error(
         "Could not name this system: the platform did not answer.",
@@ -384,7 +386,7 @@ describe("the save action reports the platform plainly", () => {
     const state = await submitQualification("mcas", undefined, systemSave());
 
     expect(state).toEqual({
-      error: "The platform did not answer; nothing was saved",
+      error: "The platform did not answer, so the card was not saved.",
     });
     expect(redirect).not.toHaveBeenCalled();
   });

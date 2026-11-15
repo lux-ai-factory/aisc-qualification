@@ -53,7 +53,7 @@ describe("the clients shorten what a service answered", () => {
       }),
     );
     const err = await new PlatformClient("http://platform:8000", fetchImpl)
-      .createVersion("p1", { name: "MCAS" })
+      .createVersion("p1", { name: "MCAS" }, "attempt-1")
       .catch((e: Error) => e);
     const message = (err as Error).message;
     expect(message).toMatch(

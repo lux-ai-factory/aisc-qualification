@@ -44,6 +44,14 @@ export class PlatformStatusError extends Error {
   }
 }
 
+/** PLATFORM_URL is not set: nothing was sent to the platform, so it holds nothing of the call. */
+export class PlatformNotConfigured extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PlatformNotConfigured";
+  }
+}
+
 const READ_VERSIONS = "Could not read the AI card versions";
 
 /** A card version as the platform answers it, or undefined when the answer is not one. */
@@ -91,7 +99,7 @@ export class PlatformClient {
     timeoutMs?: number,
   ): Promise<T> {
     if (!this.baseUrl) {
-      throw new Error(
+      throw new PlatformNotConfigured(
         "PLATFORM_URL is not set: this app cannot name the system it is qualifying.",
       );
     }
@@ -147,14 +155,31 @@ export class PlatformClient {
     );
   }
 
-  /** Save the next card version, with the system's identity as the form gives it. */
-  createVersion(project: string, identity: SystemIdentity): Promise<CardVersion> {
+  /** Save the next card version, with the system's identity as the form gives it. `attempt` is this save's own
+   *  id: when the card is then not saved, the version is withdrawn by it (abandonVersion), even when this call's
+   *  answer never arrived. */
+  createVersion(project: string, identity: SystemIdentity, attempt: string): Promise<CardVersion> {
     return this.call("Could not name this system", "POST", this.versions(project), cardVersion, {
       name: identity.name,
       version: identity.version ?? null,
       provider: identity.provider ?? null,
       description: identity.description ?? null,
+      attempt,
     });
+  }
+
+  /** Withdraw the card version save `attempt` made, because its card was not saved: "abandoned" when the
+   *  platform withdrew it (it is kept, never the latest again), "none" when no version was made by that
+   *  attempt. Any other answer, or none, throws. */
+  async abandonVersion(project: string, attempt: string, reason: string): Promise<"abandoned" | "none"> {
+    try {
+      await this.call("Could not withdraw this card version", "POST", `${this.versions(project)}/abandon`,
+        (raw) => raw ?? undefined, { attempt, reason });
+      return "abandoned";
+    } catch (err) {
+      if (err instanceof PlatformStatusError && err.status === 404) return "none";
+      throw err;
+    }
   }
 
   /** Correct the description of the latest version, which stays the same version: the platform

@@ -224,6 +224,7 @@ describe("saving a card with a form", () => {
         provider: "Acme",
         description: null,
       }),
+      expect.any(String),
     );
   });
 
@@ -236,6 +237,7 @@ describe("saving a card with a form", () => {
     expect(platform.createVersion).toHaveBeenCalledWith(
       "mcas",
       expect.objectContaining({ description: "A vision system." }),
+      expect.any(String),
     );
   });
 });
