@@ -81,6 +81,7 @@ function setup(opts: { first?: boolean; review?: () => Promise<unknown> } = {}) 
     platform,
     async () => ({ resolve: async () => defaultVersionLiteral() }),
     review,
+    { components: async () => [] }, // an engine that answers, with no components
   );
   const recorded: unknown[] = [];
   const record = vi.fn(async (_tx: unknown, card: unknown) => {

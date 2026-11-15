@@ -242,6 +242,9 @@ function service(
     repo as never,
     parser as never,
     platform as never,
+    undefined,
+    undefined,
+    { components: async () => [] }, // an engine that answers, with no components
   );
   return { svc, platform, repo, calls, created };
 }

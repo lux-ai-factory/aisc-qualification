@@ -110,6 +110,22 @@ export class CardNotSaved extends Error {
   }
 }
 
+/** What a save says when the engine's components cannot be read for the card's links. */
+const ENGINE_SILENT =
+  "The engine did not answer, so the card's components could not be linked. Nothing was saved: try again in a moment.";
+
+/** The component links of a stored card, as a new card stores them: a correction copies them. */
+function linksOf(card: QualificationWithAnswers): LinkedComponent[] {
+  return (card.components ?? []).map((l) => ({
+    componentPid: l.componentPid,
+    airoProperty: l.airoProperty,
+    name: l.name,
+    componentType: l.componentType,
+    objectName: l.objectName,
+    componentKey: l.componentKey ?? null,
+  }));
+}
+
 /** The reason the platform keeps on a version withdrawn because its card was not saved. */
 const NOT_SAVED_REASON = "the card was not saved";
 
@@ -151,7 +167,7 @@ export class QualificationService {
     /** The caller's ledger event, written in the card's own transaction. */
     record: (tx: Tx, card: CreatedCard) => Promise<unknown> = async () => undefined,
   ): Promise<{ id: string }> {
-    const prep = await this.prepare(project, formData);
+    const prep = await this.prepare(project, formData, "save");
     // the save's own id: when the card is not stored, the version made for it is withdrawn by it, even when
     // the platform's answer to the create never arrived
     const attempt = randomUUID();
@@ -199,7 +215,7 @@ export class QualificationService {
     if (reason === "" || requestedBy === "") {
       throw new FormValidationError("Say why the description is corrected and who asked for it.");
     }
-    const prep = await this.prepare(project, formData);
+    const prep = await this.prepare(project, formData, "correction");
     const { start } = prep;
     if (!start) throw new FormValidationError("There is no card to correct yet. Save the first version instead.");
     // The card to correct is the one the page was opened on, posted back: when another save or
@@ -246,9 +262,10 @@ export class QualificationService {
    * What a save and a correction share, worked out before anything is stored: the questionnaire
    * version loaded from its id, the form parsed against it, the components keyed from the card
    * this starts from, the ledger's check of the content, the engine links, and the review taken
-   * from the card before.
+   * from the card before. A correction is a full copy of the card it corrects, its component links
+   * included; a save links the engine's components as they are now.
    */
-  private async prepare(project: string, formData: FormData) {
+  private async prepare(project: string, formData: FormData, kind: "save" | "correction") {
     const id = postedId(formData, "questionnaireVersionId") ?? postedId(formData, "formVersionId");
     const form = await (await this.formsFor(project)).resolve(id);
     if (!form) {
@@ -274,9 +291,10 @@ export class QualificationService {
       }
       throw err;
     }
-    // The card links the engine's components as they are now, with a snapshot of each, so the
-    // system page can show what changed in the engine since. Read before anything is stored.
-    const links = await this.engineLinksOf(project);
+    // A save links the engine's components as they are now, with a snapshot of each, so the system
+    // page can show what changed in the engine since; a correction keeps the links of the card it
+    // corrects. Read before anything is stored.
+    const links = kind === "correction" && start ? linksOf(start.card) : await this.engineLinksOf(project);
     // What the new card takes from the review of the card before it, worked out before anything
     // is stored (the builder is asked, which no transaction should wait on).
     const review = start
@@ -329,14 +347,14 @@ export class QualificationService {
     return { id: made.id };
   }
 
-  /** The links to the engine's components a save writes. An engine that does not answer never
-   *  stops the save: the card then links nothing. */
+  /** The links to the engine's components a save writes. A card is never stored with no links
+   *  because the engine did not answer: the save is refused with a message instead. */
   private async engineLinksOf(project: string): Promise<LinkedComponent[]> {
     try {
       return engineLinks(await this.engine.components(project));
     } catch (err) {
-      console.warn(`engine components of project ${project} not linked to the card: ${String(err)}`);
-      return [];
+      console.warn(`engine components of project ${project} could not be read for the card: ${String(err)}`);
+      throw new FormValidationError(ENGINE_SILENT);
     }
   }
 

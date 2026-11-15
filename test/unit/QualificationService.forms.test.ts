@@ -96,9 +96,10 @@ function setup(
     ),
   };
   const formsFor = vi.fn(async (_project: string) => forms);
+  // an engine that answers, with no components
   const svc = new (QualificationService as unknown as new (
     ...args: unknown[]
-  ) => QualificationService)(repo, parser, platform, formsFor);
+  ) => QualificationService)(repo, parser, platform, formsFor, undefined, { components: async () => [] });
   return { svc, platform, repo, parser, forms, formsFor };
 }
 

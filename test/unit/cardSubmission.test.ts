@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { PlatformClient } from "@/server/services/PlatformClient";
+import { FormValidationError } from "@/server/forms/QualificationFormParser";
 import { QualificationService } from "@/server/services/QualificationService";
 import { transactional } from "../support/ledgerRepo";
 
@@ -134,17 +135,20 @@ describe("the engine components a save links", () => {
     );
   });
 
-  it("an engine that does not answer does not stop the save: the card links nothing", async () => {
+  it("an engine that does not answer stops the save with a message: no card is stored without its links", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    const { svc, repo } = service({
+    const { svc, repo, platform } = service({
       engine: {
         components: async () => {
           throw new Error("The engine did not answer");
         },
       },
     });
-    expect(await svc.createFromForm("mcas", new FormData())).toEqual({ id: "card-2" });
-    expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ engineLinks: [] }));
+    const err = await svc.createFromForm("mcas", new FormData()).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(FormValidationError);
+    expect((err as Error).message).toMatch(/engine did not answer/i);
+    expect(repo.create).not.toHaveBeenCalled();
+    expect(platform.createVersion).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledWith(expect.stringMatching(/engine/i));
     warn.mockRestore();
   });

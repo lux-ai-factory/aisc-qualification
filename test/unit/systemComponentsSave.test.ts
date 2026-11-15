@@ -70,9 +70,10 @@ function setup(posted: unknown[], cards: unknown[]) {
     })),
   };
   const forms = { resolve: vi.fn(async () => defaultVersionLiteral()) };
+  // an engine that answers, with no components
   const svc = new (QualificationService as unknown as new (
     ...a: unknown[]
-  ) => QualificationService)(repo, parser, platform, async () => forms);
+  ) => QualificationService)(repo, parser, platform, async () => forms, undefined, { components: async () => [] });
   return { svc, repo, platform };
 }
 
