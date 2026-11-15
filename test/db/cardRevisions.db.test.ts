@@ -7,12 +7,12 @@ import { QualificationRepository } from "@/server/repositories/QualificationRepo
 // do not make a new version. Only the latest revision of the latest version changes;
 // every earlier revision is kept as it was, by the database itself.
 //
-// Runs only against a throwaway project database (see cardVersions.db.test.ts). Every test
-// works inside a transaction that is rolled back, so the versions it makes are never seen by
-// the other files, which also decide what the latest version is in this database.
+// Runs only against a throwaway project database of its own (test/db/throwaway-db.sh): the
+// version numbers it takes and which version is the latest are this file's alone, since no other
+// file writes its versions there. Every test works inside a transaction that is rolled back.
 
-const APP_URL = process.env.QUALIFICATION_TEST_DATABASE_URL ?? "";
-const ADMIN_URL = process.env.QUALIFICATION_TEST_ADMIN_URL ?? "";
+const APP_URL = process.env.QUALIFICATION_TEST_REVISIONS_DATABASE_URL ?? "";
+const ADMIN_URL = process.env.QUALIFICATION_TEST_REVISIONS_ADMIN_URL ?? "";
 const enabled = APP_URL !== "" && ADMIN_URL !== "";
 if (enabled && (/:5432\//.test(APP_URL) || /:5432\//.test(ADMIN_URL))) {
   throw new Error(
