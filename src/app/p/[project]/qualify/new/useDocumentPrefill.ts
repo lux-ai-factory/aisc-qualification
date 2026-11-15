@@ -23,12 +23,24 @@ import { readDocument } from "./prefill-actions";
 import { DEFAULT_VERSION_ID } from "@/domain/forms/legacy";
 import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
 
+/** The largest document the prefill service reads (its PREFILL_MAX_BYTES default). A larger
+ *  file is refused here: past the server action's body limit Next refuses the request
+ *  before the reader runs, and the page would get no answer it could read. */
+export const DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
+const TOO_LARGE =
+  "This document is larger than 10 MB, the most that can be read. Choose a smaller file.";
+/** The request did not come back: a lost connection, or a refusal on the way. */
+const NOT_SENT =
+  "The document could not be sent (files up to 10 MB). Check the connection and try again.";
+
 /** The prefill server action, as the upload steps call it. For a form other
  *  than the default, the action is also told the form's fields and questions;
- *  for the default it is sent only the document, the mode and the current answers. */
+ *  for the default it is sent only the document, the mode and the current answers.
+ *  It always answers: a file too large or a request that fails is an error to show. */
 const readWithAction =
   (project: string, form: ResolvedQuestionnaireVersion | undefined): Reader =>
   async (file, mode, current, rows, parts) => {
+    if (file.size > DOCUMENT_MAX_BYTES) return { ok: false, error: TOO_LARGE };
     const data = new FormData();
     data.set("document", file);
     data.set("mode", mode);
@@ -40,12 +52,14 @@ const readWithAction =
       data.set("fields", JSON.stringify(spec.fields));
       data.set("questions", JSON.stringify(spec.questions));
     }
-    return (
-      (await readDocument(project, undefined, data)) ?? {
-        ok: false,
-        error: "The document could not be read.",
-      }
-    );
+    let answer;
+    try {
+      answer = await readDocument(project, undefined, data);
+    } catch (err) {
+      console.error("document upload failed", err);
+      return { ok: false, error: NOT_SENT };
+    }
+    return answer ?? { ok: false, error: "The document could not be read." };
   };
 
 /**
