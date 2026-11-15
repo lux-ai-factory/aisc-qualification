@@ -12,9 +12,9 @@ export default async function QualificationsPage({
   const { project } = await params;
   const rows = await qualificationService.list(project);
   // Which AI card version each card is (a row of project.system in the project's database), highest first.
-  // The list still shows when the platform cannot say, just without the numbers.
-  const versions = await qualificationService.versions(project).catch(() => []);
-  const versionOf = new Map(versions.map((v) => [v.pid, v]));
+  // The list still shows when the platform cannot say (null), without the numbers, and says why.
+  const versions = await qualificationService.versions(project).catch(() => null);
+  const versionOf = new Map((versions ?? []).map((v) => [v.pid, v]));
   // A viewer reads the cards and is offered no way to the card form.
   const viewer = await callerReadsOnly(project);
 
@@ -39,10 +39,11 @@ export default async function QualificationsPage({
       answers: q.answers.length,
       risks: q.risks.length,
     }))
-    .sort(
-      (a, b) =>
-        (b.versionNumber ?? 0) - (a.versionNumber ?? 0) ||
-        b.revision - a.revision,
+    .sort((a, b) =>
+      versions === null
+        ? // no version numbers to order by: newest saved first
+          b.savedAt.localeCompare(a.savedAt)
+        : (b.versionNumber ?? 0) - (a.versionNumber ?? 0) || b.revision - a.revision,
     );
 
   return (
@@ -57,13 +58,21 @@ export default async function QualificationsPage({
         </p>
       </header>
 
+      {versions === null && (
+        <p className="qf-prefilled" role="status">
+          The platform did not answer, so the version numbers cannot be shown.
+        </p>
+      )}
       {viewer ? (
         <p className="qf-prefilled">{READS_ONLY}</p>
       ) : (
         <div className="qf-list-actions">
           <Link className="btn ghost" href={`/p/${project}/system/edit`}>
-            {/* the first item is the latest card, which may be corrected as well as followed by a new version */}
-            {updateAnswersLabel(items[0]?.versionNumber, items[0]?.versionNumber === versions[0]?.number)}
+            {/* the first item is the latest card, which may be corrected as well as followed by a new
+                version; with no numbers to say which version saving makes, the label promises none */}
+            {versions === null
+              ? "Update the answers"
+              : updateAnswersLabel(items[0]?.versionNumber, items[0]?.versionNumber === versions[0]?.number)}
           </Link>
         </div>
       )}
