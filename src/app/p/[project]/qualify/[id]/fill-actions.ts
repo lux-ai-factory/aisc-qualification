@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { QualificationRepository } from "@/server/repositories/QualificationRepository";
 import { assertLatestCard } from "@/server/services/cardLatest";
 import { REFUSED, projectDbForAction } from "@/lib/projectDb";
+import { shownError } from "@/server/services/shownError";
 import { fillInFlight, requestFill } from "@/server/services/FillerClient";
 import { currentRequestId, emitEvent } from "@/vendor/aisc-ledger/emit";
 import { randomUUID } from "node:crypto";
@@ -68,8 +69,7 @@ export async function rerunFill(
   } catch (err) {
     return {
       ok: false,
-      error:
-        err instanceof Error ? err.message : "Could not start the card agent.",
+      error: shownError(err, "The card agent could not be started just now. Try again in a moment."),
     };
   }
 }

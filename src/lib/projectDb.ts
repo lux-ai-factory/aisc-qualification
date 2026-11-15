@@ -29,7 +29,7 @@ const run = promisify(execFile);
 
 /** What a refused write is told, by status. */
 export const REFUSED = {
-  403: "403: you can read this project but not change it.",
+  403: "You can read this project but not change it.",
   404: "Qualification not found.",
 } as const;
 

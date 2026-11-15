@@ -173,7 +173,7 @@ describe("reviewer actions on the card page", () => {
       label: "x",
     });
     expect(state.ok).toBe(false);
-    if (!state.ok) expect(state.error).toMatch(/403/);
+    if (!state.ok) expect(state.error).toMatch(/corrected since/);
     for (const write of WRITES) expect(write).not.toHaveBeenCalled();
   });
 

@@ -37,7 +37,7 @@ vi.mock("next/cache", () => ({
   revalidatePath: (p: string) => revalidatePath(p),
 }));
 vi.mock("@/lib/projectDb", () => ({
-  REFUSED: { 403: "403: you can read this project but not change it.", 404: "Qualification not found." },
+  REFUSED: { 403: "You can read this project but not change it.", 404: "Qualification not found." },
   projectDbForAction: (p: string, o: unknown) => actionDoor(p, o),
 }));
 vi.mock("@/server/repositories/QualificationRepository", () => ({
@@ -103,7 +103,7 @@ describe("regenerating the AI card", () => {
   it("is refused for an earlier revision of the latest version's card", async () => {
     const state = await rerun(PROJECT_ID, "q1first");
     expect(state.ok).toBe(false);
-    if (!state.ok) expect(state.error).toMatch(/403/);
+    if (!state.ok) expect(state.error).toMatch(/corrected since/);
     expect(requestFill).not.toHaveBeenCalled();
   });
 

@@ -7,6 +7,7 @@ import { QualificationRepository } from "@/server/repositories/QualificationRepo
 import type { NodePatch, OntologyView } from "@/domain/OntologyView";
 import { emitEvent } from "@/vendor/aisc-ledger/emit";
 import { parseNodePatch } from "@/domain/nodePatch";
+import { shownError } from "@/server/services/shownError";
 
 // A discriminated union on `ok`, so a truthiness check narrows in the client.
 export type OntologyState =
@@ -65,7 +66,7 @@ export async function patchOntologyNode(
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "Could not save the change.",
+      error: shownError(err, "The change could not be saved just now. Try again in a moment."),
     };
   }
 }
@@ -94,7 +95,7 @@ export async function resetOntology(
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "Could not reset.",
+      error: shownError(err, "The corrections could not be discarded just now. Try again in a moment."),
     };
   }
 }

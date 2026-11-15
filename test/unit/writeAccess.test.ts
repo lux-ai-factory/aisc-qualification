@@ -102,7 +102,7 @@ describe("projectDbForAction: write access to the project the action names", () 
       const mod = await door(viewer);
       expect(await mod.projectDbForAction(OWN, { write: true })).toEqual({
         status: 403,
-        error: "403: you can read this project but not change it.",
+        error: "You can read this project but not change it.",
       });
     } finally {
       afterEachDoor();
@@ -144,7 +144,7 @@ const DB = { database: "the project's own" };
 const refused = (status: 403 | 404) =>
   status === 403
     ? Response.json(
-        { error: "403: you can read this project but not change it." },
+        { error: "You can read this project but not change it." },
         { status: 403 },
       )
     : new Response("Not found", { status: 404 });
@@ -161,7 +161,7 @@ const actionDoor = vi.fn(
 );
 const REFUSED_403: ActionDoor = {
   status: 403,
-  error: "403: you can read this project but not change it.",
+  error: "You can read this project but not change it.",
 };
 const REFUSED_404: ActionDoor = {
   status: 404,
@@ -294,7 +294,7 @@ describe("the card page's actions open the project they name, after the platform
       label: "x",
     });
     expect(state.ok).toBe(false);
-    if (!state.ok) expect(state.error).toMatch(/403/);
+    if (!state.ok) expect(state.error).toMatch(/can read this project but not change it/);
     expect(actionDoor).toHaveBeenCalledWith(OTHER, { write: true });
     expect(ontology.patchNode).not.toHaveBeenCalled();
   });
@@ -322,7 +322,7 @@ describe("the card page's actions open the project they name, after the platform
     actionDoor.mockResolvedValueOnce(REFUSED_403);
     const state = await submitQualification(OTHER, undefined, new FormData());
     expect(actionDoor).toHaveBeenCalledWith(OTHER, { write: true });
-    expect(state?.error).toMatch(/403/);
+    expect(state?.error).toMatch(/can read this project but not change it/);
     expect(createFromForm).not.toHaveBeenCalled();
   });
 });

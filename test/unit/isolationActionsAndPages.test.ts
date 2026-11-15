@@ -315,7 +315,7 @@ describe("the card page's actions act on the card in the database of the page's 
     ).patchOntologyNode(A, CARD, "n1", { label: "x" });
     expect(result).toEqual({
       ok: false,
-      error: "403: you can read this project but not change it.",
+      error: "You can read this project but not change it.",
     });
     expect(calls.build).toEqual([]);
   });
