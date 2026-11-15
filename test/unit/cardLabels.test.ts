@@ -20,6 +20,10 @@ describe("the button that opens the form again", () => {
     expect(updateAnswersLabel(3)).toBe("Update the answers (makes v4)");
   });
 
+  it("promises no version when the latest card may be corrected instead", () => {
+    expect(updateAnswersLabel(3, true)).toBe("Update the answers");
+  });
+
   it("with no card version yet it creates the AI card", () => {
     expect(updateAnswersLabel(0)).toBe("Create the AI card");
     expect(updateAnswersLabel(undefined)).toBe("Create the AI card");

@@ -10,7 +10,7 @@ import FormChooser from "./FormChooser";
 import FormLine from "../../FormLine";
 import ProjectNav from "@/components/ProjectNav";
 import { updateAnswersLabel } from "@/domain/SystemCard";
-import { correctionOffer } from "@/domain/cardVersions";
+import { correctionOffer, versionLabel } from "@/domain/cardVersions";
 
 export default async function EditSystemPage({
   params,
@@ -85,6 +85,9 @@ export default async function EditSystemPage({
       );
     }
   }
+  // Whether the latest card may be corrected instead of making the next version: then nothing on the
+  // page promises a new version; the person chooses on the form.
+  const correctable = start ? correctionOffer(start.next, start.fromRevision) !== null : false;
   // P: the questionnaire version the latest card was filled with, resolved.
   const fromId = start?.fromQuestionnaireVersionId ?? null;
   const from = fromId ? await questionnaires.resolve(fromId) : null;
@@ -106,7 +109,7 @@ export default async function EditSystemPage({
         <header className="qualify-header">
           <h1>
             {start?.initial
-              ? updateAnswersLabel(start.next.fromVersionNumber ?? undefined)
+              ? updateAnswersLabel(start.next.fromVersionNumber ?? undefined, correctable)
               : "Create the AI card"}
           </h1>
           <p>
@@ -172,13 +175,17 @@ export default async function EditSystemPage({
           <header className="qualify-header">
             <h1>
               {start?.initial
-                ? updateAnswersLabel(start.next.fromVersionNumber ?? undefined)
+                ? updateAnswersLabel(start.next.fromVersionNumber ?? undefined, correctable)
                 : "Create the AI card"}
             </h1>
             <p>
               {start
-                ? `Saving makes v${start.next.versionNumber} of the AI card; ` +
-                  "earlier versions stay as they were." +
+                ? (correction
+                    ? `Save as v${start.next.versionNumber} of the AI card when the system changed, or correct the ` +
+                      `description of ${versionLabel(correction.versionNumber)}: choose below. ` +
+                      "Earlier versions stay as they were."
+                    : `Saving makes v${start.next.versionNumber} of the AI card; ` +
+                      "earlier versions stay as they were.") +
                   (start.next.fromCardId
                     ? ` Corrections made on v${start.next.fromVersionNumber}'s AI card come along where their item is the same.`
                     : "")
@@ -194,8 +201,8 @@ export default async function EditSystemPage({
             {start?.initial && (
               <p className="qf-prefilled">
                 Filled in from v{start.next.fromVersionNumber}. Change what is
-                no longer true, then save: that makes v
-                {start.next.versionNumber}.
+                no longer true, then save
+                {correction ? "." : `: that makes v${start.next.versionNumber}.`}
               </p>
             )}
             {worked && (

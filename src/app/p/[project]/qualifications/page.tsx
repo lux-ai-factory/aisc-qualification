@@ -55,7 +55,8 @@ export default async function QualificationsPage({
 
       <div className="qf-list-actions">
         <Link className="btn ghost" href={`/p/${project}/system/edit`}>
-          {updateAnswersLabel(items[0]?.versionNumber)}
+          {/* the first item is the latest card, which may be corrected as well as followed by a new version */}
+          {updateAnswersLabel(items[0]?.versionNumber, items[0]?.versionNumber === versions[0]?.number)}
         </Link>
       </div>
 

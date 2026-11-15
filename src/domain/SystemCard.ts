@@ -99,11 +99,12 @@ export function releaseLabel(version: string): string {
 }
 
 /** The button that opens the form again, naming the AI card version that
- *  saving makes. With no version yet, saving makes the first card. */
-export function updateAnswersLabel(latest: number | undefined): string {
-  return latest
-    ? `Update the answers (makes v${latest + 1})`
-    : "Create the AI card";
+ *  saving makes. With no version yet, saving makes the first card. When the
+ *  latest card may also be corrected (`correctable`), saving does not always make
+ *  a version: the person chooses on the form, so the button promises none. */
+export function updateAnswersLabel(latest: number | undefined, correctable: boolean = false): string {
+  if (!latest) return "Create the AI card";
+  return correctable ? "Update the answers" : `Update the answers (makes v${latest + 1})`;
 }
 
 /** The filename a download offers: slugged system name, the version once, and

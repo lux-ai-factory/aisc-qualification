@@ -148,7 +148,7 @@ export default async function QualificationDetailPage({
                       className="btn qf-header-btn"
                       href={`/p/${project}/system/edit`}
                     >
-                      {updateAnswersLabel(standing.versionNumber)}
+                      {updateAnswersLabel(standing.versionNumber, true)}
                     </Link>
                   </div>
                 )}
