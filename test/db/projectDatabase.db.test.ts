@@ -259,6 +259,9 @@ async function shape(c: PrismaClient, live: boolean): Promise<string[]> {
   // A card is kept since (20261115000000_owner_role): its guard and function are pinned by
   // scripts/tests/test_module_owner_roles.py, and its key to the card version restricts (below).
   lines = lines.filter((l) => !/qualification_is_kept|qualification_no_(delete|truncate)/.test(l));
+  // Who made a correction (20261116100000_revision_author) is newer too: its column and check are pinned
+  // by revisionAuthor.test.tsx.
+  lines = lines.filter((l) => !/\bamended_by\b/.test(l));
   if (live)
     lines = lines.map((l) =>
       /qualification_system_id_fkey/.test(l) ? l.replace("ON DELETE CASCADE", "ON DELETE RESTRICT") : l,
