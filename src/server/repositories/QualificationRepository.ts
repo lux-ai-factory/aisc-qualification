@@ -29,6 +29,8 @@ export type CreateQualificationInput = {
   amendsId?: string;
   amendReason?: string;
   amendRequestedBy?: string;
+  /** Who made the correction. */
+  amendedBy?: string;
   systemName: string;
   systemVersion: string;
   company: string;
@@ -227,6 +229,7 @@ export class QualificationRepository {
       revision: number;
       amendReason: string | null;
       amendRequestedBy: string | null;
+      amendedBy: string | null;
       createdAt: Date;
     }[]
   > {
@@ -238,6 +241,7 @@ export class QualificationRepository {
         revision: true,
         amendReason: true,
         amendRequestedBy: true,
+        amendedBy: true,
         createdAt: true,
       },
     });

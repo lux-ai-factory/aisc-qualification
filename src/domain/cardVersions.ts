@@ -80,14 +80,16 @@ export function keptNotice(version: number, revision: number = 1, latestRevision
   return `${label}${corrected}, kept as it was: only the latest card changes.`;
 }
 
-/** Why a revision was made and at whose request; a value that was not stored is left out. */
+/** Why a revision was made, at whose request and by whom; a value that was not stored is left out. */
 export function amendmentText(
   reason: string | null | undefined,
   requestedBy: string | null | undefined,
+  amendedBy?: string | null,
 ): string {
   const why = reason?.trim();
   const who = requestedBy?.trim();
-  return `Corrected${why ? `: ${why}` : ""}.${who ? ` Requested by ${who}.` : ""}`;
+  const by = amendedBy?.trim();
+  return `Corrected${by ? ` by ${by}` : ""}${why ? `: ${why}` : ""}.${who ? ` Requested by ${who}.` : ""}`;
 }
 
 /** What the edit page offers besides a new version: correcting the description of the card it

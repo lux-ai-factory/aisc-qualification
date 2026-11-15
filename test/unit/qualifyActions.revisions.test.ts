@@ -146,6 +146,7 @@ describe("the save says whether the system changed or its description is correct
       {
         reason: "Provider name was wrong",
         requestedBy: "Eindhoven Engine, email of 10 Nov",
+        amendedBy: expect.any(String),
       },
       expect.any(Function),
     );
@@ -269,6 +270,9 @@ describe("the card page names its revision, why it was corrected and whether it 
     );
     expect(amendmentText("Typo", null)).toBe("Corrected: Typo.");
     expect(amendmentText(null, "  ")).toBe("Corrected.");
+    expect(amendmentText("Typo", "Eindhoven Engine", "Ada Lovelace")).toBe(
+      "Corrected by Ada Lovelace: Typo. Requested by Eindhoven Engine.",
+    );
   });
 
   it("the card page uses them where it prints the version and the read-only notice", () => {
@@ -278,6 +282,6 @@ describe("the card page names its revision, why it was corrected and whether it 
     );
     expect(page).toContain("cardHeading(standing.versionNumber, q.revision)");
     expect(page).toContain("keptNotice(standing?.versionNumber || 0, q.revision, standing?.latestRevision)");
-    expect(page).toContain("amendmentText(q.amendReason, q.amendRequestedBy)");
+    expect(page).toContain("amendmentText(q.amendReason, q.amendRequestedBy, q.amendedBy)");
   });
 });

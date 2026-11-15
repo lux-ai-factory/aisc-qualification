@@ -126,7 +126,7 @@ export default async function QualificationDetailPage({
                   <h1>{q.systemName}</h1>
                   {q.revision > 1 && (
                     <p className="qf-amendment">
-                      {amendmentText(q.amendReason, q.amendRequestedBy)}
+                      {amendmentText(q.amendReason, q.amendRequestedBy, q.amendedBy)}
                     </p>
                   )}
                   <p>

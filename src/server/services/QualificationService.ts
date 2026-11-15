@@ -234,7 +234,14 @@ export class QualificationService {
       return await this.storeCard(
         project,
         prep,
-        { systemId: start.card.systemId, revision, amendsId, amendReason: reason, amendRequestedBy: requestedBy },
+        {
+          systemId: start.card.systemId,
+          revision,
+          amendsId,
+          amendReason: reason,
+          amendRequestedBy: requestedBy,
+          ...(amend.amendedBy ? { amendedBy: amend.amendedBy } : {}),
+        },
         async (tx, card) => {
           // everything else of the card first; the platform's count is the last step before commit
           await record(tx, { ...card, revision, amendsId });
@@ -314,7 +321,7 @@ export class QualificationService {
   private async storeCard(
     project: string,
     prep: Awaited<ReturnType<QualificationService["prepare"]>>,
-    extra: Pick<CreateQualificationInput, "systemId"> & Partial<Pick<CreateQualificationInput, "revision" | "amendsId" | "amendReason" | "amendRequestedBy">>,
+    extra: Pick<CreateQualificationInput, "systemId"> & Partial<Pick<CreateQualificationInput, "revision" | "amendsId" | "amendReason" | "amendRequestedBy" | "amendedBy">>,
     record: (tx: Tx, card: CreatedCard) => Promise<unknown>,
     /** How long its transaction may stay open, when the default is too short for what `record` waits on. */
     txTimeoutMs?: number,

@@ -5,6 +5,7 @@ import { CardNotSaved, qualificationService } from "@/server/services/Qualificat
 import { FormValidationError } from "@/server/forms/QualificationFormParser";
 import { projectDbForAction } from "@/lib/projectDb";
 import { emitEvent } from "@/vendor/aisc-ledger/emit";
+import { callerName } from "@/server/access/callerName";
 
 export type SubmitState = { error?: string } | undefined;
 
@@ -46,7 +47,7 @@ export async function submitQualification(
       ({ id } = await qualificationService.reviseFromForm(
         project,
         formData,
-        { reason, requestedBy },
+        { reason, requestedBy, amendedBy: await callerName() },
         (tx, card) =>
           emitEvent(tx, {
             action: "qualification.amended",

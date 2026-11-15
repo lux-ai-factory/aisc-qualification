@@ -24,6 +24,8 @@ model Qualification {
   amendsId          String?               @map("amends_id")
   amendReason       String?               @map("amend_reason")
   amendRequestedBy  String?               @map("amend_requested_by")
+  /// Who made the correction (the signed-in person); NULL on revision 1 and on older corrections.
+  amendedBy         String?               @map("amended_by")
   systemName        String
   systemVersion     String
   company           String

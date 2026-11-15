@@ -34,7 +34,8 @@ export type CardVersion = {
 };
 
 /** Why a correction is made and who asked for it. */
-export type Amendment = { reason: string; requestedBy: string };
+/** Why a card is corrected, who asked, and who corrects it (the signed-in person; the card keeps it). */
+export type Amendment = { reason: string; requestedBy: string; amendedBy?: string };
 
 /** The platform answered with a status that is not a success; `status` lets the caller tell refusals apart. */
 export class PlatformStatusError extends Error {
