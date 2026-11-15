@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { releaseLabel } from "@/domain/SystemCard";
-import { amendmentText } from "@/domain/cardVersions";
+import { amendmentText, versionLabel } from "@/domain/cardVersions";
 
 // The versions of the project's one AI system, each a row linking to its card.
 // A row carries only what it takes to pick one: which system, which version,
@@ -60,8 +60,7 @@ export default function QualificationsList({
             <div className="qf-row-main">
               {item.versionNumber !== undefined && (
                 <p className="qf-row-sysver">
-                  AI card v{item.versionNumber}
-                  {item.revision > 1 && `.${item.revision}`}
+                  {versionLabel(item.versionNumber, item.revision)}
                 </p>
               )}
               <h3>

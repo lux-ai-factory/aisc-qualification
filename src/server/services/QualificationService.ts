@@ -62,6 +62,8 @@ function postedId(formData: FormData, name: string): string | null {
 /** What the next card took from the review of the card before it (history and ledger event). */
 export type CarriedReview = {
   from_version: number | null;
+  /** The revision of that version's card it was taken from; absent in a record made before it was kept. */
+  from_revision?: number | null;
   carried: string[];
   left: string[];
   draft: ReviewCarry["draft"];
@@ -386,9 +388,13 @@ export class QualificationService {
     form: Parameters<typeof toExport>[1],
   ): Promise<{ carry: ReviewCarry; said: CarriedReview }> {
     const from_version = start.versionNumber;
+    const from_revision = start.card.revision;
     try {
       const carry = await this.review.reviewToCarry(project, start.card, toExport(pendingCard(next), form));
-      return { carry, said: { from_version, carried: carry.carried, left: carry.left, draft: carry.draft } };
+      return {
+        carry,
+        said: { from_version, from_revision, carried: carry.carried, left: carry.left, draft: carry.draft },
+      };
     } catch (err) {
       console.warn(`card review of project ${project} not carried to the next version: ${String(err)}`);
       const left = Object.keys((start.card.ontologyPatch as Record<string, unknown> | null) ?? {});
@@ -396,7 +402,7 @@ export class QualificationService {
       const failed = err instanceof Error ? err.message : String(err);
       return {
         carry: { patch: null, extracted: null, carried: [], left, draft },
-        said: { from_version, carried: [], left, draft, failed },
+        said: { from_version, from_revision, carried: [], left, draft, failed },
       };
     }
   }

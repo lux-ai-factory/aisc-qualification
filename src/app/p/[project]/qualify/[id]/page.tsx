@@ -157,7 +157,7 @@ export default async function QualificationDetailPage({
 
             {readOnly && (
               <p className="qf-prefilled">
-                {keptNotice(standing?.versionNumber || 0, q.revision)}{" "}
+                {keptNotice(standing?.versionNumber || 0, q.revision, standing?.latestRevision)}{" "}
                 {standing?.currentCardId && (
                   <Link
                     href={`/p/${project}/qualify/${standing.currentCardId}`}

@@ -42,7 +42,7 @@ import { annexDefaultVersion } from "@/domain/forms/legacy";
 import type { FormBlock } from "@/domain/forms/blocks";
 import { moveNotice, rewordedSince } from "@/domain/forms/moveCard";
 import type { ResolvedQuestionnaireVersion } from "@/domain/forms/types";
-import type { CorrectionOffer } from "@/domain/cardVersions";
+import { versionLabel, type CorrectionOffer } from "@/domain/cardVersions";
 
 /** Technical documentation questions per page of its carousel. */
 const QUESTIONS_PER_PAGE = 5;
@@ -590,7 +590,7 @@ export default function QualifyForm({
                     checked={change === "correction"}
                     onChange={() => setChange("correction")}
                   />{" "}
-                  {`Correcting the description of Version ${correction.versionNumber} (revision ${correction.versionNumber}.${correction.nextRevision})`}
+                  {`Correcting the description of Version ${correction.versionNumber} (saved as ${versionLabel(correction.versionNumber, correction.nextRevision)})`}
                 </label>
                 {change === "correction" && (
                   <>
@@ -626,7 +626,7 @@ export default function QualifyForm({
                 {pending
                   ? "Building your AI card..."
                   : correction && change === "correction"
-                    ? `Save as revision ${correction.versionNumber}.${correction.nextRevision}`
+                    ? `Save as ${versionLabel(correction.versionNumber, correction.nextRevision)}`
                     : saveLabel}
               </button>
               {cancelHref && (
