@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { projectDbPastDoor } from "@/lib/projectDb";
+import { callerReadsOnly, READS_ONLY } from "@/server/access/readsOnly";
 import { questionnairesOn } from "@/server/services/QuestionnaireService";
 import RetireButton from "../RetireButton";
 import { retireQuestionnaire } from "./actions";
@@ -26,6 +27,8 @@ export default async function QuestionnairesPage({
 }) {
   const { project } = await params;
   const retired = (await searchParams).retired === "1";
+  // A viewer reads and exports; nothing that changes the library is offered.
+  const viewer = await callerReadsOnly(project);
   const rows = await questionnairesOn(await projectDbPastDoor(project)).library(
     { retired },
   );
@@ -49,6 +52,7 @@ export default async function QuestionnairesPage({
               the Annex IV default. Assemble one from the question bank, or
               import one from a file.
             </p>
+            {viewer && <p className="qf-prefilled">{READS_ONLY}</p>}
           </div>
           <div className="qf-header-actions">
             <Link
@@ -57,18 +61,22 @@ export default async function QuestionnairesPage({
             >
               Question bank
             </Link>
-            <Link
-              className="btn ghost qf-header-btn"
-              href={`/p/${project}/questionnaires/import`}
-            >
-              Import questionnaire
-            </Link>
-            <Link
-              className="btn qf-header-btn"
-              href={`/p/${project}/questionnaires/new`}
-            >
-              + New questionnaire
-            </Link>
+            {!viewer && (
+              <>
+              <Link
+                className="btn ghost qf-header-btn"
+                href={`/p/${project}/questionnaires/import`}
+              >
+                Import questionnaire
+              </Link>
+              <Link
+                className="btn qf-header-btn"
+                href={`/p/${project}/questionnaires/new`}
+              >
+                + New questionnaire
+              </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -113,7 +121,7 @@ export default async function QuestionnairesPage({
                 </td>
                 <td>
                   <div className="qf-forms-actions">
-                    {!retired && (
+                    {!viewer && !retired && (
                       <Link
                         className="btn ghost"
                         href={`/p/${project}/questionnaires/new?from=${encodeURIComponent(r.questionnaireId)}`}
@@ -121,7 +129,7 @@ export default async function QuestionnairesPage({
                         Copy as new
                       </Link>
                     )}
-                    {!retired && !r.builtin && (
+                    {!viewer && !retired && !r.builtin && (
                       <Link
                         className="btn ghost"
                         href={`${path(r.questionnaireId)}/edit`}
@@ -143,7 +151,7 @@ export default async function QuestionnairesPage({
                     >
                       Export self-contained
                     </a>
-                    {!retired && !r.builtin && (
+                    {!viewer && !retired && !r.builtin && (
                       <RetireButton
                         name={r.name}
                         action={retireQuestionnaire.bind(

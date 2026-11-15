@@ -37,7 +37,7 @@ import DocumentUpload from "./DocumentUpload";
 import Carousel from "./Carousel";
 import QualificationMenu, { type MenuPart } from "../[id]/QualificationMenu";
 import { useDocumentPrefill, type PicksApplier } from "./useDocumentPrefill";
-import { useLeaveGuard } from "./useLeaveGuard";
+import { useFormLeaveGuard } from "@/lib/useLeaveGuard";
 import { annexDefaultVersion } from "@/domain/forms/legacy";
 import type { FormBlock } from "@/domain/forms/blocks";
 import { moveNotice, rewordedSince } from "@/domain/forms/moveCard";
@@ -259,7 +259,7 @@ export default function QualifyForm({
       initial?.components,
       applyPicks,
     );
-  useLeaveGuard(formRef, pending);
+  useFormLeaveGuard(formRef, pending);
 
   // The question at index i of page p of a group: a heading where the group
   // starts is the part's own h2, so a later page only says which group it

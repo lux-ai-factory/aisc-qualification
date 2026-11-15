@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { projectDbPastDoor } from "@/lib/projectDb";
+import { callerReadsOnly, READS_ONLY } from "@/server/access/readsOnly";
 import { questionSetsOn } from "@/server/services/QuestionSetService";
 import RetireButton from "../RetireButton";
 import { retireQuestionSet } from "./actions";
@@ -26,6 +27,8 @@ export default async function QuestionSetsPage({
 }) {
   const { project } = await params;
   const retired = (await searchParams).retired === "1";
+  // A viewer reads and exports; nothing that changes the library is offered.
+  const viewer = await callerReadsOnly(project);
   const rows = await questionSetsOn(await projectDbPastDoor(project)).list({
     retired,
   });
@@ -48,20 +51,25 @@ export default async function QuestionSetsPage({
               project, export it and import it there. Editing one makes a new
               version, and questionnaires keep the version they picked.
             </p>
+            {viewer && <p className="qf-prefilled">{READS_ONLY}</p>}
           </div>
           <div className="qf-header-actions">
-            <Link
-              className="btn ghost qf-header-btn"
-              href={`/p/${project}/question-sets/import`}
-            >
-              Import question set
-            </Link>
-            <Link
-              className="btn qf-header-btn"
-              href={`/p/${project}/question-sets/new`}
-            >
-              + New question set
-            </Link>
+            {!viewer && (
+              <>
+              <Link
+                className="btn ghost qf-header-btn"
+                href={`/p/${project}/question-sets/import`}
+              >
+                Import question set
+              </Link>
+              <Link
+                className="btn qf-header-btn"
+                href={`/p/${project}/question-sets/new`}
+              >
+                + New question set
+              </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -102,7 +110,7 @@ export default async function QuestionSetsPage({
                     <Link className="btn ghost" href={setPath(r.setId)}>
                       Open
                     </Link>
-                    {!retired && !r.builtin && (
+                    {!viewer && !retired && !r.builtin && (
                       <Link
                         className="btn ghost"
                         href={`${setPath(r.setId)}/edit`}
@@ -124,7 +132,7 @@ export default async function QuestionSetsPage({
                     >
                       Export Markdown
                     </a>
-                    {!retired && !r.builtin && (
+                    {!viewer && !retired && !r.builtin && (
                       <RetireButton
                         name={r.name}
                         action={retireQuestionSet.bind(null, project, r.setId)}

@@ -39,17 +39,22 @@ function stamp(iso: string): string {
 export default function QualificationsList({
   project,
   items,
+  mayWrite = true,
 }: {
   project: string;
   items: ListItem[];
+  /** false for a viewer: no way to the card form is offered */
+  mayWrite?: boolean;
 }) {
   if (items.length === 0) {
     return (
       <div className="qf-empty">
         <p>The AI system has no AI card yet.</p>
-        <Link className="btn" href={`/p/${project}/system/edit`}>
-          Create the AI card
-        </Link>
+        {mayWrite && (
+          <Link className="btn" href={`/p/${project}/system/edit`}>
+            Create the AI card
+          </Link>
+        )}
       </div>
     );
   }

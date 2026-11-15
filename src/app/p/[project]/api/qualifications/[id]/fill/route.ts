@@ -7,7 +7,9 @@ import { serviceTokenHeaders } from "@/server/services/http";
 //
 // Proxied because the filler is internal: reachable by service name inside the
 // compose network, not from a browser. With no filler configured the answer is
-// "idle".
+// "idle". A filler that does not know the run (it keeps runs in memory, so a
+// restart forgets them), answers with an error, or does not answer is "unknown":
+// the card then tells a run it saw in flight apart from no run at all.
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ project: string; id: string }> },
@@ -36,8 +38,7 @@ export async function GET(
         cache: "no-store",
       },
     );
-    if (res.status === 404) return NextResponse.json({ state: "idle" });
-    if (!res.ok) return NextResponse.json({ state: "idle" });
+    if (!res.ok) return NextResponse.json({ state: "unknown" });
     const body = await res.json();
     // A failed run's error text (short and cleaned by the agent) is for the people who can
     // act on it, as control-objectives shows a mapping run's error to editors and owners
@@ -51,6 +52,6 @@ export async function GET(
     });
   } catch {
     // The filler is optional; the card is built from the form either way.
-    return NextResponse.json({ state: "idle" });
+    return NextResponse.json({ state: "unknown" });
   }
 }

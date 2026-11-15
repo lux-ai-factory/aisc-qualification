@@ -14,34 +14,50 @@ import type { QualificationRepository } from "@/server/repositories/Qualificatio
 type Cards = Pick<QualificationRepository, "cardStanding">;
 
 export const NOT_LATEST =
-  "403: this AI card is of an older version and is kept as it was; only the latest version changes.";
+  "This AI card is of an older version and is kept as it was; only the latest version changes.";
 
-class NotLatestError extends Error {
-  constructor() {
-    super(NOT_LATEST);
-    this.name = "NotLatestError";
+/** An earlier revision of the latest version: a page left open across a correction. */
+export const CORRECTED_SINCE =
+  "This AI card was corrected since this page was opened, and this revision is kept as it was: open the latest card to change it.";
+
+/** The card is not the current one; the message says why, fit to show. */
+export class CardNotCurrent extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CardNotCurrent";
   }
 }
 
-/** Whether card `cardId` (in `cards`, the project's database) is the current
- *  one: the project's latest card version, as the platform says, and that
- *  version's highest revision. */
+/** Why card `cardId` (in `cards`, the project's database) is not the current one, or null
+ *  when it is: the current card is the project's latest card version, as the platform says,
+ *  and that version's highest revision. */
+async function whyNotCurrent(
+  projectId: string,
+  cardId: string,
+  cards: Cards,
+): Promise<string | null> {
+  const standing = await cards.cardStanding(cardId);
+  if (!standing) return NOT_LATEST;
+  const latest = await platformClient.latestVersion(projectId);
+  if (latest?.pid !== standing.systemId) return NOT_LATEST;
+  return standing.latestRevision ? null : CORRECTED_SINCE;
+}
+
+/** Whether card `cardId` is the current one (see whyNotCurrent). */
 export async function isLatestCard(
   projectId: string,
   cardId: string,
   cards: Cards,
 ): Promise<boolean> {
-  const standing = await cards.cardStanding(cardId);
-  if (!standing?.latestRevision) return false;
-  const latest = await platformClient.latestVersion(projectId);
-  return latest?.pid === standing.systemId;
+  return (await whyNotCurrent(projectId, cardId, cards)) === null;
 }
 
-/** Throws NotLatestError unless card `cardId` is the current one (isLatestCard). */
+/** Throws CardNotCurrent, saying why, unless card `cardId` is the current one. */
 export async function assertLatestCard(
   projectId: string,
   cardId: string,
   cards: Cards,
 ): Promise<void> {
-  if (!(await isLatestCard(projectId, cardId, cards))) throw new NotLatestError();
+  const why = await whyNotCurrent(projectId, cardId, cards);
+  if (why !== null) throw new CardNotCurrent(why);
 }

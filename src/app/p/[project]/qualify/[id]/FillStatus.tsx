@@ -14,7 +14,9 @@ import { rerunFill } from "./fill-actions";
 // lands.
 const POLL_MS = 2000;
 
-type State = "idle" | "queued" | "running" | "done" | "failed";
+/** What the route answers, and "interrupted": a run this card saw in flight that the
+ *  agents service no longer knows ("unknown", after a restart) or cannot say about. */
+type State = "idle" | "queued" | "running" | "done" | "failed" | "unknown" | "interrupted";
 
 export default function FillStatus({
   project,
@@ -66,12 +68,16 @@ export default function FillStatus({
         if (!res.ok) return lookFailed();
         const body = (await res.json()) as { state?: State; error?: unknown };
         if (!live) return;
-        const next = body.state ?? "idle";
+        const said = body.state ?? "idle";
+        // "unknown" with no run seen in flight is an ordinary card with no run: nothing to say.
+        const next: State = said === "unknown" ? (inFlight ? "interrupted" : "idle") : said;
         setState(next);
         setRunError(next === "failed" && typeof body.error === "string" && body.error ? body.error : null);
         if (next === "queued" || next === "running") {
           inFlight = true;
           timer = setTimeout(ask, POLL_MS);
+        } else if (next === "interrupted") {
+          inFlight = false;
         } else if (next === "done" && inFlight) {
           // Once only: the draft is in the graph now, and the card is built on
           // read, so a refresh is what makes it appear.
@@ -115,7 +121,13 @@ export default function FillStatus({
             {runError && <> Reason: {runError}</>}
           </p>
         )}
-        {state !== "failed" && places > 0 && (
+        {state === "interrupted" && (
+          <p className="fill-status" role="status" aria-live="polite">
+            The AI run was interrupted before it finished, and its suggestions
+            are lost. The card below is built from your answers: try again.
+          </p>
+        )}
+        {state !== "failed" && state !== "interrupted" && places > 0 && (
           <p className="fill-status" role="status" aria-live="polite">
             {places === 1 ? "1 item to review" : `${places} items to review`}
           </p>

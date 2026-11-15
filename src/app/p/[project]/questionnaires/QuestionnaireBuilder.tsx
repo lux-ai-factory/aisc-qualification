@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 import { useServerAction } from "@/lib/serverAction";
+import { useLeaveGuard } from "@/lib/useLeaveGuard";
 import { METADATA_FIELDS } from "@/data/formFields";
 import { RISK_BLOCK } from "@/data/riskFields";
 import {
@@ -60,6 +61,10 @@ const moveLabel = (text: string, dir: "up" | "down") =>
   `Move ${short(text)} ${dir}`;
 const countLabel = (n: number) => `${n} ${n === 1 ? "question" : "questions"}`;
 
+/** What leaving would lose: the questionnaire as it would be saved, and the sets picked to build it. */
+const builtSoFar = (state: ReturnType<typeof initialBuilderState>) =>
+  JSON.stringify([toQuestionnaireDraft(state), state.selected]);
+
 export default function QuestionnaireBuilder({
   project,
   groups,
@@ -72,6 +77,9 @@ export default function QuestionnaireBuilder({
   );
   const [search, setSearch] = useState("");
   const { run, busy: saving, error } = useServerAction();
+  // The questionnaire being built lives only here: leaving with changes asks first.
+  const [opened] = useState(() => builtSoFar(initialBuilderState(initial)));
+  useLeaveGuard(() => builtSoFar(state) !== opened, saving);
   const [focus, setFocus] = useState<{
     rowKey: string;
     dir: "up" | "down";
