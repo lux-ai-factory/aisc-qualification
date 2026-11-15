@@ -536,7 +536,7 @@ describe("the edit page lays the form out with the card's left menu", () => {
     expect((form!.nav as ReactElement<{ withSystem?: boolean }>).props.withSystem).toBe(false);
   });
 
-  it("says that a save makes the next version, and takes the card's review along", async () => {
+  it("offers the next version or a correction of the latest card, and takes the card's review along", async () => {
     previousCard("acme-v2", 4);
     const { form } = await open({ questionnaire: "acme" });
     const text = (node: ReactNode): string =>
@@ -548,7 +548,8 @@ describe("the edit page lays the form out with the card's left menu", () => {
             ? String(node)
             : "";
     expect(text(form!.header as ReactNode)).toContain(
-      "Saving makes v5 of the AI card; earlier versions stay as they were. " +
+      "Save as v5 of the AI card when the system changed, or correct the description of Version 4: choose below. " +
+        "Earlier versions stay as they were. " +
         "Corrections made on v4's AI card come along where their item is the same.",
     );
   });

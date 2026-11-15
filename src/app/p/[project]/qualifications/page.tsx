@@ -24,9 +24,10 @@ export default async function QualificationsPage({
       amendReason: q.amendReason,
       amendRequestedBy: q.amendRequestedBy,
       // The platform names who made the version, which is who saved its first card;
-      // a later revision stores no author of its own.
+      // a later revision names who corrected it.
       createdBy:
         q.revision === 1 ? (versionOf.get(q.systemId)?.created_by ?? null) : null,
+      amendedBy: q.revision > 1 ? (q.amendedBy ?? null) : null,
       systemName: q.systemName,
       systemVersion: q.systemVersion,
       company: q.company,
@@ -55,7 +56,8 @@ export default async function QualificationsPage({
 
       <div className="qf-list-actions">
         <Link className="btn ghost" href={`/p/${project}/system/edit`}>
-          {updateAnswersLabel(items[0]?.versionNumber)}
+          {/* the first item is the latest card, which may be corrected as well as followed by a new version */}
+          {updateAnswersLabel(items[0]?.versionNumber, items[0]?.versionNumber === versions[0]?.number)}
         </Link>
       </div>
 

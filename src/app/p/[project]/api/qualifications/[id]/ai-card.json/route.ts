@@ -3,6 +3,7 @@ import { projectDbForRoute } from "@/lib/projectDb";
 import { QualificationRepository } from "@/server/repositories/QualificationRepository";
 import { ontologyService } from "@/server/services/OntologyService";
 import { aiCardExport, cardFileName } from "@/domain/SystemCard";
+import { cardPlace } from "@/server/services/cardPlace";
 
 /**
  * The card as JSON, losing nothing.
@@ -24,8 +25,11 @@ export async function GET(
   const db = await projectDbForRoute(project, { write: false });
   if (db instanceof Response) return db;
 
-  const q = await new QualificationRepository(db).cardSummary(id);
+  const repo = new QualificationRepository(db);
+  const q = await repo.cardSummary(id);
   if (!q) return new NextResponse("Not found", { status: 404 });
+  // which version and revision it is, and whether a later revision replaced it: said in the file and its name
+  const place = await cardPlace(project, repo, q);
 
   let build;
   try {
@@ -39,10 +43,10 @@ export async function GET(
     });
   }
 
-  return new NextResponse(JSON.stringify(aiCardExport(q, build), null, 2), {
+  return new NextResponse(JSON.stringify(aiCardExport(q, build, new Date(), place), null, 2), {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${cardFileName(q, "ai_card.json")}"`,
+      "Content-Disposition": `attachment; filename="${cardFileName(q, "ai_card.json", place)}"`,
       "Cache-Control": "no-store",
     },
   });

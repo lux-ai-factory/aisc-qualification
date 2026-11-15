@@ -126,7 +126,7 @@ export default async function QualificationDetailPage({
                   <h1>{q.systemName}</h1>
                   {q.revision > 1 && (
                     <p className="qf-amendment">
-                      {amendmentText(q.amendReason, q.amendRequestedBy)}
+                      {amendmentText(q.amendReason, q.amendRequestedBy, q.amendedBy)}
                     </p>
                   )}
                   <p>
@@ -148,7 +148,7 @@ export default async function QualificationDetailPage({
                       className="btn qf-header-btn"
                       href={`/p/${project}/system/edit`}
                     >
-                      {updateAnswersLabel(standing.versionNumber)}
+                      {updateAnswersLabel(standing.versionNumber, true)}
                     </Link>
                   </div>
                 )}
@@ -157,7 +157,7 @@ export default async function QualificationDetailPage({
 
             {readOnly && (
               <p className="qf-prefilled">
-                {keptNotice(standing?.versionNumber || 0, q.revision)}{" "}
+                {keptNotice(standing?.versionNumber || 0, q.revision, standing?.latestRevision)}{" "}
                 {standing?.currentCardId && (
                   <Link
                     href={`/p/${project}/qualify/${standing.currentCardId}`}

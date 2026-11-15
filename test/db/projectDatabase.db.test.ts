@@ -14,6 +14,8 @@ import { authzAnswer } from "../support/isolation";
 
 const TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_DATABASE_URL ?? "";
 const ADMIN_TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_ADMIN_URL ?? "";
+// migrations run as qualification_migrator, acting as qualification_owner; the app's role only reads and writes
+const MIGRATE_TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_MIGRATE_DATABASE_URL ?? "";
 const SETUP = process.env.ISOLATION_SETUP ?? "";
 const [A, B, C, E] = (process.env.QUALIFICATION_TEST_PROJECTS ?? "").split(",");
 const enabled = TEMPLATE !== "" && ADMIN_TEMPLATE !== "";
@@ -72,6 +74,7 @@ function migrateProjects(extraEnv: Record<string, string> = {}) {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     PROJECT_DATABASE_URL: TEMPLATE,
+    PROJECT_MIGRATE_DATABASE_URL: MIGRATE_TEMPLATE,
     ...extraEnv,
   };
   delete env.DATABASE_URL;
@@ -102,12 +105,12 @@ async function ensureMigrated(pid: string): Promise<string> {
   if (Array.isArray(done) && done.includes(BASELINE)) return "";
   const run = spawnSync("npx", ["prisma", "migrate", "deploy"], {
     cwd: APP,
-    env: { ...process.env, DATABASE_URL: at(TEMPLATE, dbName(pid)) },
+    env: { ...process.env, DATABASE_URL: at(MIGRATE_TEMPLATE, dbName(pid)) },
     encoding: "utf8",
     timeout: 240_000,
   });
   if (run.status !== 0) {
-    return `qualification_rw could not migrate ${dbName(pid)}: ${(run.stdout + run.stderr).split("\n").filter(Boolean).slice(-4).join(" | ")}`;
+    return `qualification_migrator could not migrate ${dbName(pid)}: ${(run.stdout + run.stderr).split("\n").filter(Boolean).slice(-4).join(" | ")}`;
   }
   const after = await migrations(pid);
   return Array.isArray(after) && after.includes(BASELINE)
@@ -253,6 +256,16 @@ async function shape(c: PrismaClient, live: boolean): Promise<string[]> {
   const renderedCardLine =
     /^column qualification\.(systemCard|systemCardJson|system_card_at|systemCardPdfPath) /;
   lines = lines.filter((l) => !renderedCardLine.test(l));
+  // A card is kept since (20261115000000_owner_role): its guard and function are pinned by
+  // scripts/tests/test_module_owner_roles.py, and its key to the card version restricts (below).
+  lines = lines.filter((l) => !/qualification_is_kept|qualification_no_(delete|truncate)/.test(l));
+  // Who made a correction (20261116100000_revision_author) is newer too: its column and check are pinned
+  // by revisionAuthor.test.tsx.
+  lines = lines.filter((l) => !/\bamended_by\b/.test(l));
+  if (live)
+    lines = lines.map((l) =>
+      /qualification_system_id_fkey/.test(l) ? l.replace("ON DELETE CASCADE", "ON DELETE RESTRICT") : l,
+    );
   if (!formsOnBranch)
     lines = lines.filter((l) => !formsLine.test(l) && !formsIndex.test(l));
   else lines = lines.filter((l) => !formsLine.test(l) && !twoLevelLine.test(l));
@@ -296,14 +309,14 @@ describe.skipIf(!enabled)(
       expect({ missing, extra }).toEqual({ missing: [], extra: [] });
     });
 
-    it("qualification_system_id_fkey references project.system(pid) ON DELETE CASCADE, and no key leaves the database", async () => {
+    it("qualification_system_id_fkey references project.system(pid) ON DELETE RESTRICT, and no key leaves the database", async () => {
       expect(why).toBe("");
       const rows = await tryQuery<{ target: string; del: string }>(
         admin(A),
         `SELECT confrelid::regclass::text AS target, confdeltype::text AS del
          FROM pg_constraint WHERE conname = 'qualification_system_id_fkey'`,
       );
-      expect(rows).toEqual([{ target: "project.system", del: "c" }]);
+      expect(rows).toEqual([{ target: "project.system", del: "r" }]);
       const outside = await tryQuery<{ k: string }>(
         admin(A),
         `SELECT conname AS k FROM pg_constraint k JOIN pg_namespace n ON n.oid = k.connamespace
@@ -429,18 +442,20 @@ describe.skipIf(!enabled)(
       expect(rows).toEqual([{ n: 0n }]);
     });
 
-    it("deleting a version takes its card with it (ON DELETE CASCADE)", async () => {
+    it("a version is kept: deleting it is refused and its card stays", async () => {
       expect(why).toBe("");
       await app.$executeRawUnsafe(
         `${card("card-v1", V1)} ON CONFLICT DO NOTHING`,
       );
-      await admin(A).$executeRawUnsafe(
-        `DELETE FROM project.system WHERE pid = '${V1}'`,
-      );
+      await expect(
+        admin(A).$executeRawUnsafe(
+          `DELETE FROM project.system WHERE pid = '${V1}'`,
+        ),
+      ).rejects.toThrow(/is kept/);
       const rows = await app.$queryRawUnsafe<{ n: bigint }[]>(
         `SELECT count(*) AS n FROM qualification.qualification WHERE id = 'card-v1'`,
       );
-      expect(rows).toEqual([{ n: 0n }]);
+      expect(rows).toEqual([{ n: 1n }]);
     });
   },
 );
@@ -534,6 +549,7 @@ describe.skipIf(!enabled)(
       const file = join(APP, "src", "lib", "projectDb.ts");
       expect(existsSync(file), "src/lib/projectDb.ts").toBe(true);
       process.env.PROJECT_DATABASE_URL = TEMPLATE;
+      process.env.PROJECT_MIGRATE_DATABASE_URL = MIGRATE_TEMPLATE;
       process.env.PLATFORM_URL = "http://platform.invalid";
       const realFetch = globalThis.fetch;
       globalThis.fetch = (async (url: string) =>

@@ -7,12 +7,12 @@ import { QualificationRepository } from "@/server/repositories/QualificationRepo
 // do not make a new version. Only the latest revision of the latest version changes;
 // every earlier revision is kept as it was, by the database itself.
 //
-// Runs only against a throwaway project database (see cardVersions.db.test.ts). Every test
-// works inside a transaction that is rolled back, so the versions it makes are never seen by
-// the other files, which also decide what the latest version is in this database.
+// Runs only against a throwaway project database of its own (test/db/throwaway-db.sh): the
+// version numbers it takes and which version is the latest are this file's alone, since no other
+// file writes its versions there. Every test works inside a transaction that is rolled back.
 
-const APP_URL = process.env.QUALIFICATION_TEST_DATABASE_URL ?? "";
-const ADMIN_URL = process.env.QUALIFICATION_TEST_ADMIN_URL ?? "";
+const APP_URL = process.env.QUALIFICATION_TEST_REVISIONS_DATABASE_URL ?? "";
+const ADMIN_URL = process.env.QUALIFICATION_TEST_REVISIONS_ADMIN_URL ?? "";
 const enabled = APP_URL !== "" && ADMIN_URL !== "";
 if (enabled && (/:5432\//.test(APP_URL) || /:5432\//.test(ADMIN_URL))) {
   throw new Error(
@@ -366,7 +366,7 @@ describe.skipIf(!enabled)("card revisions", () => {
       );
     }));
 
-  it("deleting a version removes all its revisions, with their risks and graphs", () =>
+  it("a version is kept: deleting it is refused, and its revisions with their risks and graphs stay", () =>
     inRolledBackTx(async (tx) => {
       const v = await newLatestVersion(tx);
       const first = await addCard(tx, v);
@@ -375,20 +375,18 @@ describe.skipIf(!enabled)("card revisions", () => {
       const second = await addCard(tx, v, correction(first));
       await tx.$executeRawUnsafe(riskSql(second));
       await tx.$executeRawUnsafe(graphSql(second));
-      await tx.$executeRawUnsafe(
-        `DELETE FROM project.system WHERE pid = '${v}'`,
-      );
-      const rows = await tx.$queryRawUnsafe<{ n: bigint }[]>(
-        `SELECT count(*) AS n FROM qualification.qualification WHERE system_id = '${v}'`,
-      );
-      expect(Number(rows[0].n)).toBe(0);
-      const left = await tx.$queryRawUnsafe<{ n: bigint }[]>(
-        `SELECT (SELECT count(*) FROM qualification.qualification_risk
-                  WHERE "qualificationId" IN ('${first}', '${second}'))
-              + (SELECT count(*) FROM qualification.knowledge_graph
-                  WHERE "qualificationId" IN ('${first}', '${second}')) AS n`,
-      );
-      expect(Number(left[0].n)).toBe(0);
+      const kept = () =>
+        tx.$queryRawUnsafe<{ n: bigint }[]>(
+          `SELECT (SELECT count(*) FROM qualification.qualification WHERE system_id = '${v}')
+                + (SELECT count(*) FROM qualification.qualification_risk
+                    WHERE "qualificationId" IN ('${first}', '${second}'))
+                + (SELECT count(*) FROM qualification.knowledge_graph
+                    WHERE "qualificationId" IN ('${first}', '${second}')) AS n`,
+        );
+      const before = Number((await kept())[0].n);
+      await refused(tx, `DELETE FROM project.system WHERE pid = '${v}'`);
+      expect(before).toBeGreaterThanOrEqual(6);
+      expect(Number((await kept())[0].n)).toBe(before);
     }));
 
   it("the repository reads a version's card as its highest revision", () =>

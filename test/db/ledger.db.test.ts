@@ -18,6 +18,8 @@ import { PrismaClient, type Prisma } from "@prisma/client";
 
 const TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_DATABASE_URL ?? "";
 const ADMIN_TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_ADMIN_URL ?? "";
+// migrations run as qualification_migrator, acting as qualification_owner; the app's role only reads and writes
+const MIGRATE_TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_MIGRATE_DATABASE_URL ?? "";
 const [, B] = (process.env.QUALIFICATION_TEST_PROJECTS ?? "").split(",");
 const enabled = TEMPLATE !== "" && ADMIN_TEMPLATE !== "" && !!B;
 if (enabled && [TEMPLATE, ADMIN_TEMPLATE].some((u) => /:5432\//.test(u))) {
@@ -160,7 +162,7 @@ beforeAll(async () => {
   if (!enabled) return;
   const run = spawnSync("npx", ["prisma", "migrate", "deploy"], {
     cwd: APP,
-    env: { ...process.env, DATABASE_URL: at(TEMPLATE, dbName(B)) },
+    env: { ...process.env, DATABASE_URL: at(MIGRATE_TEMPLATE, dbName(B)) },
     encoding: "utf8",
     timeout: 240_000,
   });
@@ -485,6 +487,8 @@ describe.skipIf(!enabled)("a new card and its event commit together", () => {
           listVersions: async () => [],
         } as never,
         async () => ({ resolve: async () => ({ versionId: null }) }) as never,
+        undefined,
+        { components: async () => [] } as never, // an engine that answers, with no components
       );
     const { emitEvent } = await import("@/vendor/aisc-ledger/emit");
     const record = async (tx: Prisma.TransactionClient, c: { id: string }) =>
@@ -519,9 +523,10 @@ describe.skipIf(!enabled)("a new card and its event commit together", () => {
       await record(tx, c);
       throw new Error("a failure after the event (test)");
     };
+    // the save says the card was not saved, and keeps the failure as its cause
     await expect(
       make(pid2).createFromForm(B, new FormData(), thenFail),
-    ).rejects.toThrow(/after the event/);
+    ).rejects.toMatchObject({ cause: expect.objectContaining({ message: expect.stringMatching(/after the event/) }) });
     expect(written).not.toBe("");
     expect(await outbox(written)).toEqual([]);
     const [{ cards }] = await su.$queryRawUnsafe<{ cards: number }[]>(

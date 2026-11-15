@@ -8,6 +8,8 @@ import { PrismaClient } from "@prisma/client";
 
 const TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_DATABASE_URL ?? "";
 const ADMIN_TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_ADMIN_URL ?? "";
+// migrations run as qualification_migrator, acting as qualification_owner; the app's role only reads and writes
+const MIGRATE_TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_MIGRATE_DATABASE_URL ?? "";
 const [, , , E] = (process.env.QUALIFICATION_TEST_PROJECTS ?? "").split(",");
 const enabled = TEMPLATE !== "" && ADMIN_TEMPLATE !== "" && !!E;
 if (enabled && [TEMPLATE, ADMIN_TEMPLATE].some((u) => /:5432\//.test(u))) {
@@ -55,7 +57,7 @@ beforeAll(async () => {
   if (!enabled) return;
   const run = spawnSync("npx", ["prisma", "migrate", "deploy"], {
     cwd: APP,
-    env: { ...process.env, DATABASE_URL: at(TEMPLATE, dbName(E)) },
+    env: { ...process.env, DATABASE_URL: at(MIGRATE_TEMPLATE, dbName(E)) },
     encoding: "utf8",
     timeout: 240_000,
   });

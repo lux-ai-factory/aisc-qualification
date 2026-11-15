@@ -17,7 +17,7 @@ const messageOf = (p: Promise<unknown>) => p.then(() => "", (e: Error) => e.mess
 
 describe("PlatformClient's error messages", () => {
   it("saving a version names the system", async () => {
-    expect(await messageOf(client(down()).createVersion("p1", { name: "MCAS" }))).toBe(
+    expect(await messageOf(client(down()).createVersion("p1", { name: "MCAS" }, "attempt-1"))).toBe(
       "Could not name this system: the platform did not answer.",
     );
   });

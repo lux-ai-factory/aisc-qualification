@@ -17,6 +17,8 @@ import { questionnairesOn } from "@/server/services/QuestionnaireService";
 
 const TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_DATABASE_URL ?? "";
 const ADMIN_TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_ADMIN_URL ?? "";
+// migrations run as qualification_migrator, acting as qualification_owner; the app's role only reads and writes
+const MIGRATE_TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_MIGRATE_DATABASE_URL ?? "";
 const [A, B] = (process.env.QUALIFICATION_TEST_PROJECTS ?? "").split(",");
 const enabled =
   TEMPLATE !== "" && ADMIN_TEMPLATE !== "" && Boolean(A) && Boolean(B);
@@ -42,7 +44,7 @@ function client(url: string) {
 function migrate(pid: string): string {
   const run = spawnSync("npx", ["prisma", "migrate", "deploy"], {
     cwd: APP,
-    env: { ...process.env, DATABASE_URL: at(TEMPLATE, dbName(pid)) },
+    env: { ...process.env, DATABASE_URL: at(MIGRATE_TEMPLATE, dbName(pid)) },
     encoding: "utf8",
     timeout: 240_000,
   });

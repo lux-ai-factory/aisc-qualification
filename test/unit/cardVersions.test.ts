@@ -194,6 +194,7 @@ describe("cardStanding", () => {
       versionNumber: 2,
       current: true,
       currentCardId: "c2",
+      latestRevision: 1,
     });
   });
 
@@ -202,6 +203,7 @@ describe("cardStanding", () => {
       versionNumber: 1,
       current: false,
       currentCardId: "c2",
+      latestRevision: 1,
     });
   });
 
@@ -214,6 +216,7 @@ describe("cardStanding", () => {
       versionNumber: 2,
       current: false,
       currentCardId: "c2r",
+      latestRevision: 2,
     });
     expect(cardStanding(versions, revised, "v2", "c2r").current).toBe(true);
   });
@@ -223,6 +226,7 @@ describe("cardStanding", () => {
       versionNumber: 1,
       current: false,
       currentCardId: null,
+      latestRevision: 1,
     });
   });
 });

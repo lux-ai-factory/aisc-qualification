@@ -9,6 +9,7 @@ import {
   RendererUnreachableError,
 } from "@/server/services/SystemCardRendererClient";
 import { cardFileName, systemCardPayload } from "@/domain/SystemCard";
+import { cardPlace } from "@/server/services/cardPlace";
 
 export async function GET(
   req: Request,
@@ -21,8 +22,11 @@ export async function GET(
   const db = await projectDbForRoute(project, { write: false });
   if (db instanceof Response) return db;
 
-  const q = await new QualificationRepository(db).cardSummary(id);
+  const repo = new QualificationRepository(db);
+  const q = await repo.cardSummary(id);
   if (!q) return new NextResponse("Not found", { status: 404 });
+  // which version and revision it is, and whether a later revision replaced it: said in the PDF and its name
+  const place = await cardPlace(project, repo, q);
   // The filled graph is the card, so the PDF is a rendering of it. The app makes
   // no LLM calls; the only model in the system is the one the filler service
   // configures through BAF.
@@ -38,7 +42,7 @@ export async function GET(
     });
   }
 
-  const payload = systemCardPayload(q, ontology);
+  const payload = systemCardPayload(q, ontology, new Date(), place);
 
   try {
     const pdf = await systemCardRendererClient.renderPdf(payload);
@@ -63,7 +67,7 @@ export async function GET(
     return new NextResponse(pdf, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${cardFileName(q, "ai_card.pdf")}"`,
+        "Content-Disposition": `inline; filename="${cardFileName(q, "ai_card.pdf", place)}"`,
         "Cache-Control": "no-store",
       },
     });

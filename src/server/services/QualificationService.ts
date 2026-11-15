@@ -16,7 +16,13 @@ import {
   QualificationFormParser,
   qualificationFormParser,
 } from "@/server/forms/QualificationFormParser";
-import { PlatformClient, PlatformStatusError, platformClient, type Amendment } from "@/server/services/PlatformClient";
+import {
+  PlatformClient,
+  PlatformNotConfigured,
+  PlatformStatusError,
+  platformClient,
+  type Amendment,
+} from "@/server/services/PlatformClient";
 import {
   cardAsFormStart,
   cardStanding,
@@ -56,6 +62,8 @@ function postedId(formData: FormData, name: string): string | null {
 /** What the next card took from the review of the card before it (history and ledger event). */
 export type CarriedReview = {
   from_version: number | null;
+  /** The revision of that version's card it was taken from; absent in a record made before it was kept. */
+  from_revision?: number | null;
   carried: string[];
   left: string[];
   draft: ReviewCarry["draft"];
@@ -93,6 +101,36 @@ function isStaleCorrection(err: unknown): boolean {
   return /system_id/.test(said) && /revision/.test(said);
 }
 
+/**
+ * A card that was not saved, and what became of the card version made for it: "withdrawn" (the platform
+ * withdrew it), "none" (none was made), or "unknown" (one may have been made and could not be withdrawn).
+ */
+export class CardNotSaved extends Error {
+  constructor(readonly version: "withdrawn" | "none" | "unknown", options?: { cause?: unknown }) {
+    super("card not saved", options);
+    this.name = "CardNotSaved";
+  }
+}
+
+/** What a save says when the engine's components cannot be read for the card's links. */
+const ENGINE_SILENT =
+  "The engine did not answer, so the card's components could not be linked. Nothing was saved: try again in a moment.";
+
+/** The component links of a stored card, as a new card stores them: a correction copies them. */
+function linksOf(card: QualificationWithAnswers): LinkedComponent[] {
+  return (card.components ?? []).map((l) => ({
+    componentPid: l.componentPid,
+    airoProperty: l.airoProperty,
+    name: l.name,
+    componentType: l.componentType,
+    objectName: l.objectName,
+    componentKey: l.componentKey ?? null,
+  }));
+}
+
+/** The reason the platform keeps on a version withdrawn because its card was not saved. */
+const NOT_SAVED_REASON = "the card was not saved";
+
 export class QualificationService {
   private readonly repos: RepositoryFor;
 
@@ -117,7 +155,8 @@ export class QualificationService {
    * project's own database, numbered by the platform) and then the card that
    * describes it, in the same database. Nothing is frozen: an
    * older version is read-only because it is not the latest, which the
-   * database enforces. When the platform does not answer, nothing is stored.
+   * database enforces. When the card is not stored, the version made for it is withdrawn (CardNotSaved says
+   * what became of it).
    *
    * The questionnaire version the card was filled with is loaded here, from its
    * id: which questions and blocks count is never taken from the request. A page
@@ -130,9 +169,33 @@ export class QualificationService {
     /** The caller's ledger event, written in the card's own transaction. */
     record: (tx: Tx, card: CreatedCard) => Promise<unknown> = async () => undefined,
   ): Promise<{ id: string }> {
-    const prep = await this.prepare(project, formData);
-    const version = await this.platform.createVersion(project, identityOf(prep.parsed));
-    return this.storeCard(project, prep, { systemId: version.pid }, record);
+    const prep = await this.prepare(project, formData, "save");
+    // the save's own id: when the card is not stored, the version made for it is withdrawn by it, even when
+    // the platform's answer to the create never arrived
+    const attempt = randomUUID();
+    let version;
+    try {
+      version = await this.platform.createVersion(project, identityOf(prep.parsed), attempt);
+    } catch (err) {
+      // a refusal, or no call at all: the platform made no version, and its reason is the one to say
+      if (err instanceof PlatformStatusError || err instanceof PlatformNotConfigured) throw err;
+      throw await this.withdrawn(project, attempt, err);
+    }
+    try {
+      return await this.storeCard(project, prep, { systemId: version.pid }, record);
+    } catch (err) {
+      throw await this.withdrawn(project, attempt, err);
+    }
+  }
+
+  /** The card of save `attempt` was not stored: withdraw the version made for it, and say what became of it. */
+  private async withdrawn(project: string, attempt: string, cause: unknown): Promise<CardNotSaved> {
+    try {
+      const gone = await this.platform.abandonVersion(project, attempt, NOT_SAVED_REASON);
+      return new CardNotSaved(gone === "abandoned" ? "withdrawn" : "none", { cause });
+    } catch {
+      return new CardNotSaved("unknown", { cause });
+    }
   }
 
   /**
@@ -154,7 +217,7 @@ export class QualificationService {
     if (reason === "" || requestedBy === "") {
       throw new FormValidationError("Say why the description is corrected and who asked for it.");
     }
-    const prep = await this.prepare(project, formData);
+    const prep = await this.prepare(project, formData, "correction");
     const { start } = prep;
     if (!start) throw new FormValidationError("There is no card to correct yet. Save the first version instead.");
     // The card to correct is the one the page was opened on, posted back: when another save or
@@ -171,7 +234,14 @@ export class QualificationService {
       return await this.storeCard(
         project,
         prep,
-        { systemId: start.card.systemId, revision, amendsId, amendReason: reason, amendRequestedBy: requestedBy },
+        {
+          systemId: start.card.systemId,
+          revision,
+          amendsId,
+          amendReason: reason,
+          amendRequestedBy: requestedBy,
+          ...(amend.amendedBy ? { amendedBy: amend.amendedBy } : {}),
+        },
         async (tx, card) => {
           // everything else of the card first; the platform's count is the last step before commit
           await record(tx, { ...card, revision, amendsId });
@@ -201,9 +271,10 @@ export class QualificationService {
    * What a save and a correction share, worked out before anything is stored: the questionnaire
    * version loaded from its id, the form parsed against it, the components keyed from the card
    * this starts from, the ledger's check of the content, the engine links, and the review taken
-   * from the card before.
+   * from the card before. A correction is a full copy of the card it corrects, its component links
+   * included; a save links the engine's components as they are now.
    */
-  private async prepare(project: string, formData: FormData) {
+  private async prepare(project: string, formData: FormData, kind: "save" | "correction") {
     const id = postedId(formData, "questionnaireVersionId") ?? postedId(formData, "formVersionId");
     const form = await (await this.formsFor(project)).resolve(id);
     if (!form) {
@@ -229,9 +300,10 @@ export class QualificationService {
       }
       throw err;
     }
-    // The card links the engine's components as they are now, with a snapshot of each, so the
-    // system page can show what changed in the engine since. Read before anything is stored.
-    const links = await this.engineLinksOf(project);
+    // A save links the engine's components as they are now, with a snapshot of each, so the system
+    // page can show what changed in the engine since; a correction keeps the links of the card it
+    // corrects. Read before anything is stored.
+    const links = kind === "correction" && start ? linksOf(start.card) : await this.engineLinksOf(project);
     // What the new card takes from the review of the card before it, worked out before anything
     // is stored (the builder is asked, which no transaction should wait on).
     const review = start
@@ -249,7 +321,7 @@ export class QualificationService {
   private async storeCard(
     project: string,
     prep: Awaited<ReturnType<QualificationService["prepare"]>>,
-    extra: Pick<CreateQualificationInput, "systemId"> & Partial<Pick<CreateQualificationInput, "revision" | "amendsId" | "amendReason" | "amendRequestedBy">>,
+    extra: Pick<CreateQualificationInput, "systemId"> & Partial<Pick<CreateQualificationInput, "revision" | "amendsId" | "amendReason" | "amendRequestedBy" | "amendedBy">>,
     record: (tx: Tx, card: CreatedCard) => Promise<unknown>,
     /** How long its transaction may stay open, when the default is too short for what `record` waits on. */
     txTimeoutMs?: number,
@@ -284,14 +356,14 @@ export class QualificationService {
     return { id: made.id };
   }
 
-  /** The links to the engine's components a save writes. An engine that does not answer never
-   *  stops the save: the card then links nothing. */
+  /** The links to the engine's components a save writes. A card is never stored with no links
+   *  because the engine did not answer: the save is refused with a message instead. */
   private async engineLinksOf(project: string): Promise<LinkedComponent[]> {
     try {
       return engineLinks(await this.engine.components(project));
     } catch (err) {
-      console.warn(`engine components of project ${project} not linked to the card: ${String(err)}`);
-      return [];
+      console.warn(`engine components of project ${project} could not be read for the card: ${String(err)}`);
+      throw new FormValidationError(ENGINE_SILENT);
     }
   }
 
@@ -323,9 +395,13 @@ export class QualificationService {
     form: Parameters<typeof toExport>[1],
   ): Promise<{ carry: ReviewCarry; said: CarriedReview }> {
     const from_version = start.versionNumber;
+    const from_revision = start.card.revision;
     try {
       const carry = await this.review.reviewToCarry(project, start.card, toExport(pendingCard(next), form));
-      return { carry, said: { from_version, carried: carry.carried, left: carry.left, draft: carry.draft } };
+      return {
+        carry,
+        said: { from_version, from_revision, carried: carry.carried, left: carry.left, draft: carry.draft },
+      };
     } catch (err) {
       console.warn(`card review of project ${project} not carried to the next version: ${String(err)}`);
       const left = Object.keys((start.card.ontologyPatch as Record<string, unknown> | null) ?? {});
@@ -333,7 +409,7 @@ export class QualificationService {
       const failed = err instanceof Error ? err.message : String(err);
       return {
         carry: { patch: null, extracted: null, carried: [], left, draft },
-        said: { from_version, carried: [], left, draft, failed },
+        said: { from_version, from_revision, carried: [], left, draft, failed },
       };
     }
   }

@@ -42,7 +42,7 @@ describe("the witnessed request travels on", () => {
     await new PlatformClient("http://platform", fetchImpl).createVersion("p1", {
       name: "MCAS",
       version: "1",
-    } as never);
+    } as never, "attempt-1");
     expect(new Headers(calls[0].init.headers).get("x-aisc-request-id")).toBe(
       REQUEST,
     );
@@ -53,7 +53,7 @@ describe("the witnessed request travels on", () => {
     await new PlatformClient("http://platform", fetchImpl).createVersion("p1", {
       name: "MCAS",
       version: "1",
-    } as never);
+    } as never, "attempt-1");
     expect(new Headers(calls[0].init.headers).has("x-aisc-request-id")).toBe(
       false,
     );

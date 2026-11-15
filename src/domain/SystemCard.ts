@@ -1,4 +1,14 @@
 import { isVairTerm, vairLabel } from "@/data/vairVocab";
+import { cardVersionShort } from "@/domain/cardVersions";
+
+/** Which card version and revision a card is, and whether a later revision of its version replaced it. */
+export type CardPlaceFacts = {
+  version: number | null;
+  revision: number;
+  superseded: boolean;
+  amendReason?: string | null;
+  amendRequestedBy?: string | null;
+};
 
 /** Slug for a filename. */
 function fileSlug(systemName: string): string {
@@ -30,8 +40,17 @@ export function systemCardPayload(
   facts: CardFacts,
   ontology: unknown | null,
   now: Date = new Date(),
+  place?: CardPlaceFacts,
 ): Record<string, unknown> {
   return {
+    // which card version and revision this is, so two revisions of one version are told apart
+    ...(place && {
+      card_version: place.version,
+      card_revision: place.revision,
+      superseded: place.superseded,
+      amend_reason: place.amendReason ?? null,
+      amend_requested_by: place.amendRequestedBy ?? null,
+    }),
     system_name: facts.systemName,
     system_version: facts.systemVersion,
     provider: facts.company,
@@ -68,6 +87,7 @@ export function aiCardExport(
   facts: CardFacts,
   build: { view: unknown; jsonld: string; problems: string[] },
   now: Date = new Date(),
+  place?: CardPlaceFacts,
 ): Record<string, unknown> {
   let graph: unknown = null;
   try {
@@ -78,7 +98,7 @@ export function aiCardExport(
     graph = null;
   }
   return {
-    ...systemCardPayload(facts, build.view, now),
+    ...systemCardPayload(facts, build.view, now, place),
     ontology_graph: graph,
     ontology_problems: build.problems,
   };
@@ -99,23 +119,27 @@ export function releaseLabel(version: string): string {
 }
 
 /** The button that opens the form again, naming the AI card version that
- *  saving makes. With no version yet, saving makes the first card. */
-export function updateAnswersLabel(latest: number | undefined): string {
-  return latest
-    ? `Update the answers (makes v${latest + 1})`
-    : "Create the AI card";
+ *  saving makes. With no version yet, saving makes the first card. When the
+ *  latest card may also be corrected (`correctable`), saving does not always make
+ *  a version: the person chooses on the form, so the button promises none. */
+export function updateAnswersLabel(latest: number | undefined, correctable: boolean = false): string {
+  if (!latest) return "Create the AI card";
+  return correctable ? "Update the answers" : `Update the answers (makes v${latest + 1})`;
 }
 
-/** The filename a download offers: slugged system name, the version once, and
- *  what the file is. `suffix` is e.g. "ontology.jsonld", "system_card.pdf".
+/** The filename a download offers: slugged system name, the version once, the card
+ *  version and revision when known ("v1", "v1.2"), and what the file is. `suffix` is
+ *  e.g. "ontology.jsonld", "system_card.pdf".
  *  The version is slugged too, keeping its dots: a header can carry no character
  *  past Latin-1 and no quote, and "2.0 – beta" would make the download fail. */
 export function cardFileName(
   facts: Pick<CardFacts, "systemName" | "systemVersion">,
   suffix: string,
+  place?: Pick<CardPlaceFacts, "version" | "revision">,
 ): string {
   const version = versionLabel(facts.systemVersion)
     .replace(/[^a-zA-Z0-9.-]+/g, "_")
     .replace(/^_+|_+$/g, "");
-  return `${fileSlug(facts.systemName)}_${version}_${suffix}`;
+  const card = place?.version ? `${cardVersionShort(place.version, place.revision)}_` : "";
+  return `${fileSlug(facts.systemName)}_${version}_${card}${suffix}`;
 }

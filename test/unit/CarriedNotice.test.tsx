@@ -19,7 +19,7 @@ describe("the review a card version took from the one before", () => {
       />,
     );
     expect(screen.getByRole("status").textContent).toBe(
-      "Carried from v3: 2 corrections and the draft of AI suggestions.",
+      "Carried from Version 3: 2 corrections and the draft of AI suggestions.",
     );
   });
 
@@ -31,14 +31,14 @@ describe("the review a card version took from the one before", () => {
       />,
     );
     const text = screen.getByRole("status").textContent;
-    expect(text).toContain("Carried from v3: 1 correction.");
+    expect(text).toContain("Carried from Version 3: 1 correction.");
     expect(text).toContain(
-      "1 correction stayed on v3: its item is not the same in this version.",
+      "1 correction stayed on Version 3: its item is not the same in this version.",
     );
     expect(text).toContain(
-      "The draft of AI suggestions stayed on v3: what it was read from changed. Let AI suggest additions again for this version.",
+      "The draft of AI suggestions stayed on Version 3: what it was read from changed. Let AI suggest additions again for this version.",
     );
-    expect(screen.getByRole("link", { name: "v3" }).getAttribute("href")).toBe(href);
+    expect(screen.getByRole("link", { name: "Version 3" }).getAttribute("href")).toBe(href);
   });
 
   it("says when the review could not be carried at all", () => {
@@ -49,7 +49,7 @@ describe("the review a card version took from the one before", () => {
       />,
     );
     expect(screen.getByRole("status").textContent).toBe(
-      "The review of v3 could not be carried to this version: its 2 corrections and its draft of AI suggestions are still on v3.",
+      "The review of Version 3 could not be carried to this version: its 2 corrections and its draft of AI suggestions are still on Version 3.",
     );
   });
 
@@ -61,7 +61,7 @@ describe("the review a card version took from the one before", () => {
       />,
     );
     expect(screen.getByRole("status").textContent).toBe(
-      "The review of v3 could not be carried to this version: its draft of AI suggestions is still on v3.",
+      "The review of Version 3 could not be carried to this version: its draft of AI suggestions is still on Version 3.",
     );
   });
 

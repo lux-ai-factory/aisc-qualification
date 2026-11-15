@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { CarriedReview } from "@/server/services/QualificationService";
+import { versionLabel } from "@/domain/cardVersions";
 
 // What this card version took from the review of the card before it (its review_carried history
 // row): the corrections whose item is the same item here, and the draft of AI suggestions when what
@@ -16,7 +17,10 @@ export default function CarriedNotice({
   /** The card before, where whatever stayed behind still is. */
   fromHref: string;
 }) {
-  const v = `v${review.from_version ?? "?"}`;
+  const v =
+    review.from_version !== null
+      ? versionLabel(review.from_version, review.from_revision ?? 1)
+      : "the card before";
   const before = <Link href={fromHref}>{v}</Link>;
 
   if (review.failed !== undefined) {

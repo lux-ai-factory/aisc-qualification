@@ -11,6 +11,8 @@ import { annexDefaultVersion } from "@/domain/forms/legacy";
 
 const TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_DATABASE_URL ?? "";
 const ADMIN_TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_ADMIN_URL ?? "";
+// migrations run as qualification_migrator, acting as qualification_owner; the app's role only reads and writes
+const MIGRATE_TEMPLATE = process.env.QUALIFICATION_TEST_PROJECT_MIGRATE_DATABASE_URL ?? "";
 // a project of its own (throwaway-db.sh): its versions would make another test's card not the latest
 const E = process.env.QUALIFICATION_TEST_CARRY_PROJECT ?? "";
 const enabled = TEMPLATE !== "" && ADMIN_TEMPLATE !== "" && !!E;
@@ -43,7 +45,7 @@ beforeAll(async () => {
   if (!enabled) return;
   const run = spawnSync("npx", ["prisma", "migrate", "deploy"], {
     cwd: APP,
-    env: { ...process.env, DATABASE_URL: at(TEMPLATE, dbName(E)) },
+    env: { ...process.env, DATABASE_URL: at(MIGRATE_TEMPLATE, dbName(E)) },
     encoding: "utf8",
     timeout: 240_000,
   });

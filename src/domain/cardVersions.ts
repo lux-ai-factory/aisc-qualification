@@ -54,30 +54,42 @@ export function nextCard(versions: VersionRef[], cards: CardRef[]): NextCard {
   };
 }
 
-/** "Version 1", or "Version 1, revision 2" once the description has been corrected. */
+/** The one name of a card version and its revision, wherever it is shown: "Version 1", or "Version 1,
+ *  revision 2" once the description has been corrected. Its short form, where space is short (file names,
+ *  answer stamps), is "v1" and "v1.2" (cardVersionShort). */
 export function versionLabel(version: number, revision: number = 1): string {
   return revision > 1 ? `Version ${version}, revision ${revision}` : `Version ${version}`;
 }
 
-/** The kicker over a card: "AI card v1", or "Version 1, revision 2" once corrected. */
+/** The short form of versionLabel: "v1", or "v1.2" for revision 2. */
+export function cardVersionShort(version: number, revision: number = 1): string {
+  return revision > 1 ? `v${version}.${revision}` : `v${version}`;
+}
+
+/** The kicker over a card: its version and revision, named as everywhere. */
 export function cardHeading(version: number, revision: number = 1): string {
-  return revision > 1 ? versionLabel(version, revision) : `AI card v${version}`;
+  return versionLabel(version, revision);
 }
 
-/** The notice on a card that is not the current one. It names the revision, because an
- *  earlier revision of the latest version is as read-only as an older version's card. */
-export function keptNotice(version: number, revision: number = 1): string {
-  return `Version ${version || "?"}, revision ${revision}, kept as it was: only the latest card changes.`;
+/** The notice on a card that is not the current one. An earlier revision of a version says which
+ *  revision corrected it ("Version 1 (corrected by revision 2)"), since it is as read-only as an older
+ *  version's card. */
+export function keptNotice(version: number, revision: number = 1, latestRevision: number = revision): string {
+  const label = version ? versionLabel(version, revision) : "This card";
+  const corrected = latestRevision > revision ? ` (corrected by revision ${latestRevision})` : "";
+  return `${label}${corrected}, kept as it was: only the latest card changes.`;
 }
 
-/** Why a revision was made and at whose request; a value that was not stored is left out. */
+/** Why a revision was made, at whose request and by whom; a value that was not stored is left out. */
 export function amendmentText(
   reason: string | null | undefined,
   requestedBy: string | null | undefined,
+  amendedBy?: string | null,
 ): string {
   const why = reason?.trim();
   const who = requestedBy?.trim();
-  return `Corrected${why ? `: ${why}` : ""}.${who ? ` Requested by ${who}.` : ""}`;
+  const by = amendedBy?.trim();
+  return `Corrected${by ? ` by ${by}` : ""}${why ? `: ${why}` : ""}.${who ? ` Requested by ${who}.` : ""}`;
 }
 
 /** What the edit page offers besides a new version: correcting the description of the card it
@@ -244,6 +256,8 @@ export type CardStanding = {
   current: boolean;
   /** The latest version's card, or null when the latest has none. */
   currentCardId: string | null;
+  /** The highest revision of the cards of the version the card describes (1 when it has none). */
+  latestRevision: number;
 };
 
 /** Where one card stands: the latest version's latest revision is the system's page and
@@ -264,5 +278,6 @@ export function cardStanding(
       versions.find((version) => version.pid === systemId)?.number ?? 0,
     current: cardId !== null && currentCardId === cardId,
     currentCardId,
+    latestRevision: Math.max(1, ...cards.filter((c) => c.systemId === systemId).map((c) => c.revision)),
   };
 }

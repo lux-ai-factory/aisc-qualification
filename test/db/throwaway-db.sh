@@ -37,10 +37,14 @@ done
 su_psql() { docker exec -i "$NAME" psql -q -U aisc-postgres-user -d platform -v ON_ERROR_STOP=1 "$@"; }
 su_psql < "$ROOT/init/platform-db.sql" >/dev/null
 su_psql < "$ROOT/init/project-databases.sql" >/dev/null
+# the owner roles, as postgres-setup makes them: the platform migrates and provisions as platform_migrator
+su_psql < "$ROOT/init/owner-roles.sql" >/dev/null
+docker exec -i "$NAME" psql -q -U aisc-postgres-user -d template1 -v ON_ERROR_STOP=1 \
+  < "$ROOT/init/project-database-setup.sql" >/dev/null
 # the platform's own migrations, in order, as the platform
 for f in "$ROOT"/platform/migrations/*.sql; do
-  docker exec -i -e PGPASSWORD=platform_rw "$NAME" \
-    psql -q -h 127.0.0.1 -U platform_rw -d platform -v ON_ERROR_STOP=1 < "$f" >/dev/null
+  docker exec -i -e PGPASSWORD=platform_migrator "$NAME" \
+    psql -q -h 127.0.0.1 -U platform_migrator -d platform -v ON_ERROR_STOP=1 < "$f" >/dev/null
 done
 
 # (the qualification schema does not live in `platform`; the history of
@@ -57,18 +61,22 @@ ISO_C=cccccccc-0000-4000-8000-00000000000c   # qualification_rw may not connect:
 ISO_E=eeeeeeee-0000-4000-8000-00000000000e   # dropped mid-test
 ISO_F=ffffffff-0000-4000-8000-00000000000f   # the older DB tests (cardVersions) run here
 ISO_G=c4c4c4c4-0000-4000-8000-0000000000c4   # carriedReview: card versions of its own, so no other test's card stops being the latest
+ISO_H=d5d5d5d5-0000-4000-8000-0000000000d5   # cardRevisions: card versions of its own, so no other file takes its version number
 ISO_SETUP=ok
-if (cd "$ROOT/platform" && PROVISION_DSN="postgresql://platform_rw:platform_rw@127.0.0.1:$PORT/platform" \
+if (cd "$ROOT/platform" && PROVISION_DSN="postgresql://platform_migrator:platform_migrator@127.0.0.1:$PORT/platform" \
     uv run --quiet python -c '
 import os, sys
 from platform_service.projectdb import provision
 for pid in sys.argv[1:]:
     provision(os.environ["PROVISION_DSN"], pid)
-' "$ISO_A" "$ISO_B" "$ISO_C" "$ISO_E" "$ISO_F" "$ISO_G") >/dev/null 2>&1; then
+' "$ISO_A" "$ISO_B" "$ISO_C" "$ISO_E" "$ISO_F" "$ISO_G" "$ISO_H") >/dev/null 2>&1; then
   hex() { echo "$1" | tr -d '-'; }
-  F_URL="postgresql://qualification_rw:qualification_rw@127.0.0.1:$PORT/project_$(hex $ISO_F)?schema=qualification"
-  case "$F_URL" in *:5432/*) echo "refusing live DSN"; exit 1;; esac
-  (cd "$APP" && DATABASE_URL="$F_URL" npx prisma migrate deploy >/dev/null) || ISO_SETUP="project F could not be migrated"
+  # migrated as the stack migrates: qualification_migrator, acting as qualification_owner
+  for iso in "$ISO_F" "$ISO_H"; do
+    M_URL="postgresql://qualification_migrator:qualification_migrator@127.0.0.1:$PORT/project_$(hex "$iso")?schema=qualification"
+    case "$M_URL" in *:5432/*) echo "refusing live DSN"; exit 1;; esac
+    (cd "$APP" && DATABASE_URL="$M_URL" npx prisma migrate deploy >/dev/null) || ISO_SETUP="project $iso could not be migrated"
+  done
   su_psql -c "REVOKE CONNECT ON DATABASE project_$(hex $ISO_C) FROM qualification_rw" >/dev/null 2>&1 || true
   su_psql -c "CREATE DATABASE project_notapid" >/dev/null
   su_psql -c "CREATE DATABASE live_shape" >/dev/null
@@ -84,6 +92,7 @@ else
 fi
 export ISOLATION_SETUP="$ISO_SETUP"
 export QUALIFICATION_TEST_PROJECT_DATABASE_URL="postgresql://qualification_rw:qualification_rw@127.0.0.1:$PORT/{database}?schema=qualification"
+export QUALIFICATION_TEST_PROJECT_MIGRATE_DATABASE_URL="postgresql://qualification_migrator:qualification_migrator@127.0.0.1:$PORT/{database}?schema=qualification"
 export QUALIFICATION_TEST_PROJECT_ADMIN_URL="postgresql://aisc-postgres-user:$PW@127.0.0.1:$PORT/{database}"
 export QUALIFICATION_TEST_PLATFORM_ROLE_URL="postgresql://platform_rw:platform_rw@127.0.0.1:$PORT/platform"
 export QUALIFICATION_TEST_PROJECTS="$ISO_A,$ISO_B,$ISO_C,$ISO_E"
@@ -92,11 +101,16 @@ export QUALIFICATION_TEST_CARRY_PROJECT="$ISO_G"
 F_DB="project_$(echo "$ISO_F" | tr -d '-')"
 export QUALIFICATION_TEST_DATABASE_URL="postgresql://qualification_rw:qualification_rw@127.0.0.1:$PORT/$F_DB?schema=qualification"
 export QUALIFICATION_TEST_ADMIN_URL="postgresql://aisc-postgres-user:$PW@127.0.0.1:$PORT/$F_DB?schema=qualification"
+H_DB="project_$(echo "$ISO_H" | tr -d '-')"
+export QUALIFICATION_TEST_REVISIONS_DATABASE_URL="postgresql://qualification_rw:qualification_rw@127.0.0.1:$PORT/$H_DB?schema=qualification"
+export QUALIFICATION_TEST_REVISIONS_ADMIN_URL="postgresql://aisc-postgres-user:$PW@127.0.0.1:$PORT/$H_DB?schema=qualification"
 export QUALIFICATION_TEST_PSQL="docker exec -i $NAME psql -q -U aisc-postgres-user -d $F_DB -v ON_ERROR_STOP=1"
 
 # Every URL the tests get points at this container's port and never at a live database name.
-for v in QUALIFICATION_TEST_DATABASE_URL QUALIFICATION_TEST_ADMIN_URL QUALIFICATION_TEST_PROJECT_DATABASE_URL \
-         QUALIFICATION_TEST_PROJECT_ADMIN_URL QUALIFICATION_TEST_PLATFORM_ROLE_URL; do
+for v in QUALIFICATION_TEST_DATABASE_URL QUALIFICATION_TEST_ADMIN_URL QUALIFICATION_TEST_REVISIONS_DATABASE_URL \
+         QUALIFICATION_TEST_REVISIONS_ADMIN_URL QUALIFICATION_TEST_PROJECT_DATABASE_URL \
+         QUALIFICATION_TEST_PROJECT_MIGRATE_DATABASE_URL QUALIFICATION_TEST_PROJECT_ADMIN_URL \
+         QUALIFICATION_TEST_PLATFORM_ROLE_URL; do
   case "${!v}" in *"127.0.0.1:$PORT/"*) ;; *) echo "refusing: $v is not on the throwaway port"; exit 1;; esac
   case "${!v}" in *:5432/*) echo "refusing: $v names port 5432"; exit 1;; esac
 done
@@ -105,7 +119,9 @@ if [ "${KEEP:-}" = "1" ]; then
   echo "export QUALIFICATION_TEST_DATABASE_URL='$QUALIFICATION_TEST_DATABASE_URL'"
   echo "export QUALIFICATION_TEST_ADMIN_URL='$QUALIFICATION_TEST_ADMIN_URL'"
   echo "export QUALIFICATION_TEST_PSQL='$QUALIFICATION_TEST_PSQL'"
-  for v in ISOLATION_SETUP QUALIFICATION_TEST_PROJECT_DATABASE_URL QUALIFICATION_TEST_PROJECT_ADMIN_URL \
+  for v in ISOLATION_SETUP QUALIFICATION_TEST_REVISIONS_DATABASE_URL QUALIFICATION_TEST_REVISIONS_ADMIN_URL \
+           QUALIFICATION_TEST_PROJECT_DATABASE_URL QUALIFICATION_TEST_PROJECT_MIGRATE_DATABASE_URL \
+           QUALIFICATION_TEST_PROJECT_ADMIN_URL \
            QUALIFICATION_TEST_PLATFORM_ROLE_URL QUALIFICATION_TEST_PROJECTS QUALIFICATION_TEST_CARRY_PROJECT; do
     echo "export $v='${!v}'"
   done

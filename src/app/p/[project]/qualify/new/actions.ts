@@ -1,14 +1,23 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { qualificationService } from "@/server/services/QualificationService";
+import { CardNotSaved, qualificationService } from "@/server/services/QualificationService";
 import { FormValidationError } from "@/server/forms/QualificationFormParser";
 import { projectDbForAction } from "@/lib/projectDb";
 import { emitEvent } from "@/vendor/aisc-ledger/emit";
+import { callerName } from "@/server/access/callerName";
 
 export type SubmitState = { error?: string } | undefined;
 
-const PLATFORM_SILENT = "The platform did not answer; nothing was saved";
+const PLATFORM_SILENT = "The platform did not answer, so the card was not saved.";
+
+/** What the person is told of a card that was not saved, by what became of the card version made for it. */
+const NOT_SAVED: Record<CardNotSaved["version"], string> = {
+  withdrawn: "The card was not saved. The card version made for it was withdrawn.",
+  none: "The card was not saved, and no card version was made.",
+  unknown:
+    "The card was not saved. The platform may hold an empty card version; it could not be withdrawn, so ask an admin to check the card versions.",
+};
 
 export async function submitQualification(
   project: string,
@@ -38,7 +47,7 @@ export async function submitQualification(
       ({ id } = await qualificationService.reviseFromForm(
         project,
         formData,
-        { reason, requestedBy },
+        { reason, requestedBy, amendedBy: await callerName() },
         (tx, card) =>
           emitEvent(tx, {
             action: "qualification.amended",
@@ -83,7 +92,8 @@ export async function submitQualification(
     }
   } catch (err) {
     if (err instanceof FormValidationError) return { error: err.message };
-    // The platform did not answer: no version was made, so nothing was saved.
+    if (err instanceof CardNotSaved) return { error: NOT_SAVED[err.version] };
+    // A correction the platform did not count in time: the card's transaction was rolled back with it.
     if (err instanceof Error && /did not answer/i.test(err.message)) {
       return { error: PLATFORM_SILENT };
     }

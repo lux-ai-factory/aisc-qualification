@@ -96,9 +96,10 @@ function setup(
     ),
   };
   const formsFor = vi.fn(async (_project: string) => forms);
+  // an engine that answers, with no components
   const svc = new (QualificationService as unknown as new (
     ...args: unknown[]
-  ) => QualificationService)(repo, parser, platform, formsFor);
+  ) => QualificationService)(repo, parser, platform, formsFor, undefined, { components: async () => [] });
   return { svc, platform, repo, parser, forms, formsFor };
 }
 
@@ -224,6 +225,7 @@ describe("saving a card with a form", () => {
         provider: "Acme",
         description: null,
       }),
+      expect.any(String),
     );
   });
 
@@ -236,6 +238,7 @@ describe("saving a card with a form", () => {
     expect(platform.createVersion).toHaveBeenCalledWith(
       "mcas",
       expect.objectContaining({ description: "A vision system." }),
+      expect.any(String),
     );
   });
 });

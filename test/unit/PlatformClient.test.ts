@@ -49,6 +49,7 @@ describe("PlatformClient and the project's card versions", () => {
       new PlatformClient("http://platform:8000", fetchImpl).createVersion(
         "nope",
         { name: "MCAS" },
+        "attempt-1",
       ),
     ).rejects.toThrow(/could not name this system/i);
   });
@@ -77,7 +78,7 @@ describe("PlatformClient and the project's card versions", () => {
 
   it("refuses to be configured with no platform at all", async () => {
     await expect(
-      new PlatformClient("", vi.fn()).createVersion("p", { name: "MCAS" }),
+      new PlatformClient("", vi.fn()).createVersion("p", { name: "MCAS" }, "attempt-1"),
     ).rejects.toThrow(/PLATFORM_URL/);
   });
 });
@@ -148,7 +149,7 @@ describe("PlatformClient on an answer it cannot use", () => {
   it("a 2xx that is not a card version says the answer could not be read", async () => {
     const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 3 }) });
     await expect(
-      new PlatformClient("http://platform:8000", fetchImpl).createVersion("p", { name: "MCAS" }),
+      new PlatformClient("http://platform:8000", fetchImpl).createVersion("p", { name: "MCAS" }, "attempt-1"),
     ).rejects.toThrow("Could not name this system: the platform gave an answer this could not read.");
   });
 
@@ -166,7 +167,7 @@ describe("PlatformClient on an answer it cannot use", () => {
       json: async () => ({ detail: [{ loc: ["body", "name"], msg: "Field required", type: "missing" }] }),
     });
     await expect(
-      new PlatformClient("http://platform:8000", fetchImpl).createVersion("p", { name: "" }),
+      new PlatformClient("http://platform:8000", fetchImpl).createVersion("p", { name: "" }, "attempt-1"),
     ).rejects.toThrow("Could not name this system: the platform answered 422. name: Field required");
   });
 });

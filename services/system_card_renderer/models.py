@@ -158,3 +158,11 @@ class SystemCard(BaseModel):
     ontology: Optional[Ontology] = None
     generated_at: Optional[str] = None
     qualification_id: Optional[str] = None
+    # Which AI card version and revision this is, and whether a later revision of the same version
+    # corrected it: two revisions of one version must never be mistaken for each other. Absent from an
+    # app of before; the card then says nothing about them.
+    card_version: Optional[int] = None
+    card_revision: Optional[int] = None
+    superseded: bool = False
+    amend_reason: Optional[str] = None
+    amend_requested_by: Optional[str] = None

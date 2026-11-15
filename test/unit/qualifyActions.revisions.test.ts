@@ -146,6 +146,7 @@ describe("the save says whether the system changed or its description is correct
       {
         reason: "Provider name was wrong",
         requestedBy: "Eindhoven Engine, email of 10 Nov",
+        amendedBy: expect.any(String),
       },
       expect.any(Function),
     );
@@ -245,18 +246,17 @@ describe("a version and its revision are named the way the spec shows them", () 
 describe("the card page names its revision, why it was corrected and whether it is current", () => {
   it("heads the card with the version, adding the revision above 1", async () => {
     const { cardHeading } = await import("@/domain/cardVersions");
-    expect(cardHeading(1, 1)).toBe("AI card v1");
-    expect(cardHeading(1, undefined)).toBe("AI card v1");
+    expect(cardHeading(1, 1)).toBe("Version 1");
+    expect(cardHeading(1, undefined)).toBe("Version 1");
     expect(cardHeading(1, 2)).toBe("Version 1, revision 2");
   });
 
-  it("an older card reads as kept as it was, naming its revision", async () => {
+  it("an older card reads as kept as it was, naming its revision and the one that corrected it", async () => {
     const { keptNotice } = await import("@/domain/cardVersions");
-    expect(keptNotice(1, 1)).toBe(
-      "Version 1, revision 1, kept as it was: only the latest card changes.",
-    );
-    expect(keptNotice(2, 3)).toBe(
-      "Version 2, revision 3, kept as it was: only the latest card changes.",
+    expect(keptNotice(1, 1)).toBe("Version 1, kept as it was: only the latest card changes.");
+    expect(keptNotice(2, 3)).toBe("Version 2, revision 3, kept as it was: only the latest card changes.");
+    expect(keptNotice(1, 1, 2)).toBe(
+      "Version 1 (corrected by revision 2), kept as it was: only the latest card changes.",
     );
   });
 
@@ -270,6 +270,9 @@ describe("the card page names its revision, why it was corrected and whether it 
     );
     expect(amendmentText("Typo", null)).toBe("Corrected: Typo.");
     expect(amendmentText(null, "  ")).toBe("Corrected.");
+    expect(amendmentText("Typo", "Eindhoven Engine", "Ada Lovelace")).toBe(
+      "Corrected by Ada Lovelace: Typo. Requested by Eindhoven Engine.",
+    );
   });
 
   it("the card page uses them where it prints the version and the read-only notice", () => {
@@ -278,7 +281,7 @@ describe("the card page names its revision, why it was corrected and whether it 
       "utf8",
     );
     expect(page).toContain("cardHeading(standing.versionNumber, q.revision)");
-    expect(page).toContain("keptNotice(standing?.versionNumber || 0, q.revision)");
-    expect(page).toContain("amendmentText(q.amendReason, q.amendRequestedBy)");
+    expect(page).toContain("keptNotice(standing?.versionNumber || 0, q.revision, standing?.latestRevision)");
+    expect(page).toContain("amendmentText(q.amendReason, q.amendRequestedBy, q.amendedBy)");
   });
 });

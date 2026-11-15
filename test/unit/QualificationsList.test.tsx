@@ -35,8 +35,8 @@ describe("the compiled qualifications list", () => {
         ]}
       />,
     );
-    expect(screen.getByText("AI card v2")).toBeTruthy();
-    expect(screen.getByText("AI card v1")).toBeTruthy();
+    expect(screen.getByText("Version 2")).toBeTruthy();
+    expect(screen.getByText("Version 1")).toBeTruthy();
   });
 
   it("shows each one with its name, version, company and timestamp", () => {
@@ -130,7 +130,7 @@ describe("the compiled qualifications list", () => {
 });
 
 describe("a revision is listed under its version with why and at whose request", () => {
-  it("shows v1.2, the reason and the requester; revision 1 stays plain", () => {
+  it("shows Version 1, revision 2, the reason and the requester; revision 1 stays plain", () => {
     const { container } = render(
       <QualificationsList
         project="mcas"
@@ -147,8 +147,8 @@ describe("a revision is listed under its version with why and at whose request",
       />,
     );
     const html = container.textContent ?? "";
-    expect(html).toContain("AI card v1.2");
+    expect(html).toContain("Version 1, revision 2");
     expect(html).toContain("Corrected: Provider name was wrong. Requested by Eindhoven Engine.");
-    expect(html.match(/AI card v1(?!\.)/g)).toHaveLength(1);
+    expect(html.match(/Version 1(?!,)/g)).toHaveLength(1);
   });
 });

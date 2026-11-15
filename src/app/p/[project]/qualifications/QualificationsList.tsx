@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { releaseLabel } from "@/domain/SystemCard";
-import { amendmentText } from "@/domain/cardVersions";
+import { amendmentText, versionLabel } from "@/domain/cardVersions";
 
 // The versions of the project's one AI system, each a row linking to its card.
 // A row carries only what it takes to pick one: which system, which version,
@@ -12,6 +12,8 @@ export type ListItem = {
   versionNumber?: number;
   /** Who saved the version, when the platform says. */
   createdBy?: string | null;
+  /** Who made the correction, on a revision above 1 when the card keeps it. */
+  amendedBy?: string | null;
   /** The card's revision of its version: 1 is the card saved with the version. */
   revision: number;
   /** Why the description was corrected and who asked, on a revision above 1. */
@@ -60,8 +62,7 @@ export default function QualificationsList({
             <div className="qf-row-main">
               {item.versionNumber !== undefined && (
                 <p className="qf-row-sysver">
-                  AI card v{item.versionNumber}
-                  {item.revision > 1 && `.${item.revision}`}
+                  {versionLabel(item.versionNumber, item.revision)}
                 </p>
               )}
               <h3>
@@ -83,6 +84,9 @@ export default function QualificationsList({
               <time dateTime={item.savedAt}>{stamp(item.savedAt)} UTC</time>
               {item.createdBy && (
                 <span className="qf-row-counts">saved by {item.createdBy}</span>
+              )}
+              {item.amendedBy && (
+                <span className="qf-row-counts">corrected by {item.amendedBy}</span>
               )}
               <span className="qf-row-counts">
                 {item.answers} answers · {item.risks} risks
