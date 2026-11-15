@@ -46,12 +46,13 @@ function card(systemId: string, name: string) {
 
 describe.skipIf(!enabled)("the migration's schema (catalog)", () => {
   // the card's key is into the project's card versions, and cascades from it
-  it("qualification.system_id references project.system(pid) ON DELETE CASCADE", async () => {
+  // The card version a card describes is kept, and the card with it (20261115000000_owner_role): RESTRICT.
+  it("qualification.system_id references project.system(pid) ON DELETE RESTRICT", async () => {
     const rows = await admin.$queryRawUnsafe<{ target: string; del: string }[]>(
       `SELECT confrelid::regclass::text AS target, confdeltype::text AS del
          FROM pg_constraint WHERE conname = 'qualification_system_id_fkey'`,
     );
-    expect(rows).toEqual([{ target: "project.system", del: "c" }]);
+    expect(rows).toEqual([{ target: "project.system", del: "r" }]);
   });
 
   it("one card per version and revision: the unique index is on (system_id, revision)", async () => {
@@ -80,15 +81,17 @@ describe.skipIf(!enabled)("the migration's schema (catalog)", () => {
     ]);
   });
 
-  it("no DELETE trigger on the answers, so the version cascade is never blocked", async () => {
-    const rows = await admin.$queryRawUnsafe<{ n: bigint }[]>(
+  // A card is never deleted (20261115000000_owner_role): its one DELETE trigger refuses it; the answers
+  // have none, a card's own rows go only with the card.
+  it("the one DELETE trigger is the card's own, which keeps it; none on the answers", async () => {
+    const rows = await admin.$queryRawUnsafe<{ tgname: string }[]>(
       // tgtype bit 3 (8) is DELETE
-      `SELECT count(*) AS n FROM pg_trigger
+      `SELECT tgname FROM pg_trigger
         WHERE NOT tgisinternal AND (tgtype & 8) <> 0
           AND tgrelid IN ('qualification.qualification'::regclass,
                           'qualification.qualification_answer'::regclass)`,
     );
-    expect(Number(rows[0].n)).toBe(0);
+    expect(rows).toEqual([{ tgname: "qualification_no_delete" }]);
   });
 
   it("card_component has the columns, the unique pair and the component index", async () => {

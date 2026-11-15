@@ -70,7 +70,8 @@ for pid in sys.argv[1:]:
     provision(os.environ["PROVISION_DSN"], pid)
 ' "$ISO_A" "$ISO_B" "$ISO_C" "$ISO_E" "$ISO_F" "$ISO_G") >/dev/null 2>&1; then
   hex() { echo "$1" | tr -d '-'; }
-  F_URL="postgresql://qualification_rw:qualification_rw@127.0.0.1:$PORT/project_$(hex $ISO_F)?schema=qualification"
+  # migrated as the stack migrates: qualification_migrator, acting as qualification_owner
+  F_URL="postgresql://qualification_migrator:qualification_migrator@127.0.0.1:$PORT/project_$(hex $ISO_F)?schema=qualification"
   case "$F_URL" in *:5432/*) echo "refusing live DSN"; exit 1;; esac
   (cd "$APP" && DATABASE_URL="$F_URL" npx prisma migrate deploy >/dev/null) || ISO_SETUP="project F could not be migrated"
   su_psql -c "REVOKE CONNECT ON DATABASE project_$(hex $ISO_C) FROM qualification_rw" >/dev/null 2>&1 || true
@@ -88,6 +89,7 @@ else
 fi
 export ISOLATION_SETUP="$ISO_SETUP"
 export QUALIFICATION_TEST_PROJECT_DATABASE_URL="postgresql://qualification_rw:qualification_rw@127.0.0.1:$PORT/{database}?schema=qualification"
+export QUALIFICATION_TEST_PROJECT_MIGRATE_DATABASE_URL="postgresql://qualification_migrator:qualification_migrator@127.0.0.1:$PORT/{database}?schema=qualification"
 export QUALIFICATION_TEST_PROJECT_ADMIN_URL="postgresql://aisc-postgres-user:$PW@127.0.0.1:$PORT/{database}"
 export QUALIFICATION_TEST_PLATFORM_ROLE_URL="postgresql://platform_rw:platform_rw@127.0.0.1:$PORT/platform"
 export QUALIFICATION_TEST_PROJECTS="$ISO_A,$ISO_B,$ISO_C,$ISO_E"
@@ -100,7 +102,8 @@ export QUALIFICATION_TEST_PSQL="docker exec -i $NAME psql -q -U aisc-postgres-us
 
 # Every URL the tests get points at this container's port and never at a live database name.
 for v in QUALIFICATION_TEST_DATABASE_URL QUALIFICATION_TEST_ADMIN_URL QUALIFICATION_TEST_PROJECT_DATABASE_URL \
-         QUALIFICATION_TEST_PROJECT_ADMIN_URL QUALIFICATION_TEST_PLATFORM_ROLE_URL; do
+         QUALIFICATION_TEST_PROJECT_MIGRATE_DATABASE_URL QUALIFICATION_TEST_PROJECT_ADMIN_URL \
+         QUALIFICATION_TEST_PLATFORM_ROLE_URL; do
   case "${!v}" in *"127.0.0.1:$PORT/"*) ;; *) echo "refusing: $v is not on the throwaway port"; exit 1;; esac
   case "${!v}" in *:5432/*) echo "refusing: $v names port 5432"; exit 1;; esac
 done
@@ -109,7 +112,8 @@ if [ "${KEEP:-}" = "1" ]; then
   echo "export QUALIFICATION_TEST_DATABASE_URL='$QUALIFICATION_TEST_DATABASE_URL'"
   echo "export QUALIFICATION_TEST_ADMIN_URL='$QUALIFICATION_TEST_ADMIN_URL'"
   echo "export QUALIFICATION_TEST_PSQL='$QUALIFICATION_TEST_PSQL'"
-  for v in ISOLATION_SETUP QUALIFICATION_TEST_PROJECT_DATABASE_URL QUALIFICATION_TEST_PROJECT_ADMIN_URL \
+  for v in ISOLATION_SETUP QUALIFICATION_TEST_PROJECT_DATABASE_URL QUALIFICATION_TEST_PROJECT_MIGRATE_DATABASE_URL \
+           QUALIFICATION_TEST_PROJECT_ADMIN_URL \
            QUALIFICATION_TEST_PLATFORM_ROLE_URL QUALIFICATION_TEST_PROJECTS QUALIFICATION_TEST_CARRY_PROJECT; do
     echo "export $v='${!v}'"
   done

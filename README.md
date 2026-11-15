@@ -166,6 +166,7 @@ instead. In the stack, open the form with `?example=mcas` as above.
 | Variable | Meaning | Default |
 | --- | --- | --- |
 | `PROJECT_DATABASE_URL` | Template of a project database URL; `{database}` becomes `project_<pid without hyphens>`. The app always forces `schema=qualification` and `connection_limit=2`. | none (required). The stack sets `postgresql://qualification_rw:...@postgres:5432/{database}?...`, overridable with `QUALIFICATION_PROJECT_DATABASE_URL`. |
+| `PROJECT_MIGRATE_DATABASE_URL` | The same template for the migrations, as `qualification_migrator`, whose sessions act as `qualification_owner`, the owner of the schema's tables (`scripts/migrate-projects.mjs`, and the app at a project's first open). A database is migrated only once its `qualification` schema is `qualification_owner`'s. | none (required). The stack sets `postgresql://qualification_migrator:...@postgres:5432/{database}?...`, overridable with `QUALIFICATION_PROJECT_MIGRATE_DATABASE_URL`. |
 | `DATABASE_URL` | Read only by the Prisma CLI. `scripts/migrate-projects.mjs` and the app set it per project database when they run `prisma migrate deploy`. | none |
 | `PLATFORM_URL` | The platform: access checks, card versions, project names. | none (project pages answer 503 without it) |
 | `LAUNCHER_URL` | Where a reader without a project is sent. | `http://localhost:8100/` |

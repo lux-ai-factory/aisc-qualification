@@ -29,3 +29,28 @@ export function databaseUrl(template, database) {
   url.searchParams.set("connection_limit", "2");
   return url.toString();
 }
+
+/** The role that owns the qualification schema and its tables; qualification_migrator acts as it. */
+export const OWNER = "qualification_owner";
+
+/** Who owns the qualification schema of the database a client is on (one row, `owner`, or none). */
+export const SCHEMA_OWNER_QUERY =
+  "SELECT pg_get_userbyid(nspowner)::text AS owner FROM pg_namespace WHERE nspname = 'qualification'";
+
+/** Who may hold the schema before it is handed to its owner: the platform, which makes it. */
+const NOT_HANDED_OVER_YET = new Set([null, "platform_rw", "platform_owner"]);
+
+/**
+ * Why a project database may not be migrated, or null. Its qualification schema must belong to
+ * qualification_owner: the platform hands it over once postgres-setup has made the role. `wait` says the
+ * hand-over is still to come (the schema is missing or still the platform's): the one-shot tries again.
+ * A schema of anyone else is a permanent error. Migrating a schema of another owner would fail half way
+ * or make tables the role the app connects as could alter.
+ */
+export function ownerProblem(owner) {
+  if (owner === OWNER) return null;
+  return {
+    wait: NOT_HANDED_OVER_YET.has(owner),
+    text: `schema qualification belongs to ${owner ?? "nobody (it is missing)"}, not ${OWNER}: run postgres-setup (init/owner-roles.sql) and start the platform, which hands it over`,
+  };
+}
