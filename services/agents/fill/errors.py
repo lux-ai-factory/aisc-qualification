@@ -1,10 +1,9 @@
 """An error as a reader may see it: `shown_error(text, limit)`.
 
-Two byte-identical copies, one per app, since neither app imports the other:
-apps/qualification/services/agents/fill/errors.py (a fill run's failure, read through the web
-app's GET /p/{pid}/api/qualifications/{id}/fill by the project's editors and owners only) and
-apps/control-objectives/src/aisc_control_objectives/errors.py (a mapping run's stored error).
-Change both together.
+A copy of the shared rule, aisc_redact.shown_error (shared/identity), which this service cannot import: a fill
+run's failure, read through the web app's GET /p/{pid}/api/qualifications/{id}/fill by the project's editors
+and owners only. The copy runs the shared vectors, redaction-cases.json, in tests/test_redaction_cases.py, so
+it cannot drift from the rule control objectives imports.
 
 A model client's exception can quote the request URL with its `?key=`, an Authorization header,
 the provider's JSON echo of a key, or the provider's message about the key. So the text a reader

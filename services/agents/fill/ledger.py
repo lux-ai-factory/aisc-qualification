@@ -25,6 +25,7 @@ from urllib import error, request
 
 from fill import clients
 from fill.switches import ledger_mode
+from fill.vendor.ledger_delivery import http_sender
 
 logger = logging.getLogger(__name__)
 
@@ -115,18 +116,22 @@ def emit(action: str, item_type: str, item_id: str | None, details: dict | None 
                              "item_id": item_id, "details": details or {}}
     event["model"] = state.get("model") or UNKNOWN_MODEL
     url = f"{base}/internal/projects/{state['pid']}/ledger/events"
-    body = json.dumps(event).encode("utf-8")
-    hdrs = {"Content-Type": "application/json", "X-AISC-Service-Token": token}
+
+    def post(post_url, posted, hdrs, post_timeout):
+        return (send or _send)(post_url, json.dumps(posted).encode("utf-8"), hdrs, post_timeout), ""
+
+    # the shared sender, one try at a time: this loop also tries again on a 5xx
+    post_once = http_sender(url, token, timeout=timeout, retries=(), post=post)
     for wait in (*retries, None):                                     # the same event id each time
         try:
-            status = (send or _send)(url, body, hdrs, timeout)
-            if status in (202, 409):                                  # 409: an earlier try got through
+            status, failure = post_once(event)
+            if status is None:
+                logger.warning("ledger: %s not sent yet: %s", action, failure)
+            elif status in (202, 409):                                # 409: an earlier try got through
                 return True
-            if status < 500:
+            elif status < 500:
                 logger.error("ledger: the platform refused %s (%s)", action, status)
                 return False
-        except OSError as exc:
-            logger.warning("ledger: %s not sent yet: %s", action, exc)
         except Exception as exc:  # noqa: BLE001 - a bad PLATFORM_URL (ValueError), a garbled reply
             # (http.client.BadStatusLine): not worth a retry, and never a reason to fail the run
             logger.error("ledger: %s of run %s was not recorded: %s", action, state["run_id"], type(exc).__name__)
