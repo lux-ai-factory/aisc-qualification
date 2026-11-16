@@ -3,7 +3,7 @@
 # Build context is the APP ROOT (apps/qualification), not this directory, because
 # the Annex IV points are shared with the Next.js form and live in src/data:
 #   docker build -f services/ontology/Dockerfile .
-FROM python:3.12-slim
+FROM python:3.12.15-slim@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704
 
 WORKDIR /app
 

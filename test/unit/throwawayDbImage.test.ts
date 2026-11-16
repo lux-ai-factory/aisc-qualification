@@ -9,7 +9,7 @@ import { resolve } from "node:path";
 
 const APP = resolve(__dirname, "../..");
 const STACK_COMPOSE = resolve(APP, "../../docker-compose-infra.development.yml");
-const PINNED = "postgres:15-alpine";
+const PINNED = "postgres:15.19-alpine@sha256:f7d23353e1b15400d22ebe31189f4d314b87a4c129cc400c8c2d8d4ca127bf81";
 
 const bedImage = () => {
   const found = readFileSync(resolve(APP, "test/db/throwaway-db.sh"), "utf8").match(/^\s*(postgres:\S+)\s*>/m);

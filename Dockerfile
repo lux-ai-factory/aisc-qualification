@@ -1,11 +1,11 @@
 # Multi-stage build: install dependencies, build the Next.js app, then run it with `next start`.
-FROM node:20-alpine AS deps
+FROM node:20.20.2-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS deps
 WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl
 COPY package.json package-lock.json* ./
 RUN npm ci
 
-FROM node:20-alpine AS builder
+FROM node:20.20.2-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS builder
 WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl
 COPY --from=deps /app/node_modules ./node_modules
@@ -16,7 +16,7 @@ ENV NEXT_BASE_PATH=$NEXT_BASE_PATH
 RUN npx prisma generate
 RUN npm run build
 
-FROM node:20-alpine AS runner
+FROM node:20.20.2-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS runner
 WORKDIR /app
 RUN apk add --no-cache openssl
 ENV NODE_ENV=production
