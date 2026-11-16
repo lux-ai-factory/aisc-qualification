@@ -20,5 +20,8 @@ COPY src/data/prefillFields.json ./prefill/prefill_fields.json
 # $PREFILL_VAIR_VOCAB_PATH.
 COPY src/data/vair_vocab.json ./prefill/vair_vocab.json
 
+# runs as its own user, not root
+RUN useradd --system --uid 10041 --no-create-home prefill
+USER prefill
 EXPOSE 8012
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8012"]
