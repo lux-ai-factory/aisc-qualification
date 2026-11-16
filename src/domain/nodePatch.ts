@@ -14,7 +14,7 @@ const NODE_ID_MAX = 200;
 
 const text = (what: string, max: number) =>
   z
-    .string({ invalid_type_error: `${what} must be text.` })
+    .string({ error: `${what} must be text.` })
     .max(max, `${what} is longer than ${max} characters.`)
     .refine((v) => !hasNul(v), nulMessage(what));
 
@@ -26,12 +26,12 @@ const NODE_PATCH = z
     ),
     vair: z
       .string({
-        invalid_type_error: "The vocabulary term must be text or none.",
+        error: "The vocabulary term must be text or none.",
       })
       .nullable(),
     note: text("The note", NOTE_MAX),
     termNotApplicable: z.boolean({
-      invalid_type_error: "termNotApplicable must be true or false.",
+      error: "termNotApplicable must be true or false.",
     }),
   })
   .partial()

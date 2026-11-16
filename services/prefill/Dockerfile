@@ -4,7 +4,7 @@
 # service, because the mapping from an Annex point to a form field lives with
 # the form that defines it:
 #   docker build -f services/prefill/Dockerfile .
-FROM python:3.12-slim
+FROM python:3.12.15-slim@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704
 
 WORKDIR /app
 
@@ -20,5 +20,8 @@ COPY src/data/prefillFields.json ./prefill/prefill_fields.json
 # $PREFILL_VAIR_VOCAB_PATH.
 COPY src/data/vair_vocab.json ./prefill/vair_vocab.json
 
+# runs as its own user, not root
+RUN useradd --system --uid 10041 --no-create-home prefill
+USER prefill
 EXPOSE 8012
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8012"]
