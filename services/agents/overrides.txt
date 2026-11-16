@@ -1,0 +1,9 @@
+# besser-agentic-framework pins its dependencies with ==, some inside published advisories. Each line raises one
+# to the first version past them (installed with uv pip install --override). streamlit stays: BAF imports it when
+# its Agent class is imported, through the websocket platform.
+aiohttp==3.14.4
+nltk==3.10.4
+pillow==13.0.0
+requests==2.33.0
+streamlit==1.54.0
+gitpython==3.2.1
