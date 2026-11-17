@@ -1,0 +1,38 @@
+[project]
+name = "aisc-qualification"
+version = "0.1.0"
+description = "Qualification compute service: indexes a questionnaire definition and answers, returns the AI card."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "pydantic>=2.10,<3",
+    "rdflib>=7.6",
+    "uvicorn[standard]>=0.32,<1",
+]
+
+[tool.uv]
+# A service, not a library: nothing to package or install as a project
+# (app runs in place from src/).
+package = false
+
+[tool.pytest.ini_options]
+# src-layout: the service modules (app, ontology, card, airo_min) live under src/.
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+extend-select = ["E5"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.27,<1",
+    "pytest>=8,<9",
+    "ruff>=0.17.5",
+    "ty>=0.0.105",
+]

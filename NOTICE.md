@@ -20,7 +20,7 @@ license terms, or attribution requirements.
 
 ### Vendored ontologies
 
-`services/ontology/airo/` redistributes two works verbatim, neither of them modified,
+`src/airo/` redistributes two works verbatim, neither of them modified,
 under the [Creative Commons Attribution 4.0 International licence](https://creativecommons.org/licenses/by/4.0/):
 
 - **AIRO, AI Risk Ontology, version 1.0** (`airo.ttl`) by Delaram Golpayegani, with

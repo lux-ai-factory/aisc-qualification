@@ -1,16 +1,11 @@
-node_modules
-**.venv
-**/node_modules
+# The image only needs src/, data/, pyproject.toml and uv.lock. Exclude everything else.
+**/
+!src/
+!data/
+!pyproject.toml
+!uv.lock
+
+# and never caches or local config inside those
 **/__pycache__
-.next
-.git
-.env
-.env.local
-postgres-data
-*.log
-.DS_Store
-.vscode
-.idea
-README.md
-DEPLOY.md
-*.docx
+**/.venv
+src/**/__pycache__
