@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException
 from starlette.types import ASGIApp
 
 import ontology
-from card import build_response
+from card import builder
 from default_questionnaire import DEFAULT_QUESTIONNAIRE_ID, load_default_definition
 from schemas import BuildRequest, BuildResponse
 from service_token import ServiceTokens
@@ -56,6 +56,6 @@ def build(req: BuildRequest) -> BuildResponse:
             }
         )
     try:
-        return build_response(req)
+        return builder.build(req)
     except ontology.OntologyServiceError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc

@@ -1,9 +1,10 @@
 """Building the AI card from a questionnaire definition and answers.
 
-A deterministic summary card for now — the backend falls back to it when the
-service is absent, and this is the contract the real AIRO build will fill in.
-The digest is stable for the same answers, so a caller can tell a re-build from
-a change.
+``CardBuilder`` produces the card: the full AIRO build when the ontology
+engine answers, otherwise a deterministic summary. The digest is stable for the
+same answers, so a caller can tell a re-build from a change. The ontology
+service is injectable (defaults to the ``ontology`` module) so a test can swap
+in a fake.
 """
 
 from __future__ import annotations
@@ -20,34 +21,43 @@ _SYSTEM_IRI = os.environ.get("AISC_SYSTEM_IRI", "urn:aisc:project")
 _SYSTEM = f"<{_SYSTEM_IRI}> a airo:AISystem ."
 
 
-def build_response(req: BuildRequest) -> BuildResponse:
-    answers = req.answers or {}
-    prose, _ = ontology.split_blocks(answers)
-    prose = {k: v for k, v in prose.items() if k != ontology.PATCH_KEY}
-    digest = _digest(req.questionnaire_id, answers)
-    built = ontology.build_card(req.system or {}, req.questionnaire_id, answers)
-    if built:
+class CardBuilder:
+    """The AI card builder: a real AIRO card when possible, else a summary."""
+
+    def __init__(self, service=ontology) -> None:
+        self.service = service
+
+    def _digest(self, questionnaire_id: str, answers: dict) -> str:
+        return str(abs(hash((questionnaire_id, str(sorted(answers.items()))))))
+
+    def build(self, req: BuildRequest) -> BuildResponse:
+        answers = req.answers or {}
+        prose, _ = self.service.split_blocks(answers)
+        prose = {k: v for k, v in prose.items() if k != ontology.PATCH_KEY}
+        digest = self._digest(req.questionnaire_id, answers)
+        built = self.service.build_card(req.system or {}, req.questionnaire_id, answers)
+        if built:
+            return BuildResponse(
+                view=built.get("view") or {},
+                jsonld=built.get("jsonld") or "",
+                turtle=built.get("turtle") or "",
+                problems=built.get("problems") or [],
+                digest=built.get("digest") or digest,
+            )
         return BuildResponse(
-            view=built.get("view") or {},
-            jsonld=built.get("jsonld") or "",
-            turtle=built.get("turtle") or "",
-            problems=built.get("problems") or [],
-            digest=built.get("digest") or digest,
-        )
-    return BuildResponse(
-        view={
-            "summary": {
-                "label": req.questionnaire.get("name") or "AI card",
-                "questionnaire_id": req.questionnaire_id,
+            view={
+                "summary": {
+                    "label": req.questionnaire.get("name") or "AI card",
+                    "questionnaire_id": req.questionnaire_id,
+                },
+                "answers_count": len(prose),
             },
-            "answers_count": len(prose),
-        },
-        jsonld=f'{{"@context":{{"airo":"https://w3id.org/airo#"}},"digest":"{digest}"}}',
-        turtle=f"{_PREFIXES}\n{_SYSTEM}",
-        problems=[],
-        digest=digest,
-    )
+            jsonld=f'{{"@context":{{"airo":"https://w3id.org/airo#"}},"digest":"{digest}"}}',
+            turtle=f"{_PREFIXES}\n{_SYSTEM}",
+            problems=[],
+            digest=digest,
+        )
 
 
-def _digest(questionnaire_id: str, answers: dict) -> str:
-    return str(abs(hash((questionnaire_id, str(sorted(answers.items()))))))
+#: the shared builder wired into the app
+builder = CardBuilder()
