@@ -1,8 +1,7 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useServerAction } from "@/lib/serverAction";
-import { ANNEX_POINTS, isAnnexPoint } from "@/domain/forms/annexPoints";
 import type { SetEditorInit } from "@/domain/forms/setEditorState";
 import type { ImportedQuestion } from "@/server/services/FormImportClient";
 import QuestionSetEditor from "../QuestionSetEditor";
@@ -37,7 +36,6 @@ export default function QuestionSetImport({ project, header }: Props) {
   const { run, busy: reading, error } = useServerAction();
   const [preview, setPreview] = useState<Preview | null>(null);
   const [editor, setEditor] = useState<SetEditorInit | null>(null);
-  const ids = useId();
 
   if (editor)
     return (
@@ -61,7 +59,6 @@ export default function QuestionSetImport({ project, header }: Props) {
       warnings: read.warnings,
       rows: read.questions.map((q, key) => ({
         ...q,
-        annexPoint: isAnnexPoint(q.annexPoint) ? q.annexPoint : null,
         key,
       })),
     });
@@ -87,7 +84,6 @@ export default function QuestionSetImport({ project, header }: Props) {
         text: r.text,
         citation: r.citation,
         required: r.required,
-        annexPoint: r.annexPoint,
       })),
     });
   };
@@ -154,33 +150,6 @@ export default function QuestionSetImport({ project, header }: Props) {
                         change(r.key, { citation: e.target.value })
                       }
                     />
-                    <div className="qf-import-point">
-                      <label
-                        className="qf-field-label"
-                        htmlFor={`${ids}-point-${r.key}`}
-                      >
-                        Answers Annex IV point
-                      </label>
-                      <select
-                        id={`${ids}-point-${r.key}`}
-                        className="qf-select"
-                        value={r.annexPoint ?? ""}
-                        onChange={(e) =>
-                          change(r.key, {
-                            annexPoint: isAnnexPoint(e.target.value)
-                              ? e.target.value
-                              : null,
-                          })
-                        }
-                      >
-                        <option value="">None</option>
-                        {ANNEX_POINTS.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.citation}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
                     <label className="qf-builder-check">
                       <input
                         type="checkbox"

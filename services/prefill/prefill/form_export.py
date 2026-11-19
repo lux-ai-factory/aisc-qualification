@@ -1,16 +1,16 @@
 r"""A form's questions, written to a file: .csv or .md.
 
 The inverse of form_import: a file written here and read back there is the same
-form (text and citation collapsed, required, Annex IV point). Text rules only,
+form (text and citation collapsed, required). Text rules only,
 standard library only, no model.
 
-  CSV       a UTF-8 BOM, then the header question, citation, required,
-            annex_point and one row per question. A text or citation cell
+  CSV       a UTF-8 BOM, then the header question, citation, required and
+            one row per question. A text or citation cell
             starting with = + - @, or with any run of ' then one of those,
             gets one leading ' so a spreadsheet does not run it as a formula
             (the importer strips exactly that one ', so the round trip is exact).
   Markdown  a "# <name> (v<version>)" title, a one-line HTML comment, then a
-            table with the same four columns; \ is written \\ and | is \|.
+            table with the same three columns; \ is written \\ and | is \|.
 
 The file name is the form name as an ASCII slug plus -v<version>.<format>.
 """
@@ -73,14 +73,13 @@ def _required(value: bool) -> str:
 def _csv(form: dict) -> str:
     buffer = io.StringIO()
     writer = csv.writer(buffer)
-    writer.writerow(["question", "citation", "required", "annex_point"])
+    writer.writerow(["question", "citation", "required"])
     for q in form["questions"]:
         writer.writerow(
             [
                 _guard(collapse(q["text"])),
                 _guard(collapse(q["citation"])),
                 _required(q["required"]),
-                q["annexPoint"] or "",
             ]
         )
     return "﻿" + buffer.getvalue()
@@ -92,22 +91,22 @@ def _markdown(form: dict) -> str:
         "",
         MD_COMMENT,
         "",
-        "| Question | Citation | Required | Annex IV point |",
-        "|---|---|---|---|",
+        "| Question | Citation | Required |",
+        "|---|---|---|",
     ]
     for q in form["questions"]:
         cells = [
             _md_escape(collapse(q["text"])),
             _md_escape(collapse(q["citation"])),
             _required(q["required"]),
-            q["annexPoint"] or "",
         ]
         lines.append("| " + " | ".join(cells) + " |")
     return "\n".join(lines) + "\n"
 
 
 def export_form(form: dict, fmt: str) -> ExportedFile:
-    """The file for form ({name, version, questions: [{text, citation, required, annexPoint}]}) in fmt."""
+    """The file for form ({name, version, questions: [{text, citation, required}]}) in fmt. A question
+    names its source in its citation: an annexPoint it still carries is not written."""
     if fmt == "csv":
         content, content_type = _csv(form), "text/csv; charset=utf-8"
     elif fmt == "md":

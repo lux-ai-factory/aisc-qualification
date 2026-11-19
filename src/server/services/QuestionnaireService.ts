@@ -374,7 +374,6 @@ export class QuestionnaireService implements QuestionnaireResolver {
           text: i.text,
           citation: i.citation,
           required: i.required,
-          annexPoint: i.annexPoint,
         })),
       },
       { takenNames: takenSets },
@@ -401,7 +400,7 @@ export class QuestionnaireService implements QuestionnaireResolver {
         text: q.text,
         citation: q.citation,
         required: q.required,
-        annexPoint: q.annexPoint,
+        annexPoint: null,
         groupLabel: file.items[position].groupLabel ?? null,
       };
     });

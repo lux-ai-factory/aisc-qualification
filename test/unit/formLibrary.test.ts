@@ -1,18 +1,12 @@
 import { describe, it, expect } from "vitest";
-import {
-  filterLibrary,
-  overlapHints,
-  overlapLabel,
-} from "@/domain/forms/library";
+import { filterLibrary } from "@/domain/forms/library";
 import * as library from "@/domain/forms/library";
 import { customQuestion, seededQuestion, setQuestion } from "../support/forms";
 
-// The builder's left column: search, overlap hints and available updates, all pure and
+// The builder's left column: search and available updates, all pure and
 // deterministic.
 //
 // Interface: groups are { formId, formName, questions: ResolvedQuestion[] };
-// overlapHints returns a plain object questionId -> AnnexPointId;
-// overlapLabel(point) is the chip text.
 
 const groups = [
   {
@@ -69,53 +63,6 @@ describe("filterLibrary", () => {
       ["Annex IV default", ["1a", "2a"]],
       ["Acme AI policy", ["q1", "q2"]],
     ]);
-  });
-});
-
-describe("overlapHints", () => {
-  const q = (id: string, annexPoint: string | null) => ({
-    questionId: id,
-    annexPoint,
-  });
-  const selected = [q("A", "2a"), q("B", "2a"), q("C", "1a"), q("N", null)];
-  const candidates = [q("D", "2a"), q("E", "1a"), q("F", null), q("G", "2b")];
-
-  it("a question is hinted when another selected question answers the same point", () => {
-    expect(overlapHints(selected as never, candidates as never)).toEqual({
-      A: "2a",
-      B: "2a",
-      D: "2a",
-      E: "1a",
-    });
-  });
-
-  it("a question alone on its point is not hinted, nor is an untagged one", () => {
-    const hints = overlapHints(
-      selected as never,
-      candidates as never,
-    ) as Record<string, string>;
-    expect(hints.C).toBeUndefined();
-    expect(hints.N).toBeUndefined();
-    expect(hints.F).toBeUndefined();
-    expect(hints.G).toBeUndefined();
-  });
-
-  it("depends only on ids and tags: the same input gives the same output", () => {
-    const a = overlapHints(selected as never, candidates as never);
-    const b = overlapHints(
-      selected.map((x) => ({ ...x, text: "anything" })) as never,
-      candidates.map((x) => ({ ...x, text: "else" })) as never,
-    );
-    expect(b).toEqual(a);
-  });
-
-  it("nothing selected means no hints", () => {
-    expect(overlapHints([], candidates as never)).toEqual({});
-  });
-
-  it("the chip names the point's citation", () => {
-    expect(overlapLabel("2a")).toBe("≈ overlaps Annex IV(2)(a)");
-    expect(overlapLabel("1de")).toBe("≈ overlaps Annex IV(1)(d)-(e)");
   });
 });
 

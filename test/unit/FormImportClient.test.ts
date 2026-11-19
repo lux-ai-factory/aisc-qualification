@@ -112,10 +112,10 @@ describe("FormImportClient", () => {
   });
 });
 
-// The Annex tag travels
+// An Annex IV point column in the file does not travel
 
-describe("FormImportClient carries each question's Annex IV point", () => {
-  it("annexPoint is kept when it is one of the 14, and null for anything else or when missing", async () => {
+describe("FormImportClient carries each question's wording only", () => {
+  it("an annexPoint the reader still sends is dropped", async () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -142,14 +142,11 @@ describe("FormImportClient carries each question's Annex IV point", () => {
     );
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(
-        result.questions.map((q) => (q as { annexPoint?: unknown }).annexPoint),
-      ).toEqual(["2a", null, null, null, null]);
+      for (const q of result.questions) expect(q).not.toHaveProperty("annexPoint");
       expect(result.questions[0]).toEqual({
         text: "One?",
         citation: "",
         required: true,
-        annexPoint: "2a",
       });
     }
   });

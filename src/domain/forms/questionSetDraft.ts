@@ -2,7 +2,6 @@
 // is written. zod checks the shape; the plain checks after it give the messages a
 // person reads, in a fixed order, naming the 1-based question position.
 import { z } from "zod";
-import { isAnnexPoint, type AnnexPointId } from "./annexPoints";
 import { hasNul, nulMessage } from "./nulCharacter";
 import type { ResolvedSetVersion } from "./types";
 
@@ -12,7 +11,6 @@ export type SetDraftQuestion = {
   text: string;
   citation: string;
   required: boolean;
-  annexPoint: AnnexPointId | null;
 };
 
 export type SetDraft = {
@@ -30,7 +28,8 @@ const MAX_QUESTIONS = 200;
 const MAX_TEXT = 2000;
 const MAX_CITATION = 200;
 
-// Non-strict objects: an extra key is dropped, not refused.
+// Non-strict objects: an extra key is dropped, not refused. That includes `annexPoint`, which older
+// editors and files still send: a question someone writes is not tied to an Annex IV point.
 const draftShape = z.object({
   name: z.string(),
   description: z.string().optional(),
@@ -40,7 +39,6 @@ const draftShape = z.object({
       text: z.string(),
       citation: z.string(),
       required: z.boolean(),
-      annexPoint: z.string().nullable(),
     }),
   ),
 });
@@ -118,12 +116,6 @@ export function parseSetDraft(
         error: `The citation of question ${n} is longer than ${MAX_CITATION} characters.`,
       };
     }
-    if (q.annexPoint !== null && !isAnnexPoint(q.annexPoint)) {
-      return {
-        ok: false,
-        error: `Question ${n} names an Annex IV point that does not exist.`,
-      };
-    }
     if (q.questionId !== undefined) {
       if (seen.has(q.questionId))
         return {
@@ -136,7 +128,6 @@ export function parseSetDraft(
       text,
       citation,
       required: q.required,
-      annexPoint: q.annexPoint as AnnexPointId | null,
     };
     questions.push(
       q.questionId === undefined
@@ -165,8 +156,7 @@ export function sameSetContent(
       d.questionId === v.questionId &&
       d.text === v.text &&
       d.citation === v.citation &&
-      d.required === v.required &&
-      d.annexPoint === v.annexPoint
+      d.required === v.required
     );
   });
 }

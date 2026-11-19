@@ -190,7 +190,7 @@ describe("one question set's page", () => {
     expect(rows[0].textContent).toContain("Who signs off a release?");
     expect(rows[0].textContent).toContain("§4.2");
     expect(rows[1].textContent).toContain("Which data?");
-    expect(rows[1].textContent).toContain("Annex IV(2)(d)");
+    expect(rows[1].textContent).not.toContain("Annex IV");
     expect(rows[1].textContent).toContain("Optional");
     expect(
       container.querySelector("ol.qf-builder-rows")!.querySelectorAll("button"),

@@ -1044,7 +1044,8 @@ describe("importing a self-contained file", () => {
         text: "How was it built?",
         citation: "Annex IV(2)(a)",
         required: true,
-        annexPoint: "2a",
+        // the file's point is not kept: the imported questions are a new set someone else wrote
+        annexPoint: null,
         groupLabel: "How the system was built",
       },
       {
@@ -1150,7 +1151,7 @@ describe("importing a self-contained file", () => {
     expect(allTables()).toBe(before);
   });
 
-  it("round trip: export Q self-contained, import it: same wording, order and blocks; new identities", async () => {
+  it("round trip: export Q self-contained, import it: same wording, order and blocks; new identities; no points", async () => {
     seedAcme();
     store.addQuestionnaire({
       id: "src",
@@ -1194,16 +1195,15 @@ describe("importing a self-contained file", () => {
     expect(r.ok).toBe(true);
     const back = await svc.resolve(r.versionId);
     const wording = (v: { questions: Record<string, unknown>[] }) =>
-      v.questions.map(
-        ({ text, citation, required, annexPoint, groupLabel }) => ({
-          text,
-          citation,
-          required,
-          annexPoint,
-          groupLabel,
-        }),
-      );
+      v.questions.map(({ text, citation, required, groupLabel }) => ({
+        text,
+        citation,
+        required,
+        groupLabel,
+      }));
     expect(wording(back)).toEqual(wording(q));
+    // the copy is a set of its own, so no question of it is an Annex IV point
+    expect(back.questions.map((x: { annexPoint: unknown }) => x.annexPoint).every((p: unknown) => p === null)).toBe(true);
     expect(back.blocks).toEqual(q.blocks);
     expect(back.questionnaireId).not.toBe("src");
     expect(

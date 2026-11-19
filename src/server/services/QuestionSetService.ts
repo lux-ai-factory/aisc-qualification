@@ -112,7 +112,9 @@ export function toResolvedQuestion(item: SetItemLike, version: SetVersionLike): 
     text: item.text,
     citation: item.citation,
     required: item.required,
-    annexPoint: item.annexPoint as AnnexPointId | null,
+    // Only a built-in Annex IV question is a point; one a person wrote may still have one stored from
+    // when the editor offered it, and it is not read.
+    annexPoint: version.set.origin === "builtin" ? (item.annexPoint as AnnexPointId | null) : null,
     groupLabel: item.groupLabel,
     setId: version.set.id,
     setName: version.set.name,
@@ -323,7 +325,7 @@ export class QuestionSetService {
         text: q.text,
         citation: q.citation,
         required: q.required,
-        annexPoint: q.annexPoint,
+        annexPoint: null,
         groupLabel: null,
       };
     });
@@ -438,7 +440,7 @@ export class QuestionSetService {
         text: q.text,
         citation: q.citation,
         required: q.required,
-        annexPoint: q.annexPoint,
+        annexPoint: null,
         groupLabel: q.questionId === undefined ? null : labelOf(q.questionId),
       };
     });

@@ -5,7 +5,8 @@ import { loadSrc, setQuestion, setVersion } from "../support/forms";
 // only renders it.
 //
 // SetEditorState = { setId, name, description, rows: SetRow[], origin, alsoQuestionnaire, nextRow }
-// SetRow = { rowKey, questionId?, text, citation, required, annexPoint, groupLabel }
+// SetRow = { rowKey, questionId?, text, citation, required, groupLabel }: no Annex IV point, even when the
+// set version a row is read from still has one stored
 // Actions: add {values}, edit {index, values},
 // move {from, to}, remove {index}, setName {name}, setDescription {description},
 // toggleAlsoQuestionnaire.
@@ -16,7 +17,6 @@ const values = (text: string, over: Record<string, unknown> = {}) => ({
   text,
   citation: "",
   required: true,
-  annexPoint: null,
   ...over,
 });
 
@@ -84,7 +84,6 @@ describe("the set editor's initial state", () => {
           text: "A",
           citation: "§1",
           required: false,
-          annexPoint: "2a",
           groupLabel: "Oversight",
         },
         {
@@ -92,7 +91,6 @@ describe("the set editor's initial state", () => {
           text: "C",
           citation: "",
           required: true,
-          annexPoint: null,
           groupLabel: null,
         },
       ],
@@ -131,7 +129,7 @@ describe("the set editor's actions", () => {
     const s = await withRows("A");
     const next = setEditorReducer(s, {
       type: "add",
-      values: values("B", { citation: "§2", annexPoint: "2g" }),
+      values: values("B", { citation: "§2" }),
     });
     expect(texts(next)).toEqual(["A", "B"]);
     const b = next.rows[1];
@@ -141,7 +139,6 @@ describe("the set editor's actions", () => {
       text: "B",
       citation: "§2",
       required: true,
-      annexPoint: "2g",
     });
     expect(b.rowKey).not.toBe(next.rows[0].rowKey);
     expect(next.nextRow).toBe(s.nextRow + 1);
@@ -162,7 +159,6 @@ describe("the set editor's actions", () => {
       values: values("A2", {
         citation: "§3",
         required: false,
-        annexPoint: "1a",
       }),
     });
     expect(next.rows[0]).toEqual({
@@ -171,7 +167,6 @@ describe("the set editor's actions", () => {
       text: "A2",
       citation: "§3",
       required: false,
-      annexPoint: "1a",
       groupLabel: "Oversight",
     });
   });
@@ -272,7 +267,7 @@ describe("toSetDraft", () => {
     });
     s = setEditorReducer(s, {
       type: "add",
-      values: values("B", { required: false, annexPoint: "2d" }),
+      values: values("B", { required: false }),
     });
     expect(toSetDraft(s)).toEqual({
       name: "Acme AI policy",
@@ -283,9 +278,8 @@ describe("toSetDraft", () => {
           text: "A",
           citation: "§1",
           required: true,
-          annexPoint: null,
         },
-        { text: "B", citation: "", required: false, annexPoint: "2d" },
+        { text: "B", citation: "", required: false },
       ],
     });
   });

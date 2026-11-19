@@ -301,6 +301,8 @@ describe("a self-contained file", () => {
       (s) => s.textContent,
     );
     expect(chips).toEqual(["Acme AI Policy §4.2"]);
+    // a point the file still names for a question is not shown: it is not carried
+    expect(container.textContent).not.toContain("Annex IV(2)(e)");
     // read-only: the wording is not in any input
     expect(
       screen.queryByDisplayValue("Who signs off a model release?"),

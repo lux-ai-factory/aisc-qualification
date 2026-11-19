@@ -517,16 +517,11 @@ describe("the questionnaire column", () => {
     expect(right().textContent).not.toContain("Who signs off a model release?");
   });
 
-  it("two questions on the same Annex point each show the overlap chip", async () => {
+  it("no question is marked as overlapping another: a question is not tied to an Annex IV point", async () => {
     await browse();
     tick("How was the system built");
     tick("Which datasets are approved");
-    expect(
-      within(right()).getAllByText("≈ overlaps Annex IV(2)(a)"),
-    ).toHaveLength(2);
-    expect(
-      within(left()).getAllByText("≈ overlaps Annex IV(2)(a)").length,
-    ).toBeGreaterThan(0);
+    expect(document.body.textContent).not.toContain("overlaps");
   });
 });
 

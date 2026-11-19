@@ -2,7 +2,6 @@
 
 import { useId, useState, type ReactNode } from "react";
 import { useServerAction } from "@/lib/serverAction";
-import { annexCitation, isAnnexPoint } from "@/domain/forms/annexPoints";
 import type { BuilderInit } from "@/domain/forms/builderState";
 import type { SetGroup } from "@/domain/forms/library";
 import type { QuestionnaireFile } from "@/server/services/QuestionnaireFileClient";
@@ -136,11 +135,6 @@ export default function QuestionnaireImport({
                     <div className="qf-builder-chips">
                       {item.citation && (
                         <span className="qf-citation">{item.citation}</span>
-                      )}
-                      {isAnnexPoint(item.annexPoint) && (
-                        <span className="qf-overlap">
-                          {annexCitation(item.annexPoint)}
-                        </span>
                       )}
                       <span className="qf-tag">
                         {item.required ? "Required" : "Optional"}

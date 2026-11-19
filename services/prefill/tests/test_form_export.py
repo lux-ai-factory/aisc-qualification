@@ -59,44 +59,44 @@ class TestCsv:
         }
         out = export_form(form, "csv")
         assert out.content == (
-            "\ufeffquestion,citation,required,annex_point\r\n"
-            "Who signs off a model release?,Acme AI Policy §4.2,yes,\r\n"
-            "\"'=Is SUM(A1) ok, or not?\",,no,2a\r\n"
+            "\ufeffquestion,citation,required\r\n"
+            "Who signs off a model release?,Acme AI Policy §4.2,yes\r\n"
+            "\"'=Is SUM(A1) ok, or not?\",,no\r\n"
         )
         assert out.content_type == "text/csv; charset=utf-8"
 
     def test_zero_questions_is_the_bom_and_the_header_row(self):
         out = export_form({"name": "Empty", "version": 1, "questions": []}, "csv")
-        assert out.content == "\ufeffquestion,citation,required,annex_point\r\n"
+        assert out.content == "\ufeffquestion,citation,required\r\n"
 
     def test_quotes_are_doubled_and_only_fields_that_need_it_are_quoted(self):
         out = export_form({"name": "F", "version": 1, "questions": [q('She said "yes"; ok', "a,b")]}, "csv")
-        assert out.content.split("\r\n")[1] == '"She said ""yes""; ok","a,b",yes,'
+        assert out.content.split("\r\n")[1] == '"She said ""yes""; ok","a,b",yes'
 
     @pytest.mark.parametrize("first", ["=", "+", "-", "@"])
     def test_the_formula_guard_on_text_and_citation(self, first):
         out = export_form({"name": "F", "version": 1, "questions": [q(f"{first}x?", f"{first}cite")]}, "csv")
-        assert out.content.split("\r\n")[1] == f"'{first}x?,'{first}cite,yes,"
+        assert out.content.split("\r\n")[1] == f"'{first}x?,'{first}cite,yes"
 
     @pytest.mark.parametrize("first", ["=", "+", "-", "@"])
     def test_a_leading_quote_before_a_formula_character_gets_one_more(self, first):
         out = export_form({"name": "F", "version": 1, "questions": [q(f"'{first}x?")]}, "csv")
-        assert out.content.split("\r\n")[1] == f"''{first}x?,,yes,"
+        assert out.content.split("\r\n")[1] == f"''{first}x?,,yes"
 
     def test_no_guard_otherwise(self):
         out = export_form({"name": "F", "version": 1, "questions": [q("'quoted' word?", "x=1")]}, "csv")
-        assert out.content.split("\r\n")[1] == "'quoted' word?,x=1,yes,"
+        assert out.content.split("\r\n")[1] == "'quoted' word?,x=1,yes"
 
     def test_name_text_and_citation_are_collapsed_before_writing(self):
         out = export_form(
             {"name": "F", "version": 1, "questions": [q("  Two\n lines  and  spaces ", " §4 \t 2 ")]}, "csv"
         )
-        assert out.content.split("\r\n")[1] == "Two lines and spaces,§4 2,yes,"
+        assert out.content.split("\r\n")[1] == "Two lines and spaces,§4 2,yes"
 
-    def test_rows_follow_the_question_order_with_point_ids(self):
+    def test_rows_follow_the_question_order_and_a_point_is_not_written(self):
         form = {"name": "F", "version": 1, "questions": [q("B?", point="1de"), q("A?", required=False)]}
         lines = export_form(form, "csv").content.split("\r\n")
-        assert lines[1:] == ["B?,,yes,1de", "A?,,no,", ""]
+        assert lines[1:] == ["B?,,yes", "A?,,no", ""]
 
 
 # Markdown
@@ -111,31 +111,31 @@ class TestMarkdown:
             "\n"
             f"{MD_COMMENT}\n"
             "\n"
-            "| Question | Citation | Required | Annex IV point |\n"
-            "|---|---|---|---|\n"
-            "| Who signs off \\| approves? |  | yes | 2a |\n"
+            "| Question | Citation | Required |\n"
+            "|---|---|---|\n"
+            "| Who signs off \\| approves? |  | yes |\n"
         )
         assert out.content_type == "text/markdown; charset=utf-8"
 
     def test_a_backslash_is_doubled_before_pipes_are_escaped(self):
         out = export_form({"name": "F", "version": 1, "questions": [q("a\\|b", "c\\d")]}, "md")
-        assert out.content.splitlines()[-1] == "| a\\\\\\|b | c\\\\d | yes |  |"
+        assert out.content.splitlines()[-1] == "| a\\\\\\|b | c\\\\d | yes |"
 
     def test_no_formula_guard_in_markdown(self):
         out = export_form({"name": "F", "version": 1, "questions": [q("=SUM(A1)?", "+1", False, "1f")]}, "md")
-        assert out.content.splitlines()[-1] == "| =SUM(A1)? | +1 | no | 1f |"
+        assert out.content.splitlines()[-1] == "| =SUM(A1)? | +1 | no |"
 
     def test_zero_questions_is_the_header_and_the_separator(self):
         out = export_form({"name": "  Empty   form ", "version": 2, "questions": []}, "md")
         assert out.content == (
-            f"# Empty form (v2)\n\n{MD_COMMENT}\n\n| Question | Citation | Required | Annex IV point |\n|---|---|---|---|\n"
+            f"# Empty form (v2)\n\n{MD_COMMENT}\n\n| Question | Citation | Required |\n|---|---|---|\n"
         )
 
     def test_the_name_and_cells_are_collapsed(self):
         out = export_form({"name": "A\nB", "version": 1, "questions": [q("x \n y", "  ")]}, "md")
         lines = out.content.split("\n")
         assert lines[0] == "# A B (v1)"
-        assert lines[-2] == "| x y |  | yes |  |"
+        assert lines[-2] == "| x y |  | yes |"
         assert out.content.endswith("|\n") and not out.content.endswith("\n\n")
 
 
@@ -229,11 +229,11 @@ FORMS = {
 
 
 def comparable(questions) -> list[tuple]:
-    return [(collapse(x["text"]), collapse(x["citation"]), x["required"], x["annexPoint"]) for x in questions]
+    return [(collapse(x["text"]), collapse(x["citation"]), x["required"]) for x in questions]
 
 
 def imported(result) -> list[tuple]:
-    return [(x.text, x.citation, x.required, x.annex_point) for x in result.questions]
+    return [(x.text, x.citation, x.required) for x in result.questions]
 
 
 class TestRoundTrip:
@@ -251,7 +251,7 @@ class TestRoundTrip:
         form = {"name": "Dup", "version": 1, "questions": [q("Same?"), q("same? ", "other", False, "2a")]}
         out = export_form(form, fmt)
         result = parse_form_file(out.content.encode("utf-8"), out.filename)
-        assert imported(result) == [("Same?", "", True, None)]
+        assert imported(result) == [("Same?", "", True)]
         assert "Removed 1 duplicate question." in result.warnings
 
 

@@ -328,82 +328,33 @@ def test_form_import_imports_only_the_standard_library_docx_and_this_package():
 # formula guard, Markdown escapes.
 
 
-def annexed(result):
-    return [(q.text, q.citation, q.required, q.annex_point) for q in result.questions]
+def read(result):
+    return [(q.text, q.citation, q.required) for q in result.questions]
 
 
-def annex_warning(line, value):
-    return f'The Annex IV point on line {line} ("{value}") is not one of the 14 and was left blank.'
+class TestAnAnnexColumnIsNotRead:
+    """A question names its source in its citation; files exported before still have an Annex IV point
+    column, and they read as before without it: no point, no warning."""
 
-
-class TestAnnexColumn:
     @pytest.mark.parametrize("header", ["annex_point", "Annex point", " ANNEX IV POINT ", "annex"])
-    def test_every_annex_header_name_in_a_csv(self, header):
-        text = f"question,citation,required,{header}\nWho signs off?,§4.2,yes,2a\n"
-        assert annexed(parse_form_file(text.encode(), "f.csv")) == [("Who signs off?", "§4.2", True, "2a")]
+    def test_every_old_annex_header_in_a_csv(self, header):
+        text = f"question,citation,required,{header}\nWho signs off?,§4.2,yes,2a\nWho audits?,,no,3z\n"
+        result = parse_form_file(text.encode(), "f.csv")
+        assert read(result) == [("Who signs off?", "§4.2", True), ("Who audits?", "", False)]
+        assert result.warnings == []
+        assert not any(hasattr(q, "annex_point") for q in result.questions)
 
-    def test_the_annex_column_is_matched_by_name_in_any_position(self):
+    def test_an_annex_column_before_the_others_moves_nothing(self):
         text = "question,annex,required\nWho signs off?,1de,no\n"
-        assert annexed(parse_form_file(text.encode(), "f.csv")) == [("Who signs off?", "", False, "1de")]
+        assert read(parse_form_file(text.encode(), "f.csv")) == [("Who signs off?", "", False)]
 
-    def test_the_value_is_trimmed_and_lowercased_and_empty_is_none(self):
-        text = "question,annex_point\nOne?, 2A \nTwo?,\nThree?,1GH\n"
-        result = parse_form_file(text.encode(), "f.csv")
-        assert [q.annex_point for q in result.questions] == ["2a", None, "1gh"]
-        assert result.warnings == []
-
-    def test_a_value_that_is_not_one_of_the_14_is_blank_with_a_warning_naming_the_line(self):
-        text = "question,annex_point\nOne?,3a\nTwo?,2a\n"
-        result = parse_form_file(text.encode(), "f.csv")
-        assert [q.annex_point for q in result.questions] == [None, "2a"]
-        assert result.warnings == [annex_warning(2, "3a")]
-
-    def test_the_warning_quotes_the_trimmed_value(self):
-        result = parse_form_file("question,annex\nOne?,  9z  \n".encode(), "f.csv")
-        assert result.warnings == [annex_warning(2, "9z")]
-
-    def test_a_citation_in_the_annex_column_is_not_an_id(self):
-        result = parse_form_file('question,annex\nOne?,"annex iv(2)(a)"\n'.encode(), "f.csv")
-        assert result.questions[0].annex_point is None
-        assert result.warnings == [annex_warning(2, "annex iv(2)(a)")]
-
-    def test_only_kept_questions_are_checked(self):
-        long = "x" * 2001
-        text = f"question,annex\nSame?,2a\nsame?,3a\n{long},4b\n"
-        result = parse_form_file(text.encode(), "f.csv")
-        assert annexed(result) == [("Same?", "", False, "2a")]
-        assert not any("Annex IV point" in w for w in result.warnings)
-
-    def test_the_annex_warning_is_in_line_order_with_the_other_per_line_warnings(self):
-        cite = "c" * 201
-        text = f"question,citation,annex\nOne?,,3a\nTwo?,{cite},\nThree?,,7q\n"
-        result = parse_form_file(text.encode(), "f.csv")
-        assert result.warnings == [
-            annex_warning(2, "3a"),
-            "The citation on line 3 was shortened to 200 characters.",
-            annex_warning(4, "7q"),
-        ]
-
-    def test_without_a_header_row_there_is_no_annex_column(self):
-        result = parse_form_file("Who signs off?,§4.2,yes,2a\n".encode(), "f.csv")
-        assert annexed(result) == [("Who signs off?", "§4.2", True, None)]
-        assert result.warnings == []
-
-    def test_a_markdown_table_header_names_the_annex_column(self):
+    def test_a_markdown_table_with_the_old_column(self):
         text = "| Question | Citation | Required | Annex IV point |\n|---|---|---|---|\n| Who signs off? | §4.2 | yes | 2g |\n"
-        assert annexed(parse_form_file(text.encode(), "f.md")) == [("Who signs off?", "§4.2", True, "2g")]
-
-    def test_markdown_line_numbers_in_the_annex_warning(self):
-        text = "# Title\n\n| Question | Annex |\n|---|---|\n| One? | 2a |\n| Two? | 3z |\n"
         result = parse_form_file(text.encode(), "f.md")
-        assert [q.annex_point for q in result.questions] == ["2a", None]
-        assert result.warnings == ["Skipped 1 heading.", annex_warning(6, "3z")]
+        assert read(result) == [("Who signs off?", "§4.2", True)]
+        assert result.warnings == []
 
-    def test_paragraph_and_list_questions_have_no_annex_point(self):
-        result = parse_form_file(b"- Who signs off? [2a]\nWho audits?\n", "f.md")
-        assert [q.annex_point for q in result.questions] == [None, None]
-
-    def test_a_docx_table_header_names_the_annex_column(self):
+    def test_a_docx_table_with_the_old_column(self):
         docx = pytest.importorskip("docx")
         document = docx.Document()
         table = document.add_table(rows=2, cols=4)
@@ -413,7 +364,7 @@ class TestAnnexColumn:
             cell.text = value
         out = io.BytesIO()
         document.save(out)
-        assert annexed(parse_form_file(out.getvalue(), "f.docx")) == [("Who may retrain the model?", "§6.3", False, "2f")]
+        assert read(parse_form_file(out.getvalue(), "f.docx")) == [("Who may retrain the model?", "§6.3", False)]
 
 
 class TestCsvFormulaGuard:
