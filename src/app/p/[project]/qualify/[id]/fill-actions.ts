@@ -8,11 +8,12 @@ import { shownError } from "@/server/services/shownError";
 import { fillInFlight, requestFill } from "@/server/services/FillerClient";
 import { currentRequestId, emitEvent } from "@/vendor/aisc-ledger/emit";
 import { randomUUID } from "node:crypto";
+import { AI_ACTIONS_OFF, aiActionsOn } from "@/lib/aiActions";
 
 export type FillActionState = { ok: true } | { ok: false; error: string };
 
 /**
- * Run the filler on this card (Refine with AI). A save never starts it: the
+ * Run the filler on this card (Let AI suggest additions). A save never starts it: the
  * card is built from the form alone.
  *
  * It replaces the filler's draft, so it takes the doors of every other change
@@ -25,6 +26,7 @@ export async function rerunFill(
   project: string,
   qualificationId: string,
 ): Promise<FillActionState> {
+  if (!aiActionsOn()) return { ok: false, error: AI_ACTIONS_OFF };
   try {
     const d = await projectDbForAction(project, { write: true });
     if (d.error !== undefined) return { ok: false, error: d.error };

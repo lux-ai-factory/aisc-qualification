@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { isValidElement, type ReactElement, type ReactNode } from "react";
 
 // A project viewer may read the AI card but not change it. The app asks the platform
@@ -158,6 +158,8 @@ async function editPage() {
 const editLinks = (tree: unknown) =>
   elements(tree).filter((e) => String(e.props?.href ?? "").endsWith("/system/edit"));
 
+afterEach(() => vi.unstubAllEnvs());
+
 beforeEach(() => {
   vi.clearAllMocks();
   m.listVersions.mockResolvedValue([
@@ -179,7 +181,20 @@ describe("a viewer on the card page", () => {
     expect(editLinks(await cardPage()), "the viewer is offered the edit form").toEqual([]);
   });
 
+  it("an editor is offered Let AI suggest additions where the install turns AI actions on", async () => {
+    vi.stubEnv("AISC_AI_ACTIONS", "on");
+    m.access = editor();
+    expect(named(await cardPage(), "FillStatus").length).toBe(1);
+  });
+
+  it("an editor is not offered Let AI suggest additions where AI actions are off", async () => {
+    vi.stubEnv("AISC_AI_ACTIONS", "");
+    m.access = editor();
+    expect(named(await cardPage(), "FillStatus"), "the AI run is offered with AI actions off").toEqual([]);
+  });
+
   it("a viewer is not offered Let AI suggest additions", async () => {
+    vi.stubEnv("AISC_AI_ACTIONS", "on");
     m.access = viewer();
     expect(named(await cardPage(), "FillStatus"), "the viewer is offered the AI run").toEqual([]);
   });
