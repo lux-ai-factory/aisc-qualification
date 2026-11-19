@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { annexCitation } from "@/domain/forms/annexPoints";
 import { projectDbPastDoor } from "@/lib/projectDb";
 import { questionSetsOn } from "@/server/services/QuestionSetService";
 
@@ -98,11 +97,6 @@ export default async function QuestionSetPage({
                   <div className="qf-builder-chips">
                     {q.citation !== "" && (
                       <span className="qf-citation">{q.citation}</span>
-                    )}
-                    {q.annexPoint && (
-                      <span className="qf-overlap">
-                        {annexCitation(q.annexPoint)}
-                      </span>
                     )}
                     <span className="qf-tag">
                       {q.required ? "Required" : "Optional"}

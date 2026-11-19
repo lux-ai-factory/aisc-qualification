@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { transactional } from "../support/ledgerRepo";
 
 // The card page's "Regenerate" button: the same filler run a save starts, asked
@@ -60,6 +60,10 @@ async function rerun(project: string, id: string) {
     await import("@/app/p/[project]/qualify/[id]/fill-actions");
   return rerunFill(project, id);
 }
+
+// These tests are about a run the install allows; aiActionsSetting.test.ts covers one it does not.
+beforeEach(() => vi.stubEnv("AISC_AI_ACTIONS", "on"));
+afterEach(() => vi.unstubAllEnvs());
 
 beforeEach(() => {
   vi.clearAllMocks();

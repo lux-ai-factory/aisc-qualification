@@ -2435,16 +2435,6 @@ body:has(.qf-sidemenu) .site-header .site-nav {
   gap: 6px;
   margin-top: 6px;
 }
-.qf-overlap {
-  font-size: 11px;
-  font-weight: 700;
-  color: #8a0044;
-  background: var(--pink-soft);
-  border: 1px solid var(--accent);
-  border-radius: 999px;
-  padding: 2px 9px;
-  white-space: nowrap;
-}
 
 /* Blocks: the identity is locked in, the rest are chip toggles */
 .qf-builder-identity {
@@ -2734,18 +2724,6 @@ body:has(.qf-sidemenu) .site-header .site-nav {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(0, 15, 223, 0.1);
   outline: none;
-}
-.qf-import-point {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.qf-import-point .qf-field-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
 }
 .qf-import-row .qf-builder-check {
   margin-bottom: 10px;

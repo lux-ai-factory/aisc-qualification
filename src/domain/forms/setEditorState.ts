@@ -1,7 +1,6 @@
 // The question-set editor's state. Every click is one reducer action;
 // QuestionSetEditor.tsx only renders this state and dispatches. Pure: no React, no
 // network, and the reducer never mutates the state it is given.
-import type { AnnexPointId } from "./annexPoints";
 import type { SetDraft, SetDraftQuestion } from "./questionSetDraft";
 import type { ResolvedSetVersion } from "./types";
 
@@ -10,7 +9,6 @@ export type QuestionValues = {
   text: string;
   citation: string;
   required: boolean;
-  annexPoint: AnnexPointId | null;
 };
 
 /**
@@ -60,7 +58,6 @@ const wording = (v: QuestionValues): QuestionValues => ({
   text: v.text,
   citation: v.citation,
   required: v.required,
-  annexPoint: v.annexPoint,
 });
 
 export function initialSetEditorState(

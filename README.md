@@ -173,6 +173,7 @@ instead. In the stack, open the form with `?example=mcas` as above.
 | `AISC_BACKEND_URL` | The engine backend, read for the AI system's components. | none (no components listed) |
 | `ONTOLOGY_SERVICE_URL` | The ontology service. | none (building or exporting a card fails) |
 | `AGENT_SERVICE_URL` | The card agent. | none (no draft is requested) |
+| `AISC_AI_ACTIONS` | `on` offers **Let AI suggest additions** on the AI card; any other value hides it and its action refuses. | `off` |
 | `PREFILL_URL` | The prefill service. | none (document reading and form files are unavailable) |
 | `SYSTEM_CARD_RENDERER_URL` | The PDF renderer. | `http://localhost:8005` |
 | `NEXT_BASE_PATH` | Path prefix the app is served under. A build argument and a runtime variable (`next.config.ts` reads it at start). | empty (served at `/`); the stack uses `/qualification` |

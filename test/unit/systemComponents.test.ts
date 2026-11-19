@@ -11,6 +11,7 @@ import {
 } from "@/data/componentFields";
 import { assignComponentKeys } from "@/domain/systemComponents";
 import { cardAsFormStart, type CardContent } from "@/domain/cardVersions";
+import { componentDrift, hasDrift } from "@/domain/cardComponents";
 
 // The card's Components block: one row per part of the
 // system, each with a stable key carried from one card version to the next, so assessments and
@@ -285,5 +286,52 @@ describe("the next card starts from the last one's components", () => {
 
   it("no rows and no extraction: no components", () => {
     expect(cardAsFormStart(base).components ?? []).toEqual([]);
+  });
+});
+
+describe("componentDrift leaves out what is not card content", () => {
+  const eng = (over: Record<string, unknown>) => ({
+    pid: "x",
+    name: "x",
+    component_type: "model",
+    data: "m.pkl",
+    ...over,
+  });
+
+  it("does not count the platform's target mirrors", () => {
+    const byData = eng({
+      pid: "t1",
+      name: "AI card · Component: OpenAI model (LLM) · reached through Mijke",
+      component_type: "resource",
+      data: "target:pid-1/component:x",
+    });
+    const byName = eng({ pid: "t2", name: "AI card · System: Noa · not connected", component_type: "resource", data: "" });
+    const byPrefix = eng({ pid: "t3", name: "plain", component_type: "resource", data: "target:pid-1/system" });
+    const drift = componentDrift([], [byData, byName, byPrefix]);
+    expect(drift).toEqual({ removed: [], added: [], changed: [] });
+  });
+
+  it("a card that links no engine component has nothing added", () => {
+    const drift = componentDrift(
+      [],
+      [
+        eng({ pid: "d1", name: "organisations", component_type: "dataset", data: "o.csv" }),
+        eng({ pid: "d2", name: "bias prompts", component_type: "dataset", data: "b.csv" }),
+      ],
+    );
+    expect(hasDrift(drift)).toBe(false);
+  });
+
+  it("a card with links still sees a new model", () => {
+    const link = {
+      componentPid: "m1",
+      airoProperty: "hasModel",
+      name: "Scorer",
+      componentType: "model",
+      objectName: "m.pkl",
+    };
+    const fresh = eng({ pid: "m2", name: "Newer" });
+    const drift = componentDrift([link], [eng({ pid: "m1", name: "Scorer" }), fresh]);
+    expect(drift.added).toEqual([fresh]);
   });
 });

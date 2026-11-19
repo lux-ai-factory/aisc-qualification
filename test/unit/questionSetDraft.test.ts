@@ -4,7 +4,8 @@ import { loadSrc, setQuestion, setVersion } from "../support/forms";
 // The question-set editor's save payload, validated before anything is written: parseSetDraft
 // (every message, in check order) and sameSetContent.
 //
-// SetDraft = { name, description?, questions: [{ questionId?, text, citation, required, annexPoint }] }
+// SetDraft = { name, description?, questions: [{ questionId?, text, citation, required }] }: a question
+// names its source in its citation; an annexPoint an older editor or file still sends is dropped.
 
 const mod = () => loadSrc("domain/forms/questionSetDraft.ts");
 
@@ -12,7 +13,6 @@ const q = (over: Record<string, unknown> = {}) => ({
   text: "Who signs off a model release?",
   citation: "Acme AI Policy §4.2",
   required: true,
-  annexPoint: null,
   ...over,
 });
 
@@ -53,25 +53,22 @@ describe("parseSetDraft accepts a sound draft", () => {
         text: "Who signs off?",
         citation: "§4.2",
         required: true,
-        annexPoint: null,
       },
     ]);
   });
 
-  it("keeps a questionId, and takes an Annex IV point of the 14", async () => {
+  it("keeps a questionId, and drops an Annex IV point, valid or not", async () => {
     const value = await ok(
       draft({
         questions: [
           q({ questionId: "acme-q1", annexPoint: "2a" }),
-          q({ text: "B" }),
+          q({ text: "B", annexPoint: "3a" }),
         ],
       }),
     );
-    expect(value.questions[0]).toMatchObject({
-      questionId: "acme-q1",
-      annexPoint: "2a",
-    });
+    expect(value.questions[0]).toMatchObject({ questionId: "acme-q1" });
     expect(value.questions[1].questionId).toBeUndefined();
+    for (const question of value.questions) expect(question).not.toHaveProperty("annexPoint");
   });
 
   it("description is optional", async () => {
@@ -210,14 +207,6 @@ describe("parseSetDraft refuses, with the exact message", () => {
     ).toBe("The citation of question 2 is longer than 200 characters.");
   });
 
-  it("an Annex IV point outside the 14", async () => {
-    for (const bad of ["3a", "1d", "Annex IV(2)(a)"]) {
-      expect(await error(draft({ questions: [q({ annexPoint: bad })] }))).toBe(
-        "Question 1 names an Annex IV point that does not exist.",
-      );
-    }
-  });
-
   it("a questionId seen before", async () => {
     const mine = q({ questionId: "acme-q1" });
     expect(await error(draft({ questions: [q(), mine, mine] }))).toBe(
@@ -247,29 +236,18 @@ describe("parseSetDraft refuses, with the exact message", () => {
     expect(await error(draft({ questions: many }))).toBe(
       "A question set has at most 200 questions.",
     );
-    // within a question: text before citation before point
+    // within a question: text before citation
     expect(
       await error(
-        draft({
-          questions: [
-            q({ text: " ", citation: "c".repeat(201), annexPoint: "3a" }),
-          ],
-        }),
+        draft({ questions: [q({ text: " ", citation: "c".repeat(201) })] }),
       ),
     ).toBe("Question 1 has no text.");
-    expect(
-      await error(
-        draft({
-          questions: [q({ citation: "c".repeat(201), annexPoint: "3a" })],
-        }),
-      ),
-    ).toBe("The citation of question 1 is longer than 200 characters.");
     // question 1's error before question 2's
     expect(
       await error(
-        draft({ questions: [q({ annexPoint: "3a" }), q({ text: "" })] }),
+        draft({ questions: [q({ citation: "c".repeat(201) }), q({ text: "" })] }),
       ),
-    ).toBe("Question 1 names an Annex IV point that does not exist.");
+    ).toBe("The citation of question 1 is longer than 200 characters.");
   });
 });
 
@@ -302,14 +280,12 @@ describe("sameSetContent: whether a save would change anything", () => {
         text: "A",
         citation: "Acme §1",
         required: true,
-        annexPoint: "2a",
       },
       {
         questionId: "acme-q2",
         text: "B",
         citation: "",
         required: false,
-        annexPoint: null,
       },
     ],
   });
@@ -334,13 +310,12 @@ describe("sameSetContent: whether a save would change anything", () => {
     expect(sameSetContent(same(), latest)).toBe(true);
   });
 
-  it("a changed text, citation, required flag or Annex point is a change", async () => {
+  it("a changed text, citation or required flag is a change", async () => {
     const { sameSetContent } = await mod();
     for (const change of [
       { text: "A2" },
       { citation: "Acme §2" },
       { required: false },
-      { annexPoint: null },
     ]) {
       const d = same();
       Object.assign(d.questions[0], change);
@@ -362,7 +337,6 @@ describe("sameSetContent: whether a save would change anything", () => {
       text: "C",
       citation: "",
       required: true,
-      annexPoint: null,
     });
     expect(sameSetContent(more, latest)).toBe(false);
   });

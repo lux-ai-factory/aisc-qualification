@@ -8,7 +8,6 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { KEY_QUESTIONS } from "@/data/keyQuestions";
 import { customQuestion, loadSrc, setVersion } from "../support/forms";
 
 // The question-set editor, run through the two pages that mount it: /question-sets/new and
@@ -20,7 +19,8 @@ import { customQuestion, loadSrc, setVersion } from "../support/forms";
 // What these tests rely on: the edit page reads the set's latest version
 // through questionSetService.latest(setId) (atNumber is mocked to the same
 // answer); the editor's question editor is the panel .qf-builder-editor holding a textarea, the
-// citation input, the "Required" checkbox and the "Answers Annex IV point" select; each row's Edit
+// citation input and the "Required" checkbox (no Annex IV point: a question names its source in its
+// citation, in any regulation); each row's Edit
 // and Remove buttons are named "Edit ..." / "Remove ..." after the row.
 
 const { questionSetService, saveQuestionSet, retireQuestionSet, notFound } =
@@ -129,7 +129,7 @@ const editor = (c: HTMLElement) =>
 /** "+ New question", fill the editor, "Save question". */
 function addQuestion(
   c: HTMLElement,
-  v: { text: string; citation?: string; required?: boolean; point?: string },
+  v: { text: string; citation?: string; required?: boolean },
 ) {
   fireEvent.click(screen.getByRole("button", { name: "+ New question" }));
   const panel = editor(c)!;
@@ -144,17 +144,6 @@ function addQuestion(
   }
   if (v.required === false)
     fireEvent.click(within(panel).getByRole("checkbox", { name: "Required" }));
-  if (v.point) {
-    const select = within(panel).getByLabelText(
-      "Answers Annex IV point",
-    ) as HTMLSelectElement;
-    fireEvent.change(select, {
-      target: {
-        value: [...select.options].find((o) => o.textContent === v.point)!
-          .value,
-      },
-    });
-  }
   fireEvent.click(within(panel).getByRole("button", { name: "Save question" }));
 }
 
@@ -210,22 +199,14 @@ describe("a new question set", () => {
         }) as HTMLInputElement
       ).checked,
     ).toBe(true);
-    const point = within(panel).getByLabelText(
-      "Answers Annex IV point",
-    ) as HTMLSelectElement;
-    expect([...point.options].map((o) => o.textContent)).toEqual([
-      "None",
-      ...KEY_QUESTIONS.map((q) => q.citation),
-    ]);
-    expect(point.selectedOptions[0].textContent).toBe("None");
+    expect(within(panel).queryByLabelText(/Annex IV point/)).toBeNull();
   });
 
-  it("Save question appends the row: position, text, citation chip, Annex point chip, Required tag", async () => {
+  it("Save question appends the row: position, text, citation chip, Required tag", async () => {
     const { container } = await mountNew();
     addQuestion(container, {
       text: "Who may retrain the model?",
       citation: "§6.3",
-      point: "Annex IV(2)(f)",
     });
     expect(editor(container)).toBeNull();
     const [row] = rows(container);
@@ -235,7 +216,7 @@ describe("a new question set", () => {
     expect(
       [...row.querySelectorAll("span.qf-citation")].map((s) => s.textContent),
     ).toContain("§6.3");
-    expect(row.textContent).toContain("Annex IV(2)(f)");
+    expect(row.textContent).not.toContain("Annex IV");
     expect(row.textContent).toContain("Required");
     addQuestion(container, {
       text: "Is there a rollback plan?",
@@ -352,7 +333,6 @@ describe("a new question set", () => {
     addQuestion(container, {
       text: "Who signs off a model release?",
       citation: "§4.2",
-      point: "Annex IV(2)(a)",
     });
     addQuestion(container, {
       text: "Is there a rollback plan?",
@@ -373,13 +353,11 @@ describe("a new question set", () => {
           text: "Who signs off a model release?",
           citation: "§4.2",
           required: true,
-          annexPoint: "2a",
         },
         {
           text: "Is there a rollback plan?",
           citation: "",
           required: false,
-          annexPoint: null,
         },
       ],
     });
@@ -460,7 +438,7 @@ describe("editing a question set", () => {
     expect(rows(container)[1].textContent).toContain(
       "Which datasets are approved?",
     );
-    expect(rows(container)[1].textContent).toContain("Annex IV(2)(d)");
+    expect(rows(container)[1].textContent).not.toContain("Annex IV");
     expect(rows(container)[1].textContent).toContain("Optional");
   });
 
@@ -486,20 +464,17 @@ describe("editing a question set", () => {
         text: "Who signs off a model release?",
         citation: "Acme AI Policy §4.2",
         required: true,
-        annexPoint: null,
       },
       {
         questionId: "acme-q2",
         text: "Which datasets are approved?",
         citation: "",
         required: false,
-        annexPoint: "2d",
       },
       {
         text: "Is there a rollback plan?",
         citation: "",
         required: true,
-        annexPoint: null,
       },
     ]);
     // no row keys and no group labels travel (toSetDraft)

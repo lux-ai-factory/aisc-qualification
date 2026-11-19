@@ -12,9 +12,8 @@ them, and only then saves a form; nothing here is stored.
   Word      one question per paragraph, with the same citation rule; headings,
             the title and the subtitle are skipped. Tables read like a CSV.
 
-A table header (CSV, Markdown or Word) may name an Annex IV point column
-(annex_point, annex point, annex iv point, annex); its value is one of the 14
-point ids, else it is left blank with a warning. In a CSV, a leading ' that the
+A table column the rules do not name is not read: a file exported when questions still
+had an Annex IV point column reads as before, without it. In a CSV, a leading ' that the
 exporter put before = + - @ is removed; in a Markdown table, \\ is \ and \| is |.
 
 Then the limits: text and citation collapsed, a question over 2000 characters
@@ -29,7 +28,6 @@ import re
 from dataclasses import dataclass, field
 
 from prefill.documents import DocumentUnreadable, _decode, check_docx_expansion
-from prefill.fields import ANNEX_POINT_IDS
 
 MAX_QUESTIONS = 200
 MAX_TEXT = 2000
@@ -40,7 +38,6 @@ FORMATS = {"csv": "csv", "md": "md", "markdown": "md", "docx": "docx"}
 _QUESTION_HEADERS = {"question", "questions", "text", "question text"}
 _CITATION_HEADERS = {"citation", "reference", "source", "clause"}
 _REQUIRED_HEADERS = {"required", "mandatory"}
-_ANNEX_HEADERS = {"annex_point", "annex point", "annex iv point", "annex"}
 _REQUIRED_VALUES = {"yes", "y", "true", "1", "required"}
 
 
@@ -49,7 +46,6 @@ class ImportedQuestion:
     text: str
     citation: str
     required: bool
-    annex_point: str | None = None
 
 
 @dataclass
@@ -59,9 +55,8 @@ class FormImport:
     warnings: list[str] = field(default_factory=list)
 
 
-#: (text, citation, required, annex_raw, line) before the limits are applied;
-#: annex_raw is None when the row has no Annex column, else the raw cell text
-Candidate = tuple[str, str, bool, "str | None", int]
+#: (text, citation, required, line) before the limits are applied
+Candidate = tuple[str, str, bool, int]
 
 
 def _plural(n: int, word: str) -> str:
@@ -100,11 +95,9 @@ def _table_rows(rows: list[tuple[list[str], int]], *, unguard: bool = False) -> 
         q_col = column(_QUESTION_HEADERS)
         c_col = column(_CITATION_HEADERS)
         r_col = column(_REQUIRED_HEADERS)
-        a_col = column(_ANNEX_HEADERS)
         body = rows[1:]
     else:
         q_col, c_col, r_col = 0, 1, 2
-        a_col = None
         body = rows
     out = []
     for cells, line in body:
@@ -119,7 +112,6 @@ def _table_rows(rows: list[tuple[list[str], int]], *, unguard: bool = False) -> 
                 text,
                 citation,
                 _cell(cells, r_col).strip().lower() in _REQUIRED_VALUES,
-                _cell(cells, a_col) if a_col is not None else None,
                 line,
             )
         )
@@ -234,7 +226,7 @@ def _from_markdown(text: str) -> tuple[list[Candidate], int]:
             headings += 1
             continue
         body, citation = _with_citation(_unwrap(line))
-        candidates.append((body, citation, False, None, number))
+        candidates.append((body, citation, False, number))
     flush_table()
     return candidates, headings
 
@@ -259,7 +251,7 @@ def _from_docx(raw: bytes) -> tuple[list[Candidate], int]:
         if not line:
             continue
         body, citation = _with_citation(line)
-        candidates.append((body, citation, False, None, number))
+        candidates.append((body, citation, False, number))
     for table in document.tables:
         rows = []
         for row in table.rows:
@@ -278,7 +270,7 @@ def _limited(candidates: list[Candidate], headings: int) -> tuple[list[ImportedQ
     warnings: list[str] = []
     seen: set[str] = set()
     duplicates = 0
-    for text, citation, required, annex_raw, line in candidates:
+    for text, citation, required, line in candidates:
         text, citation = _collapse(text), _collapse(citation)
         if not text:
             continue
@@ -295,16 +287,7 @@ def _limited(candidates: list[Candidate], headings: int) -> tuple[list[ImportedQ
         if len(citation) > MAX_CITATION:
             citation = citation[:MAX_CITATION]
             warnings.append(f"The citation on line {line} was shortened to {MAX_CITATION} characters.")
-        annex_point = None
-        if annex_raw is not None:
-            value = annex_raw.strip()
-            if value.lower() in ANNEX_POINT_IDS:
-                annex_point = value.lower()
-            elif value:
-                warnings.append(
-                    f'The Annex IV point on line {line} ("{value}") is not one of the 14 and was left blank.'
-                )
-        questions.append(ImportedQuestion(text, citation, required, annex_point))
+        questions.append(ImportedQuestion(text, citation, required))
     if headings:
         warnings.insert(0, f"Skipped {_plural(headings, 'heading')}.")
     if duplicates:

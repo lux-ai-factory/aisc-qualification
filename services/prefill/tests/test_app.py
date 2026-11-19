@@ -137,10 +137,10 @@ class TestFormImportEndpoint:
         body = r.json()
         assert set(body) == {"format", "found", "questions", "warnings"}
         assert body["format"] == "csv"
-        # each question also carries annexPoint
+        # each question is its wording only: no Annex IV point
         assert body["questions"] == [
-            {"text": "Who signs off?", "citation": "Acme §4.2", "required": True, "annexPoint": None},
-            {"text": "Who audits?", "citation": "", "required": False, "annexPoint": None},
+            {"text": "Who signs off?", "citation": "Acme §4.2", "required": True},
+            {"text": "Who audits?", "citation": "", "required": False},
         ]
         assert body["found"] == len(body["questions"]) == 2
         assert body["warnings"] == []
@@ -278,20 +278,18 @@ class TestPrefillWithAForm:
 
 
 
-class TestFormImportAnnexPoint:
-    """/forms/import returns each question's annexPoint."""
+class TestFormImportWithAnOldAnnexColumn:
+    """/forms/import reads a file that still has an Annex IV point column without it."""
 
-    def test_the_annex_column_comes_back_as_annex_point(self):
+    def test_the_annex_column_is_not_read(self):
         r = form_file(b"question,required,annex_point\nWho signs off?,yes,2A\nWho audits?,no,3a\n", "acme.csv")
         assert r.status_code == 200, r.text
         body = r.json()
         assert body["questions"] == [
-            {"text": "Who signs off?", "citation": "", "required": True, "annexPoint": "2a"},
-            {"text": "Who audits?", "citation": "", "required": False, "annexPoint": None},
+            {"text": "Who signs off?", "citation": "", "required": True},
+            {"text": "Who audits?", "citation": "", "required": False},
         ]
-        assert body["warnings"] == [
-            'The Annex IV point on line 3 ("3a") is not one of the 14 and was left blank.'
-        ]
+        assert body["warnings"] == []
 
 
 def export(payload: dict):
@@ -318,9 +316,9 @@ class TestFormExportEndpoint:
             "filename": "acme-ai-policy-v3.csv",
             "contentType": "text/csv; charset=utf-8",
             "content": (
-                "﻿question,citation,required,annex_point\r\n"
-                "Who signs off a model release?,Acme AI Policy §4.2,yes,\r\n"
-                "\"'=Is SUM(A1) ok, or not?\",,no,2a\r\n"
+                "﻿question,citation,required\r\n"
+                "Who signs off a model release?,Acme AI Policy §4.2,yes\r\n"
+                "\"'=Is SUM(A1) ok, or not?\",,no\r\n"
             ),
         }
 
@@ -335,7 +333,7 @@ class TestFormExportEndpoint:
     def test_a_form_with_no_questions_is_fine(self):
         r = export({"format": "csv", "form": {"name": "Empty", "version": 1, "questions": []}})
         assert r.status_code == 200
-        assert r.json()["content"] == "﻿question,citation,required,annex_point\r\n"
+        assert r.json()["content"] == "﻿question,citation,required\r\n"
 
     @pytest.mark.parametrize("fmt", ["pdf", "docx", "CSV", ""])
     def test_any_other_format_is_422_format_must_be_csv_or_md(self, fmt):
@@ -343,11 +341,11 @@ class TestFormExportEndpoint:
         assert r.status_code == 422
         assert r.json()["detail"] == "format must be csv or md"
 
-    def test_an_annex_point_outside_the_14_is_422_naming_the_question(self):
+    def test_an_annex_point_a_caller_still_sends_is_not_written_nor_refused(self):
         form = {**R50_FORM, "questions": [R50_FORM["questions"][0], {**R50_FORM["questions"][1], "annexPoint": "3a"}]}
         r = export({"format": "csv", "form": form})
-        assert r.status_code == 422
-        assert r.json()["detail"] == "question 2 names an Annex IV point that does not exist"
+        assert r.status_code == 200, r.text
+        assert "3a" not in r.json()["content"]
 
     def test_more_than_200_questions_is_422(self):
         questions = [{"text": f"Q{i}?", "citation": "", "required": True, "annexPoint": None} for i in range(201)]
@@ -367,7 +365,7 @@ class TestFormExportEndpoint:
             {"format": "csv", "form": {**R50_FORM, "version": 0}},
             {"format": "csv", "form": {**R50_FORM, "version": "three"}},
             {"format": "csv", "form": {"version": 1, "questions": []}},
-            {"format": "csv", "form": {**R50_FORM, "questions": [{"text": "Q?", "citation": "", "required": True}]}},
+            {"format": "csv", "form": {**R50_FORM, "questions": [{"text": "Q?", "citation": ""}]}},
             {"format": "csv", "form": {**R50_FORM, "questions": [{"text": 1, "citation": "", "required": True, "annexPoint": None}]}},
         ],
     )

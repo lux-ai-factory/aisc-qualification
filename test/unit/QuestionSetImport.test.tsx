@@ -238,19 +238,16 @@ describe("importing a question-set file", () => {
         text: "Who signs off a model release?",
         citation: "Acme AI Policy §4.2",
         required: true,
-        annexPoint: null,
       },
       {
         text: "Which datasets are approved?",
         citation: "",
         required: false,
-        annexPoint: null,
       },
       {
         text: "How are incidents reported?",
         citation: "§7",
         required: false,
-        annexPoint: null,
       },
     ]);
     expect(container).toBeTruthy();
@@ -297,10 +294,10 @@ describe("importing a question-set file", () => {
   });
 });
 
-// The Annex column reaches the set editor
+// A file's Annex IV point column is not carried: a question names its source in its citation
 
-describe("an imported file's Annex tags", () => {
-  // what POST /forms/import answers for the example CSV
+describe("an imported file's Annex IV point column", () => {
+  // what POST /forms/import answers for a file that still has the column
   const r50 = {
     ok: true,
     found: 2,
@@ -321,40 +318,17 @@ describe("an imported file's Annex tags", () => {
     ],
     warnings: [],
   };
-  const selects = () =>
-    screen.getAllByLabelText("Answers Annex IV point") as HTMLSelectElement[];
 
-  it('each preview row has an "Answers Annex IV point" select: None plus the 14 points by citation, preselected from the file', async () => {
+  it("the preview offers no Annex IV point", async () => {
     readQuestionSetFile.mockResolvedValue(r50);
     const { container } = await mount();
     await upload(container, "acme-ai-policy-v3.csv");
     await screen.findByText("Found 2 questions in acme-ai-policy-v3.csv");
-    const all = selects();
-    expect(all).toHaveLength(2);
-    expect([...all[0].options].map((o) => o.textContent)).toEqual([
-      "None",
-      "Annex IV(1)(a)",
-      "Annex IV(1)(b)",
-      "Annex IV(1)(c)",
-      "Annex IV(1)(d)-(e)",
-      "Annex IV(1)(f)",
-      "Annex IV(1)(g)-(h)",
-      "Annex IV(2)(a)",
-      "Annex IV(2)(b)",
-      "Annex IV(2)(c)",
-      "Annex IV(2)(d)",
-      "Annex IV(2)(e)",
-      "Annex IV(2)(f)",
-      "Annex IV(2)(g)",
-      "Annex IV(2)(h)",
-    ]);
-    expect(all.map((s) => s.selectedOptions[0].textContent)).toEqual([
-      "None",
-      "Annex IV(2)(a)",
-    ]);
+    expect(screen.queryAllByLabelText(/Annex IV point/)).toEqual([]);
+    expect(container.textContent).not.toContain("Annex IV(2)(a)");
   });
 
-  it("the example CSV confirmed: new questions with annexPoint null and 2a, required true and false", async () => {
+  it("the saved questions carry no point, whatever the file said", async () => {
     readQuestionSetFile.mockResolvedValue(r50);
     saveQuestionSet.mockResolvedValue(undefined);
     const { container } = await mount();
@@ -371,46 +345,12 @@ describe("an imported file's Annex tags", () => {
         text: "Who signs off a model release?",
         citation: "Acme AI Policy §4.2",
         required: true,
-        annexPoint: null,
       },
       {
         text: "=Is SUM(A1) ok, or not?",
         citation: "",
         required: false,
-        annexPoint: "2a",
       },
     ]);
-  });
-
-  it("the point chosen in the preview is the one that travels", async () => {
-    readQuestionSetFile.mockResolvedValue(r50);
-    saveQuestionSet.mockResolvedValue(undefined);
-    const { container } = await mount();
-    await upload(container, "acme.csv");
-    await screen.findByText("Found 2 questions in acme.csv");
-    const [first, second] = selects();
-    fireEvent.change(first, {
-      target: {
-        value: [...first.options].find(
-          (o) => o.textContent === "Annex IV(2)(g)",
-        )!.value,
-      },
-    });
-    fireEvent.change(second, {
-      target: {
-        value: [...second.options].find((o) => o.textContent === "None")!.value,
-      },
-    });
-    fireEvent.click(
-      screen.getByRole("button", { name: "Continue with 2 questions" }),
-    );
-    await screen.findByLabelText("Name");
-    fireEvent.click(screen.getByRole("button", { name: "Save question set" }));
-    await waitFor(() => expect(saveQuestionSet).toHaveBeenCalled());
-    expect(
-      JSON.parse(saveQuestionSet.mock.calls[0][1]).questions.map(
-        (q: { annexPoint: unknown }) => q.annexPoint,
-      ),
-    ).toEqual(["2g", null]);
   });
 });

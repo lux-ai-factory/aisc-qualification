@@ -8,15 +8,12 @@
  * It never throws. A service that is down, or not deployed at all, means the
  * person builds the form by hand.
  */
-import { isAnnexPoint, type AnnexPointId } from "@/domain/forms/annexPoints";
 import { callService } from "@/server/services/http";
 
 export type ImportedQuestion = {
   text: string;
   citation: string;
   required: boolean;
-  /** The file's Annex IV point column: one of the 14, else null. */
-  annexPoint: AnnexPointId | null;
 };
 
 export type FormImportResult =
@@ -39,7 +36,7 @@ const READ_TIMEOUT_MS = 60_000;
 type ImportAnswer = {
   format: string;
   found: number;
-  questions: Array<Omit<ImportedQuestion, "annexPoint"> & { annexPoint?: unknown }>;
+  questions: ImportedQuestion[];
   warnings?: string[];
 };
 
@@ -99,12 +96,8 @@ export class FormImportClient {
       ok: true,
       format: read.format,
       found: read.found,
-      questions: read.questions.map(({ text, citation, required, annexPoint }) => ({
-        text,
-        citation,
-        required,
-        annexPoint: isAnnexPoint(annexPoint) ? annexPoint : null,
-      })),
+      // a question is carried with its wording only: anything else the file had is not
+      questions: read.questions.map(({ text, citation, required }) => ({ text, citation, required })),
       warnings: read.warnings ?? [],
     };
   }

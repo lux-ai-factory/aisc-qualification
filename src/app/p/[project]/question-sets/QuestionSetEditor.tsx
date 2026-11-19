@@ -4,11 +4,6 @@ import { useEffect, useId, useReducer, useRef, useState } from "react";
 import { useServerAction } from "@/lib/serverAction";
 import { useLeaveGuard } from "@/lib/useLeaveGuard";
 import {
-  ANNEX_POINTS,
-  annexCitation,
-  isAnnexPoint,
-} from "@/domain/forms/annexPoints";
-import {
   initialSetEditorState,
   setEditorReducer,
   toSetDraft,
@@ -38,7 +33,6 @@ const NEW_QUESTION: QuestionValues = {
   text: "",
   citation: "",
   required: true,
-  annexPoint: null,
 };
 
 type Editor = { index: number | null; values: QuestionValues };
@@ -52,13 +46,12 @@ const editorChanged = (
   if (editor === null) return false;
   if (editor.index === null) return editor.values.text.trim() !== "";
   const row = rows[editor.index];
-  const { text, citation, required, annexPoint } = editor.values;
+  const { text, citation, required } = editor.values;
   return (
     !row ||
     row.text !== text ||
     row.citation !== citation ||
-    row.required !== required ||
-    row.annexPoint !== annexPoint
+    row.required !== required
   );
 };
 
@@ -217,11 +210,6 @@ export default function QuestionSetEditor({
                   {row.citation !== "" && (
                     <span className="qf-citation">{row.citation}</span>
                   )}
-                  {row.annexPoint && (
-                    <span className="qf-overlap">
-                      {annexCitation(row.annexPoint)}
-                    </span>
-                  )}
                   <span className="qf-tag">
                     {row.required ? "Required" : "Optional"}
                   </span>
@@ -259,7 +247,6 @@ export default function QuestionSetEditor({
                           text: row.text,
                           citation: row.citation,
                           required: row.required,
-                          annexPoint: row.annexPoint,
                         },
                       })
                     }
@@ -337,8 +324,8 @@ export default function QuestionSetEditor({
   );
 }
 
-/** One question's wording: the text, the citation, whether it is required,
- *  and the Annex IV point it answers. */
+/** One question's wording: the text, the citation (its source, in any regulation) and whether it is
+ *  required. */
 function QuestionEditor({
   idPrefix,
   values,
@@ -369,43 +356,17 @@ function QuestionEditor({
           onChange={(e) => set({ text: e.target.value })}
         />
       </div>
-      <div className="qf-builder-editor-pair">
-        <div className="field">
-          <label className="qf-field-label" htmlFor={`${idPrefix}-citation`}>
-            Citation
-          </label>
-          <input
-            id={`${idPrefix}-citation`}
-            value={values.citation}
-            maxLength={200}
-            placeholder="e.g. Acme AI Policy §4.2"
-            onChange={(e) => set({ citation: e.target.value })}
-          />
-        </div>
-        <div className="field">
-          <label className="qf-field-label" htmlFor={`${idPrefix}-point`}>
-            Answers Annex IV point
-          </label>
-          <select
-            id={`${idPrefix}-point`}
-            className="qf-select"
-            value={values.annexPoint ?? ""}
-            onChange={(e) =>
-              set({
-                annexPoint: isAnnexPoint(e.target.value)
-                  ? e.target.value
-                  : null,
-              })
-            }
-          >
-            <option value="">None</option>
-            {ANNEX_POINTS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.citation}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className="field">
+        <label className="qf-field-label" htmlFor={`${idPrefix}-citation`}>
+          Citation
+        </label>
+        <input
+          id={`${idPrefix}-citation`}
+          value={values.citation}
+          maxLength={200}
+          placeholder="e.g. Acme AI Policy §4.2"
+          onChange={(e) => set({ citation: e.target.value })}
+        />
       </div>
       <label className="qf-builder-check">
         <input

@@ -41,16 +41,35 @@ export type ComponentDrift = {
   changed: EngineComponent[];
 };
 
-/** Where the card's links and the engine disagree. Pure: changes nothing it is given. */
+/** The platform's own mirror of a target (a system or component the card describes): not card content. */
+function isPlatformMirror(c: { name?: string; data?: string; objectName?: string }): boolean {
+  return (
+    (c.data ?? c.objectName ?? "").startsWith("target:") || (c.name ?? "").startsWith("AI card · ")
+  );
+}
+
+/** Test data and helper models are the engine's own working material, not what the card describes. */
+const NOT_CARD_TYPES = new Set(["dataset", "datashape", "llm"]);
+
+function isCardContent(c: { name?: string; data?: string; objectName?: string; type: string }): boolean {
+  return !isPlatformMirror(c) && !NOT_CARD_TYPES.has(c.type);
+}
+
+/** Where the card's links and the engine disagree. Mirrors, test data and helper models are left
+ *  out on both sides. A card that links no engine component claims none (cards saved before links
+ *  existed, or while the engine did not answer), so nothing is added to it. Pure: changes nothing
+ *  it is given. */
 export function componentDrift(
-  linked: LinkedComponent[],
-  engine: EngineComponent[],
+  allLinked: LinkedComponent[],
+  allEngine: EngineComponent[],
 ): ComponentDrift {
+  const linked = allLinked.filter((l) => isCardContent({ ...l, type: l.componentType }));
+  const engine = allEngine.filter((c) => isCardContent({ ...c, type: c.component_type }));
   const enginePids = new Set(engine.map((c) => c.pid));
   const linkOf = new Map(linked.map((l) => [l.componentPid, l]));
   return {
     removed: linked.filter((l) => !enginePids.has(l.componentPid)),
-    added: engine.filter((c) => !linkOf.has(c.pid)),
+    added: linked.length === 0 ? [] : engine.filter((c) => !linkOf.has(c.pid)),
     changed: engine.filter((c) => {
       const link = linkOf.get(c.pid);
       return (
@@ -72,10 +91,11 @@ function airoPropertyOf(componentType: string): string {
   return componentType === "model" || componentType === "llm" ? "hasModel" : "hasComponent";
 }
 
-/** The links a save writes: one per engine component, with the snapshot drift is measured
+/** The links a save writes: one per engine component that is card content, with the snapshot drift is measured
  *  against, in the order a card reads them back (by pid, all linked at once). Pure. */
 export function engineLinks(engine: EngineComponent[]): LinkedComponent[] {
   return engine
+    .filter((c) => isCardContent({ ...c, type: c.component_type }))
     .map((c) => ({
       componentPid: c.pid,
       airoProperty: airoPropertyOf(c.component_type),

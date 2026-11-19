@@ -17,7 +17,6 @@ from prefill.components import components_from_text, merge_components
 from prefill.picks import picks_from_text
 from prefill.documents import DocumentUnreadable, read_document
 from prefill.fields import (
-    ANNEX_POINT_IDS,
     annex_sections,
     metadata_from_text,
     proposals_for_questions,
@@ -191,7 +190,7 @@ def forms_import(file: UploadFile = File(...)) -> dict:
         "format": result.format,
         "found": len(result.questions),
         "questions": [
-            {"text": q.text, "citation": q.citation, "required": q.required, "annexPoint": q.annex_point}
+            {"text": q.text, "citation": q.citation, "required": q.required}
             for q in result.questions
         ],
         "warnings": result.warnings,
@@ -202,7 +201,8 @@ class ExportQuestion(BaseModel):
     text: str
     citation: str
     required: bool
-    annexPoint: Optional[str]
+    #: still sent by callers; a question names its source in its citation, and this is not written
+    annexPoint: Optional[str] = None
 
 
 class ExportForm(BaseModel):
@@ -227,11 +227,6 @@ def forms_export(req: ExportRequest) -> dict:
         raise HTTPException(status_code=422, detail="format must be csv or md")
     if len(req.form.questions) > MAX_QUESTIONS:
         raise HTTPException(status_code=422, detail=f"a form has at most {MAX_QUESTIONS} questions")
-    for n, question in enumerate(req.form.questions, start=1):
-        if question.annexPoint is not None and question.annexPoint not in ANNEX_POINT_IDS:
-            raise HTTPException(
-                status_code=422, detail=f"question {n} names an Annex IV point that does not exist"
-            )
     out = export_form(req.form.model_dump(), req.format)
     return {"filename": out.filename, "contentType": out.content_type, "content": out.content}
 

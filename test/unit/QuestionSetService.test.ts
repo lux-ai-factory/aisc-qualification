@@ -142,7 +142,8 @@ describe("creating a question set", () => {
         text: "A",
         citation: "§1",
         required: true,
-        annexPoint: "2a",
+        // a posted point is not stored: a question names its source in its citation
+        annexPoint: null,
         groupLabel: null,
       },
       {

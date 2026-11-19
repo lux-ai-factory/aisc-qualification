@@ -28,8 +28,6 @@ import {
 } from "@/domain/forms/builderState";
 import {
   filterLibrary,
-  overlapHints,
-  overlapLabel,
   updatesAvailable,
   type SetGroup,
 } from "@/domain/forms/library";
@@ -112,17 +110,6 @@ export default function QuestionnaireBuilder({
   const shown = useMemo(
     () => filterLibrary(shownGroups, search),
     [shownGroups, search],
-  );
-  const hints = useMemo(
-    () =>
-      overlapHints(
-        state.rows.map((r) => ({
-          questionId: r.questionId,
-          annexPoint: r.source.annexPoint,
-        })),
-        offered.flatMap((g) => g.questions),
-      ),
-    [state.rows, offered],
   );
   const updates = useMemo(
     () => updatesAvailable(state.rows, groups),
@@ -238,18 +225,9 @@ export default function QuestionnaireBuilder({
                         />
                         <span className="qf-builder-pick-body">
                           <span className="qf-question-text">{q.text}</span>
-                          {(q.citation !== "" || hints[q.questionId]) && (
+                          {q.citation !== "" && (
                             <span className="qf-builder-chips">
-                              {q.citation !== "" && (
-                                <span className="qf-citation">
-                                  {q.citation}
-                                </span>
-                              )}
-                              {hints[q.questionId] && (
-                                <span className="qf-overlap">
-                                  {overlapLabel(hints[q.questionId])}
-                                </span>
-                              )}
+                              <span className="qf-citation">{q.citation}</span>
                             </span>
                           )}
                         </span>
@@ -337,7 +315,6 @@ export default function QuestionnaireBuilder({
         <ol className="qf-builder-rows">
           {state.rows.map((row, i) => {
             const q = row.source;
-            const hint = hints[row.questionId];
             const update = updates[i];
             return (
               <li
@@ -363,9 +340,6 @@ export default function QuestionnaireBuilder({
                       <span className="qf-citation">{q.citation}</span>
                     )}
                     <span className="qf-builder-owner">{`${q.setName} v${q.setVersionNumber}`}</span>
-                    {hint && (
-                      <span className="qf-overlap">{overlapLabel(hint)}</span>
-                    )}
                     <span className="qf-tag">
                       {q.required ? "Required" : "Optional"}
                     </span>

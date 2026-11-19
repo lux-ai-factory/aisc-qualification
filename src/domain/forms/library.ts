@@ -1,7 +1,5 @@
-// The questionnaire builder's left column: search over the question sets, the
-// "overlaps" hint for questions that answer the same Annex IV point, and "Update
+// The questionnaire builder's left column: search over the question sets, and "Update
 // available" for picks whose set has a newer wording. Pure and deterministic.
-import { annexCitation, type AnnexPointId } from "./annexPoints";
 import type { BuilderRow } from "./builderState";
 import type { ResolvedQuestion } from "./types";
 
@@ -55,33 +53,6 @@ export function filterLibrary<G extends { questions: ResolvedQuestion[] }>(
       ),
     }))
     .filter((g) => g.questions.length > 0);
-}
-
-type Tagged = Pick<ResolvedQuestion, "questionId" | "annexPoint">;
-
-/**
- * questionId -> point, for every selected or candidate question tagged with a
- * point that another selected question (another id) also answers.
- */
-export function overlapHints(
-  selected: Tagged[],
-  candidates: Tagged[],
-): Record<string, AnnexPointId> {
-  const hints: Record<string, AnnexPointId> = {};
-  for (const q of [...selected, ...candidates]) {
-    const p = q.annexPoint;
-    if (p === null) continue;
-    if (
-      selected.some((s) => s.questionId !== q.questionId && s.annexPoint === p)
-    ) {
-      hints[q.questionId] = p;
-    }
-  }
-  return hints;
-}
-
-export function overlapLabel(point: AnnexPointId): string {
-  return `≈ overlaps ${annexCitation(point)}`;
 }
 
 const WORDING_FIELDS = [
