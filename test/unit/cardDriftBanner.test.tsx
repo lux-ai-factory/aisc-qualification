@@ -31,9 +31,9 @@ describe("the card drift banner", () => {
     expect(html).toContain("Start the next version");
   });
 
-  it("says the caller only reads, instead of linking, for a reader", () => {
+  it("offers no link to a reader and leaves the reads-only sentence to the page", () => {
     const html = renderToStaticMarkup(<CardDriftBanner project={P} drift={drift} readsOnly />);
-    expect(html).toContain(READS_ONLY.replace(/'/g, "&#x27;"));
+    expect(html).not.toContain(READS_ONLY.replace(/'/g, "&#x27;"));
     expect(html).not.toContain("Start the next version");
   });
 

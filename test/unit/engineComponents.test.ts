@@ -157,16 +157,19 @@ describe("drift between the card's links and the engine (6c)", () => {
     },
     {
       componentPid: "d1",
-      componentType: "dataset",
+      componentType: "resource",
       objectName: "data/h.csv",
-      airoProperty: "hasTestingData",
+      airoProperty: "hasComponent",
       name: "Holdout",
     },
   ];
 
+  // test data is not card content, so the second component here is a resource
+  const parts = [components[0], { ...components[1], component_type: "resource" }];
+
   it("no drift when the links match the engine", async () => {
     const { componentDrift } = await load(CARD_COMPONENTS);
-    expect(componentDrift(linked, components)).toEqual({
+    expect(componentDrift(linked, parts)).toEqual({
       removed: [],
       added: [],
       changed: [],
@@ -175,7 +178,7 @@ describe("drift between the card's links and the engine (6c)", () => {
 
   it("a deleted engine component is 'removed'", async () => {
     const { componentDrift } = await load(CARD_COMPONENTS);
-    const drift = componentDrift(linked, [components[0]]);
+    const drift = componentDrift(linked, [parts[0]]);
     expect(
       drift.removed.map((c: { componentPid: string }) => c.componentPid),
     ).toEqual(["d1"]);
@@ -190,15 +193,15 @@ describe("drift between the card's links and the engine (6c)", () => {
       component_type: "resource",
       data: "r.bin",
     };
-    const drift = componentDrift(linked, [...components, extra]);
+    const drift = componentDrift(linked, [...parts, extra]);
     expect(drift.added.map((c: { pid: string }) => c.pid)).toEqual(["r9"]);
   });
 
   it("a re-upload (same pid, other data or type) is 'changed'", async () => {
     const { componentDrift } = await load(CARD_COMPONENTS);
     const reuploaded = [
-      components[0],
-      { ...components[1], data: "data/h-v2.csv" },
+      parts[0],
+      { ...parts[1], data: "data/h-v2.csv" },
     ];
     const drift = componentDrift(linked, reuploaded);
     expect(
@@ -212,9 +215,9 @@ describe("drift between the card's links and the engine (6c)", () => {
 
   it("computing drift changes nothing it was given", async () => {
     const { componentDrift } = await load(CARD_COMPONENTS);
-    const before = JSON.stringify([linked, components]);
-    componentDrift(linked, [components[0]]);
-    expect(JSON.stringify([linked, components])).toBe(before);
+    const before = JSON.stringify([linked, parts]);
+    componentDrift(linked, [parts[0]]);
+    expect(JSON.stringify([linked, parts])).toBe(before);
   });
 });
 
@@ -263,16 +266,47 @@ describe("the export shape carries the linked components (6b)", () => {
   });
 });
 
-describe("the links a save writes", () => {
-  it("one per engine component, with its snapshot, by the AIRO property its type allows", async () => {
+describe("what counts as card content", () => {
+  const mirror = { ...components[0], pid: "t1", name: "AI card · Scorer", component_type: "model", data: "target:x" };
+  const llm = { ...components[0], pid: "l1", name: "Judge", component_type: "llm", data: "gpt" };
+  const linkOfEngine = (c: any) => ({
+    componentPid: c.pid, airoProperty: "hasComponent", name: c.name,
+    componentType: c.component_type, objectName: c.data,
+  });
+  const modelLink = linkOfEngine(components[0]);
+
+  it("a card that links a mirror and a dataset shows no drift when the engine gains a dataset and a helper model", async () => {
+    const { componentDrift, hasDrift } = await load(CARD_COMPONENTS);
+    const linked = [modelLink, linkOfEngine(mirror), linkOfEngine(components[1])];
+    const more = { ...components[1], pid: "d2", data: "data/other.csv" };
+    expect(hasDrift(componentDrift(linked, [...components, mirror, more, { ...llm, pid: "l2" }]))).toBe(false);
+  });
+
+  it("a linked model the engine no longer has is removed", async () => {
+    const { componentDrift } = await load(CARD_COMPONENTS);
+    const drift = componentDrift([modelLink], [components[1]]);
+    expect(drift.removed.map((c: any) => c.componentPid)).toEqual(["m1"]);
+  });
+
+  it("a new model in the engine is added to a card that links one", async () => {
+    const { componentDrift } = await load(CARD_COMPONENTS);
+    const extra = { ...components[0], pid: "m2", data: "models/n.pkl" };
+    expect(componentDrift([modelLink], [components[0], extra]).added.map((c: any) => c.pid)).toEqual(["m2"]);
+  });
+
+  it("a save links only the model of mirror, dataset, helper model and model", async () => {
     const { engineLinks } = await load(CARD_COMPONENTS);
-    const llm = { ...components[0], pid: "l1", name: "Chat", component_type: "llm", data: "gpt" };
-    const shape = { ...components[1], pid: "a1", name: "Shape", component_type: "datashape", data: "" };
-    expect(engineLinks([...components, llm, shape])).toEqual([
-      // the engine does not say whether a dataset trains, tests or validates: only that it is a part
-      { componentPid: "a1", airoProperty: "hasComponent", name: "Shape", componentType: "datashape", objectName: "", componentKey: null },
-      { componentPid: "d1", airoProperty: "hasComponent", name: "Holdout", componentType: "dataset", objectName: "data/h.csv", componentKey: null },
-      { componentPid: "l1", airoProperty: "hasModel", name: "Chat", componentType: "llm", objectName: "gpt", componentKey: null },
+    const shape = { ...components[1], pid: "a1", component_type: "datashape", data: "" };
+    expect(engineLinks([mirror, components[1], shape, llm, components[0]]).map((l: any) => l.componentPid)).toEqual(["m1"]);
+  });
+});
+
+describe("the links a save writes", () => {
+  it("one per model, with its snapshot, as a part of the system through hasModel", async () => {
+    const { engineLinks } = await load(CARD_COMPONENTS);
+    const other = { ...components[0], pid: "a1", name: "Other", component_type: "resource", data: "r.bin" };
+    expect(engineLinks([...components, other])).toEqual([
+      { componentPid: "a1", airoProperty: "hasComponent", name: "Other", componentType: "resource", objectName: "r.bin", componentKey: null },
       { componentPid: "m1", airoProperty: "hasModel", name: "Scorer", componentType: "model", objectName: "models/m.pkl", componentKey: null },
     ]);
   });

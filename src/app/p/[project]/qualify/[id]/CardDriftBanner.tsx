@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { hasDrift, type ComponentDrift } from "@/domain/cardComponents";
-import { READS_ONLY } from "@/server/access/readsOnly";
 
 // A folded one-line notice on the card: the engine's components no longer match what the card
 // links, so the card needs a new version. Closed by default; nothing when nothing differs.
@@ -31,9 +30,7 @@ export default function CardDriftBanner({
           <li key={`c-${c.pid}`}>changed: {c.name}</li>
         ))}
       </ul>
-      {readsOnly ? (
-        <p>{READS_ONLY}</p>
-      ) : (
+      {!readsOnly && (
         <Link className="btn" href={`/p/${project}/system/edit`}>
           Start the next version
         </Link>
