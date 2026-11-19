@@ -83,15 +83,11 @@ describe("the AI system page with a card", () => {
     await expect(open()).rejects.toThrow(`REDIRECT /p/${P}/qualify/c3`);
   });
 
-  it("lists what changed when the engine no longer matches the card", async () => {
+  it("opens the latest card even when the engine differs", async () => {
     engine.components.mockResolvedValue([
       { pid: "d1", name: "Holdout", component_type: "dataset", data: "data/h.csv" },
     ]);
-    const html = renderToStaticMarkup(await open());
-    expect(html).toContain("removed: Scorer");
-    expect(html).toContain("added: Holdout");
-    expect(html).toContain(`/p/${P}/system/edit`);
-    expect(redirect).not.toHaveBeenCalled();
+    await expect(open()).rejects.toThrow(`REDIRECT /p/${P}/qualify/c3`);
   });
 
   it("opens the card when the engine does not answer, claiming no drift", async () => {

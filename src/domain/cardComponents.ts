@@ -41,16 +41,24 @@ export type ComponentDrift = {
   changed: EngineComponent[];
 };
 
-/** Where the card's links and the engine disagree. Pure: changes nothing it is given. */
+/** The platform's own mirror of a target (a system or component the card describes): not card content. */
+function isPlatformMirror(c: EngineComponent): boolean {
+  return (c.data ?? "").startsWith("target:") || (c.name ?? "").startsWith("AI card · ");
+}
+
+/** Where the card's links and the engine disagree. Platform target mirrors are left out. A card
+ *  that links no engine component claims none, so nothing is added to it. Pure: changes nothing
+ *  it is given. */
 export function componentDrift(
   linked: LinkedComponent[],
-  engine: EngineComponent[],
+  allEngine: EngineComponent[],
 ): ComponentDrift {
+  const engine = allEngine.filter((c) => !isPlatformMirror(c));
   const enginePids = new Set(engine.map((c) => c.pid));
   const linkOf = new Map(linked.map((l) => [l.componentPid, l]));
   return {
     removed: linked.filter((l) => !enginePids.has(l.componentPid)),
-    added: engine.filter((c) => !linkOf.has(c.pid)),
+    added: linked.length === 0 ? [] : engine.filter((c) => !linkOf.has(c.pid)),
     changed: engine.filter((c) => {
       const link = linkOf.get(c.pid);
       return (

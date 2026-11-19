@@ -22,6 +22,7 @@ const editor = () => ({
 
 const card = {
   id: "c3",
+  components: [],
   systemId: "v3",
   systemName: "MCAS",
   systemVersion: "1.2.0",
@@ -250,7 +251,7 @@ describe("a viewer on the questionnaires and question bank pages", () => {
   }
 });
 
-describe("a viewer on the versions list and the system page", () => {
+describe("a viewer on the versions list and the card drift banner", () => {
   async function versionsPage() {
     const { qualificationService } = await import("@/server/services/QualificationService");
     vi.spyOn(qualificationService, "list").mockResolvedValue([] as never);
@@ -258,17 +259,14 @@ describe("a viewer on the versions list and the system page", () => {
     const Page = (await import("@/app/p/[project]/qualifications/page")).default;
     return Page({ params: Promise.resolve({ project: PROJECT }) });
   }
-  async function systemPageWithDrift() {
+  async function cardPageWithDrift() {
     const { qualificationService } = await import("@/server/services/QualificationService");
-    vi.spyOn(qualificationService, "versions").mockResolvedValue([{ pid: "v3", number: 3 }] as never);
-    vi.spyOn(qualificationService, "currentCardId").mockResolvedValue("c3");
-    // the card links a component the engine no longer has: the page offers the next version
+    // the card links a component the engine no longer has: the card offers the next version
     vi.spyOn(qualificationService, "get").mockResolvedValue({
       ...card,
       components: [{ componentPid: "gone", name: "Old model", componentType: "model", airoProperty: "x" }],
     } as never);
-    const Page = (await import("@/app/p/[project]/system/page")).default;
-    return Page({ params: Promise.resolve({ project: PROJECT }) });
+    return cardPage();
   }
   /** Every element in a rendered tree, client components' own output included. */
   const deepEditLinks = async (tree: unknown) => {
@@ -288,11 +286,11 @@ describe("a viewer on the versions list and the system page", () => {
 
   it("an editor whose card's components changed is offered the next version", async () => {
     m.access = editor();
-    expect((await deepEditLinks(await systemPageWithDrift())).length).toBeGreaterThan(0);
+    expect((await deepEditLinks(await cardPageWithDrift())).length).toBeGreaterThan(0);
   });
 
   it("a viewer whose card's components changed is not offered the next version", async () => {
     m.access = viewer();
-    expect(await deepEditLinks(await systemPageWithDrift()), "the viewer is offered the edit form").toEqual([]);
+    expect(await deepEditLinks(await cardPageWithDrift()), "the viewer is offered the edit form").toEqual([]);
   });
 });

@@ -24,6 +24,9 @@ import { repositoryFor } from "@/server/repositories/QualificationRepository";
 import { emitEvent, isServerAction } from "@/vendor/aisc-ledger/emit";
 import { callerReadsOnly, READS_ONLY } from "@/server/access/readsOnly";
 import { aiActionsOn } from "@/lib/aiActions";
+import { engineClient } from "@/server/services/EngineClient";
+import { componentDrift, hasDrift } from "@/domain/cardComponents";
+import CardDriftBanner from "./CardDriftBanner";
 
 export default async function QualificationDetailPage({
   params,
@@ -77,6 +80,13 @@ export default async function QualificationDetailPage({
           `ledger: qualification.opened not recorded for ${q.id}: ${String(err)}`,
         ),
       );
+
+  // Drift between the latest card's links and the engine is shown, not fixed. An engine that
+  // does not answer makes no claim either way: no banner, no error.
+  const engineParts = standing?.current
+    ? await engineClient.components(project).catch(() => null)
+    : null;
+  const drift = engineParts ? componentDrift(q.components, engineParts) : null;
 
   // The ontology IS the card: built on read from the form, the agent's
   // extraction and the reviewer's patch. A sidecar that is down must not take
@@ -162,6 +172,9 @@ export default async function QualificationDetailPage({
               </div>
             </header>
 
+            {drift && hasDrift(drift) && (
+              <CardDriftBanner project={project} drift={drift} readsOnly={viewer} />
+            )}
             {viewer && <p className="qf-prefilled">{READS_ONLY}</p>}
             {history && (
               <p className="qf-prefilled">
