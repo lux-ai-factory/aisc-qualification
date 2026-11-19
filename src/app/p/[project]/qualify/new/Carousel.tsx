@@ -1,12 +1,13 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
+import { revealFirstInvalid } from "./firstInvalid";
 
 // Pages of a block, one shown at a time. Every page stays mounted, the others only hidden: the
 // fields are uncontrolled and posted with the form, and the document prefill writes onto them,
 // so a page out of view must still hold its answers. A required field left empty on a hidden
 // page would block the submit without the browser being able to show it, so the first one the
-// browser reports brings its page into view and shows its message there.
+// browser reports brings its page into view and shows its message there (firstInvalid.ts).
 export default function Carousel({
   pages,
   page,
@@ -24,21 +25,13 @@ export default function Carousel({
 }) {
   const shown = Math.max(0, Math.min(page, pages.length - 1));
   const pageEls = useRef<(HTMLDivElement | null)[]>([]);
-  // One submit fires an invalid event per empty field: only the first one picks the page.
-  const jumping = useRef(false);
-
-  const onInvalid = (e: React.FormEvent<HTMLDivElement>) => {
-    if (jumping.current) return;
-    const target = e.target as HTMLElement;
-    const at = pageEls.current.findIndex((el) => el?.contains(target));
-    if (at < 0 || at === shown) return;
-    jumping.current = true;
-    onPage(at);
-    setTimeout(() => {
-      jumping.current = false;
-      (target as HTMLInputElement).reportValidity?.();
-    }, 0);
-  };
+  const onInvalid = (e: React.FormEvent<HTMLDivElement>) =>
+    revealFirstInvalid(e.target, (field) => {
+      const at = pageEls.current.findIndex((el) => el?.contains(field));
+      if (at < 0 || at === shown) return false;
+      onPage(at);
+      return true;
+    });
 
   pageEls.current.length = pages.length;
   if (pages.length === 0) return null;

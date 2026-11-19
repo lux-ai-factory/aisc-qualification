@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
+import { revealFirstInvalid } from "../new/firstInvalid";
 
 // A qualification is too long to read or fill in one scroll, so a menu on the
 // left shows one part at a time: the parts of the form, then (on a saved card)
@@ -16,7 +17,7 @@ import { useRef, useState, type ReactNode } from "react";
 // hidden: its fields are uncontrolled and posted with the form, and the
 // document prefill writes onto them. A required field left empty in a hidden
 // part would block the submit without the browser being able to show it, so
-// the first one the browser reports brings its part into view.
+// the first one the browser reports brings its part into view (firstInvalid.ts).
 const CARD = "card";
 
 export type MenuPart = { id: string; label: string; content: ReactNode };
@@ -44,9 +45,6 @@ export default function QualificationMenu({
   const [active, setActive] = useState(parts[0]?.id ?? CARD);
   const panel = useRef<HTMLDivElement>(null);
   const partEls = useRef<Map<string, HTMLDivElement | null>>(new Map());
-  // One submit fires an invalid event per empty field: only the first one picks the part.
-  const jumping = useRef(false);
-
   const pick = (id: string) => {
     setActive(id);
     // A part picked from far down the previous one starts at its own top.
@@ -54,18 +52,13 @@ export default function QualificationMenu({
     if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView?.();
   };
 
-  const onInvalid = (e: React.FormEvent<HTMLDivElement>) => {
-    if (jumping.current) return;
-    const target = e.target as HTMLElement;
-    const at = parts.find((p) => partEls.current.get(p.id)?.contains(target));
-    if (!at || at.id === active) return;
-    jumping.current = true;
-    setActive(at.id);
-    setTimeout(() => {
-      jumping.current = false;
-      (target as HTMLInputElement).reportValidity?.();
-    }, 0);
-  };
+  const onInvalid = (e: React.FormEvent<HTMLDivElement>) =>
+    revealFirstInvalid(e.target, (field) => {
+      const at = parts.find((p) => partEls.current.get(p.id)?.contains(field));
+      if (!at || at.id === active) return false;
+      setActive(at.id);
+      return true;
+    });
 
   const part = parts.find((p) => p.id === active);
   const label = part?.label ?? "AI card";
