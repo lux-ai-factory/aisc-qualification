@@ -33,8 +33,9 @@ const V1 = "c0c0c0c0-2222-4000-8000-000000000101";
 const V2 = "c0c0c0c0-2222-4000-8000-000000000102";
 const V3 = "c0c0c0c0-2222-4000-8000-000000000103";
 // The engine's components, as GET /api/v1/projects/{pid}/aisystem lists them: every save links them.
+// card content only: a dataset is test data now (src/domain/cardComponents.ts NOT_CARD_TYPES), so it is not linked
 const ENGINE = [
-  { pid: "e0e0e0e0-2222-4000-8000-000000000002", name: "Loans", component_type: "dataset", data: "data/loans.csv" },
+  { pid: "e0e0e0e0-2222-4000-8000-000000000002", name: "Loans", component_type: "resource", data: "data/loans.csv" },
   { pid: "e0e0e0e0-2222-4000-8000-000000000001", name: "Scorer", component_type: "model", data: "models/m.pkl" },
 ];
 const engine = { components: async () => ENGINE };
@@ -188,7 +189,7 @@ describe.skipIf(!enabled)("the next card's content, before it is stored", () => 
       })),
     ).toEqual([
       { componentPid: ENGINE[1].pid, airoProperty: "hasModel", name: "Scorer", componentType: "model", objectName: "models/m.pkl", componentKey: null },
-      { componentPid: ENGINE[0].pid, airoProperty: "hasComponent", name: "Loans", componentType: "dataset", objectName: "data/loans.csv", componentKey: null },
+      { componentPid: ENGINE[0].pid, airoProperty: "hasComponent", name: "Loans", componentType: "resource", objectName: "data/loans.csv", componentKey: null },
     ].sort((a, b) => a.componentPid.localeCompare(b.componentPid)));
     expect(hasDrift(componentDrift(card.components, ENGINE))).toBe(false);
     // a re-upload in the engine is drift against what the card saved

@@ -63,7 +63,10 @@ ISO_F=ffffffff-0000-4000-8000-00000000000f   # the older DB tests (cardVersions)
 ISO_G=c4c4c4c4-0000-4000-8000-0000000000c4   # carriedReview: card versions of its own, so no other test's card stops being the latest
 ISO_H=d5d5d5d5-0000-4000-8000-0000000000d5   # cardRevisions: card versions of its own, so no other file takes its version number
 ISO_SETUP=ok
+# shared/identity holds the rules the platform imports (aisc_identity, aisc_redact), as in its image: without it on
+# the path the import fails, nothing is provisioned, and every test that needs a project database fails
 if (cd "$ROOT/platform" && PROVISION_DSN="postgresql://platform_migrator:platform_migrator@127.0.0.1:$PORT/platform" \
+    PYTHONPATH="$ROOT/shared/identity${PYTHONPATH:+:$PYTHONPATH}" \
     uv run --quiet python -c '
 import os, sys
 from platform_service.projectdb import provision

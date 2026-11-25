@@ -221,6 +221,8 @@ describe.skipIf(!enabled)(
     });
 
     it("the refinement opens its run before the agent is asked, and passes the run on", async () => {
+      // a run the install allows: AI actions are off unless AISC_AI_ACTIONS=on (aiActionsSetting.test.ts covers off)
+      vi.stubEnv("AISC_AI_ACTIONS", "on");
       const { rerunFill } =
         await import("@/app/p/[project]/qualify/[id]/fill-actions");
       await newCard(`lg-card-run-${TAG}`);
